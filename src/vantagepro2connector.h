@@ -1,9 +1,11 @@
 #include <iostream>
 #include <boost/asio.hpp>
 
+#include "connector.h"
+
 struct Message;
 
-class VantagePro2Connector
+class VantagePro2Connector : public Connector
 {
 public:
 	VantagePro2Connector(std::string remote, int port);
