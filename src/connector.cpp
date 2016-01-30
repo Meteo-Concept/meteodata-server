@@ -1,7 +1,8 @@
 #include "connector.h"
 
-Connector::Connector()
-{
+namespace meteodata {
+	Connector::Connector()
+	{
 
+	}
 }
-

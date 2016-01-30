@@ -1,7 +1,9 @@
 #include "station.h"
 
-Station::Station()
-{
+namespace meteodata {
+	Station::Station()
+	{
 
+	}
 }
 
