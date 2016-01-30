@@ -1,6 +1,5 @@
 bin_PROGRAMS = meteodata
 meteodata_SOURCES = \
-		    config.h\
 		    daemon.cpp\
 		    dbconnection.cpp\
 		    dbconnection.h\
