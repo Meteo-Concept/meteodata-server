@@ -1,0 +1,14 @@
+aclocal.m4
+autoscan-2.69.log
+compile
+config.log
+config.status
+configure
+install-sh
+missing
+autom4te.cache
+src/Makefile
+src/Makefile.in
+src/autoscan-2.69.log
+src/config.h.in
+src/stamp-h1
