@@ -7,6 +7,8 @@ namespace meteodata {
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()}
 	{
+		cass_cluster_set_contact_points(cluster, "127.0.0.1");
+		_futureConn = cass_session_connect(session, cluster);
 	}
 
 	DbConnection::~DbConnection()
