@@ -6,7 +6,7 @@ namespace meteodata {
 	{
 	public:
 		Connector();
-		virtual ~Connector() = 0;
+		virtual ~Connector() = default;
 	};
 }
 
