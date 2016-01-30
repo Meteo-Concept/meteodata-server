@@ -1,4 +1,4 @@
-#ACLOCAL_AMFLAGS = -I m4
+ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src
 
 #EXTRA_DIST = Doxyfile.in custom.css LICENSE README.md

@@ -7,3 +7,8 @@ meteodata_SOURCES = \
 		    message.h\
 		    vantagepro2connector.cpp\
 		    vantagepro2connector.h
+
+meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS)
+meteodata_CXXFLAGS = -std=c++11
+meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
+meteodata_LDADD = -lcassandra $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS)
