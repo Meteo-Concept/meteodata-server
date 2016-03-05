@@ -1,3 +1,6 @@
+#ifndef MESSAGE_H
+#define MESSAGE_H
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -23,3 +26,5 @@ namespace meteodata {
 		MessageType _type;
 	};
 }
+
+#endif

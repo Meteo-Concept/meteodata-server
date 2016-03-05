@@ -1,6 +1,13 @@
 #include <iostream>
+#include <functional>
+#include <memory>
+#include <chrono>
+
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
+#include <boost/asio/system_timer.hpp>
+
+
 #include "vantagepro2connector.h"
 #include "message.h"
 
@@ -44,18 +51,60 @@ namespace meteodata {
 	};
 
 
-	VantagePro2Connector::VantagePro2Connector(std::string remote, int port) :
-		_resolver(_ioService),
-		_query(remote, std::to_string(port),
-			   ip::resolver_query_base::numeric_service |
-			   ip::resolver_query_base::passive |
-			   ip::resolver_query_base::address_configured),
-		_endpointIterator(_resolver.resolve(_query))
-	{
+	VantagePro2Connector::VantagePro2Connector(io_service& ioService) :
+		Connector(ioService),
+		_timer(ioService)
+	{}
 
+	VantagePro2Connector::~VantagePro2Connector()
+	{
+		std::cerr << "VantagePro2Connector destructed" << std::endl;
 	}
 
+	void VantagePro2Connector::writePeriodically(const boost::system::error_code& e)
+	{
+		if (e == boost::asio::error::operation_aborted) {
+			std::cerr << "Timer aborted" << std::endl;
+			return;
+		}
 
+		std::string coucou("Hello world!\n");
+		async_write(_sock, buffer(coucou),
+			std::bind(&VantagePro2Connector::handleWrite,
+					casted_shared_from_this(),
+					std::placeholders::_1,
+					std::placeholders::_2));
+
+		_timer.expires_at(_timer.expires_at() + std::chrono::seconds(3));
+		_timer.async_wait(
+			std::bind(&VantagePro2Connector::writePeriodically,
+				casted_shared_from_this(),
+				std::placeholders::_1)
+		);
+	}
+
+	void VantagePro2Connector::start()
+	{
+		// this is where we launch the periodic polling of the console
+		_timer.expires_from_now(std::chrono::seconds(3));
+
+		_timer.async_wait(
+			std::bind(&VantagePro2Connector::writePeriodically,
+				casted_shared_from_this(),
+				std::placeholders::_1)
+		);
+	}
+
+	void VantagePro2Connector::handleWrite(const boost::system::error_code& error,
+		size_t bytes_transferred)
+	{
+		std::cerr << "written : " << bytes_transferred << std::endl;
+		if (error) {
+			std::cerr << "There was an error : " << error
+				<< " ...stopping the connector" << std::endl;
+			_timer.cancel();
+		}
+	}
 	// assume the CRC is the last two bytes
 	bool VantagePro2Connector::validateCrc(const Message& msg)
 	{
