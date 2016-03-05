@@ -3,10 +3,9 @@
 
 #include <iostream>
 #include <memory>
-#include <chrono>
 
 #include <boost/asio.hpp>
-#include <boost/asio/system_timer.hpp>
+#include <boost/asio/deadline_timer.hpp>
 
 #include "connector.h"
 
@@ -21,21 +20,31 @@ namespace meteodata {
 		//void getOneDataPoint();
 		void start() override;
 
-	protected:
-		void handleWrite(const boost::system::error_code& error,
-			size_t bytes_transferred) override;
-
 	private:
 		static const int CRC_VALUES[];
 		bool validateCrc(const Message& msg);
-		void writePeriodically(const boost::system::error_code&);
 		std::shared_ptr<VantagePro2Connector> casted_shared_from_this() {
 			return std::static_pointer_cast<VantagePro2Connector>(shared_from_this());
 		}
-		boost::asio::basic_waitable_timer<std::chrono::system_clock> _timer;
+		boost::asio::deadline_timer _timer;
+		boost::asio::streambuf _inputBuffer;
+		bool _stopped = false;
 
-		//bool write(std::string& buffer);
-		//bool read(std::string& buffer);
+		// the console has been sent \n\n
+		void handleWakenUp(const boost::system::error_code& error);
+		// the console has answered and is awake
+		void handleAnswerWakeUp(const boost::system::error_code& error);
+		
+		// the console has been asked for data
+		void handleAskedForData(const boost::system::error_code& error);
+		// the console has sent data
+		void handleAnsweredData(const boost::system::error_code& error,
+				unsigned int bytes_transferred);
+
+		void stop();
+
+		// an operation has timeout
+		void checkDeadline();
 	};
 }
 

@@ -25,8 +25,6 @@ namespace meteodata
 		boost::asio::ip::tcp::socket& socket() { return _sock; }
 
 	protected:
-		virtual void handleWrite(const boost::system::error_code& error,
-			size_t bytes_transferred) = 0;
 		Connector(boost::asio::io_service& ioService);
 		boost::asio::ip::tcp::socket _sock;
 		boost::asio::io_service& _ioService;

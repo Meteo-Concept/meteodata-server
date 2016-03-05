@@ -1,12 +1,10 @@
 #include <iostream>
 #include <functional>
 #include <memory>
-#include <chrono>
 
 #include <boost/array.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/system_timer.hpp>
-
 
 #include "vantagepro2connector.h"
 #include "message.h"
@@ -61,50 +59,127 @@ namespace meteodata {
 		std::cerr << "VantagePro2Connector destructed" << std::endl;
 	}
 
-	void VantagePro2Connector::writePeriodically(const boost::system::error_code& e)
-	{
-		if (e == boost::asio::error::operation_aborted) {
-			std::cerr << "Timer aborted" << std::endl;
-			return;
-		}
-
-		std::string coucou("Hello world!\n");
-		async_write(_sock, buffer(coucou),
-			std::bind(&VantagePro2Connector::handleWrite,
-					casted_shared_from_this(),
-					std::placeholders::_1,
-					std::placeholders::_2));
-
-		_timer.expires_at(_timer.expires_at() + std::chrono::seconds(3));
-		_timer.async_wait(
-			std::bind(&VantagePro2Connector::writePeriodically,
-				casted_shared_from_this(),
-				std::placeholders::_1)
-		);
-	}
-
 	void VantagePro2Connector::start()
 	{
-		// this is where we launch the periodic polling of the console
-		_timer.expires_from_now(std::chrono::seconds(3));
-
 		_timer.async_wait(
-			std::bind(&VantagePro2Connector::writePeriodically,
-				casted_shared_from_this(),
-				std::placeholders::_1)
+			std::bind(&VantagePro2Connector::checkDeadline,
+				casted_shared_from_this())
 		);
+
+		async_write(_sock, buffer("\n\n"),
+			std::bind(&VantagePro2Connector::handleWakenUp,
+					casted_shared_from_this(),
+					std::placeholders::_1));
+
+		_timer.expires_from_now(boost::posix_time::seconds(3));
 	}
 
-	void VantagePro2Connector::handleWrite(const boost::system::error_code& error,
-		size_t bytes_transferred)
+	void VantagePro2Connector::handleWakenUp(const boost::system::error_code& error)
 	{
-		std::cerr << "written : " << bytes_transferred << std::endl;
+		if (_stopped)
+			return;
+
 		if (error) {
-			std::cerr << "There was an error : " << error
+			std::cerr << "There was an error in waking up the console : " << error
 				<< " ...stopping the connector" << std::endl;
-			_timer.cancel();
+			stop();
+		} else {
+			std::cerr << "Waking up station" << std::endl;
+		}
+
+		async_read_until(_sock, _inputBuffer, '\n',
+			std::bind(&VantagePro2Connector::handleAnswerWakeUp,
+				casted_shared_from_this(),
+				std::placeholders::_1));
+		_timer.expires_from_now(boost::posix_time::seconds(6));
+	}
+
+	void VantagePro2Connector::handleAnswerWakeUp(const boost::system::error_code& error)
+	{
+		if (_stopped)
+			return;
+
+		if (error) {
+			std::cerr << "There was an error in receiving the answer from the station : " << error
+				<< " ...stopping the connector" << std::endl;
+			stop();
+		} else {
+			std::cerr << "Station is awake" << std::endl;
+		}
+
+		_inputBuffer.consume(_inputBuffer.size());
+		async_write(_sock, buffer("LOOPS 2 1\n\n"),
+			std::bind(&VantagePro2Connector::handleAskedForData,
+					casted_shared_from_this(),
+					std::placeholders::_1));
+
+		_timer.expires_from_now(boost::posix_time::seconds(3));
+	}
+
+	void VantagePro2Connector::handleAskedForData(const boost::system::error_code& error)
+	{
+		if (_stopped)
+			return;
+
+		if (error) {
+			std::cerr << "There was an error in waking up the console : " << error
+				<< " ...stopping the connector" << std::endl;
+			stop();
+		} else {
+			std::cerr << "Data have been asked for" << std::endl;
+		}
+
+		async_read_until(_sock, _inputBuffer, '\n',
+			std::bind(&VantagePro2Connector::handleAnsweredData,
+				casted_shared_from_this(),
+				std::placeholders::_1,
+				std::placeholders::_2));
+		_timer.expires_from_now(boost::posix_time::seconds(10));
+	}
+
+	void VantagePro2Connector::handleAnsweredData(const boost::system::error_code& error,
+				unsigned int bytes_transferred)
+	{
+		if (_stopped)
+			return;
+
+		_timer.expires_at(boost::posix_time::pos_infin);
+		if (error) {
+			std::cerr << "There was an error in waking up the console : " << error
+				<< " ...stopping the connector" << std::endl;
+			stop();
+		} else {
+			std::cerr << "Data received" << std::endl;
+		}
+
+		stop();
+		//parse the data and send them to database
+	}
+
+	void VantagePro2Connector::checkDeadline()
+	{
+		if (_stopped)
+			return;
+
+		if (_timer.expires_at() <= deadline_timer::traits_type::now()) {
+			stop();
+		} else {
+			//the timer has not really expired,
+			//the deadline has been extended
+			_timer.async_wait(
+				std::bind(&VantagePro2Connector::checkDeadline,
+					casted_shared_from_this())
+			);
 		}
 	}
+
+	void VantagePro2Connector::stop()
+	{
+		_stopped = true;
+		_timer.cancel();
+		_sock.close();
+	}
+
 	// assume the CRC is the last two bytes
 	bool VantagePro2Connector::validateCrc(const Message& msg)
 	{
