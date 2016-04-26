@@ -12,7 +12,7 @@
 using namespace boost::asio;
 
 namespace meteodata {
-	const int VantagePro2Connector::CRC_VALUES[] =
+	const int VantagePro2Connector_::CRC_VALUES[] =
 	{
 		0x0, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
 		0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
@@ -49,131 +49,17 @@ namespace meteodata {
 	};
 
 
-	VantagePro2Connector::VantagePro2Connector(io_service& ioService) :
+	VantagePro2Connector_::VantagePro2Connector_(io_service& ioService) :
 		Connector(ioService),
 		_timer(ioService)
 	{}
 
-	VantagePro2Connector::~VantagePro2Connector()
+	VantagePro2Connector_::~VantagePro2Connector_()
 	{
 		std::cerr << "VantagePro2Connector destructed" << std::endl;
 	}
 
-	void VantagePro2Connector::start()
-	{
-		_timer.async_wait(
-			std::bind(&VantagePro2Connector::checkDeadline,
-				casted_shared_from_this())
-		);
-
-		async_write(_sock, buffer("\n\n"),
-			std::bind(&VantagePro2Connector::handleWakenUp,
-					casted_shared_from_this(),
-					std::placeholders::_1));
-
-		_timer.expires_from_now(boost::posix_time::seconds(3));
-	}
-
-	void VantagePro2Connector::handleWakenUp(const boost::system::error_code& error)
-	{
-		if (_stopped)
-			return;
-
-		if (error) {
-			std::cerr << "There was an error in waking up the console : " << error
-				<< " ...stopping the connector" << std::endl;
-			stop();
-		} else {
-			std::cerr << "Waking up station" << std::endl;
-		}
-
-		async_read_until(_sock, _inputBuffer, '\n',
-			std::bind(&VantagePro2Connector::handleAnswerWakeUp,
-				casted_shared_from_this(),
-				std::placeholders::_1));
-		_timer.expires_from_now(boost::posix_time::seconds(6));
-	}
-
-	void VantagePro2Connector::handleAnswerWakeUp(const boost::system::error_code& error)
-	{
-		if (_stopped)
-			return;
-
-		if (error) {
-			std::cerr << "There was an error in receiving the answer from the station : " << error
-				<< " ...stopping the connector" << std::endl;
-			stop();
-		} else {
-			std::cerr << "Station is awake" << std::endl;
-		}
-
-		_inputBuffer.consume(_inputBuffer.size());
-		async_write(_sock, buffer("LOOPS 2 1\n\n"),
-			std::bind(&VantagePro2Connector::handleAskedForData,
-					casted_shared_from_this(),
-					std::placeholders::_1));
-
-		_timer.expires_from_now(boost::posix_time::seconds(3));
-	}
-
-	void VantagePro2Connector::handleAskedForData(const boost::system::error_code& error)
-	{
-		if (_stopped)
-			return;
-
-		if (error) {
-			std::cerr << "There was an error in waking up the console : " << error
-				<< " ...stopping the connector" << std::endl;
-			stop();
-		} else {
-			std::cerr << "Data have been asked for" << std::endl;
-		}
-
-		async_read_until(_sock, _inputBuffer, '\n',
-			std::bind(&VantagePro2Connector::handleAnsweredData,
-				casted_shared_from_this(),
-				std::placeholders::_1,
-				std::placeholders::_2));
-		_timer.expires_from_now(boost::posix_time::seconds(10));
-	}
-
-	void VantagePro2Connector::handleAnsweredData(const boost::system::error_code& error,
-				unsigned int bytes_transferred)
-	{
-		if (_stopped)
-			return;
-
-		_timer.expires_at(boost::posix_time::pos_infin);
-		if (error) {
-			std::cerr << "There was an error in waking up the console : " << error
-				<< " ...stopping the connector" << std::endl;
-			stop();
-		} else {
-			std::cerr << "Data received" << std::endl;
-		}
-
-		stop();
-		//parse the data and send them to database
-	}
-
-	void VantagePro2Connector::checkDeadline()
-	{
-		if (_stopped)
-			return;
-
-		if (_timer.expires_at() <= deadline_timer::traits_type::now()) {
-			stop();
-		} else {
-			//the timer has not really expired,
-			//the deadline has been extended
-			_timer.async_wait(
-				std::bind(&VantagePro2Connector::checkDeadline,
-					casted_shared_from_this())
-			);
-		}
-	}
-
-	void VantagePro2Connector::stop()
+	void VantagePro2Connector_::stop()
 	{
 		_stopped = true;
 		_timer.cancel();
@@ -181,12 +67,12 @@ namespace meteodata {
 	}
 
 	// assume the CRC is the last two bytes
-	bool VantagePro2Connector::validateCrc(const Message& msg)
+	bool VantagePro2Connector_::validateCrc(const char* msg, size_t length)
 	{
 		unsigned int crc = 0;
-		for (char byte : msg) {
-			unsigned int index = (crc >> 8) ^ byte;
-			crc = VantagePro2Connector::CRC_VALUES[index] ^((crc << 8) & 0xFFFF);
+		for (unsigned int i=0 ; i<length ; i++) {
+			unsigned int index = (crc >> 8) ^ msg[i];
+			crc = CRC_VALUES[index] ^((crc << 8) & 0xFFFF);
 		}
 
 		return crc == 0;

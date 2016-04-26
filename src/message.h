@@ -13,7 +13,7 @@ using namespace std::uint64_t;
 
 namespace meteodata {
 
-	struct loops1
+	struct Loop1
 	{
 		char header[3];
 		uint8_t barTrend;
@@ -61,7 +61,7 @@ namespace meteodata {
 		uint16_t crcLoop1;
 	} __attribute__((packed));
 
-	struct loop2
+	struct Loop2
 	{
 		char header[3];
 		uint8_t barTrend;
