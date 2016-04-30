@@ -18,7 +18,7 @@ namespace meteodata
 				Connector::ptr>::type
 		create(boost::asio::io_service& ioService)
 		{
-			return Connector::ptr(new T(ioService));
+			return Connector::ptr(new T(std::ref(ioService)));
 		}
 		virtual ~Connector() = default;
 		virtual void start() = 0;

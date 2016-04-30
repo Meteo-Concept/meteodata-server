@@ -3,14 +3,13 @@ meteodata_SOURCES = \
 		    daemon.cpp\
 		    dbconnection.cpp\
 		    dbconnection.h\
-		    vantagepro2connector.cpp\
 		    vantagepro2connector.h\
 		    connector.h\
 		    connector.cpp\
 		    meteo_server.h\
-		    meteo_server.cpp
-
-#		    message.h\
+		    meteo_server.cpp\
+		    message.h
+		    
 #		    station.h\
 #		    station.cpp\
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS)

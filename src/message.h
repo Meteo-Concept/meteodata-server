@@ -6,10 +6,10 @@
 #include <vector>
 #include <algorithm>
 
-using namespace std::uint8_t;
-using namespace std::uint16_t;
-using namespace std::uint32_t;
-using namespace std::uint64_t;
+using std::uint8_t;
+using std::uint16_t;
+using std::uint32_t;
+using std::uint64_t;
 
 namespace meteodata {
 
