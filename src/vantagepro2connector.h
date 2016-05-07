@@ -6,6 +6,7 @@
 #include <array>
 #include <functional>
 
+#include <boost/mpl/vector/vector30.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/msm/back/state_machine.hpp>
@@ -75,6 +76,7 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			std::cerr << "People are connected" << std::endl;
 			fsm._txrxErrors = 0;
 			fsm._timeouts = 0;
 		}
@@ -85,6 +87,7 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			std::cerr << "Waking up the console" << std::endl;
 			async_write(fsm._sock, asio::buffer("\r\n\r\n"),
 					[&fsm](const sys::error_code& e,
 							unsigned int bytes) {
@@ -164,11 +167,11 @@ class VantagePro2Connector_ :
 		void on_entry(Event const&, FSM& fsm)
 		{
 			_valid = fsm.validateCRC(
-					static_cast<const char*>(fsm._l1),
-					sizeof(Loop1)) &&
-							fsm.validateCRC(
-									static_cast<const char*>(fsm._l2),
-									sizeof(Loop2));
+						fsm._l1,
+						sizeof(Loop1)) &&
+				 fsm.validateCRC(
+						fsm._l2,
+						sizeof(Loop2));
 		}
 	};
 
@@ -246,37 +249,37 @@ class VantagePro2Connector_ :
 	// none for now, everything is in on_entry() (which may not be fine actually...)
 
 	// Transition table for the server
-	struct transition_table : mpl::vector<
-	//    Start          Event         Next             Action                      Guard
-	//  +--------------+-------------+---------------+---------------------------+-------------------+
-	Row < Idle         , timeout     , WakingUp      , none                      , none              >,
-	//  +--------------+-------------+---------------+---------------------------+-------------------+
-	/*	Row < WakingUp     , sent        , WaitingForAck , none                      , none              >,
-			Row < WakingUp     , error       , CleaningUp    , none                      , none              >,
-			Row < WakingUp     , timeout     , WakingUp      , note_timeout              , none              >,
-			Row < WakingUp     , timeout     , CleaningUp    , none                      , too_many_timeouts >,
-			//  +--------------+-------------+---------------+---------------------------+-------------------+
-			Row < WaitingForAck, recvd       , AskingForData , none                      , none              >,
-			Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
-			Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
-			Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,
-			//  +--------------+-------------+---------------+---------------------------+-------------------+
-			Row < AskingForData, sent        , WaitingForAck , none                      , none              >,
-			Row < AskingForData, error       , CleaningUp    , none                      , none              >,
-			Row < AskingForData, timeout     , AskingForData , note_timeout              , none              >,
-			Row < AskingForData, timeout     , CleaningUp    , none                      , too_many_timeouts >,
-			//  +--------------+-------------+---------------+---------------------------+-------------------+
-			Row < WaitingForAck, recvd       , CheckingCRC   , none                      , none              >,
-			Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
-			Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
-			Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,*/
-	//  +--------------+-------------+---------------+---------------------------+-------------------+
-	Row < CheckingCRC  , none        , StoringData   , none                      , validCRC          >,
-	Row < CheckingCRC  , none        , AskingForData , note_error                , Not_<validCRC>    >,
-	Row < CheckingCRC  , none        , CleaningUp    , none                      , And_<Not_<validCRC>,too_many_errors> >,
-	//  +--------------+-------------+---------------+---------------------------+-------------------+
-	Row < StoringData  , none        , Idle          , none                      , none              >
-	//  +--------------+-------------+---------------+---------------------------+-------------------+
+	struct transition_table : mpl::vector21<
+	  //    Start          Event         Next             Action                      Guard
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < Idle         , timeout     , WakingUp      , none                      , none              >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < WakingUp     , sent        , WaitingForAck , none                      , none              >,
+	  Row < WakingUp     , error       , CleaningUp    , none                      , none              >,
+	  Row < WakingUp     , timeout     , WakingUp      , note_timeout              , none              >,
+	  Row < WakingUp     , timeout     , CleaningUp    , none                      , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < WaitingForAck, recvd       , AskingForData , none                      , none              >,
+	  Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
+	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
+	  Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < AskingForData, sent        , WaitingForAck , none                      , none              >,
+	  Row < AskingForData, error       , CleaningUp    , none                      , none              >,
+	  Row < AskingForData, timeout     , AskingForData , note_timeout              , none              >,
+	  Row < AskingForData, timeout     , CleaningUp    , none                      , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < WaitingForAck, recvd       , CheckingCRC   , none                      , none              >,
+	  Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
+	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
+	  Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < CheckingCRC  , none        , StoringData   , none                      , validCRC          >,
+	  Row < CheckingCRC  , none        , AskingForData , note_error                , Not_<validCRC>    >,
+	  Row < CheckingCRC  , none        , CleaningUp    , none                      , And_<Not_<validCRC>,too_many_errors> >,
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  Row < StoringData  , none        , Idle          , none                      , none              >
+	  //  +--------------+-------------+---------------+---------------------------+-------------------+
 	> {};
 
 	public:
@@ -325,11 +328,13 @@ class VantagePro2Connector_ :
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0
 	};
 
-	bool validateCrc(const char* msg, size_t len)
+	bool validateCRC(const void* msg, size_t len)
 	{
+		//byte-wise reading
+		const char* bytes = reinterpret_cast<const char*>(msg);
 		unsigned int crc = 0;
 		for (unsigned int i=0 ; i<len ; i++) {
-			unsigned int index = (crc >> 8) ^ msg[i];
+			unsigned int index = (crc >> 8) ^ bytes[i];
 			crc = CRC_VALUES[index] ^((crc << 8) & 0xFFFF);
 		}
 

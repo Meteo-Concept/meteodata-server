@@ -13,6 +13,8 @@ using namespace boost::asio::ip;
 
 namespace meteodata {
 
+constexpr int VantagePro2Connector_::CRC_VALUES[];
+
 MeteoServer::MeteoServer(boost::asio::io_service& ioService) :
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886))
 {
