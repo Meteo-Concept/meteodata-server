@@ -245,41 +245,38 @@ class VantagePro2Connector_ :
 		}
 	};
 
-	//Transitions
-	// none for now, everything is in on_entry() (which may not be fine actually...)
-
 	// Transition table for the server
 	struct transition_table : mpl::vector21<
-	  //    Start          Event         Next             Action                      Guard
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < Idle         , timeout     , WakingUp      , none                      , none              >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < WakingUp     , sent        , WaitingForAck , none                      , none              >,
-	  Row < WakingUp     , error       , CleaningUp    , none                      , none              >,
-	  Row < WakingUp     , timeout     , WakingUp      , note_timeout              , none              >,
-	  Row < WakingUp     , timeout     , CleaningUp    , none                      , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < WaitingForAck, recvd       , AskingForData , none                      , none              >,
-	  Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
-	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
-	  Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < AskingForData, sent        , WaitingForAck , none                      , none              >,
-	  Row < AskingForData, error       , CleaningUp    , none                      , none              >,
-	  Row < AskingForData, timeout     , AskingForData , note_timeout              , none              >,
-	  Row < AskingForData, timeout     , CleaningUp    , none                      , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < WaitingForAck, recvd       , CheckingCRC   , none                      , none              >,
-	  Row < WaitingForAck, error       , CleaningUp    , none                      , none              >,
-	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout              , none              >,
-	  Row < WaitingForAck, timeout     , CleaningUp    , none                      , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < CheckingCRC  , none        , StoringData   , none                      , validCRC          >,
-	  Row < CheckingCRC  , none        , AskingForData , note_error                , Not_<validCRC>    >,
-	  Row < CheckingCRC  , none        , CleaningUp    , none                      , And_<Not_<validCRC>,too_many_errors> >,
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
-	  Row < StoringData  , none        , Idle          , none                      , none              >
-	  //  +--------------+-------------+---------------+---------------------------+-------------------+
+	  //    Start          Event         Next             Action           Guard
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < Idle         , timeout     , WakingUp      , none          , none              >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < WakingUp     , sent        , WaitingForAck , none          , none              >,
+	  Row < WakingUp     , error       , CleaningUp    , none          , none              >,
+	  Row < WakingUp     , timeout     , WakingUp      , note_timeout  , none              >,
+	  Row < WakingUp     , timeout     , CleaningUp    , none          , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < WaitingForAck, recvd       , AskingForData , none          , none              >,
+	  Row < WaitingForAck, error       , CleaningUp    , none          , none              >,
+	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout  , none              >,
+	  Row < WaitingForAck, timeout     , CleaningUp    , none          , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < AskingForData, sent        , WaitingForAck , none          , none              >,
+	  Row < AskingForData, error       , CleaningUp    , none          , none              >,
+	  Row < AskingForData, timeout     , AskingForData , note_timeout  , none              >,
+	  Row < AskingForData, timeout     , CleaningUp    , none          , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < WaitingForAck, recvd       , CheckingCRC   , none          , none              >,
+	  Row < WaitingForAck, error       , CleaningUp    , none          , none              >,
+	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout  , none              >,
+	  Row < WaitingForAck, timeout     , CleaningUp    , none          , too_many_timeouts >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < CheckingCRC  , none        , StoringData   , none          , validCRC          >,
+	  Row < CheckingCRC  , none        , AskingForData , note_error    , Not_<validCRC>    >,
+	  Row < CheckingCRC  , none        , CleaningUp    , none          , And_<Not_<validCRC>,too_many_errors> >,
+	  //  +--------------+-------------+---------------+---------------+-------------------+
+	  Row < StoringData  , none        , Idle          , none          , none              >
+	  //  +--------------+-------------+---------------+---------------+-------------------+
 	> {};
 
 	public:
