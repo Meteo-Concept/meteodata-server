@@ -39,7 +39,7 @@ namespace meteodata {
 		int32_t monthrain;
 		int32_t yearrain;
 		int32_t stormrain;
-		int32_t stormstartdate;
+		uint32_t stormstartdate;
 		int32_t UV;
 		int32_t solarrad;
 		int32_t dewpoint;
@@ -49,10 +49,10 @@ namespace meteodata {
 		int32_t dayET;
 		int32_t monthET;
 		int32_t yearET;
-		int32_t forecast;
+		std::string forecast;
 		int32_t forecast_icons;
-		int32_t sunrise;
-		int32_t sunset;
+		int64_t sunrise;
+		int64_t sunset;
 	};
 
 	class DbConnection

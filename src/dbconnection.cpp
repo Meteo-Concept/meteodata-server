@@ -1,5 +1,4 @@
 #include <iostream>
-#include <ctime>
 
 #include <cassandra.h>
 #include <syslog.h>
@@ -126,7 +125,7 @@ namespace meteodata {
 		CassUuid stationId;
 		cass_uuid_from_string_n(dp.station.c_str(), dp.station.length(), &stationId);
 		cass_statement_bind_uuid(statement, 0, stationId);
-		cass_statement_bind_int64(statement, 1, time(NULL));
+		cass_statement_bind_int64(statement, 1, dp.time);
 		cass_statement_bind_int32(statement, 2, dp.bartrend);
 		cass_statement_bind_int32(statement, 3, dp.barometer);
 		cass_statement_bind_int32(statement, 4, dp.barometer_abs);
@@ -179,7 +178,7 @@ namespace meteodata {
 		cass_statement_bind_int32(statement, 51, dp.monthrain);
 		cass_statement_bind_int32(statement, 52, dp.yearrain);
 		cass_statement_bind_int32(statement, 53, dp.stormrain);
-		cass_statement_bind_int32(statement, 54, dp.stormstartdate);
+		cass_statement_bind_uint32(statement, 54, dp.stormstartdate);
 		cass_statement_bind_int32(statement, 55, dp.UV);
 		cass_statement_bind_int32(statement, 56, dp.solarrad);
 		cass_statement_bind_int32(statement, 57, dp.dewpoint);
@@ -189,10 +188,10 @@ namespace meteodata {
 		cass_statement_bind_int32(statement, 61, dp.dayET);
 		cass_statement_bind_int32(statement, 62, dp.monthET);
 		cass_statement_bind_int32(statement, 63, dp.yearET);
-		cass_statement_bind_int32(statement, 64, dp.forecast);
+		cass_statement_bind_string(statement, 64, dp.forecast.c_str());
 		cass_statement_bind_int32(statement, 65, dp.forecast_icons);
-		cass_statement_bind_int32(statement, 66, dp.sunrise);
-		cass_statement_bind_int32(statement, 67, dp.sunset);
+		cass_statement_bind_int64(statement, 66, dp.sunrise);
+		cass_statement_bind_int64(statement, 67, dp.sunset);
 		cass_session_execute(_session, statement);
 		cass_statement_free(statement);
 		return true;

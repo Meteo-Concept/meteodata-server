@@ -8,7 +8,8 @@ meteodata_SOURCES = \
 		    connector.cpp\
 		    meteo_server.h\
 		    meteo_server.cpp\
-		    message.h
+		    message.h\
+		    message.cpp
 		    
 #		    station.h\
 #		    station.cpp\

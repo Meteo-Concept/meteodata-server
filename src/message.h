@@ -22,6 +22,7 @@ namespace meteodata {
 		uint16_t barometer;
 		uint16_t insideTemperature;
 		uint8_t insideHumidity;
+		uint16_t outsideTemperature;
 		uint8_t windSpeed;
 		uint8_t tenMinAvgWindSpeed;
 		uint16_t windDir;
