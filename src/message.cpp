@@ -18,7 +18,7 @@ namespace {
 		{23, "Partly Cloudy, Rain or Snow within 12 hours"}
 	};
 
-	uint32_t fromDayMonthYearToCassandraDate(int day, int month, int year)
+	uint32_t from_daymonthyear_to_CassandraDate(int day, int month, int year)
 	{
 		struct tm date;
 		memset(&date, 0, sizeof(date));
@@ -28,13 +28,38 @@ namespace {
 		return cass_date_from_epoch(mktime(&date));
 	}
 
-	int64_t fromHourMinToCassandraTime(int hour, int min)
+	int64_t from_hourmin_to_CassandraTime(int hour, int min)
 	{
 		struct tm date;
 		memset(&date, 0, sizeof(date));
 		date.tm_hour = hour;
 		date.tm_min = min;
 		return cass_time_from_epoch(mktime(&date));
+	}
+
+	inline int32_t from_inHg_to_bar(int bar)
+	{
+		return bar * 0.03386;
+	}
+
+	inline int32_t from_Farenheight_to_Celsius(int f)
+	{
+		return (f - 32.0) / 1.80;
+	}
+
+	inline int32_t from_mph_to_mps(int mph)
+	{
+		return mph * 0.44704;
+	}
+
+	inline int32_t from_mph_to_kph(int mph)
+	{
+		return mph * 1.609;
+	}
+
+	inline int32_t from_in_to_mm(int in)
+	{
+		return in * 25.4;
 	}
 }
 
@@ -78,7 +103,7 @@ namespace meteodata
 		dp.monthrain = l1.monthRain;
 		dp.yearrain = l1.yearRain;
 		dp.stormrain = l2.stormRain;
-		dp.stormstartdate = fromDayMonthYearToCassandraDate(
+		dp.stormstartdate = from_daymonthyear_to_CassandraDate(
 					l2.dayStartDateCurrentStorm,
 					l2.monthStartDateCurrentStorm,
 					l2.yearStartDateCurrentStorm
@@ -94,15 +119,15 @@ namespace meteodata
 		dp.yearET = l1.yearET;
 		dp.forecast = forecasts.at(l1.forecastIcons);
 		dp.forecast_icons = l1.forecastIcons;
-		dp.sunrise = fromHourMinToCassandraTime(
+		dp.sunrise = from_hourmin_to_CassandraTime(
 				l1.timeOfSunrise / 100,
 				l1.timeOfSunrise % 100
 			     );
-		dp.sunset = fromHourMinToCassandraTime(
+		dp.sunset = from_hourmin_to_CassandraTime(
 				l1.timeOfSunset / 100,
 				l1.timeOfSunset % 100
 			    );
-		
+
 		return dp;
 	}
 
