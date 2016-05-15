@@ -11,7 +11,7 @@ namespace meteodata {
 	struct DataPoint {
 		std::string station;
 		int64_t time;
-		int32_t bartrend;
+		std::string bartrend;
 		int32_t barometer;
 		int32_t barometer_abs;
 		int32_t barometer_raw;

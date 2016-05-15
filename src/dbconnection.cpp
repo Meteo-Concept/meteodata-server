@@ -126,7 +126,7 @@ namespace meteodata {
 		cass_uuid_from_string_n(dp.station.c_str(), dp.station.length(), &stationId);
 		cass_statement_bind_uuid(statement, 0, stationId);
 		cass_statement_bind_int64(statement, 1, dp.time);
-		cass_statement_bind_int32(statement, 2, dp.bartrend);
+		cass_statement_bind_string(statement, 2, dp.bartrend.c_str());
 		cass_statement_bind_int32(statement, 3, dp.barometer);
 		cass_statement_bind_int32(statement, 4, dp.barometer_abs);
 		cass_statement_bind_int32(statement, 5, dp.barometer_raw);
