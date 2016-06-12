@@ -177,7 +177,11 @@ class VantagePro2Connector_ :
 
 	struct StoringData : public msm::front::state<>
 	{
-		//TODO
+		template <class Event,class FSM>
+		void on_entry(Event const&, FSM& fsm)
+		{
+			fsm._db.insertDataPoint(fsm._l1[0], fsm._l2[0]);
+		}
 	};
 
 	struct CleaningUp : public msm::front::state<>

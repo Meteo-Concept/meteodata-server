@@ -19,7 +19,7 @@ namespace {
 			{23, "Partly Cloudy, Rain or Snow within 12 hours"}
 		};
 		auto it = forecasts.find(value);
-		return (it == forecasts.cend()) ? "Unknown" : it->second;
+		return (it == forecasts.cend()) ? std::string() : it->second;
 	}
 
 	std::string from_bartrend_to_diagnostic(uint8_t value) {
@@ -31,7 +31,7 @@ namespace {
 			{60,  "Raising rapidly"}
 		};
 		auto it = bartrends.find(value);
-		return (it == bartrends.cend()) ? "Unknown" : it->second;
+		return (it == bartrends.cend()) ? std::string() : it->second;
 	}
 
 	uint32_t from_daymonthyear_to_CassandraDate(int day, int month, int year)
@@ -87,104 +87,169 @@ namespace {
 
 namespace meteodata
 {
-	DataPoint makeDataPoint(Loop1 l1, Loop2 l2)
+	void populateDataPoint(const Loop1& l1, const Loop2& l2, CassStatement* const statement)
 	{
-		DataPoint dp;
-		dp.time = time(NULL);
-		dp.bartrend = from_bartrend_to_diagnostic(l1.barTrend);
-		dp.barometer = (l2.barometer >= 20 && l2.barometer <= 32.5) ?
-				from_inHg_to_bar(1000 * l2.barometer) :
-				255;
-		dp.barometer_abs = from_inHg_to_bar(1000 * l2.absBarPressure);
-		dp.barometer_raw = from_inHg_to_bar(1000 * l2.barSensorRaw);
-		dp.insidetemp = from_Farenheight_to_Celsius(l1.insideTemperature);
-		dp.outsidetemp = (l1.outsideTemperature == 255) ?
-			255 :
-			from_Farenheight_to_Celsius(l1.outsideTemperature);
-		dp.insidehum = l1.insideHumidity;
-		dp.outsidehum = l1.outsideHumidity;
+		/*************************************************************/
+		CassUuid stationId;
+		// TODO fetch the station identifier
+		//cass_uuid_from_string_n(dp.station.c_str(), dp.station.length(), &stationId);
+		cass_statement_bind_uuid(statement, 0, stationId);
+		/*************************************************************/
+		cass_statement_bind_int64(statement, 1, time(NULL));
+		/*************************************************************/
+		std::string val = from_bartrend_to_diagnostic(l1.barTrend);
+		if (val.empty())
+			cass_statement_bind_null(statement, 2);
+		else
+			cass_statement_bind_string(statement, 2, val.c_str());
+		/*************************************************************/
+		if (l2.barometer >= 20 && l2.barometer <= 32.5)
+			cass_statement_bind_int32(statement, 3, from_inHg_to_bar(1000 * l2.barometer));
+		else
+			cass_statement_bind_null(statement, 3);
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 4, from_inHg_to_bar(l2.absBarPressure));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 5, from_inHg_to_bar(l2.barSensorRaw));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 6, from_Farenheight_to_Celsius(l1.insideTemperature));
+		/*************************************************************/
+		if (l1.outsideTemperature == 255)
+			cass_statement_bind_null(statement, 7);
+		else
+			cass_statement_bind_int32(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 8, l1.insideHumidity);
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 9, l1.outsideHumidity);
+		/*************************************************************/
 		for (int i=0 ; i<7 ; i++) {
-			dp.extratemp[i] = (l1.extraTemp[1] == 255) ?
-				255 :
-				from_Farenheight_to_Celsius(l1.extraTemp[i] - 90);
+			if (l1.extraTemp[1] == 255)
+				cass_statement_bind_null(statement, 10+i);
+			else
+				cass_statement_bind_int32(statement, 10+i, from_Farenheight_to_Celsius(l1.extraTemp[i] - 90));
 		}
+		/*************************************************************/
 		for (int i=0 ; i<4 ; i++) {
-			dp.soiltemp[i] = (l1.soilTemp[i] == 255) ?
-				255 :
-				from_Farenheight_to_Celsius(l1.soilTemp[i] - 90);
-			dp.leaftemp[i] = (l1.leafTemp[i] == 255) ?
-				255 :
-				from_Farenheight_to_Celsius(l1.leafTemp[i] - 90);
+			if (l1.soilTemp[i] == 255)
+				cass_statement_bind_null(statement, 17+i);
+			else
+				cass_statement_bind_int32(statement, 10+i, from_Farenheight_to_Celsius(l1.soilTemp[i] - 90));
+			if (l1.leafTemp[i] == 255)
+				cass_statement_bind_null(statement, 21+i);
+			else
+				cass_statement_bind_int32(statement, 10+i, from_Farenheight_to_Celsius(l1.leafTemp[i] - 90));
 		}
+		/*************************************************************/
 		for (int i=0 ; i<7 ; i++)
-			dp.extrahum[i] = l1.extraHum[i];
+			cass_statement_bind_int32(statement, 25+i, l1.extraHum[i]);
+		/*************************************************************/
 		for (int i=0 ; i<4 ; i++) {
-			dp.soilmoistures[i] = l1.soilMoistures[i];
-			dp.leafwetnesses[i] = (l1.leafWetnesses[i] >= 0 &&
-					       l1.leafWetnesses[i] <= 15) ?
-				l1.leafWetnesses[i] :
-				255;
+			cass_statement_bind_int32(statement, 32+i, l1.soilMoistures[i]);
+			if (l1.leafWetnesses[i] >= 0 && l1.leafWetnesses[i] <= 15)
+				cass_statement_bind_int32(statement, 36+i, l1.leafWetnesses[i]);
+			else
+				cass_statement_bind_null(statement, 36+i);
 		}
-		dp.windspeed = from_mph_to_kph(l1.windSpeed);
-		dp.winddir = l1.windDir;
-		dp.avgwindspeed_10min = (l2.tenMinAvgWindSpeed == 32767) ?
-			32767 :
-			from_mph_to_kph(l2.tenMinAvgWindSpeed * 10);
-		dp.avgwindspeed_2min = (l2.twoMinAvgWindSpeed == 32767) ?
-			32767 :
-			from_mph_to_kph(l2.twoMinAvgWindSpeed * 10);
-		dp.windgust_10min = (l2.tenMinWindGust == 32767) ?
-			32767 :
-			from_mph_to_kph(l2.tenMinWindGust * 10);
-		dp.windgustdir = l2.windGustDir;
-		dp.rainrate = from_rainrate_to_mm(l1.rainRate);
-		dp.rain_15min = from_rainrate_to_mm(l2.last15MinRain);
-		dp.rain_1h = from_rainrate_to_mm(l2.lastHourRain);
-		dp.rain_24h = from_rainrate_to_mm(l2.lastHourRain);
-		dp.dayrain = from_rainrate_to_mm(l1.dayRain);
-		dp.monthrain = from_rainrate_to_mm(l1.monthRain);
-		dp.yearrain = from_rainrate_to_mm(l1.yearRain);
-		dp.stormrain = from_in_to_mm(l2.stormRain * 100);
-		dp.stormstartdate =
-			(l2.monthStartDateCurrentStorm >= 1 &&
-			 l2.monthStartDateCurrentStorm <= 12 &&
-			 l2.dayStartDateCurrentStorm >= 1 &&
-			 l2.dayStartDateCurrentStorm <= 31) ?
-			from_daymonthyear_to_CassandraDate(
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 40, from_mph_to_kph(l1.windSpeed));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 41, l1.windDir);
+		/*************************************************************/
+		if (l2.tenMinAvgWindSpeed == 32767)
+			cass_statement_bind_null(statement, 42);
+		else
+			cass_statement_bind_int32(statement, 42, from_mph_to_kph(l2.tenMinAvgWindSpeed * 10));
+		/*************************************************************/
+		if (l2.twoMinAvgWindSpeed == 32767)
+			cass_statement_bind_null(statement, 43);
+		else
+			cass_statement_bind_int32(statement, 43, from_mph_to_kph(l2.twoMinAvgWindSpeed * 10));
+		/*************************************************************/
+		if (l2.tenMinWindGust == 32767)
+			cass_statement_bind_null(statement, 44);
+		else
+			cass_statement_bind_int32(statement, 44, from_mph_to_kph(l2.tenMinWindGust * 10));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 45, l2.windGustDir);
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 46, from_rainrate_to_mm(l1.rainRate));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 47, from_rainrate_to_mm(l2.last15MinRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 48, from_rainrate_to_mm(l2.lastHourRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 49, from_rainrate_to_mm(l2.last24HoursRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 50, from_rainrate_to_mm(l1.dayRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 51, from_rainrate_to_mm(l1.monthRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 52, from_rainrate_to_mm(l1.yearRain));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 53, from_in_to_mm(l2.stormRain * 100));
+		/*************************************************************/
+		if (l2.monthStartDateCurrentStorm >= 1 &&
+		    l2.monthStartDateCurrentStorm <= 12 &&
+		    l2.dayStartDateCurrentStorm >= 1 &&
+		    l2.dayStartDateCurrentStorm <= 31)
+			cass_statement_bind_uint32(statement, 54,
+				from_daymonthyear_to_CassandraDate(
 					l2.dayStartDateCurrentStorm + 2000,
 					l2.monthStartDateCurrentStorm,
-					l2.yearStartDateCurrentStorm
-				    ) :
-			255;
-		dp.UV = l2.uv;
-		dp.solarrad = l2.solarRad;
-		dp.dewpoint = (l2.dewPoint == 255) ?
-			255 :
-			from_Farenheight_to_Celsius(l2.dewPoint);
-		dp.heatindex = (l2.heatIndex == 255) ?
-			255 :
-			from_Farenheight_to_Celsius(l2.heatIndex);
-		dp.windchill = (l2.windChill == 255) ?
-			255 :
-			from_Farenheight_to_Celsius(l2.windChill);
-		dp.thswindex = (l2.thswIndex == 255) ?
-			255 :
-			from_Farenheight_to_Celsius(l2.thswIndex);
-		dp.dayET = from_in_to_mm(l1.dayET * 1000);
-		dp.monthET = from_in_to_mm(l1.monthET * 100);
-		dp.yearET = from_in_to_mm(l1.yearET * 100);
-		dp.forecast = from_forecast_to_diagnostic(l1.forecastIcons);
-		dp.forecast_icons = l1.forecastIcons;
-		dp.sunrise = from_hourmin_to_CassandraTime(
+					l2.yearStartDateCurrentStorm));
+		else
+			cass_statement_bind_null(statement, 54);
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 55, l2.uv);
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 56, l2.solarRad);
+		/*************************************************************/
+		if (l2.dewPoint == 255)
+			cass_statement_bind_null(statement, 57);
+		else
+			cass_statement_bind_int32(statement, 57, from_Farenheight_to_Celsius(l2.dewPoint));
+		/*************************************************************/
+		if (l2.heatIndex == 255)
+			cass_statement_bind_null(statement, 58);
+		else
+			cass_statement_bind_int32(statement, 58, from_Farenheight_to_Celsius(l2.heatIndex));
+		/*************************************************************/
+		if (l2.windChill == 255)
+			cass_statement_bind_null(statement, 59);
+		else
+			cass_statement_bind_int32(statement, 59, from_Farenheight_to_Celsius(l2.windChill));
+		/*************************************************************/
+		if (l2.thswIndex == 255)
+			cass_statement_bind_null(statement, 60);
+		else
+			cass_statement_bind_int32(statement, 60, from_Farenheight_to_Celsius(l2.thswIndex));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 61, from_in_to_mm(l1.dayET * 1000));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 62, from_in_to_mm(l1.monthET * 100));
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 63, from_in_to_mm(l1.yearET * 100));
+		/*************************************************************/
+		val = from_forecast_to_diagnostic(l1.forecastIcons);
+		if (val.empty())
+			cass_statement_bind_null(statement, 64);
+		else
+			cass_statement_bind_string(statement, 64, val.c_str());
+		/*************************************************************/
+		cass_statement_bind_int32(statement, 65, l1.forecastIcons);
+		/*************************************************************/
+		cass_statement_bind_int64(statement, 66,
+			from_hourmin_to_CassandraTime(
 				l1.timeOfSunrise / 100,
 				l1.timeOfSunrise % 100
-			     );
-		dp.sunset = from_hourmin_to_CassandraTime(
+			));
+		/*************************************************************/
+		cass_statement_bind_int64(statement, 67,
+			from_hourmin_to_CassandraTime(
 				l1.timeOfSunset / 100,
 				l1.timeOfSunset % 100
-			    );
-
-		return dp;
+			));
 	}
 
 };

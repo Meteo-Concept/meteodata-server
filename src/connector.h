@@ -5,6 +5,8 @@
 
 #include <boost/asio.hpp>
 
+#include "dbconnection.h"
+
 namespace meteodata
 {
 	class Connector : public std::enable_shared_from_this<Connector>
@@ -28,6 +30,7 @@ namespace meteodata
 		Connector(boost::asio::io_service& ioService);
 		boost::asio::ip::tcp::socket _sock;
 		boost::asio::io_service& _ioService;
+		DbConnection _db;
 	};
 }
 
