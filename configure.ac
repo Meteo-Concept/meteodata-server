@@ -3,7 +3,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([Meteodata], [0.0-r1], [contact@meteo-bretagne.fr])
-AC_CONFIG_SRCDIR([src/vantagepro2connector.cpp])
+AC_CONFIG_SRCDIR([src/vantagepro2connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror])
