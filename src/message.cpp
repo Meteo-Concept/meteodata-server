@@ -89,10 +89,11 @@ namespace meteodata
 {
 	void populateDataPoint(const Loop1& l1, const Loop2& l2, CassStatement* const statement)
 	{
+		std::cerr << "Populating the new datapoint" << std::endl;
 		/*************************************************************/
 		CassUuid stationId;
 		// TODO fetch the station identifier
-		//cass_uuid_from_string_n(dp.station.c_str(), dp.station.length(), &stationId);
+		cass_uuid_from_string_n("00000000-0000-0000-0000-222222222222", 37, &stationId);
 		cass_statement_bind_uuid(statement, 0, stationId);
 		/*************************************************************/
 		cass_statement_bind_int64(statement, 1, time(NULL));
@@ -103,22 +104,26 @@ namespace meteodata
 		else
 			cass_statement_bind_string(statement, 2, val.c_str());
 		/*************************************************************/
+		std::cerr << "barometer: " << from_inHg_to_bar(1000 * l2.barometer) << std::endl;
 		if (l2.barometer >= 20 && l2.barometer <= 32.5)
 			cass_statement_bind_int32(statement, 3, from_inHg_to_bar(1000 * l2.barometer));
 		else
 			cass_statement_bind_null(statement, 3);
 		/*************************************************************/
+		std::cerr << "absBarPressure: " << from_inHg_to_bar(l2.absBarPressure) << std::endl;
 		cass_statement_bind_int32(statement, 4, from_inHg_to_bar(l2.absBarPressure));
 		/*************************************************************/
 		cass_statement_bind_int32(statement, 5, from_inHg_to_bar(l2.barSensorRaw));
 		/*************************************************************/
-		cass_statement_bind_int32(statement, 6, from_Farenheight_to_Celsius(l1.insideTemperature));
+		std::cerr << "Inside temperature: " << l1.insideTemperature << " " << from_Farenheight_to_Celsius(l1.insideTemperature/10) << std::endl;
+		cass_statement_bind_int32(statement, 6, from_Farenheight_to_Celsius(l1.insideTemperature/10));
 		/*************************************************************/
 		if (l1.outsideTemperature == 255)
 			cass_statement_bind_null(statement, 7);
 		else
 			cass_statement_bind_int32(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature));
 		/*************************************************************/
+		std::cerr << "Inside insideHumidity: " << (int)l1.insideHumidity << std::endl;
 		cass_statement_bind_int32(statement, 8, l1.insideHumidity);
 		/*************************************************************/
 		cass_statement_bind_int32(statement, 9, l1.outsideHumidity);
@@ -134,11 +139,11 @@ namespace meteodata
 			if (l1.soilTemp[i] == 255)
 				cass_statement_bind_null(statement, 17+i);
 			else
-				cass_statement_bind_int32(statement, 10+i, from_Farenheight_to_Celsius(l1.soilTemp[i] - 90));
+				cass_statement_bind_int32(statement, 17+i, from_Farenheight_to_Celsius(l1.soilTemp[i] - 90));
 			if (l1.leafTemp[i] == 255)
 				cass_statement_bind_null(statement, 21+i);
 			else
-				cass_statement_bind_int32(statement, 10+i, from_Farenheight_to_Celsius(l1.leafTemp[i] - 90));
+				cass_statement_bind_int32(statement, 21+i, from_Farenheight_to_Celsius(l1.leafTemp[i] - 90));
 		}
 		/*************************************************************/
 		for (int i=0 ; i<7 ; i++)

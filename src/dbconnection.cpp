@@ -121,10 +121,23 @@ namespace meteodata {
 
 	bool DbConnection::insertDataPoint(const Loop1 l1, const Loop2 l2)
 	{
+		std::cerr << "About to insert data point in database" << std::endl;
 		CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
-		cass_session_execute(_session, statement);
 		populateDataPoint(l1, l2, statement);
+		CassFuture* query = cass_session_execute(_session, statement);
 		cass_statement_free(statement);
+		const CassResult* result = cass_future_get_result(query);
+		if (result) {
+			std::cerr << "inserted" << std::endl;
+			cass_result_free(result);
+		} else {
+			const char* error_message;
+			size_t error_message_length;
+			cass_future_error_message(query, &error_message, &error_message_length);
+			std::cerr << "Error: " << error_message << std::endl;
+		}
+		cass_future_free(query);
+
 		return true;
 	}
 

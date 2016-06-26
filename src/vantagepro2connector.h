@@ -15,6 +15,9 @@
 #include <boost/msm/front/euml/common.hpp>
 #include <boost/msm/front/euml/euml.hpp>
 
+#include <syslog.h>
+#include <unistd.h>
+
 #include "connector.h"
 #include "message.h"
 
@@ -50,7 +53,9 @@ class VantagePro2Connector_ :
 		const sys::error_code code;
 		error(const sys::error_code& e) :
 			code(e)
-		{}
+		{
+			std::cerr << "Transmission error " << code << ": " << code.message() << std::endl;
+		}
 	};
 	struct sent
 	{
@@ -58,7 +63,9 @@ class VantagePro2Connector_ :
 
 		sent(unsigned int bytes = 0) :
 			bytesTransferred(bytes)
-		{}
+		{
+			std::cerr << "Sent " << bytes << " bytes" << std::endl;
+		}
 	};
 	struct recvd
 	{
@@ -66,7 +73,9 @@ class VantagePro2Connector_ :
 
 		recvd(unsigned int bytes = 0) :
 			bytesTransferred(bytes)
-		{}
+		{
+			std::cerr << "Recvd " << bytes << " bytes" << std::endl;
+		}
 	};
 
 
@@ -84,19 +93,17 @@ class VantagePro2Connector_ :
 
 	struct WakingUp : public msm::front::state<>
 	{
+		char ack[2] = "\n";
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
 			std::cerr << "Waking up the console" << std::endl;
-			async_write(fsm._sock, asio::buffer("\r\n\r\n"),
-					[&fsm](const sys::error_code& e,
-							unsigned int bytes) {
-				if (e)
-					fsm.process_event(error(e));
-				else
-					fsm.process_event(sent(bytes));
-			}
-			);
+			sys::error_code e;
+			size_t bytes = write(fsm._sock, asio::buffer(ack,1), e);
+			if (e)
+				fsm.process_event(error(e));
+			else
+				fsm.process_event(sent(bytes));
 		}
 	};
 
@@ -105,41 +112,42 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
-			async_read_until(fsm._sock, fsm._discardBuffer, '\n',
-					[&fsm](const sys::error_code& e,
-							unsigned int bytes) {
-				if (e) {
-					fsm.process_event(error(e));
-				} else {
-					fsm.process_event(recvd(bytes));
-				}
-			});
+			std::cerr << "Receiving acknowledgement from station" << std::endl;
+			sys::error_code e;
+			size_t bytes = read_until(fsm._sock,
+					fsm._discardBuffer, '\n', e);
+			if (e) {
+				fsm.process_event(error(e));
+			} else {
+				fsm.process_event(recvd(bytes));
+			}
 		}
 	};
 
 	struct AskingForData : public msm::front::state<>
 	{
+		char req[9] = "LPS 3 2\n";
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			std::cerr << "Asking for data" << std::endl;
+			sleep(3);
 			//flush the socket first
 			if (fsm._sock.available() > 0) {
 				asio::streambuf::mutable_buffers_type bufs = fsm._discardBuffer.prepare(512);
 				std::size_t bytes = fsm._sock.receive(bufs);
 				fsm._discardBuffer.commit(bytes);
+				std::cerr << "Cleared " << bytes << " bytes" << std::endl;
 			}
 			fsm._discardBuffer.consume(fsm._discardBuffer.size());
 
 			//then tell the station we want data
-			async_write(fsm._sock, asio::buffer("LPS 3 2\r\n"),
-					[&fsm](const sys::error_code& e,
-							unsigned int bytes) {
-				if (e)
-					fsm.process_event(error(e));
-				else
-					fsm.process_event(sent(bytes));
-			}
-			);
+			sys::error_code e;
+			size_t bytes = write(fsm._sock, asio::buffer(req, 8), e);
+			if (e)
+				fsm.process_event(error(e));
+			else
+				fsm.process_event(sent(bytes));
 		}
 	};
 
@@ -148,15 +156,16 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
-			async_read(fsm._sock, fsm._inputBuffer,
-					[&fsm](const sys::error_code& e,
-							unsigned int bytes) {
-				if (e) {
-					fsm.process_event(error(e));
-				} else {
-					fsm.process_event(recvd(bytes));
-				}
-			});
+			std::cerr << "Waiting for data" << std::endl;
+			read_until(fsm._sock, fsm._discardBuffer, 0x06);
+			sys::error_code e;
+			size_t nb = 0;
+			size_t bytes = read(fsm._sock, fsm._inputBuffer, e);
+			if (e) {
+				fsm.process_event(error(e));
+			} else {
+				fsm.process_event(recvd(bytes));
+			}
 		}
 	};
 
@@ -166,11 +175,12 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			std::cerr << "Message received" << std::endl;
 			_valid = fsm.validateCRC(
-						fsm._l1,
+						&(fsm._l1[0]),
 						sizeof(Loop1)) &&
 				 fsm.validateCRC(
-						fsm._l2,
+						&(fsm._l2[0]),
 						sizeof(Loop2));
 		}
 	};
@@ -180,6 +190,7 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			std::cerr << "Message validated" << std::endl;
 			fsm._db.insertDataPoint(fsm._l1[0], fsm._l2[0]);
 		}
 	};
@@ -189,7 +200,7 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
-			fsm.stop();
+			fsm.close();
 		}
 	};
 
@@ -253,7 +264,7 @@ class VantagePro2Connector_ :
 	struct transition_table : mpl::vector21<
 	  //    Start          Event         Next             Action           Guard
 	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < Idle         , timeout     , WakingUp      , none          , none              >,
+	  Row < Idle         , none     , WakingUp      , none          , none              >,
 	  //  +--------------+-------------+---------------+---------------+-------------------+
 	  Row < WakingUp     , sent        , WaitingForAck , none          , none              >,
 	  Row < WakingUp     , error       , CleaningUp    , none          , none              >,
@@ -265,21 +276,21 @@ class VantagePro2Connector_ :
 	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout  , none              >,
 	  Row < WaitingForAck, timeout     , CleaningUp    , none          , too_many_timeouts >,
 	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < AskingForData, sent        , WaitingForAck , none          , none              >,
+	  Row < AskingForData, sent        , WaitingForAnswer , none          , none              >,
 	  Row < AskingForData, error       , CleaningUp    , none          , none              >,
 	  Row < AskingForData, timeout     , AskingForData , note_timeout  , none              >,
 	  Row < AskingForData, timeout     , CleaningUp    , none          , too_many_timeouts >,
 	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < WaitingForAck, recvd       , CheckingCRC   , none          , none              >,
-	  Row < WaitingForAck, error       , CleaningUp    , none          , none              >,
-	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout  , none              >,
-	  Row < WaitingForAck, timeout     , CleaningUp    , none          , too_many_timeouts >,
+	  Row < WaitingForAnswer, recvd       , CheckingCRC   , none          , none              >,
+	  Row < WaitingForAnswer, error       , CleaningUp    , none          , none              >,
+	  Row < WaitingForAnswer, timeout     , WaitingForAck , note_timeout  , none              >,
+	  Row < WaitingForAnswer, timeout     , CleaningUp    , none          , too_many_timeouts >,
 	  //  +--------------+-------------+---------------+---------------+-------------------+
 	  Row < CheckingCRC  , none        , StoringData   , none          , validCRC          >,
 	  Row < CheckingCRC  , none        , AskingForData , note_error    , Not_<validCRC>    >,
 	  Row < CheckingCRC  , none        , CleaningUp    , none          , And_<Not_<validCRC>,too_many_errors> >,
 	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < StoringData  , none        , Idle          , none          , none              >
+	  Row < StoringData  , none        , CleaningUp    , none          , none              >
 	  //  +--------------+-------------+---------------+---------------+-------------------+
 	> {};
 
@@ -335,14 +346,14 @@ class VantagePro2Connector_ :
 		const char* bytes = reinterpret_cast<const char*>(msg);
 		unsigned int crc = 0;
 		for (unsigned int i=0 ; i<len ; i++) {
-			unsigned int index = (crc >> 8) ^ bytes[i];
-			crc = CRC_VALUES[index] ^((crc << 8) & 0xFFFF);
+			uint8_t index = (crc >> 8) ^ bytes[i];
+			crc = CRC_VALUES[index] ^ ((crc << 8) & 0xFFFF);
 		}
 
 		return crc == 0;
 	}
 
-	void stop()
+	void close()
 	{
 		_stopped = true;
 		_timer.cancel();

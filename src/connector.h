@@ -1,6 +1,7 @@
 #ifndef CONNECTOR_H
 #define CONNECTOR_H
 
+#include <iostream>
 #include <memory>
 
 #include <boost/asio.hpp>
@@ -20,6 +21,7 @@ namespace meteodata
 				Connector::ptr>::type
 		create(boost::asio::io_service& ioService)
 		{
+			std::cerr << "new connector" << std::endl;
 			return Connector::ptr(new T(std::ref(ioService)));
 		}
 		virtual ~Connector() = default;

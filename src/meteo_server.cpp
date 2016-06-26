@@ -36,7 +36,7 @@ void MeteoServer::runNewConnector(Connector::ptr c,
 {
 	if (!error) {
 		c->start();
-		startAccepting();
+//		startAccepting();
 	}
 }
 }
