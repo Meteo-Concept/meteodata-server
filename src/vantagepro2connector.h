@@ -88,6 +88,7 @@ class VantagePro2Connector_ :
 			std::cerr << "People are connected" << std::endl;
 			fsm._txrxErrors = 0;
 			fsm._timeouts = 0;
+			sleep(1);
 		}
 	};
 
@@ -112,6 +113,7 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			sleep(1);
 			std::cerr << "Receiving acknowledgement from station" << std::endl;
 			sys::error_code e;
 			size_t bytes = read_until(fsm._sock,
@@ -130,8 +132,8 @@ class VantagePro2Connector_ :
 		template <class Event,class FSM>
 		void on_entry(Event const&, FSM& fsm)
 		{
+			sleep(1);
 			std::cerr << "Asking for data" << std::endl;
-			sleep(3);
 			//flush the socket first
 			if (fsm._sock.available() > 0) {
 				asio::streambuf::mutable_buffers_type bufs = fsm._discardBuffer.prepare(512);
