@@ -120,7 +120,7 @@ namespace meteodata
 		if (l1.outsideTemperature == 32767)
 			cass_statement_bind_null(statement, 7);
 		else
-			cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature));
+			cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature/10));
 		/*************************************************************/
 		std::cerr << "Inside insideHumidity: " << (int)l1.insideHumidity << std::endl;
 		cass_statement_bind_float(statement, 8, l1.insideHumidity);
@@ -179,17 +179,17 @@ namespace meteodata
 		if (l2.tenMinAvgWindSpeed == 32767)
 			cass_statement_bind_null(statement, 42);
 		else
-			cass_statement_bind_float(statement, 42, from_mph_to_kph(l2.tenMinAvgWindSpeed * 10));
+			cass_statement_bind_float(statement, 42, from_mph_to_kph(l2.tenMinAvgWindSpeed / 10));
 		/*************************************************************/
 		if (l2.twoMinAvgWindSpeed == 32767)
 			cass_statement_bind_null(statement, 43);
 		else
-			cass_statement_bind_float(statement, 43, from_mph_to_kph(l2.twoMinAvgWindSpeed * 10));
+			cass_statement_bind_float(statement, 43, from_mph_to_kph(l2.twoMinAvgWindSpeed / 10));
 		/*************************************************************/
 		if (l2.tenMinWindGust == 255)
 			cass_statement_bind_null(statement, 44);
 		else
-			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust * 10));
+			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust / 10));
 		/*************************************************************/
 		if (l2.windGustDir == 65535)
 			cass_statement_bind_null(statement, 45);
