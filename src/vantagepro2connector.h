@@ -6,14 +6,10 @@
 #include <array>
 #include <functional>
 
-#include <boost/mpl/vector/vector30.hpp>
+#include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/msm/back/state_machine.hpp>
-#include <boost/msm/front/state_machine_def.hpp>
-#include <boost/msm/front/functor_row.hpp>
-#include <boost/msm/front/euml/common.hpp>
-#include <boost/msm/front/euml/euml.hpp>
 
 #include <syslog.h>
 #include <unistd.h>
@@ -24,288 +20,63 @@
 
 namespace meteodata {
 
-namespace msm = boost::msm;
-namespace mpl = boost::mpl;
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
 namespace sys = boost::system; //system() is a function, it cannot be redefined
 //as a namespace
-using namespace msm::front;
+namespace chrono = boost::posix_time;
 
 using namespace std::placeholders;
 using namespace meteodata;
-using euml::And_;
-using euml::Not_;
 
 struct Message;
 
-class VantagePro2Connector_ :
-		public Connector,
-		public msm::front::state_machine_def<VantagePro2Connector_>
+class VantagePro2Connector : public Connector
 {
-
-
-	//events
-
-	struct timeout {};
-	struct error
-	{
-		const sys::error_code code;
-		error(const sys::error_code& e) :
-			code(e)
-		{
-			std::cerr << "Transmission error " << code << ": " << code.message() << std::endl;
-		}
-	};
-	struct sent
-	{
-		const unsigned int bytesTransferred;
-
-		sent(unsigned int bytes = 0) :
-			bytesTransferred(bytes)
-		{
-			std::cerr << "Sent " << bytes << " bytes" << std::endl;
-		}
-	};
-	struct recvd
-	{
-		const unsigned int bytesTransferred;
-
-		recvd(unsigned int bytes = 0) :
-			bytesTransferred(bytes)
-		{
-			std::cerr << "Recvd " << bytes << " bytes" << std::endl;
-		}
-	};
-
-
-	// states
-	struct Idle : public msm::front::state<>
-	{
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			std::cerr << "People are connected" << std::endl;
-			fsm._txrxErrors = 0;
-			fsm._timeouts = 0;
-			sleep(1);
-		}
-	};
-
-	struct WakingUp : public msm::front::state<>
-	{
-		char ack[2] = "\n";
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			std::cerr << "Waking up the console" << std::endl;
-			sys::error_code e;
-			size_t bytes = write(fsm._sock, asio::buffer(ack,1), e);
-			if (e)
-				fsm.process_event(error(e));
-			else
-				fsm.process_event(sent(bytes));
-		}
-	};
-
-	struct WaitingForAck : public msm::front::state<>
-	{
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			sleep(1);
-			std::cerr << "Receiving acknowledgement from station" << std::endl;
-			sys::error_code e;
-			size_t bytes = read_until(fsm._sock,
-					fsm._discardBuffer, '\n', e);
-			if (e) {
-				fsm.process_event(error(e));
-			} else {
-				fsm.process_event(recvd(bytes));
-			}
-		}
-	};
-
-	struct AskingForData : public msm::front::state<>
-	{
-		char req[9] = "LPS 3 2\n";
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			sleep(1);
-			std::cerr << "Asking for data" << std::endl;
-			//flush the socket first
-			if (fsm._sock.available() > 0) {
-				asio::streambuf::mutable_buffers_type bufs = fsm._discardBuffer.prepare(512);
-				std::size_t bytes = fsm._sock.receive(bufs);
-				fsm._discardBuffer.commit(bytes);
-				std::cerr << "Cleared " << bytes << " bytes" << std::endl;
-			}
-			fsm._discardBuffer.consume(fsm._discardBuffer.size());
-
-			//then tell the station we want data
-			sys::error_code e;
-			size_t bytes = write(fsm._sock, asio::buffer(req, 8), e);
-			if (e)
-				fsm.process_event(error(e));
-			else
-				fsm.process_event(sent(bytes));
-		}
-	};
-
-	struct WaitingForAnswer : public msm::front::state<>
-	{
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			std::cerr << "Waiting for data" << std::endl;
-			read_until(fsm._sock, fsm._discardBuffer, 0x06);
-			sys::error_code e;
-			size_t nb = 0;
-			size_t bytes = read(fsm._sock, fsm._inputBuffer, e);
-			if (e) {
-				fsm.process_event(error(e));
-			} else {
-				fsm.process_event(recvd(bytes));
-			}
-		}
-	};
-
-	struct CheckingCRC : public msm::front::state<>
-	{
-		bool _valid;
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			std::cerr << "Message received" << std::endl;
-			_valid = fsm.validateCRC(
-						&(fsm._l1[0]),
-						sizeof(Loop1)) &&
-				 fsm.validateCRC(
-						&(fsm._l2[0]),
-						sizeof(Loop2));
-		}
-	};
-
-	struct StoringData : public msm::front::state<>
-	{
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			std::cerr << "Message validated" << std::endl;
-			fsm._db.insertDataPoint(fsm._l1[0], fsm._l2[0]);
-		}
-	};
-
-	struct CleaningUp : public msm::front::state<>
-	{
-		template <class Event,class FSM>
-		void on_entry(Event const&, FSM& fsm)
-		{
-			fsm.close();
-		}
-	};
-
-	// actions
-	struct note_error
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		void operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& )
-		{
-			fsm._txrxErrors++;
-		}
-	};
-
-	struct note_timeout
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		void operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& )
-		{
-			fsm._timeouts++;
-		}
-	};
-
-	// gates
-	struct too_many_errors
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		bool operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& )
-		{
-			return fsm._txrxErrors > 2;
-		}
-	};
-
-	struct too_many_timeouts
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		bool operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& )
-		{
-			return fsm._timeouts > 2;
-		}
-	};
-
-	struct stopped
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		bool operator()(Evt const&, Fsm& fsm, SourceState&,TargetState& )
-		{
-			return fsm._stopped;
-		}
-	};
-
-	struct validCRC
-	{
-		template <class Fsm,class Evt,class SourceState,class TargetState>
-		bool operator()(Evt const&, Fsm&, SourceState& src,TargetState& )
-		{
-			return src._valid;
-		}
-	};
-
-	// Transition table for the server
-	struct transition_table : mpl::vector21<
-	  //    Start          Event         Next             Action           Guard
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < Idle         , none     , WakingUp      , none          , none              >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < WakingUp     , sent        , WaitingForAck , none          , none              >,
-	  Row < WakingUp     , error       , CleaningUp    , none          , none              >,
-	  Row < WakingUp     , timeout     , WakingUp      , note_timeout  , none              >,
-	  Row < WakingUp     , timeout     , CleaningUp    , none          , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < WaitingForAck, recvd       , AskingForData , none          , none              >,
-	  Row < WaitingForAck, error       , CleaningUp    , none          , none              >,
-	  Row < WaitingForAck, timeout     , WaitingForAck , note_timeout  , none              >,
-	  Row < WaitingForAck, timeout     , CleaningUp    , none          , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < AskingForData, sent        , WaitingForAnswer , none          , none              >,
-	  Row < AskingForData, error       , CleaningUp    , none          , none              >,
-	  Row < AskingForData, timeout     , AskingForData , note_timeout  , none              >,
-	  Row < AskingForData, timeout     , CleaningUp    , none          , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < WaitingForAnswer, recvd       , CheckingCRC   , none          , none              >,
-	  Row < WaitingForAnswer, error       , CleaningUp    , none          , none              >,
-	  Row < WaitingForAnswer, timeout     , WaitingForAck , note_timeout  , none              >,
-	  Row < WaitingForAnswer, timeout     , CleaningUp    , none          , too_many_timeouts >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < CheckingCRC  , none        , StoringData   , none          , validCRC          >,
-	  Row < CheckingCRC  , none        , AskingForData , note_error    , Not_<validCRC>    >,
-	  Row < CheckingCRC  , none        , CleaningUp    , none          , And_<Not_<validCRC>,too_many_errors> >,
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	  Row < StoringData  , none        , CleaningUp    , none          , none              >
-	  //  +--------------+-------------+---------------+---------------+-------------------+
-	> {};
-
-	public:
-	VantagePro2Connector_(boost::asio::io_service& ioService) :
+public:
+	VantagePro2Connector(boost::asio::io_service& ioService) :
 		Connector(ioService),
 		_timer(ioService)
 	{}
 
-	typedef Idle initial_state;
+	//main loop
+	void start()
+	{
+		int txrxErrors = 0;
+		sys::error_code e;
+
+		for (;;)
+		{
+			_timer.expires_from_now(chrono::pos_infin);
+			_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
+			do {
+				if (wakeUp())
+					stop();
+				e = askForData();
+				if (! validateMessage()) {
+					txrxErrors++;
+					e = sys::errc::make_error_code(sys::errc::io_error);
+				}
+				if (e == sys::errc::timed_out)
+					++_timeouts;
+			} while(_timeouts < 3 && txrxErrors < 3 && e);
+
+			// irrecoverable error
+			if (e) {
+				std::cerr << "Error " << e.message() << std::endl;
+				stop();
+			}
+
+			// I/O finished
+
+			storeData();
+			_timer.cancel();
+			_timer.expires_from_now(chrono::minutes(5));
+			_timer.wait();
+		}
+	}
 
 	private:
-	~VantagePro2Connector_() = default;
 	static constexpr int CRC_VALUES[] =
 	{
 		0x0, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -342,6 +113,27 @@ class VantagePro2Connector_ :
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0
 	};
 
+	void checkDeadline(const sys::error_code& e)
+	{
+		std::cerr << "Expired!" << std::endl;
+		// if the connector has already stopped, then let it die
+		if (_stopped)
+			return;
+		std::cerr << "Checking the deadline..." << std::endl;
+
+		// verify that the timeout is not spurious
+		if (_timer.expires_at() <= asio::deadline_timer::traits_type::now() &&
+		    e != sys::errc::operation_canceled) {
+			std::cerr << "Timed out!" << std::endl;
+			_timeouts++;
+			_sock.cancel();
+			_timer.expires_from_now(chrono::pos_infin);
+		}
+
+		// restart the timer
+		_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
+	}
+
 	bool validateCRC(const void* msg, size_t len)
 	{
 		//byte-wise reading
@@ -355,11 +147,87 @@ class VantagePro2Connector_ :
 		return crc == 0;
 	}
 
-	void close()
+	void stop()
 	{
 		_stopped = true;
 		_timer.cancel();
 		_sock.close();
+	}
+
+	sys::error_code wakeUp()
+	{
+		sys::error_code e;
+		do {
+			char ack[] = "\n";
+			std::cerr << "Waking up the console" << std::endl;
+			write(_sock, asio::buffer(ack,1), e);
+			if (!e) {
+				_timer.expires_from_now(chrono::seconds(6));
+				std::cerr << "Receiving acknowledgement from station" << std::endl;
+				e = asio::error::would_block;
+				async_read_until(_sock, _discardBuffer, '\n',
+					[&e,this](const sys::error_code& ec, size_t) {
+						e = ec;
+					});
+				do _ioService.run_one(); while (e == asio::error::would_block);
+				_timer.expires_from_now(chrono::pos_infin);
+			}
+			std::cerr << e.value() << ": " << e.message() << std::endl;
+		} while (_timeouts < 3 && e == sys::errc::operation_canceled);
+		if (_timeouts >= 3)
+			e = sys::errc::make_error_code(sys::errc::timed_out);
+		return e;
+	}
+
+	sys::error_code askForData()
+	{
+		sys::error_code e;
+		char req[9] = "LPS 3 2\n";
+		std::cerr << "Asking for data" << std::endl;
+		//flush the socket first
+		if (_sock.available() > 0) {
+			asio::streambuf::mutable_buffers_type bufs = _discardBuffer.prepare(512);
+			std::size_t bytes = _sock.receive(bufs);
+			_discardBuffer.commit(bytes);
+			std::cerr << "Cleared " << bytes << " bytes" << std::endl;
+		}
+		_discardBuffer.consume(_discardBuffer.size());
+
+		write(_sock, asio::buffer(req, 8), e);
+		std::cerr << "Waiting for data" << std::endl;
+		_timer.expires_from_now(chrono::seconds(6));
+
+		e = asio::error::would_block;
+		async_read_until(_sock, _discardBuffer, 0x06,
+			[&e](const sys::error_code& ec, size_t) {
+				e = ec;
+			});
+		do _ioService.run_one(); while (e == asio::error::would_block);
+		if (e)
+			return e;
+
+		e = asio::error::would_block;
+		async_read(_sock, _inputBuffer,
+			[&e,this](const sys::error_code& ec, size_t) {
+				e = ec;
+			});
+		do _ioService.run_one(); while (e == asio::error::would_block);
+		_timer.expires_from_now(chrono::seconds(15));
+
+		return e;
+	}
+
+	bool validateMessage()
+	{
+		std::cerr << "Message received" << std::endl;
+		return validateCRC(_l1, sizeof(Loop1)) &&
+		       validateCRC(_l2, sizeof(Loop2));
+	};
+
+	void storeData()
+	{
+		std::cerr << "Message validated" << std::endl;
+		_db.insertDataPoint(_l1[0], _l2[0]);
 	}
 
 	asio::deadline_timer _timer;
@@ -372,13 +240,9 @@ class VantagePro2Connector_ :
 			asio::buffer(_l2),
 	};
 	bool _stopped = false;
-	unsigned int _txrxErrors = 0;
-	unsigned int _timeouts = 0;
-
-	friend class msm::back::state_machine<VantagePro2Connector_>;
+	int _timeouts = 0;
 };
 
-typedef msm::back::state_machine<VantagePro2Connector_> VantagePro2Connector;
 }
 
 #endif
