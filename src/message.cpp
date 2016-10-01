@@ -89,13 +89,10 @@ namespace {
 
 namespace meteodata
 {
-	void populateDataPoint(const Loop1& l1, const Loop2& l2, CassStatement* const statement)
+	void populateDataPoint(const CassUuid stationId, const Loop1& l1, const Loop2& l2, CassStatement* const statement)
 	{
 		std::cerr << "Populating the new datapoint" << std::endl;
 		/*************************************************************/
-		CassUuid stationId;
-		// TODO fetch the station identifier
-		cass_uuid_from_string("00000000-0000-0000-0000-222222222222", &stationId);
 		cass_statement_bind_uuid(statement, 0, stationId);
 		/*************************************************************/
 		cass_statement_bind_int64(statement, 1, 1000*time(NULL));

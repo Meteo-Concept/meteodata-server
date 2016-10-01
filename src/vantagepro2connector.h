@@ -14,6 +14,8 @@
 #include <syslog.h>
 #include <unistd.h>
 
+#include <cassandra.h>
+
 #include "connector.h"
 #include "message.h"
 
@@ -42,29 +44,61 @@ public:
 	//main loop
 	void start()
 	{
-		int txrxErrors = 0;
+		int txrxErrors, dataTimeouts;
 		sys::error_code e;
+		_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
+
+		_timer.expires_from_now(chrono::pos_infin);
+		do {
+			if (wakeUp()) {
+				stop();
+				return;
+			}
+			e = askForData("EEBRD 0B 06\n", 12, _coordsBuffer);
+			if (! validateCoords()) {
+				txrxErrors++;
+				e = sys::errc::make_error_code(sys::errc::io_error);
+			}
+			if (e == sys::errc::timed_out)
+				++dataTimeouts;
+		} while(dataTimeouts < 3 && txrxErrors < 3 && e);
+
+		// irrecoverable error
+		if (e) {
+			std::cerr << "Error " << e.message() << std::endl;
+			stop();
+			return;
+		}
+
+		// From documentation, latitude, longitude and elevation are stored contiguously
+		// in this order in the station's EEPROM
+		_station = _db.getStationByCoords(_coords[2], _coords[0], _coords[1]);
 
 		for (;;)
 		{
+			txrxErrors = 0;
+			_timeouts = 0;
+			dataTimeouts = 0;
 			_timer.expires_from_now(chrono::pos_infin);
-			_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
 			do {
-				if (wakeUp())
+				if (wakeUp()) {
 					stop();
-				e = askForData();
+					return;
+				}
+				e = askForData("LPS 3 2\n", 8, _inputBuffer);
 				if (! validateMessage()) {
 					txrxErrors++;
 					e = sys::errc::make_error_code(sys::errc::io_error);
 				}
 				if (e == sys::errc::timed_out)
-					++_timeouts;
-			} while(_timeouts < 3 && txrxErrors < 3 && e);
+					++dataTimeouts;
+			} while(dataTimeouts < 3 && txrxErrors < 3 && e);
 
 			// irrecoverable error
 			if (e) {
 				std::cerr << "Error " << e.message() << std::endl;
 				stop();
+				return;
 			}
 
 			// I/O finished
@@ -179,10 +213,10 @@ public:
 		return e;
 	}
 
-	sys::error_code askForData()
+	template <typename MutableBuffer>
+	sys::error_code askForData(const char* req, int reqSize, MutableBuffer& buffer)
 	{
 		sys::error_code e;
-		char req[9] = "LPS 3 2\n";
 		std::cerr << "Asking for data" << std::endl;
 		//flush the socket first
 		if (_sock.available() > 0) {
@@ -193,26 +227,38 @@ public:
 		}
 		_discardBuffer.consume(_discardBuffer.size());
 
-		write(_sock, asio::buffer(req, 8), e);
+		write(_sock, asio::buffer(req, reqSize), e);
 		std::cerr << "Waiting for data" << std::endl;
-		_timer.expires_from_now(chrono::seconds(6));
 
+		_timer.expires_from_now(chrono::seconds(4));
 		e = asio::error::would_block;
-		async_read_until(_sock, _discardBuffer, 0x06,
+		char ack;
+		async_read(_sock, asio::buffer(&ack, 1),
 			[&e](const sys::error_code& ec, size_t) {
 				e = ec;
 			});
 		do _ioService.run_one(); while (e == asio::error::would_block);
-		if (e)
-			return e;
+		_timer.expires_from_now(chrono::pos_infin);
+		if (ack != 0x06)
+			e = sys::errc::make_error_code(sys::errc::io_error);
 
-		e = asio::error::would_block;
-		async_read(_sock, _inputBuffer,
-			[&e,this](const sys::error_code& ec, size_t) {
-				e = ec;
-			});
-		do _ioService.run_one(); while (e == asio::error::would_block);
-		_timer.expires_from_now(chrono::seconds(15));
+		if (!e) {
+			_timer.expires_from_now(chrono::seconds(6));
+			e = asio::error::would_block;
+			async_read(_sock, buffer,
+					[&e,this](const sys::error_code& ec, size_t bytes) {
+					e = ec;
+					std::cerr << "Received " << bytes << " bytes of data" << std::endl;
+					});
+			do _ioService.run_one(); while (e == asio::error::would_block);
+			_timer.expires_from_now(chrono::pos_infin);
+		}
+
+		// If a read operation has been interrupted, this is because
+		// it failed to meet the deadline, in this case return a more
+		// meaningful error code
+		if (e == sys::errc::operation_canceled)
+			e = sys::errc::make_error_code(sys::errc::timed_out);
 
 		return e;
 	}
@@ -224,10 +270,16 @@ public:
 		       validateCRC(_l2, sizeof(Loop2));
 	};
 
+	bool validateCoords()
+	{
+		std::cerr << "Coords received" << std::endl;
+		return validateCRC(_coords, sizeof(4 * sizeof(int16_t)));
+	};
+
 	void storeData()
 	{
 		std::cerr << "Message validated" << std::endl;
-		_db.insertDataPoint(_l1[0], _l2[0]);
+		_db.insertDataPoint(_station, _l1[0], _l2[0]);
 	}
 
 	asio::deadline_timer _timer;
@@ -239,8 +291,13 @@ public:
 			asio::buffer(_l1),
 			asio::buffer(_l2),
 	};
+	int16_t _coords[4]; // elevation, latitude, longitude, CRC
+	std::array<asio::mutable_buffer, 1> _coordsBuffer = {
+		asio::buffer(_coords),
+	};
 	bool _stopped = false;
 	int _timeouts = 0;
+	CassUuid _station;
 };
 
 }

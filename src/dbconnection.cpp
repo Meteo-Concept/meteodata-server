@@ -11,6 +11,7 @@ namespace meteodata {
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()},
 		_selectStationById{nullptr, cass_prepared_free},
+		_selectStationByCoords{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free}
 	{
 		cass_log_set_level(CASS_LOG_INFO);
@@ -31,6 +32,13 @@ namespace meteodata {
 			syslog(LOG_ERR, "Could not prepare statement selectStationById: %s", cass_error_desc(rc));
 		}
 		_selectStationById.reset(cass_future_get_prepared(prepareFuture));
+
+		prepareFuture = cass_session_prepare(_session, "SELECT station FROM meteodata.coordinates WHERE elevation = ? AND latitude = ? AND longitude = ?");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			syslog(LOG_ERR, "Could not prepare statement selectStationByCoords: %s", cass_error_desc(rc));
+		}
+		_selectStationByCoords.reset(cass_future_get_prepared(prepareFuture));
 
 		prepareFuture = cass_session_prepare(_session,
 			"INSERT INTO meteodata.meteo ("
@@ -114,18 +122,49 @@ namespace meteodata {
 			cass_value_get_int32(cass_row_get_column(row,1), &port);
 			int32_t pollingPeriod = 0;
 			cass_value_get_int32(cass_row_get_column(row,2), &pollingPeriod);
+			cass_result_free(result);
 			return std::make_tuple(address, port, pollingPeriod);
 		}
 		return std::make_tuple("",0,0);
 	}
 
-	bool DbConnection::insertDataPoint(const Loop1 l1, const Loop2 l2)
+	CassUuid DbConnection::getStationByCoords(int elevation, int latitude, int longitude)
+	{
+		CassStatement* statement = cass_prepared_bind(_selectStationByCoords.get());
+		std::cerr << "Statement prepared" << std::endl;
+		cass_statement_bind_int32(statement, 0, elevation);
+		cass_statement_bind_int32(statement, 1, latitude);
+		cass_statement_bind_int32(statement, 2, longitude);
+		CassFuture* query = cass_session_execute(_session, statement);
+
+		std::cerr << "Executed statement" << std::endl;
+		cass_statement_free(statement);
+		const CassResult* result = cass_future_get_result(query);
+		if (result) {
+			std::cerr << "We have a result" << std::endl;
+			const CassRow* row = cass_result_first_row(result);
+			if (row) {
+				CassUuid uuid;
+				cass_value_get_uuid(cass_row_get_column(row,0), &uuid);
+				cass_result_free(result);
+				return uuid;
+			}
+		}
+
+		std::cerr << "No result" << std::endl;
+		CassUuid defaultUuid;
+		cass_uuid_from_string("000000000-0000-0000-0000-000000000000", &defaultUuid);
+		return defaultUuid;
+	}
+
+	bool DbConnection::insertDataPoint(const CassUuid station, const Loop1 l1, const Loop2 l2)
 	{
 		std::cerr << "About to insert data point in database" << std::endl;
 		CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
-		populateDataPoint(l1, l2, statement);
+		populateDataPoint(station, l1, l2, statement);
 		CassFuture* query = cass_session_execute(_session, statement);
 		cass_statement_free(statement);
+
 		const CassResult* result = cass_future_get_result(query);
 		if (result) {
 			std::cerr << "inserted" << std::endl;

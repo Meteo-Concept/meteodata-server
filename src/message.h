@@ -130,7 +130,7 @@ namespace meteodata {
 		uint16_t crc;
 	} __attribute__((packed));
 
-	void populateDataPoint(const Loop1& l1, const Loop2& l2, CassStatement* const statement);
+	void populateDataPoint(const CassUuid station, const Loop1& l1, const Loop2& l2, CassStatement* const statement);
 }
 
 #endif
