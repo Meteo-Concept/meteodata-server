@@ -10,13 +10,15 @@ namespace meteodata {
 class MeteoServer {
 
 	public:
-		MeteoServer(boost::asio::io_service& io);
+		MeteoServer(boost::asio::io_service& io, const std::string& user, const std::string& password);
 		void startAccepting();
 		void runNewConnector(Connector::ptr c,
 			const boost::system::error_code& error);
 
 	private:
 		boost::asio::ip::tcp::acceptor _acceptor;
+		std::string _user;
+		std::string _password;
 		// _runningConnectors
 };
 }

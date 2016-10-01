@@ -7,7 +7,7 @@
 #include "dbconnection.h"
 
 namespace meteodata {
-	DbConnection::DbConnection() :
+	DbConnection::DbConnection(const std::string& user, const std::string& password) :
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()},
 		_selectStationById{nullptr, cass_prepared_free},
@@ -16,12 +16,15 @@ namespace meteodata {
 	{
 		cass_log_set_level(CASS_LOG_INFO);
 		cass_cluster_set_contact_points(_cluster, "127.0.0.1");
+		if (!user.empty() && !password.empty())
+			cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
 		_futureConn = cass_session_connect(_session, _cluster);
 		CassError rc = cass_future_error_code(_futureConn);
 		if (rc != CASS_OK) {
 			syslog(LOG_ERR, "Impossible to connect to database");
+		} else {
+			prepareStatements();
 		}
-		prepareStatements();
 	}
 
 	void DbConnection::prepareStatements()

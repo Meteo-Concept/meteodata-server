@@ -36,8 +36,8 @@ struct Message;
 class VantagePro2Connector : public Connector
 {
 public:
-	VantagePro2Connector(boost::asio::io_service& ioService) :
-		Connector(ioService),
+	VantagePro2Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
+		Connector(ioService, user, password),
 		_timer(ioService)
 	{}
 

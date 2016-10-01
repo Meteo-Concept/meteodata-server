@@ -13,7 +13,7 @@ namespace meteodata {
 	class DbConnection
 	{
 	public:
-		DbConnection();
+		DbConnection(const std::string& user = "", const std::string& password = "");
 		virtual ~DbConnection();
 		std::tuple<std::string,int,int> getStationById(const std::string& id);
 		CassUuid getStationByCoords(int latitude, int longitude, int altitude);
