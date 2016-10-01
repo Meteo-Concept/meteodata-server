@@ -288,12 +288,11 @@ public:
 	Loop1 _l1[1]; //it has to be an array to be used as an asio buffer
 	Loop2 _l2[1];
 	std::array<asio::mutable_buffer, 2> _inputBuffer = {
-			asio::buffer(_l1),
-			asio::buffer(_l2),
+		{ asio::buffer(_l1), asio::buffer(_l2) }
 	};
 	int16_t _coords[4]; // elevation, latitude, longitude, CRC
 	std::array<asio::mutable_buffer, 1> _coordsBuffer = {
-		asio::buffer(_coords),
+		{ asio::buffer(_coords) }
 	};
 	bool _stopped = false;
 	int _timeouts = 0;

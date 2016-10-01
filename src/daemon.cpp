@@ -10,7 +10,6 @@
 #include <tuple>
 
 #include "dbconnection.h"
-#include "station.h"
 #include "meteo_server.h"
 
 using namespace meteodata;
