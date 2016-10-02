@@ -1,6 +1,8 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src
 
+EXTRA_DIST = utils
+
 #EXTRA_DIST = Doxyfile.in custom.css LICENSE README.md
 
 #if HAVE_DOXYGEN
