@@ -12,9 +12,7 @@ meteodata_SOURCES = \
 		    message.h\
 		    vantagepro2message.h\
 		    vantagepro2message.cpp
-		    
-#		    station.h\
-#		    station.cpp\
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++11
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)

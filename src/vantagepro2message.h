@@ -48,53 +48,78 @@ public:
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 private:
+	/**
+	 * @brief A Loop1 message, used by VantagePro2 (R) stations, and
+	 * documented by Davis Instruments (R)
+	 */
 	struct Loop1
 	{
-		char header[3];
-		uint8_t barTrend;
-		uint8_t packetType;
-		uint16_t nextRecord;
-		uint16_t barometer;
-		uint16_t insideTemperature;
-		uint8_t insideHumidity;
-		uint16_t outsideTemperature;
-		uint8_t windSpeed;
-		uint8_t tenMinAvgWindSpeed;
-		uint16_t windDir;
-		uint8_t extraTemp[7];
-		uint8_t soilTemp[4];
-		uint8_t leafTemp[4];
-		uint8_t outsideHumidity;
-		uint8_t extraHum[7];
-		uint16_t rainRate;
-		uint8_t uv;
-		uint16_t solarRad;
-		uint16_t stormRain;
+		char header[3]; /**< Identifies the Loop packets: LOO */
+		uint8_t barTrend; /**< The barometric trend */
+		uint8_t packetType; /**< The packet type: 0 for Loop 1 */
+		uint16_t nextRecord; /**< The next record position in the
+				       archive, to monitor the creation of new
+				       measure points */
+		uint16_t barometer; /**< The barometric value */
+		uint16_t insideTemperature; /**< The temperature inside */
+		uint8_t insideHumidity; /**< The humidity inside */
+		uint16_t outsideTemperature; /**< The temperature outside */
+		uint8_t windSpeed; /**< The current wind speed */
+		uint8_t tenMinAvgWindSpeed; /**< The wind speed averaged over the
+					      last ten minutes */
+		uint16_t windDir; /**< The wind direction */
+		uint8_t extraTemp[7]; /**< The temperature measured by extra
+					sensors */
+		uint8_t soilTemp[4]; /**< The soil temperature measured by extra
+				       sensors */
+		uint8_t leafTemp[4]; /**< The leaf temperatur measured by extra
+				       sensors */
+		uint8_t outsideHumidity; /**< The outside humidity */
+		uint8_t extraHum[7]; /**< The humidity measured by extra
+				       sensors */
+		uint16_t rainRate; /**< The current rain rate */
+		uint8_t uv; /**< The UV index */
+		uint16_t solarRad; /**< The solar radiation */
+		uint16_t stormRain; /**< The storm rain volume */
+		/** The month the current storm started */
 		unsigned int monthStartDateCurrentStorm : 4;
+		/** The day the current storm started */
 		unsigned int dayStartDateCurrentStorm   : 5;
+		/** The year the current storm started */
 		unsigned int yearStartDateCurrentStorm  : 7;
-		uint16_t dayRain;
-		uint16_t monthRain;
-		uint16_t yearRain;
-		uint16_t dayET;
-		uint16_t monthET;
-		uint16_t yearET;
-		uint8_t soilMoistures[4];
-		uint8_t leafWetnesses[4];
-		uint8_t insideAlarm;
-		uint8_t rainAlarm;
-		uint16_t outsideAlarms;
-		uint64_t extraTempHumAlarms;
-		uint32_t soilLeafAlarms;
-		uint8_t transmitterBatteryStatus;
-		uint16_t consoleBatteryVoltage;
-		uint8_t forecastIcons;
-		uint8_t forecastRuleNumber;
-		uint16_t timeOfSunrise;
-		uint16_t timeOfSunset;
-		char lf;
-		char cr;
-		uint16_t crcLoop1;
+		uint16_t dayRain; /**< Today's rain volume */
+		uint16_t monthRain; /**< The current month's rain volume */
+		uint16_t yearRain; /**< The current year's rain volume */
+		uint16_t dayET; /**< Today's evapotranspiration */
+		uint16_t monthET; /**< The current month's evapotranspiration */
+		uint16_t yearET; /**< The current year's evapotranspiration */
+		uint8_t soilMoistures[4]; /**< The soil moisture measured by
+					    extra sensors */
+		uint8_t leafWetnesses[4]; /**< The leaf wetnesses measured by
+					    extra sensors */
+		uint8_t insideAlarm; /**< The active alarms for the "inside"
+				       value */
+		uint8_t rainAlarm; /**< The active alarms on rain values */
+		uint16_t outsideAlarms; /**< The active alarms for the
+					 "outside" values */
+		uint64_t extraTempHumAlarms; /**< The active alarms on extra
+					       temerature and humidity values */
+		uint32_t soilLeafAlarms; /**< The active alarms on the soil
+					   moisture and leaf wetness values */
+		uint8_t transmitterBatteryStatus; /**< The meteo station radio
+						    battery status */
+		uint16_t consoleBatteryVoltage; /**< The meteo station's main
+						  battery status */
+		uint8_t forecastIcons; /**< The forecast icons displayed */
+		uint8_t forecastRuleNumber; /**< The forecast */
+		uint16_t timeOfSunrise; /**< The hour at which the sun rises
+					  today */
+		uint16_t timeOfSunset; /**< The hour at which the sun sets
+					 today */
+		char lf; /**< A linefeed (0x0a, \n) character */
+		char cr; /**< A carriage return (0x0d, \r) character */
+		uint16_t crcLoop1; /**< The CRC value of the message to
+				     validate the transmission */
 	} __attribute__((packed));
 
 	struct Loop2

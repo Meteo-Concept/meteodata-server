@@ -10,7 +10,6 @@ namespace meteodata {
 	DbConnection::DbConnection(const std::string& user, const std::string& password) :
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()},
-		_selectStationById{nullptr, cass_prepared_free},
 		_selectStationByCoords{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free}
 	{
@@ -29,15 +28,8 @@ namespace meteodata {
 
 	void DbConnection::prepareStatements()
 	{
-		CassFuture* prepareFuture = cass_session_prepare(_session, "SELECT address, port, polling_period FROM meteodata.stations WHERE id = ?");
+		CassFuture* prepareFuture = cass_session_prepare(_session, "SELECT station FROM meteodata.coordinates WHERE elevation = ? AND latitude = ? AND longitude = ?");
 		CassError rc = cass_future_error_code(prepareFuture);
-		if (rc != CASS_OK) {
-			syslog(LOG_ERR, "Could not prepare statement selectStationById: %s", cass_error_desc(rc));
-		}
-		_selectStationById.reset(cass_future_get_prepared(prepareFuture));
-
-		prepareFuture = cass_session_prepare(_session, "SELECT station FROM meteodata.coordinates WHERE elevation = ? AND latitude = ? AND longitude = ?");
-		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
 			syslog(LOG_ERR, "Could not prepare statement selectStationByCoords: %s", cass_error_desc(rc));
 		}
@@ -104,31 +96,6 @@ namespace meteodata {
 			syslog(LOG_ERR, "Could not prepare statement insertDataPoint: %s", cass_error_desc(rc));
 		}
 		_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
-	}
-
-	std::tuple<std::string,int,int> DbConnection::getStationById(const std::string& id)
-	{
-		CassStatement* statement = cass_prepared_bind(_selectStationById.get());
-		CassUuid stationId;
-		cass_uuid_from_string_n(id.c_str(), id.length(), &stationId);
-		cass_statement_bind_uuid(statement, 0, stationId);
-		CassFuture* query = cass_session_execute(_session, statement);
-
-		cass_statement_free(statement);
-		const CassResult* result = cass_future_get_result(query);
-		if (result) {
-			const CassRow* row = cass_result_first_row(result);
-			const char* address;
-			size_t addressLength;
-			cass_value_get_string(cass_row_get_column(row,0), &address, &addressLength);
-			int32_t port = 0;
-			cass_value_get_int32(cass_row_get_column(row,1), &port);
-			int32_t pollingPeriod = 0;
-			cass_value_get_int32(cass_row_get_column(row,2), &pollingPeriod);
-			cass_result_free(result);
-			return std::make_tuple(address, port, pollingPeriod);
-		}
-		return std::make_tuple("",0,0);
 	}
 
 	CassUuid DbConnection::getStationByCoords(int elevation, int latitude, int longitude)
