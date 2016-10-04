@@ -4,6 +4,7 @@ meteodata_SOURCES = \
 		    dbconnection.cpp\
 		    dbconnection.h\
 		    vantagepro2connector.h\
+		    vantagepro2connector.cpp\
 		    connector.h\
 		    connector.cpp\
 		    meteo_server.h\

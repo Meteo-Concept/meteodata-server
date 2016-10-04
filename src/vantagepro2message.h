@@ -28,8 +28,8 @@ public:
 
 	bool isValid() const
 	{
-		return validateCRC(_l1, sizeof(Loop1)) &&
-		       validateCRC(_l2, sizeof(Loop2));
+		return validateCRC(&_l1, sizeof(Loop1)) &&
+		       validateCRC(&_l2, sizeof(Loop2));
 	}
 
 	static bool validateCRC(const void* msg, size_t len)
@@ -44,7 +44,7 @@ public:
 
 		return crc == 0;
 	}
-	
+
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 private:
@@ -200,11 +200,11 @@ private:
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0
 	};
 
-	/* these have to be array to be used as an asio buffer */
-	Loop1 _l1[1];
-	Loop2 _l2[1];
+	Loop1 _l1;
+	Loop2 _l2;
 	std::array<asio::mutable_buffer, 2> _messageBuffer = {
-		{ asio::buffer(_l1), asio::buffer(_l2) }
+		{ asio::buffer(&_l1, sizeof(Loop1)),
+		  asio::buffer(&_l2, sizeof(Loop2)) }
 	};
 };
 
