@@ -186,7 +186,7 @@ namespace meteodata
 		if (l2.tenMinWindGust == 255)
 			cass_statement_bind_null(statement, 44);
 		else
-			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust) / 10);
+			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust));
 		/*************************************************************/
 		if (l2.windGustDir == 65535)
 			cass_statement_bind_null(statement, 45);
