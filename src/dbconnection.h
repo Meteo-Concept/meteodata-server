@@ -17,7 +17,7 @@ namespace meteodata {
 		virtual ~DbConnection();
 		std::tuple<std::string,int,int> getStationById(const std::string& id);
 		CassUuid getStationByCoords(int latitude, int longitude, int altitude);
-		bool insertDataPoint(const CassUuid station, const Loop1 l1, const Loop2 l2);
+		bool insertDataPoint(const CassUuid station, const Message& message);
 
 	private:
 		CassFuture* _futureConn;

@@ -11,9 +11,8 @@
 using namespace boost::asio;
 using namespace boost::asio::ip;
 
-namespace meteodata {
-
-constexpr int VantagePro2Connector::CRC_VALUES[];
+namespace meteodata
+{
 
 MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),

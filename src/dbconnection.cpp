@@ -160,11 +160,11 @@ namespace meteodata {
 		return defaultUuid;
 	}
 
-	bool DbConnection::insertDataPoint(const CassUuid station, const Loop1 l1, const Loop2 l2)
+	bool DbConnection::insertDataPoint(const CassUuid station, const Message& msg)
 	{
 		std::cerr << "About to insert data point in database" << std::endl;
 		CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
-		populateDataPoint(station, l1, l2, statement);
+		msg.populateDataPoint(station, statement);
 		CassFuture* query = cass_session_execute(_session, statement);
 		cass_statement_free(statement);
 
