@@ -117,15 +117,15 @@ namespace meteodata
 		if (l1.outsideTemperature == 32767)
 			cass_statement_bind_null(statement, 7);
 		else
-			cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature/10));
+			cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(l1.outsideTemperature/10.0));
 		/*************************************************************/
 		std::cerr << "Inside insideHumidity: " << (int)l1.insideHumidity << std::endl;
-		cass_statement_bind_float(statement, 8, l1.insideHumidity);
+		cass_statement_bind_int32(statement, 8, l1.insideHumidity);
 		/*************************************************************/
 		if (l1.outsideHumidity == 255)
 			cass_statement_bind_null(statement, 9);
 		else
-			cass_statement_bind_float(statement, 9, l1.outsideHumidity);
+			cass_statement_bind_int32(statement, 9, l1.outsideHumidity);
 		/*************************************************************/
 		for (int i=0 ; i<7 ; i++) {
 			if (l1.extraTemp[1] == 255)
@@ -149,16 +149,16 @@ namespace meteodata
 			if (l1.extraHum[i] == 255)
 				cass_statement_bind_null(statement, 25+i);
 			else
-				cass_statement_bind_float(statement, 25+i, l1.extraHum[i]);
+				cass_statement_bind_int32(statement, 25+i, l1.extraHum[i]);
 		}
 		/*************************************************************/
 		for (int i=0 ; i<4 ; i++) {
 			if (l1.soilMoistures[i] == 255)
-				cass_statement_bind_float(statement, 32+i, l1.soilMoistures[i]);
-			else
 				cass_statement_bind_null(statement, 32+i);
+			else
+				cass_statement_bind_int32(statement, 32+i, l1.soilMoistures[i]);
 			if (l1.leafWetnesses[i] >= 0 && l1.leafWetnesses[i] <= 15)
-				cass_statement_bind_float(statement, 36+i, l1.leafWetnesses[i]);
+				cass_statement_bind_int32(statement, 36+i, l1.leafWetnesses[i]);
 			else
 				cass_statement_bind_null(statement, 36+i);
 		}
@@ -171,22 +171,22 @@ namespace meteodata
 		if (l1.windDir == 32767)
 			cass_statement_bind_null(statement, 41);
 		else
-			cass_statement_bind_float(statement, 41, l1.windDir);
+			cass_statement_bind_int32(statement, 41, l1.windDir);
 		/*************************************************************/
 		if (l2.tenMinAvgWindSpeed == 32767)
 			cass_statement_bind_null(statement, 42);
 		else
-			cass_statement_bind_float(statement, 42, from_mph_to_kph(l2.tenMinAvgWindSpeed / 10));
+			cass_statement_bind_float(statement, 42, from_mph_to_kph(l2.tenMinAvgWindSpeed) / 10);
 		/*************************************************************/
 		if (l2.twoMinAvgWindSpeed == 32767)
 			cass_statement_bind_null(statement, 43);
 		else
-			cass_statement_bind_float(statement, 43, from_mph_to_kph(l2.twoMinAvgWindSpeed / 10));
+			cass_statement_bind_float(statement, 43, from_mph_to_kph(l2.twoMinAvgWindSpeed) / 10);
 		/*************************************************************/
 		if (l2.tenMinWindGust == 255)
 			cass_statement_bind_null(statement, 44);
 		else
-			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust / 10));
+			cass_statement_bind_float(statement, 44, from_mph_to_kph(l2.tenMinWindGust) / 10);
 		/*************************************************************/
 		if (l2.windGustDir == 65535)
 			cass_statement_bind_null(statement, 45);
@@ -210,7 +210,7 @@ namespace meteodata
 		/*************************************************************/
 		cass_statement_bind_float(statement, 52, from_rainrate_to_mm(l1.yearRain));
 		/*************************************************************/
-		cass_statement_bind_float(statement, 53, from_in_to_mm(l2.stormRain / 100));
+		cass_statement_bind_float(statement, 53, from_in_to_mm(l2.stormRain) / 100);
 		/*************************************************************/
 		if (l2.monthStartDateCurrentStorm >= 1 &&
 		    l2.monthStartDateCurrentStorm <= 12 &&
@@ -232,7 +232,7 @@ namespace meteodata
 		if (l2.solarRad == 32767)
 			cass_statement_bind_null(statement,56);
 		else
-			cass_statement_bind_float(statement, 56, l2.solarRad);
+			cass_statement_bind_int32(statement, 56, l2.solarRad);
 		/*************************************************************/
 		if (l2.dewPoint == 255)
 			cass_statement_bind_null(statement, 57);
