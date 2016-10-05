@@ -1,18 +1,12 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = src
 
-EXTRA_DIST = utils
+EXTRA_DIST = utils Doxyfile.in README
 
-#EXTRA_DIST = Doxyfile.in custom.css LICENSE README.md
+if HAVE_DOXYGEN
+doxygen: Doxyfile
+	$(DOXYGEN) Doxyfile
 
-#if HAVE_DOXYGEN
-#doxyfile.stamp:
-#	$(DOXYGEN) Doxyfile
-#	echo Timestamp > doxyfile.stamp
-#
-#CLEANFILES = doxyfile.stamp
-#
-#all-local: doxyfile.stamp
-#clean-local:
-#	rm -rf doc
-#endif
+clean-local:
+	rm -rf doc
+endif

@@ -1,3 +1,26 @@
+/**
+ * @file vantagepro2message.h
+ * @brief Definition of the VantagePro2Message class
+ * @author Laurent Georget
+ * @date 2016-10-05
+ */
+/*
+ * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef VANTAGEPRO2MESSAGE_H
 #define VANTAGEPRO2MESSAGE_H
 
@@ -19,31 +42,48 @@ namespace meteodata {
 
 namespace asio = boost::asio;
 
+/**
+ * @brief A Message able to receive and store one raw data point from a
+ * VantagePro2 (R) station, by Davis Instruments (R)
+ */
 class VantagePro2Message : public Message
 {
 public:
+	/**
+	 * @brief Get a reference to the Boost::Asio buffer to receive the raw
+	 * data from  the station
+	 *
+	 * @return a reference to the buffer in which the VantagePro2Message can
+	 * store data from the station
+	 */
 	std::array<asio::mutable_buffer, 2>& getBuffer() {
 		return _messageBuffer;
 	}
 
-	bool isValid() const
-	{
-		return validateCRC(&_l1, sizeof(Loop1)) &&
-		       validateCRC(&_l2, sizeof(Loop2));
-	}
+	/**
+	 * @brief Check the integrity of the received data by computing its CRC
+	 * @see validateCRC
+	 *
+	 * @return true if, and only if, the data has been correclty received
+	 */
+	bool isValid() const;
 
-	static bool validateCRC(const void* msg, size_t len)
-	{
-		//byte-wise reading
-		const uint8_t* bytes = reinterpret_cast<const uint8_t*>(msg);
-		unsigned int crc = 0;
-		for (unsigned int i=0 ; i<len ; i++) {
-			uint8_t index = (crc >> 8) ^ bytes[i];
-			crc = CRC_VALUES[index] ^ ((crc << 8) & 0xFFFF);
-		}
-
-		return crc == 0;
-	}
+	/**
+	 * @brief Check the VantagePro2 CRC of any sequence of bytes
+	 *
+	 * This method assumes the CRC is contained in the last two bytes of the
+	 * sequence.
+	 * The computation of the CRC is done as described in the documentation
+	 * by Davis Instruments.
+	 *
+	 * @param msg the sequence of bytes (presumably received from the
+	 * station) whose last two bytes is a CRC to verify
+	 * @param len the length of the sequence
+	 *
+	 * @return true if, and only if, the sequence is valid according to its
+	 * CRC
+	 */
+	static bool validateCRC(const void* msg, size_t len);
 
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
@@ -116,67 +156,106 @@ private:
 					  today */
 		uint16_t timeOfSunset; /**< The hour at which the sun sets
 					 today */
-		char lf; /**< A linefeed (0x0a, \n) character */
-		char cr; /**< A carriage return (0x0d, \r) character */
+		char lf; /**< A linefeed (0x0a, \\n) character */
+		char cr; /**< A carriage return (0x0d, \\r) character */
 		uint16_t crcLoop1; /**< The CRC value of the message to
 				     validate the transmission */
 	} __attribute__((packed));
 
+	/**
+	 * @brief A Loop2 message, used by VantagePro2 (R) stations, and
+	 * documented by Davis Instruments (R)
+	 */
 	struct Loop2
 	{
-		char header[3];
-		uint8_t barTrend;
-		uint8_t packetType;
+		char header[3]; /**< Identifies the Loop packets: LOO */
+		uint8_t barTrend; /**< The barometric trend (an index in a table
+				       of trend descritions) */
+		uint8_t packetType; /**< The packet type: 1 for Loop2 */
 		unsigned int : 16;
-		uint16_t barometer;
-		uint16_t insideTemperature;
-		uint8_t insideHumidity;
-		uint16_t outsideTemperature;
-		uint8_t windSpeed;
+		uint16_t barometer; /**< The barometric value */
+		uint16_t insideTemperature; /**< The inside temperature */
+		uint8_t insideHumidity; /**< The inside humidity percentage */
+		uint16_t outsideTemperature; /**< The outside temperature */
+		uint8_t windSpeed; /**< The current wind speed */
 		unsigned int : 8;
-		uint16_t windDir;
-		uint16_t tenMinAvgWindSpeed;
-		uint16_t twoMinAvgWindSpeed;
-		uint16_t tenMinWindGust;
-		uint16_t windGustDir;
+		uint16_t windDir; /**< The angular direction of the wind */
+		uint16_t tenMinAvgWindSpeed; /**< The wind speed, averaged over
+					          the last ten minutes */
+		uint16_t twoMinAvgWindSpeed; /**< The wind speed, averaged over
+					          the last two minutes */
+		uint16_t tenMinWindGust; /**< The wind gust speed, averaged over
+					      the last ten minutes */
+		uint16_t windGustDir; /**< The angular direction of the wind
+					gust */
 		unsigned int : 16;
 		unsigned int : 16;
-		uint16_t dewPoint;
+		uint16_t dewPoint; /**< The dew point */
 		unsigned int : 8;
-		uint8_t outsideHumidity;
+		uint8_t outsideHumidity; /**< The outside humidity percentage */
 		unsigned int : 8;
-		uint16_t heatIndex;
-		uint16_t windChill;
-		uint16_t thswIndex;
-		uint16_t rainRate;
-		uint8_t uv;
-		uint16_t solarRad;
-		uint16_t stormRain;
+		uint16_t heatIndex; /**< The heat index */
+		uint16_t windChill; /**< The wind chill */
+		uint16_t thswIndex; /**< The THSW index */
+		uint16_t rainRate; /**< The icurrent rain rate */
+		uint8_t uv; /**< The UV index */
+		uint16_t solarRad; /**< The solar radiation */
+		uint16_t stormRain; /**< The storm rain volume */
+		/** The month the current storm started */
 		unsigned int monthStartDateCurrentStorm : 4;
+		/** The day the current storm started */
 		unsigned int dayStartDateCurrentStorm   : 5;
+		/** The year the current storm started */
 		unsigned int yearStartDateCurrentStorm  : 7;
-		uint16_t dayRain;
-		uint16_t last15MinRain;
-		uint16_t lastHourRain;
-		uint16_t dayET;
-		uint16_t last24HoursRain;
-		uint8_t barReducMethod;
-		uint16_t userBarOffset;
-		uint16_t barCalibNumber;
-		uint16_t barSensorRaw;
-		uint16_t absBarPressure;
-		uint16_t altimeterSetting;
+		uint16_t dayRain; /**< Today's amount of rain */
+		uint16_t last15MinRain; /**< The amount of rain over the last
+					     fifteen minutes */
+		uint16_t lastHourRain; /**< The amount of rain in the last
+					    hour */
+		uint16_t dayET; /** Today's evapotranspiration */
+		uint16_t last24HoursRain; /**< The amount of rain over the last
+					       twenty-four hour */
+		uint8_t barReducMethod; /**< The barometric reduction method */
+		uint16_t userBarOffset; /**< The barometric manually specified
+					     offset */
+		uint16_t barCalibNumber; /**< The barometric calibration */
+		uint16_t barSensorRaw; /**< The raw reading from the barometer,
+					    before reduction */
+		uint16_t absBarPressure; /**< The absolute barometric
+					      pressure */
+		uint16_t altimeterSetting; /**< The manual setting of the
+					        altimeter */
 		unsigned int : 8;
 		unsigned int : 8;
+		/** The abscissa in the graph of the 10-minutes wind speed at
+		 * which the next point will be placed */
 		uint8_t next10MinWindSpeedGraphPtr;
+		/** The abscissa in the graph of the 15-minutes wind speed at
+		 * which the next point will be placed */
 		uint8_t next15MinWindSpeedGraphPtr;
+		/** The abscissa in the graph of the last hour wind speed at
+		 * which the next point will be placed */
 		uint8_t nextHourWindSpeedGraphPtr;
+		/** The abscissa in the graph of the last day wind speed at
+		 * which the next point will be placed */
 		uint8_t nextDayWindSpeedGraphPtr;
+		/** The abscissa in the graph of the last minute rain amount at
+		 * which the next point will be placed */
 		uint8_t nextMinRainGraphPtr;
+		/** The abscissa in the graph of the rain storm at which the
+		 * next point will be placed */
 		uint8_t nextRainStormGraphPtr;
+		/** The "MM" such that the rain amount per hour is computed
+		 * between XhMM and (x+1)hMM for all x (manual setting) */
 		uint8_t minuteInHourForRainCalculation;
+		/** The abscissa in the graph of the amount of rain in the
+		 * month at which the next point will be placed */
 		uint8_t nextMonthRainGraphPtr;
+		/** The abscissa in the graph of the amount of rain in the
+		 * year at which the next point will be placed */
 		uint8_t nextYearRainGraphPtr;
+		/** The abscissa in the graph of the seasonal rain at which the
+		 * next point will be placed */
 		uint8_t nextSeasonRainGraphPtr;
 		unsigned int : 16;
 		unsigned int : 16;
@@ -184,11 +263,15 @@ private:
 		unsigned int : 16;
 		unsigned int : 16;
 		unsigned int : 16;
-		char lf;
-		char cr;
-		uint16_t crc;
+		char lf; /**< A linefeed (0x0a, \\n) character */
+		char cr; /**< A carriage return (0x0d, \\r) character */
+		uint16_t crcLoop2; /**< The CRC value of the message to
+				     validate the transmission */
 	} __attribute__((packed));
 
+	/**
+	 * @brief The constants necessary to compute the VantagePro2 CRCs
+	 */
 	static constexpr int CRC_VALUES[] =
 	{
 		0x0, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
@@ -225,8 +308,18 @@ private:
 		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0
 	};
 
+	/**
+	 * @brief The first half of the data point
+	 */
 	Loop1 _l1;
+	/**
+	 * @brief The second half of the data point
+	 */
 	Loop2 _l2;
+	/**
+	 * @brief The Boost::Asio buffer in which the raw data point from the
+	 * station is to be received
+	 */
 	std::array<asio::mutable_buffer, 2> _messageBuffer = {
 		{ asio::buffer(&_l1, sizeof(Loop1)),
 		  asio::buffer(&_l2, sizeof(Loop2)) }

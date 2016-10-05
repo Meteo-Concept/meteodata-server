@@ -1,7 +1,8 @@
 /**
- * @file connector.cpp
- * @brief Implementation of the Connector class
+ * @file documentation.h
+ * @brief Documentation of the entire project
  * @author Laurent Georget
+ * @version 0.1
  * @date 2016-10-05
  */
 /*
@@ -21,19 +22,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
+#error This file is here for documentation purpose only, it is not supposed to\
+ be included
 
-#include <boost/asio.hpp>
+/**
+ * \mainpage Meteodata
+ *
+ * TODO
+ */
 
-#include "connector.h"
-
-namespace meteodata
-{
-
-Connector::Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
-	_sock(ioService),
-	_ioService(ioService),
-	_db(user, password)
-{}
-
-}
+/**
+ * @brief The namespace in which all the code base of this project goes
+ */
+namespace meteodata {}

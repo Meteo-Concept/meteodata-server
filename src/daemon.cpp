@@ -1,3 +1,26 @@
+/**
+ * @file daemon.cpp
+ * @brief Definition of the main function
+ * @author Laurent Georget
+ * @date 2016-10-05
+ */
+/*
+ * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
@@ -15,11 +38,23 @@
 #include "dbconnection.h"
 #include "meteo_server.h"
 
+/**
+ * @brief The configuration file default path
+ */
 #define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
 
 using namespace meteodata;
 namespace po = boost::program_options;
 
+/**
+ * @brief Entry point
+ *
+ * @param argc the number of arguments passed on the command line
+ * @param argv the arguments passed on the command line
+ *
+ * @return 0 if everything went well, and either an "errno-style" error code
+ * or 255 otherwise
+ */
 int main(int argc, char** argv)
 {
 	std::string user;
@@ -80,9 +115,12 @@ int main(int argc, char** argv)
 	try {
 		boost::asio::io_service ioService;
 		MeteoServer server(ioService, user, password);
+		server.startAccepting();
 		ioService.run();
 	} catch (std::exception& e) {
 		syslog(LOG_ERR, "%s", e.what());
+		closelog();
+		return 255;
 	}
 
 	closelog();
