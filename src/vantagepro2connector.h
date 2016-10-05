@@ -44,7 +44,6 @@ private:
 	void stop();
 	sys::error_code wakeUp();
 	void flushSocket();
-	bool validateCoords();
 	void storeData();
 
 	template <typename MutableBuffer>
@@ -54,7 +53,6 @@ private:
 	asio::streambuf _discardBuffer;
 	VantagePro2Message _message;
 
-	int16_t _coords[4]; // elevation, latitude, longitude, CRC
 	bool _stopped = false;
 	int _timeouts = 0;
 	CassUuid _station;

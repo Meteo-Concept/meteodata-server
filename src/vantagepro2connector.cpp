@@ -40,13 +40,14 @@ void VantagePro2Connector::start()
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
 
 	_timer.expires_from_now(chrono::pos_infin);
+	int16_t coords[4]; // elevation, latitude, longitude, CRC
 	do {
 		if (wakeUp()) {
 			stop();
 			return;
 		}
-		e = askForData("EEBRD 0B 06\n", 12, asio::buffer(_coords));
-		if (! validateCoords()) {
+		e = askForData("EEBRD 0B 06\n", 12, asio::buffer(coords));
+		if (!VantagePro2Message::validateCRC(coords,sizeof(coords))) {
 			txrxErrors++;
 			e = sys::errc::make_error_code(sys::errc::io_error);
 		}
@@ -63,7 +64,7 @@ void VantagePro2Connector::start()
 
 	// From documentation, latitude, longitude and elevation are stored contiguously
 	// in this order in the station's EEPROM
-	_station = _db.getStationByCoords(_coords[2], _coords[0], _coords[1]);
+	_station = _db.getStationByCoords(coords[2], coords[0], coords[1]);
 
 	for (;;)
 	{
@@ -208,12 +209,6 @@ void VantagePro2Connector::flushSocket()
 		std::cerr << "Cleared " << bytes << " bytes" << std::endl;
 	}
 	_discardBuffer.consume(_discardBuffer.size());
-}
-
-bool VantagePro2Connector::validateCoords()
-{
-	std::cerr << "Coords received" << std::endl;
-	return VantagePro2Message::validateCRC(_coords, sizeof(4 * sizeof(int16_t)));
 }
 
 void VantagePro2Connector::storeData()
