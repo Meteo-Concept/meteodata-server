@@ -94,7 +94,15 @@ void VantagePro2Connector::start()
 		txrxErrors = 0;
 		_timeouts = 0;
 		dataTimeouts = 0;
-		_timer.expires_from_now(chrono::pos_infin);
+		chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
+		// extract the difference between now  and now rounded up to the next multiple of 5 minutes
+		// e.g.: if now = 11:27:53, then rounded = 2min 53s
+		chrono::time_duration rounded = chrono::minutes(now.minutes() % 5) + chrono::seconds(now.seconds());
+		// we wait 5 min - rounded to take the next measurement exactly
+		// when the clock hits the next multiple of five minutes (tolerating
+		// an error of around a couple of seconds)
+		_timer.expires_from_now(chrono::minutes(5) - rounded);
+		_timer.wait();
 		do {
 			if (wakeUp()) {
 				stop();
@@ -118,9 +126,6 @@ void VantagePro2Connector::start()
 
 		// I/O finished
 		storeData();
-		_timer.cancel();
-		_timer.expires_from_now(chrono::minutes(5));
-		_timer.wait();
 	}
 }
 
