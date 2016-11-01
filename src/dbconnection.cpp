@@ -57,6 +57,7 @@ namespace meteodata {
 			syslog(LOG_ERR, "Could not prepare statement selectStationByCoords: %s", cass_error_desc(rc));
 		}
 		_selectStationByCoords.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
 
 		prepareFuture = cass_session_prepare(_session,
 			"INSERT INTO meteodata.meteo ("
@@ -119,6 +120,7 @@ namespace meteodata {
 			syslog(LOG_ERR, "Could not prepare statement insertDataPoint: %s", cass_error_desc(rc));
 		}
 		_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
 	}
 
 	CassUuid DbConnection::getStationByCoords(int elevation, int latitude, int longitude)
@@ -133,21 +135,23 @@ namespace meteodata {
 		std::cerr << "Executed statement" << std::endl;
 		cass_statement_free(statement);
 		const CassResult* result = cass_future_get_result(query);
+		CassUuid uuid;
 		if (result) {
 			std::cerr << "We have a result" << std::endl;
 			const CassRow* row = cass_result_first_row(result);
 			if (row) {
-				CassUuid uuid;
 				cass_value_get_uuid(cass_row_get_column(row,0), &uuid);
-				cass_result_free(result);
-				return uuid;
 			}
+		} else {
+			std::cerr << "No result" << std::endl;
+			/** FIXME returning a default UUID is probably not a sane
+			 * thing to do. Shouldn't we raise an exception instead? */
+			cass_uuid_from_string("000000000-0000-0000-0000-000000000000", &uuid);
 		}
+		cass_result_free(result);
+		cass_future_free(query);
 
-		std::cerr << "No result" << std::endl;
-		CassUuid defaultUuid;
-		cass_uuid_from_string("000000000-0000-0000-0000-000000000000", &defaultUuid);
-		return defaultUuid;
+		return uuid;
 	}
 
 	bool DbConnection::insertDataPoint(const CassUuid station, const Message& msg)
@@ -161,13 +165,13 @@ namespace meteodata {
 		const CassResult* result = cass_future_get_result(query);
 		if (result) {
 			std::cerr << "inserted" << std::endl;
-			cass_result_free(result);
 		} else {
 			const char* error_message;
 			size_t error_message_length;
 			cass_future_error_message(query, &error_message, &error_message_length);
 			std::cerr << "Error: " << error_message << std::endl;
 		}
+		cass_result_free(result);
 		cass_future_free(query);
 
 		return true;
