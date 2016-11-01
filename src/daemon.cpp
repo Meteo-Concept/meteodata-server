@@ -71,6 +71,7 @@ int main(int argc, char** argv)
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
+		("no-daemon,D", "do not daemonize at startup")
 	;
 	desc.add(config);
 
@@ -101,12 +102,14 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	int daemonization = daemon(0,0);
+	if (!vm.count("no-daemon")) {
+		int daemonization = daemon(0,0);
 
-	if (daemonization) {
-		int errsv = errno;
-		perror("Could not start Meteodata");
-		return errsv;
+		if (daemonization) {
+			int errsv = errno;
+			perror("Could not start Meteodata");
+			return errsv;
+		}
 	}
 
 	openlog("meteodata", LOG_PID, LOG_DAEMON);
