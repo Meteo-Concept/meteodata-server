@@ -50,8 +50,9 @@ namespace chrono = boost::posix_time;
 
 using namespace std::placeholders;
 
-VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
-	Connector(ioService, user, password),
+VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
+	DbConnection& db) :
+	Connector(ioService, db),
 	_timer(ioService)
 {}
 

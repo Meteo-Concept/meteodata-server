@@ -66,10 +66,9 @@ public:
 	 *
 	 * @param ioService the Boost::Asio service to use for all aynchronous
 	 * network operations
-	 * @param user the username to log in to the database
-	 * @param password the password corresponding to the username
+	 * @param db The handle to the database
 	 */
-	VantagePro2Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password);
+	VantagePro2Connector(boost::asio::io_service& ioService, DbConnection& db);
 
 	//main loop
 	virtual void start() override;

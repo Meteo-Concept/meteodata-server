@@ -30,10 +30,10 @@
 namespace meteodata
 {
 
-Connector::Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
+Connector::Connector(boost::asio::io_service& ioService, DbConnection& db) :
 	_sock(ioService),
 	_ioService(ioService),
-	_db(user, password)
+	_db(db)
 {}
 
 }

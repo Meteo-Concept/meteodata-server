@@ -28,6 +28,7 @@
 
 #include "meteo_server.h"
 #include "connector.h"
+#include "dbconnection.h"
 
 namespace meteodata {
 /**
@@ -85,13 +86,9 @@ private:
 	 */
 	boost::asio::ip::tcp::acceptor _acceptor;
 	/**
-	 * @brief The username to used to log in to the database
+	 * @brief The connection to the database
 	 */
-	std::string _user;
-	/**
-	 * @brief The password corresponding to the username
-	 */
-	std::string _password;
+	DbConnection _db;
 };
 }
 

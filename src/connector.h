@@ -56,19 +56,18 @@ namespace meteodata
 		 * VantagePro2Connector for a VantagePro2 (R) station
 		 * @param ioService The Boost::Asio asynchronous service that
 		 * the connector will have to use for all Boost:Asio operations
-		 * @param user The username to connect to the database
-		 * @param password The password to connect to the database
+		 * @param db The handle to the database
 		 *
-		 * @return A auto-managed shared pointer to the connector
+		 * @return An auto-managed shared pointer to the connector
 		 */
 		template<typename T>
 		static
 		typename std::enable_if<std::is_base_of<Connector,T>::value,
 				Connector::ptr>::type
-		create(boost::asio::io_service& ioService, const std::string& user, const std::string& password)
+		create(boost::asio::io_service& ioService, DbConnection& db)
 		{
 			std::cerr << "new connector" << std::endl;
-			return Connector::ptr(new T(std::ref(ioService), std::ref(user), std::ref(password)));
+			return Connector::ptr(new T(std::ref(ioService), std::ref(db)));
 		}
 
 		/**
@@ -102,10 +101,9 @@ namespace meteodata
 		 * connectors.
 		 * @param ioService The Boost::Asio service to use for all
 		 * Boost::Asio asynchronous operations
-		 * @param user The username to connect to the database
-		 * @param password The password to connect to the database
+		 * @param db The handle to the database
 		 */
-		Connector(boost::asio::io_service& ioService, const std::string& user, const std::string& password);
+		Connector(boost::asio::io_service& ioService, DbConnection& db);
 		/**
 		 * @brief The TCP socket used to communicate to the meteo
 		 * station
@@ -119,7 +117,7 @@ namespace meteodata
 		/**
 		 * @brief The connection to the database
 		 */
-		DbConnection _db;
+		DbConnection& _db;
 	};
 }
 
