@@ -77,7 +77,7 @@ void VantagePro2Connector::start()
 		}
 		if (e == sys::errc::timed_out)
 			++dataTimeouts;
-	} while(dataTimeouts < 3 && txrxErrors < 3 && e);
+	} while(dataTimeouts < 5 && txrxErrors < 5 && e);
 
 	// irrecoverable error
 	if (e) {
@@ -116,7 +116,8 @@ void VantagePro2Connector::start()
 			}
 			if (e == sys::errc::timed_out)
 				++dataTimeouts;
-		} while(dataTimeouts < 3 && txrxErrors < 3 && e);
+			flushSocket();
+		} while (dataTimeouts < 5 && txrxErrors < 5 && e);
 
 		// irrecoverable error
 		if (e) {
@@ -179,10 +180,12 @@ sys::error_code VantagePro2Connector::wakeUp()
 			flushSocket();
 		}
 		std::cerr << e.value() << ": " << e.message() << std::endl;
-	} while (_timeouts < 3 && e == sys::errc::operation_canceled);
-			if (_timeouts >= 3)
-				e = sys::errc::make_error_code(sys::errc::timed_out);
-			return e;
+	} while (_timeouts < 5 && e == sys::errc::operation_canceled);
+	if (_timeouts >= 5) {
+		e = sys::errc::make_error_code(sys::errc::timed_out);
+		flushSocket();
+	}
+	return e;
 }
 
 template <typename MutableBuffer>
@@ -205,8 +208,10 @@ sys::error_code VantagePro2Connector::askForData(const char* req, int reqSize, c
 			});
 	do _ioService.run_one(); while (e == asio::error::would_block);
 	_timer.expires_from_now(chrono::pos_infin);
-	if (ack != 0x06)
+	if (ack != 0x06) {
 		e = sys::errc::make_error_code(sys::errc::io_error);
+		flushSocket();
+	}
 
 	if (!e) {
 		_timer.expires_from_now(chrono::seconds(6));
