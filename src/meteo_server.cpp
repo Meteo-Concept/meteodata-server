@@ -56,8 +56,8 @@ void MeteoServer::runNewConnector(Connector::ptr c,
 		const boost::system::error_code& error)
 {
 	if (!error) {
-		c->start();
 		startAccepting();
+		c->start();
 	}
 }
 }
