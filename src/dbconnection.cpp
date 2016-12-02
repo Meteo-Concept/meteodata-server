@@ -26,6 +26,7 @@
 #include <cassandra.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <mutex>
 
 #include "dbconnection.h"
 
@@ -125,15 +126,19 @@ namespace meteodata {
 
 	CassUuid DbConnection::getStationByCoords(int elevation, int latitude, int longitude)
 	{
-		CassStatement* statement = cass_prepared_bind(_selectStationByCoords.get());
-		std::cerr << "Statement prepared" << std::endl;
-		cass_statement_bind_int32(statement, 0, elevation);
-		cass_statement_bind_int32(statement, 1, latitude);
-		cass_statement_bind_int32(statement, 2, longitude);
-		CassFuture* query = cass_session_execute(_session, statement);
+		CassFuture* query;
+		{ /* mutex scope */
+			std::lock_guard<std::mutex> queryMutex{_selectMutex};
+			CassStatement* statement = cass_prepared_bind(_selectStationByCoords.get());
+			std::cerr << "Statement prepared" << std::endl;
+			cass_statement_bind_int32(statement, 0, elevation);
+			cass_statement_bind_int32(statement, 1, latitude);
+			cass_statement_bind_int32(statement, 2, longitude);
+			query = cass_session_execute(_session, statement);
+			std::cerr << "Executed statement" << std::endl;
+			cass_statement_free(statement);
+		}
 
-		std::cerr << "Executed statement" << std::endl;
-		cass_statement_free(statement);
 		const CassResult* result = cass_future_get_result(query);
 		CassUuid uuid;
 		if (result) {
@@ -156,11 +161,15 @@ namespace meteodata {
 
 	bool DbConnection::insertDataPoint(const CassUuid station, const Message& msg)
 	{
-		std::cerr << "About to insert data point in database" << std::endl;
-		CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
-		msg.populateDataPoint(station, statement);
-		CassFuture* query = cass_session_execute(_session, statement);
-		cass_statement_free(statement);
+		CassFuture* query;
+		{ /* mutex scope */
+			std::lock_guard<std::mutex> queryMutex{_insertMutex};
+			std::cerr << "About to insert data point in database" << std::endl;
+			CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
+			msg.populateDataPoint(station, statement);
+			query = cass_session_execute(_session, statement);
+			cass_statement_free(statement);
+		}
 
 		const CassResult* result = cass_future_get_result(query);
 		if (result) {
