@@ -124,7 +124,7 @@ namespace meteodata {
 		cass_future_free(prepareFuture);
 	}
 
-	CassUuid DbConnection::getStationByCoords(int elevation, int latitude, int longitude)
+	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station)
 	{
 		CassFuture* query;
 		{ /* mutex scope */
@@ -140,23 +140,18 @@ namespace meteodata {
 		}
 
 		const CassResult* result = cass_future_get_result(query);
-		CassUuid uuid;
+		bool ret = false;
 		if (result) {
-			std::cerr << "We have a result" << std::endl;
 			const CassRow* row = cass_result_first_row(result);
 			if (row) {
-				cass_value_get_uuid(cass_row_get_column(row,0), &uuid);
+				cass_value_get_uuid(cass_row_get_column(row,0), &station);
+				ret = true;
 			}
-		} else {
-			std::cerr << "No result" << std::endl;
-			/** FIXME returning a default UUID is probably not a sane
-			 * thing to do. Shouldn't we raise an exception instead? */
-			cass_uuid_from_string("000000000-0000-0000-0000-000000000000", &uuid);
 		}
 		cass_result_free(result);
 		cass_future_free(query);
 
-		return uuid;
+		return ret;
 	}
 
 	bool DbConnection::insertDataPoint(const CassUuid station, const Message& msg)
@@ -172,18 +167,18 @@ namespace meteodata {
 		}
 
 		const CassResult* result = cass_future_get_result(query);
-		if (result) {
-			std::cerr << "inserted" << std::endl;
-		} else {
+		bool ret = true;
+		if (!result) {
 			const char* error_message;
 			size_t error_message_length;
 			cass_future_error_message(query, &error_message, &error_message_length);
-			std::cerr << "Error: " << error_message << std::endl;
+			std::cerr << "Error from Cassandra: " << error_message << std::endl;
+			ret = false;
 		}
 		cass_result_free(result);
 		cass_future_free(query);
 
-		return true;
+		return ret;
 	}
 
 	DbConnection::~DbConnection()

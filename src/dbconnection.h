@@ -61,10 +61,11 @@ namespace meteodata {
 		 * @param latitude The latitude of the station
 		 * @param longitude The longitude of the station
 		 * @param altitude The elevation of the station
+		 * @param station Where to store UUID corresponding to the station
 		 *
 		 * @return The unique identifier of the station
 		 */
-		CassUuid getStationByCoords(int latitude, int longitude, int altitude);
+		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station);
 
 		/**
 		 * @brief Insert a new data point in the database

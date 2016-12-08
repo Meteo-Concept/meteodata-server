@@ -160,12 +160,6 @@ void VantagePro2Connector::flushSocket()
 	}
 }
 
-void VantagePro2Connector::storeData()
-{
-	_db.insertDataPoint(_station, _message);
-	std::cerr << "Measurement stored!" << std::endl;
-}
-
 template <typename Restarter>
 void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State restartState, Restarter restart)
 {
@@ -282,10 +276,16 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				// From documentation, latitude, longitude and elevation are stored contiguously
 				// in this order in the station's EEPROM
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
-				_station = _db.getStationByCoords(_coords[2], _coords[0], _coords[1]);
+				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station);
 				flushSocket();
-				std::cerr << "Received correct identification" << std::endl;
-				waitForNextMeasure();
+				if (found) {
+					std::cerr << "Received correct identification" << std::endl;
+					waitForNextMeasure();
+				} else {
+					std::cerr << "Unknown station! Aborting" << std::endl;
+					syslog(LOG_ERR, "An unknown station has attempted a connection");
+					stop();
+				}
 			}
 		}
 		break;
@@ -360,13 +360,20 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					syslog(LOG_ERR, "Too many transmissions errors, aborting");
 					stop();
 				}
-			} else {
+		} else {
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
 				flushSocket();
 				std::cerr << "Got measurement, storing it" << std::endl;
-				storeData();
-				std::cerr << "Now sleeping until next measurement" << std::endl;
-				waitForNextMeasure();
+				bool ret = _db.insertDataPoint(_station, _message);
+				if (ret) {
+					std::cerr << "Measurement stored\n"
+						  << "Now sleeping until next measurement" << std::endl;
+					waitForNextMeasure();
+				} else {
+					std::cerr << "Failed to store measurement! Aborting" << std::endl;
+					syslog(LOG_ERR, "Couldn't store measurement");
+					stop();
+				}
 			}
 		}
 		break;

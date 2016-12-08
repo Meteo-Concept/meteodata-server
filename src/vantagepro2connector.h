@@ -128,10 +128,6 @@ private:
 	 * @brief Empty the communication buffer
 	 */
 	void flushSocket();
-	/**
-	 * @brief Store one data point (a measurement) to the database
-	 */
-	void storeData();
 
 	/**
 	 * @brief A Boost::Asio timer used to time out on network operations and
