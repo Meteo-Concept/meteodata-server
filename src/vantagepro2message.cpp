@@ -132,7 +132,7 @@ inline float from_inHg_to_bar(int inHg)
  *
  * @return the parameter value converted to Celsius degrees
  */
-inline float from_Farenheight_to_Celsius(int f)
+inline float from_Farenheight_to_Celsius(float f)
 {
 	return (f - 32.0) / 1.80;
 }
@@ -213,8 +213,8 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	/*************************************************************/
 	cass_statement_bind_float(statement, 5, from_inHg_to_bar(_l2.barSensorRaw));
 	/*************************************************************/
-	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheight_to_Celsius(_l1.insideTemperature/10) << std::endl;
-	cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_l1.insideTemperature/10));
+	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheight_to_Celsius(_l1.insideTemperature/10.0) << std::endl;
+	cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_l1.insideTemperature/10.0));
 	/*************************************************************/
 	if (_l1.outsideTemperature == 32767)
 		cass_statement_bind_null(statement, 7);
