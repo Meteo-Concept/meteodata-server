@@ -58,11 +58,18 @@ VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
 	DbConnection& db) :
 	Connector(ioService, db),
 	_timer(ioService)
-{}
+{
+}
 
 void VantagePro2Connector::start()
 {
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_currentState = State::STARTING;
+
+	/* Start the timer once and for all */
+	_timer.expires_at(chrono::pos_infin);
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
+
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
@@ -80,7 +87,6 @@ void VantagePro2Connector::waitForNextMeasure()
 	std::cerr << "Next measurement will be taken in " << (chrono::minutes(5) - rounded)
 		  << " at approximately " << (now + chrono::minutes(5) - rounded) << std::endl;
 	_timer.expires_from_now(chrono::minutes(5) - rounded);
-	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 }
 
 
