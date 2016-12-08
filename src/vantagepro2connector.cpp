@@ -86,16 +86,22 @@ void VantagePro2Connector::waitForNextMeasure()
 
 void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 {
+	/* if the timer has been cancelled, then bail out, we have nothing more
+	 * to do here. It's our original caller's responsability to restart us
+	 * if needs be */
+	if (e == sys::errc::operation_canceled)
+		return;
+
 	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= asio::deadline_timer::traits_type::now() &&
-			e != sys::errc::operation_canceled) {
+	if (_timer.expires_at() <= asio::deadline_timer::traits_type::now()) {
 		std::cerr << "Timed out!" << std::endl;
 		_timeouts++;
 		/* Trigger an operation_aborted event on the current
 		 * asynchronous I/O */
 		_sock.cancel();
 	} else {
-		// restart the timer
+		/* spurious handler call, restart the timer without changing the
+		 * same deadline */
 		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 		_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	}
@@ -109,6 +115,9 @@ void VantagePro2Connector::stop()
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
 	_sock.close();
+	/* at this point, all shared pointers to *this should be about to be
+	 * destroyed, eventually leading to the VantagePro2Connector to be
+	 * destroyed */
 }
 
 void VantagePro2Connector::sendRequest(const char *req, int reqsize)
