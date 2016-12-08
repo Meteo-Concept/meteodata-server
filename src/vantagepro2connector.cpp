@@ -223,7 +223,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_ECHO_STATION:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
+		handleGenericErrors(e, State::SENDING_WAKE_UP_STATION,
 			std::bind(&VantagePro2Connector::sendRequest, this,
 				_echoRequest, sizeof(_echoRequest)));
 		if (e == sys::errc::success) {
