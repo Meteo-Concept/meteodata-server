@@ -75,6 +75,32 @@ public:
 
 private:
 	/**
+	 * @brief State in our state machine
+	 */
+	enum class State {
+		STARTING,
+		WAITING_NEXT_MEASURE_TICK,
+		SENDING_WAKE_UP_STATION,
+		WAITING_ECHO_STATION,
+		SENDING_REQ_STATION,
+		WAITING_ACK_STATION,
+		WAITING_DATA_STATION,
+		SENDING_WAKE_UP_MEASURE,
+		WAITING_ECHO_MEASURE,
+		SENDING_REQ_MEASURE,
+		WAITING_ACK_MEASURE,
+		WAITING_DATA_MEASURE,
+		STOPPED
+	};
+	/* Events have type sys::error_code */
+
+	State _currentState;
+	template <typename Restarter>
+	void handleGenericErrors(const sys::error_code& e, State restartState,
+		Restarter restart);
+	void handleEvent(const sys::error_code& e);
+
+	/**
 	 * @brief Verify that the timer that has just expired really means that
 	 * the associated deadline has expired
 	 *
@@ -91,14 +117,13 @@ private:
 	 * when the socket is closed.
 	 */
 	void stop();
-	/**
-	 * @brief Perform the WakeUp sequence described in the documentation by
-	 * Davis Instrument
-	 *
-	 * @return a Boost::Asio error code telling if the communication with
-	 * the station was successful
-	 */
-	sys::error_code wakeUp();
+
+	void waitForNextMeasure();
+
+	void sendRequest(const char* req, int reqsize);
+	void recvWakeUp();
+	template <typename MutableBuffer>
+	void waitForData(const MutableBuffer& buffer);
 	/**
 	 * @brief Empty the communication buffer
 	 */
@@ -107,22 +132,6 @@ private:
 	 * @brief Store one data point (a measurement) to the database
 	 */
 	void storeData();
-
-	/**
-	 * @brief Ask the station for something (a data point, informations
-	 * about the station status, etc.)
-	 *
-	 * @tparam MutableBuffer the type of the communication buffer
-	 * @param req the request sent to the station
-	 * @param reqSize the size of the request
-	 * @param buffer the buffer in which the answer from the station is to
-	 * be stored
-	 *
-	 * @return a Boost::Asio error code telling if the communication with
-	 * the station was successful
-	 */
-	template <typename MutableBuffer>
-	sys::error_code askForData(const char* req, int reqSize, const MutableBuffer& buffer);
 
 	/**
 	 * @brief A Boost::Asio timer used to time out on network operations and
@@ -158,10 +167,18 @@ private:
 	 * will consider that the connection to the station is lost and exit.
 	 */
 	int _timeouts = 0;
+
+	int _transmissionErrors = 0;
 	/**
 	 * @brief The connected station's identifier in the database
 	 */
 	CassUuid _station;
+
+	char _ackBuffer;
+	int16_t _coords[4];
+	static constexpr char _echoRequest[] = "\n";
+	static constexpr char _getStationRequest[] = "EEBRD 0B 06\n";
+	static constexpr char _getMeasureRequest[] = "LPS 3 2\n";
 };
 
 }

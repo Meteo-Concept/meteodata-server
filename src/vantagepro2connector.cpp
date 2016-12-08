@@ -50,6 +50,10 @@ namespace chrono = boost::posix_time;
 
 using namespace std::placeholders;
 
+constexpr char VantagePro2Connector::_echoRequest[];
+constexpr char VantagePro2Connector::_getStationRequest[];
+constexpr char VantagePro2Connector::_getMeasureRequest[];
+
 VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
 	DbConnection& db) :
 	Connector(ioService, db),
@@ -58,197 +62,319 @@ VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
 
 void VantagePro2Connector::start()
 {
-	int txrxErrors = 0;
-	int dataTimeouts = 0;
-	sys::error_code e;
-	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
+	_currentState = State::STARTING;
+	handleEvent(sys::errc::make_error_code(sys::errc::success));
+}
 
-	_timer.expires_from_now(chrono::pos_infin);
-	int16_t coords[4]; // elevation, latitude, longitude, CRC
-	do {
-		if (wakeUp()) {
-			stop();
-			return;
-		}
-		e = askForData("EEBRD 0B 06\n", 12, asio::buffer(coords));
-		if (!VantagePro2Message::validateCRC(coords,sizeof(coords))) {
-			txrxErrors++;
-			e = sys::errc::make_error_code(sys::errc::io_error);
-		}
-		if (e == sys::errc::timed_out)
-			++dataTimeouts;
-	} while(dataTimeouts < 5 && txrxErrors < 5 && e);
 
-	// irrecoverable error
-	if (e) {
-		std::cerr << "Error " << e.message() << std::endl;
-		stop();
-		return;
-	}
-
-	// From documentation, latitude, longitude and elevation are stored contiguously
-	// in this order in the station's EEPROM
-	_station = _db.getStationByCoords(coords[2], coords[0], coords[1]);
-
-	for (;;)
-	{
-		txrxErrors = 0;
-		_timeouts = 0;
-		dataTimeouts = 0;
-		chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
-		// extract the difference between now  and now rounded up to the next multiple of 5 minutes
-		// e.g.: if now = 11:27:53, then rounded = 2min 53s
-		chrono::time_duration rounded = chrono::minutes(now.minutes() % 5) + chrono::seconds(now.seconds());
-		// we wait 5 min - rounded to take the next measurement exactly
-		// when the clock hits the next multiple of five minutes (tolerating
-		// an error of around a couple of seconds)
-		_timer.expires_from_now(chrono::minutes(5) - rounded);
-		_timer.wait();
-		do {
-			if (wakeUp()) {
-				stop();
-				return;
-			}
-			e = askForData("LPS 3 2\n", 8, _message.getBuffer());
-			if (!_message.isValid()) {
-				txrxErrors++;
-				e = sys::errc::make_error_code(sys::errc::io_error);
-			}
-			if (e == sys::errc::timed_out)
-				++dataTimeouts;
-			flushSocket();
-		} while (dataTimeouts < 5 && txrxErrors < 5 && e);
-
-		// irrecoverable error
-		if (e) {
-			std::cerr << "Error " << e.message() << std::endl;
-			stop();
-			return;
-		}
-
-		// I/O finished
-		storeData();
-	}
+void VantagePro2Connector::waitForNextMeasure()
+{
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
+	// extract the difference between now  and now rounded up to the next multiple of 5 minutes
+	// e.g.: if now = 11:27:53, then rounded = 2min 53s
+	chrono::time_duration rounded = chrono::minutes(now.minutes() % 5) + chrono::seconds(now.seconds());
+	// we wait 5 min - rounded to take the next measurement exactly
+	// when the clock hits the next multiple of five minutes (tolerating
+	// an error of around a couple of seconds)
+	std::cerr << "Next measurement will be taken in " << (chrono::minutes(5) - rounded)
+		  << " at approximately " << (now + chrono::minutes(5) - rounded) << std::endl;
+	_timer.expires_from_now(chrono::minutes(5) - rounded);
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 }
 
 
 void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 {
-	std::cerr << "Expired!" << std::endl;
-	// if the connector has already stopped, then let it die
-	if (_stopped)
-		return;
-	std::cerr << "Checking the deadline..." << std::endl;
-
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= asio::deadline_timer::traits_type::now() &&
 			e != sys::errc::operation_canceled) {
 		std::cerr << "Timed out!" << std::endl;
 		_timeouts++;
+		/* Trigger an operation_aborted event on the current
+		 * asynchronous I/O */
 		_sock.cancel();
-		_timer.expires_from_now(chrono::pos_infin);
+	} else {
+		// restart the timer
+		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+		_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	}
-
-	// restart the timer
-	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, std::static_pointer_cast<VantagePro2Connector>(shared_from_this()), _1));
 }
 
 void VantagePro2Connector::stop()
 {
+	/* hijack the state machine to force STOPPED state */
+	_currentState = State::STOPPED;
 	_stopped = true;
+	/* cancel all asynchronous event handlers */
 	_timer.cancel();
 	_sock.close();
 }
 
-sys::error_code VantagePro2Connector::wakeUp()
+void VantagePro2Connector::sendRequest(const char *req, int reqsize)
 {
-	sys::error_code e;
-	do {
-		char ack[] = "\n";
-		std::cerr << "Waking up the console" << std::endl;
-		write(_sock, asio::buffer(ack,1), e);
-		if (!e) {
-			_timer.expires_from_now(chrono::seconds(6));
-			std::cerr << "Receiving acknowledgement from station" << std::endl;
-			e = asio::error::would_block;
-			async_read_until(_sock, _discardBuffer, '\n',
-					[&e,this](const sys::error_code& ec, size_t) {
-					e = ec;
-					});
-			do _ioService.run_one(); while (e == asio::error::would_block);
-			_timer.expires_from_now(chrono::pos_infin);
-			flushSocket();
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	_timer.expires_from_now(chrono::seconds(6));
+	async_write(_sock, asio::buffer(req, reqsize),
+		[this,self](const sys::error_code& ec, std::size_t) {
+			_timer.expires_at(chrono::pos_infin);
+			handleEvent(ec);
 		}
-		std::cerr << e.value() << ": " << e.message() << std::endl;
-	} while (_timeouts < 5 && e == sys::errc::operation_canceled);
-	if (_timeouts >= 5) {
-		e = sys::errc::make_error_code(sys::errc::timed_out);
-		flushSocket();
-	}
-	return e;
+	);
+}
+
+void VantagePro2Connector::recvWakeUp()
+{
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	_timer.expires_from_now(chrono::seconds(6));
+	async_read_until(_sock, _discardBuffer, "\n\r",
+		[this,self](const sys::error_code& ec, std::size_t) {
+			_timer.expires_at(chrono::pos_infin);
+			handleEvent(ec);
+		}
+	);
 }
 
 template <typename MutableBuffer>
-sys::error_code VantagePro2Connector::askForData(const char* req, int reqSize, const MutableBuffer& buffer)
+void VantagePro2Connector::waitForData(const MutableBuffer& buffer)
 {
-	sys::error_code e;
-	std::cerr << "Asking for data" << std::endl;
-	//flush the socket first
-	flushSocket();
-
-	write(_sock, asio::buffer(req, reqSize), e);
-	std::cerr << "Waiting for data" << std::endl;
-
-	_timer.expires_from_now(chrono::seconds(4));
-	e = asio::error::would_block;
-	char ack;
-	async_read(_sock, asio::buffer(&ack, 1),
-			[&e](const sys::error_code& ec, size_t) {
-			e = ec;
-			});
-	do _ioService.run_one(); while (e == asio::error::would_block);
-	_timer.expires_from_now(chrono::pos_infin);
-	if (ack != 0x06) {
-		e = sys::errc::make_error_code(sys::errc::io_error);
-		flushSocket();
-	}
-
-	if (!e) {
-		_timer.expires_from_now(chrono::seconds(6));
-		e = asio::error::would_block;
-		async_read(_sock, buffer,
-				[&e,this](const sys::error_code& ec, size_t bytes) {
-				e = ec;
-				std::cerr << "Received " << bytes << " bytes of data" << std::endl;
-				});
-		do _ioService.run_one(); while (e == asio::error::would_block);
-		_timer.expires_from_now(chrono::pos_infin);
-	}
-
-	// If a read operation has been interrupted, this is because
-	// it failed to meet the deadline, in this case return a more
-	// meaningful error code
-	if (e == sys::errc::operation_canceled)
-		e = sys::errc::make_error_code(sys::errc::timed_out);
-
-	return e;
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	_timer.expires_from_now(chrono::seconds(6));
+	async_read(_sock, buffer,
+		[this,self](const sys::error_code& ec, std::size_t) {
+			_timer.expires_at(chrono::pos_infin);
+			handleEvent(ec);
+		}
+	);
 }
+
 
 void VantagePro2Connector::flushSocket()
 {
-	if (_sock.available() > 0) {
-		asio::streambuf::mutable_buffers_type bufs = _discardBuffer.prepare(512);
+	while (_sock.available() > 0) {
+		auto bufs = _discardBuffer.prepare(512);
 		std::size_t bytes = _sock.receive(bufs);
 		_discardBuffer.commit(bytes);
 		std::cerr << "Cleared " << bytes << " bytes" << std::endl;
+		_discardBuffer.consume(_discardBuffer.size());
 	}
-	_discardBuffer.consume(_discardBuffer.size());
 }
 
 void VantagePro2Connector::storeData()
 {
-	std::cerr << "Message validated" << std::endl;
 	_db.insertDataPoint(_station, _message);
+	std::cerr << "Measurement stored!" << std::endl;
+}
+
+template <typename Restarter>
+void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State restartState, Restarter restart)
+{
+	std::cerr << "Received event " << e.value() << ": " << e.message() << std::endl;
+	if (e == sys::errc::success) {
+		return;
+	} else if (e == sys::errc::timed_out || e == sys::errc::operation_canceled) {
+		if (++_timeouts < 5) {
+			_currentState = restartState;
+			restart();
+		} else {
+			stop();
+		}
+	} else if (e == sys::errc::io_error) {
+		if (++_transmissionErrors < 5) {
+			_currentState = restartState;
+			restart();
+		} else {
+			stop();
+		}
+	} else {
+		syslog(LOG_ERR, "unknown error: %s",
+			e.message().c_str());
+		stop();
+	}
+}
+
+void VantagePro2Connector::handleEvent(const sys::error_code& e)
+{
+	switch (_currentState) {
+	case State::STARTING:
+		_currentState = State::SENDING_WAKE_UP_STATION;
+		std::cerr << "A new station is connected" << std::endl;
+		sendRequest(_echoRequest, sizeof(_echoRequest));
+		break;
+
+	case State::WAITING_NEXT_MEASURE_TICK:
+		_currentState = State::SENDING_WAKE_UP_MEASURE;
+		std::cerr << "Time to wake up! We need a new measurement" << std::endl;
+		sendRequest(_echoRequest, sizeof(_echoRequest));
+		break;
+
+	case State::SENDING_WAKE_UP_STATION:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_STATION,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, sizeof(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ECHO_STATION;
+			std::cerr << "Sent wake up" << std::endl;
+			recvWakeUp();
+		}
+		break;
+
+	case State::WAITING_ECHO_STATION:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, sizeof(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::SENDING_REQ_STATION;
+			flushSocket();
+			std::cerr << "Station has woken up" << std::endl;
+			sendRequest(_getStationRequest, sizeof(_getStationRequest));
+		}
+		break;
+
+	case State::SENDING_REQ_STATION:
+		handleGenericErrors(e, State::SENDING_REQ_STATION,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getStationRequest, sizeof(_getStationRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ACK_STATION;
+			std::cerr << "Sent identification request" << std::endl;
+			waitForData(asio::buffer(&_ackBuffer,1));
+		}
+		break;
+
+	case State::WAITING_ACK_STATION:
+		handleGenericErrors(e, State::SENDING_REQ_STATION,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getStationRequest, sizeof(_getStationRequest)));
+		if (e == sys::errc::success) {
+			if (_ackBuffer != 0x06) {
+				if (++_transmissionErrors < 5) {
+					_currentState = State::SENDING_REQ_STATION;
+					flushSocket();
+					sendRequest(_getStationRequest, sizeof(_getStationRequest));
+				} else {
+					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					stop();
+				}
+			} else {
+				_currentState = State::WAITING_DATA_STATION;
+				std::cerr << "Identification request acked by station" << std::endl;
+				waitForData(asio::buffer(_coords));
+			}
+		}
+		break;
+
+	case State::WAITING_DATA_STATION:
+		handleGenericErrors(e, State::SENDING_REQ_STATION,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getMeasureRequest, sizeof(_getMeasureRequest)));
+		if (e == sys::errc::success) {
+			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+				if (++_transmissionErrors < 5) {
+					_currentState = State::SENDING_REQ_STATION;
+					flushSocket();
+					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+				} else {
+					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					stop();
+				}
+			} else {
+				// From documentation, latitude, longitude and elevation are stored contiguously
+				// in this order in the station's EEPROM
+				_currentState = State::WAITING_NEXT_MEASURE_TICK;
+				_station = _db.getStationByCoords(_coords[2], _coords[0], _coords[1]);
+				flushSocket();
+				std::cerr << "Received correct identification" << std::endl;
+				waitForNextMeasure();
+			}
+		}
+
+	case State::SENDING_WAKE_UP_MEASURE:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, sizeof(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ECHO_MEASURE;
+			std::cerr << "Waking up station for next request" << std::endl;
+			recvWakeUp();
+		}
+		break;
+
+	case State::WAITING_ECHO_MEASURE:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, sizeof(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::SENDING_REQ_MEASURE;
+			flushSocket();
+			std::cerr << "Station is woken up, ready to send a measurement" << std::endl;
+			sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+		}
+		break;
+
+	case State::SENDING_REQ_MEASURE:
+		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getMeasureRequest, sizeof(_getMeasureRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ACK_MEASURE;
+			std::cerr << "Sent measurement request" << std::endl;
+			waitForData(asio::buffer(&_ackBuffer, 1));
+		}
+		break;
+
+	case State::WAITING_ACK_MEASURE:
+		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getMeasureRequest, sizeof(_getMeasureRequest)));
+		if (e == sys::errc::success) {
+			if (_ackBuffer != 0x06) {
+				if (++_transmissionErrors < 5) {
+					_currentState = State::SENDING_REQ_MEASURE;
+					flushSocket();
+					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+				} else {
+					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					stop();
+				}
+			} else {
+				_currentState = State::WAITING_DATA_MEASURE;
+				std::cerr << "Station has acked measurement request" << std::endl;
+				waitForData(_message.getBuffer());
+			}
+		}
+		break;
+
+	case State::WAITING_DATA_MEASURE:
+		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getMeasureRequest, sizeof(_getMeasureRequest)));
+		if (e == sys::errc::success) {
+			if (!_message.isValid()) {
+				if (++_transmissionErrors < 5) {
+					_currentState = State::SENDING_REQ_MEASURE;
+					flushSocket();
+					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+				} else {
+					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					stop();
+				}
+			} else {
+				_currentState = State::WAITING_NEXT_MEASURE_TICK;
+				flushSocket();
+				std::cerr << "Got measurement, storing it" << std::endl;
+				storeData();
+				std::cerr << "Now sleeping until next measurement" << std::endl;
+				waitForNextMeasure();
+			}
+		}
+
+	case State::STOPPED:
+		/* discard everything, only spurious events from cancelled
+		    operations can get here */
+		;
+
+	}
 }
 
 }
