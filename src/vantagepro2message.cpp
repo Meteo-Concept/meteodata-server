@@ -214,7 +214,10 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	cass_statement_bind_float(statement, 5, from_inHg_to_bar(_l2.barSensorRaw));
 	/*************************************************************/
 	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheight_to_Celsius(_l1.insideTemperature/10.0) << std::endl;
-	cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_l1.insideTemperature/10.0));
+	if (_l1.insideTemperature == 32767)
+		cass_statement_bind_null(statement, 6);
+	else
+		cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_l1.insideTemperature/10.0));
 	/*************************************************************/
 	if (_l1.outsideTemperature == 32767)
 		cass_statement_bind_null(statement, 7);
@@ -222,7 +225,10 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 		cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(_l1.outsideTemperature/10.0));
 	/*************************************************************/
 	std::cerr << "Inside insideHumidity: " << (int)_l1.insideHumidity << std::endl;
-	cass_statement_bind_int32(statement, 8, _l1.insideHumidity);
+	if (_l1.insideHumidity == 255)
+		cass_statement_bind_null(statement, 8);
+	else
+		cass_statement_bind_int32(statement, 8, _l1.insideHumidity);
 	/*************************************************************/
 	if (_l1.outsideHumidity == 255)
 		cass_statement_bind_null(statement, 9);
