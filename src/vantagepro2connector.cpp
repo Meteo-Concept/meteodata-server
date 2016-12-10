@@ -288,6 +288,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				waitForNextMeasure();
 			}
 		}
+		break;
 
 	case State::SENDING_WAKE_UP_MEASURE:
 		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
@@ -368,11 +369,13 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				waitForNextMeasure();
 			}
 		}
+		break;
 
 	case State::STOPPED:
 		/* discard everything, only spurious events from cancelled
 		    operations can get here */
 		;
+		break;
 
 	}
 }
