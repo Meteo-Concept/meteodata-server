@@ -104,11 +104,11 @@ namespace meteodata {
 		 * @brief The prepared statement for the insetDataPoint() method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _insertDataPoint;
-		/*
+		/**
 		 * @brief A mutual exclusion semaphore to protect _insertDataPoint
 		 */
 		std::mutex _insertMutex;
-		/*
+		/**
 		 * @brief A mutual exclusion semaphore to protect _selectStationByCoords
 		 */
 		std::mutex _selectMutex;

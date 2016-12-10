@@ -75,29 +75,58 @@ public:
 
 private:
 	/**
-	 * @brief State in our state machine
+	 * @brief Represent a state in the state machine
 	 */
 	enum class State {
-		STARTING,
-		WAITING_NEXT_MEASURE_TICK,
-		SENDING_WAKE_UP_STATION,
-		WAITING_ECHO_STATION,
-		SENDING_REQ_STATION,
-		WAITING_ACK_STATION,
-		WAITING_DATA_STATION,
-		SENDING_WAKE_UP_MEASURE,
-		WAITING_ECHO_MEASURE,
-		SENDING_REQ_MEASURE,
-		WAITING_ACK_MEASURE,
-		WAITING_DATA_MEASURE,
-		STOPPED
+		STARTING, /*!< Initial state */
+		WAITING_NEXT_MEASURE_TICK, /*!< Waiting for the timer to hit the deadline for the next measurement */
+		SENDING_WAKE_UP_STATION, /*!< Waiting for the wake up request to be sent */
+		WAITING_ECHO_STATION, /*!< Waiting for the station to answer the wake up request */
+		SENDING_REQ_STATION, /*!< Waiting for the identification request to be sent */
+		WAITING_ACK_STATION, /*!< Waiting for the identification request to be acknowledgement */
+		WAITING_DATA_STATION, /*!< Waiting for the station to answer the identification */
+		SENDING_WAKE_UP_MEASURE, /*!< Waiting for the wake up request to be sent (before measurement) */
+		WAITING_ECHO_MEASURE, /*!< Waiting for the station to answer the wake up request */
+		SENDING_REQ_MEASURE, /*!< Waiting for a measurement request to be sent */
+		WAITING_ACK_MEASURE, /*!< Waiting for the station to acknowledge the measurement request */
+		WAITING_DATA_MEASURE, /*!< Waiting for the station to answer the measurement request */
+		STOPPED /*!< Final state for cleanup operations */
 	};
 	/* Events have type sys::error_code */
 
-	State _currentState;
+
+	/**
+	 * @brief Check an event and handle generic errors such as timeouts and
+	 * I/O errors
+	 *
+	 * This method can be called upon receiving an event from the station,
+	 * it does nothing in case of a success or a cancelation event. It calls
+	 * the restart function in case of a timeout or an I/O error if the
+	 * maximum number of (respectively) timeouts and transmission errors has
+	 * not reached a predefined threshold and aborts the connection in any
+	 * other case.
+	 *
+	 * @tparam Restarter the type of the function to call to retry the
+	 * operation
+	 * @param e the event from the station
+	 * @param restartState the state in which the state machine must jump
+	 * before calling the restart function
+	 * @param restart a function to call to retry the current operation
+	 * (which is about to fail)
+	 */
 	template <typename Restarter>
 	void handleGenericErrors(const sys::error_code& e, State restartState,
 		Restarter restart);
+
+	/**
+	 * @brief Transition function of the state machine
+	 *
+	 * Thi smethod receives an event from the station and reacts according
+	 * to the current state before waiting for the next event.
+	 *
+	 * @param e an event from the station (success, timeout, I/O error,
+	 * etc.)
+	 */
 	void handleEvent(const sys::error_code& e);
 
 	/**
@@ -118,10 +147,31 @@ private:
 	 */
 	void stop();
 
+	/**
+	 * @brief Program the timer to send a timeout event when the clock hit
+	 * the next multiple of five minutes
+	 */
 	void waitForNextMeasure();
 
+	/**
+	 * @brief Send a message to the station
+	 *
+	 * @param req the request
+	 * @param reqsize the request size
+	 */
 	void sendRequest(const char* req, int reqsize);
+	/**
+	 * @brief Wait for the station to answer a wake up request
+	 */
 	void recvWakeUp();
+	/**
+	 * @brief Wait for the station to answer the request
+	 *
+	 * @tparam MutableBuffer the type of the buffer in which the answer
+	 * must be stored
+	 * @param buffer the buffer in which the answere must be stored, this
+	 * function will not send the success event until the buffer is full
+	 */
 	template <typename MutableBuffer>
 	void waitForData(const MutableBuffer& buffer);
 	/**
@@ -129,6 +179,11 @@ private:
 	 */
 	void flushSocket();
 
+
+	/**
+	 * @brief The current state of the state machine
+	 */
+	State _currentState;
 	/**
 	 * @brief A Boost::Asio timer used to time out on network operations and
 	 * to wait between two measurements
@@ -164,16 +219,43 @@ private:
 	 */
 	int _timeouts = 0;
 
+	/**
+	 * @brief The number of transmission errors registered since the last
+	 * successful communication
+	 *
+	 * When this counter hits a given threshold, the VantagePro2Connector
+	 * will abort the connection and exit.
+	 */
 	int _transmissionErrors = 0;
 	/**
 	 * @brief The connected station's identifier in the database
 	 */
 	CassUuid _station;
 
+	/**
+	 * @brief A one-character buffer to receive acknowledgements from the
+	 * station
+	 *
+	 * When receiving a request, the station usually answers with 0x06, this
+	 * buffer stores this acknowledgement.
+	 */
 	char _ackBuffer;
+	/**
+	 * @brief A buffer to receive the coordinates from the station
+	 */
 	int16_t _coords[4];
+	/**
+	 * @brief An echo request, typically used for the wake up procedure
+	 */
 	static constexpr char _echoRequest[] = "\n";
+	/**
+	 * @brief An identification request, querying the coordinates of the
+	 * station
+	 */
 	static constexpr char _getStationRequest[] = "EEBRD 0B 06\n";
+	/**
+	 * @brief A measurement request, querying one data point
+	 */
 	static constexpr char _getMeasureRequest[] = "LPS 3 2\n";
 };
 
