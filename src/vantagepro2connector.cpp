@@ -66,10 +66,6 @@ void VantagePro2Connector::start()
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_currentState = State::STARTING;
 
-	/* Start the timer once and for all */
-	_timer.expires_at(chrono::pos_infin);
-	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
-
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
@@ -77,6 +73,11 @@ void VantagePro2Connector::start()
 void VantagePro2Connector::waitForNextMeasure()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+
+	// reset the counters
+	_timeouts = 0;
+	_transmissionErrors = 0;
+
 	chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
 	// extract the difference between now  and now rounded up to the next multiple of 5 minutes
 	// e.g.: if now = 11:27:53, then rounded = 2min 53s
@@ -87,6 +88,7 @@ void VantagePro2Connector::waitForNextMeasure()
 	std::cerr << "Next measurement will be taken in " << (chrono::minutes(5) - rounded)
 		  << " at approximately " << (now + chrono::minutes(5) - rounded) << std::endl;
 	_timer.expires_from_now(chrono::minutes(5) - rounded);
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 }
 
 
@@ -95,6 +97,7 @@ void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 	/* if the timer has been cancelled, then bail out, we have nothing more
 	 * to do here. It's our original caller's responsability to restart us
 	 * if needs be */
+	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
@@ -102,12 +105,11 @@ void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 	if (_timer.expires_at() <= asio::deadline_timer::traits_type::now()) {
 		std::cerr << "Timed out!" << std::endl;
 		_timeouts++;
-		/* Trigger an operation_aborted event on the current
-		 * asynchronous I/O */
 		_sock.cancel();
+		handleEvent(sys::errc::make_error_code(sys::errc::timed_out));
 	} else {
 		/* spurious handler call, restart the timer without changing the
-		 * same deadline */
+		 * deadline */
 		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 		_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	}
@@ -120,6 +122,7 @@ void VantagePro2Connector::stop()
 	_stopped = true;
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
+	_sock.cancel();
 	_sock.close();
 	/* at this point, all shared pointers to *this should be about to be
 	 * destroyed, eventually leading to the VantagePro2Connector to be
@@ -130,9 +133,10 @@ void VantagePro2Connector::sendRequest(const char *req, int reqsize)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_write(_sock, asio::buffer(req, reqsize),
 		[this,self](const sys::error_code& ec, std::size_t) {
-			_timer.expires_at(chrono::pos_infin);
+			_timer.cancel();
 			handleEvent(ec);
 		}
 	);
@@ -142,9 +146,10 @@ void VantagePro2Connector::recvWakeUp()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read_until(_sock, _discardBuffer, "\n\r",
 		[this,self](const sys::error_code& ec, std::size_t) {
-			_timer.expires_at(chrono::pos_infin);
+			_timer.cancel();
 			handleEvent(ec);
 		}
 	);
@@ -155,9 +160,10 @@ void VantagePro2Connector::waitForData(const MutableBuffer& buffer)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read(_sock, buffer,
 		[this,self](const sys::error_code& ec, std::size_t) {
-			_timer.expires_at(chrono::pos_infin);
+			_timer.cancel();
 			handleEvent(ec);
 		}
 	);
@@ -179,23 +185,40 @@ template <typename Restarter>
 void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State restartState, Restarter restart)
 {
 	std::cerr << "Received event " << e.value() << ": " << e.message() << std::endl;
-	if (e == sys::errc::success) {
+	/* In case of success, we are done here, the main code in the state
+	 * machine will do its job
+	 *
+	 * if the operation has been canceled, then we let the control to the
+	 * timer handler running concurrently
+	 * For example:
+	 * Normal execution:
+	 * - the async_wait is started on the timer
+	 * - the async_read starts on the socket
+	 * - the async_read completes with success
+	 * - the async_wait gets cancelled
+	 *   => we let the async_read handler send its success event to the
+	 *   state machine
+	 *   (the timer's operation_canceled event has been discarded in
+	 *   checkDeadline, above)
+	 *
+	 * Timeout execution:
+	 * - the async_wait is started on the timer
+	 * - the async_read starts on the socket
+	 * - the async_wait completes before the async_read
+	 * - the async_read gets cancelled
+	 *   => we let the async_wait handler send its timed_out event to the
+	 *   state machine and discard the socket's operation_canceled event
+	 */
+	if (e == sys::errc::success || e == sys::errc::operation_canceled) {
 		return;
-	} else if (e == sys::errc::timed_out || e == sys::errc::operation_canceled) {
+	} else if (e == sys::errc::timed_out) {
 		if (++_timeouts < 5) {
 			_currentState = restartState;
 			restart();
 		} else {
 			stop();
 		}
-	} else if (e == sys::errc::io_error) {
-		if (++_transmissionErrors < 5) {
-			_currentState = restartState;
-			restart();
-		} else {
-			stop();
-		}
-	} else {
+	} else { /* TCP reset by peer, etc. */
 		syslog(LOG_ERR, "unknown error: %s",
 			e.message().c_str());
 		stop();
@@ -212,9 +235,13 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_NEXT_MEASURE_TICK:
-		_currentState = State::SENDING_WAKE_UP_MEASURE;
-		std::cerr << "Time to wake up! We need a new measurement" << std::endl;
-		sendRequest(_echoRequest, sizeof(_echoRequest));
+		if (e == sys::errc::timed_out) {
+			_currentState = State::SENDING_WAKE_UP_MEASURE;
+			std::cerr << "Time to wake up! We need a new measurement" << std::endl;
+			sendRequest(_echoRequest, sizeof(_echoRequest));
+		} else {
+			waitForNextMeasure();
+		}
 		break;
 
 	case State::SENDING_WAKE_UP_STATION:
@@ -276,13 +303,13 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 	case State::WAITING_DATA_STATION:
 		handleGenericErrors(e, State::SENDING_REQ_STATION,
 			std::bind(&VantagePro2Connector::sendRequest, this,
-				_getMeasureRequest, sizeof(_getMeasureRequest)));
+				_getStationRequest, sizeof(_getStationRequest)));
 		if (e == sys::errc::success) {
 			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
 				if (++_transmissionErrors < 5) {
 					_currentState = State::SENDING_REQ_STATION;
 					flushSocket();
-					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
 					syslog(LOG_ERR, "Too many transmissions errors, aborting");
 					stop();
