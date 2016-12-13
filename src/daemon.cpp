@@ -113,7 +113,19 @@ int main(int argc, char** argv)
 	}
 
 	openlog("meteodata", LOG_PID, LOG_DAEMON);
-	syslog(LOG_NOTICE, "Meteodata has started succesfully");
+	cass_log_set_level(CASS_LOG_INFO);
+	CassLogCallback logCallback =
+		[](const CassLogMessage *message, void*) -> void {
+			int logLevel =
+				message->severity == CASS_LOG_CRITICAL ? LOG_CRIT :
+				message->severity == CASS_LOG_ERROR    ? LOG_ERR :
+				message->severity == CASS_LOG_WARN     ? LOG_WARNING :
+				message->severity == CASS_LOG_INFO     ? LOG_INFO :
+									 LOG_DEBUG;
+
+			syslog(logLevel, "%s (from %s, in %s, line %i)", message->message, message->function, message->file, message->line);
+		};
+	cass_log_set_callback(logCallback, NULL);
 
 	try {
 		boost::asio::io_service ioService;
@@ -121,10 +133,12 @@ int main(int argc, char** argv)
 		server.startAccepting();
 		ioService.run();
 	} catch (std::exception& e) {
+		// exit on error, and let systemd restart the daemon
 		syslog(LOG_ERR, "%s", e.what());
 		closelog();
 		return 255;
 	}
 
+	// clean exit, not reached in daemon mode
 	closelog();
 }

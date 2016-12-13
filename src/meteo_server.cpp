@@ -40,7 +40,9 @@ namespace meteodata
 MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
 	_db(user,password)
-{}
+{
+	syslog(LOG_NOTICE, "Meteodata has started succesfully");
+}
 
 void MeteoServer::startAccepting()
 {

@@ -22,11 +22,12 @@
  */
 
 #include <iostream>
+#include <mutex>
+#include <exception>
 
 #include <cassandra.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <mutex>
 
 #include "dbconnection.h"
 
@@ -37,14 +38,15 @@ namespace meteodata {
 		_selectStationByCoords{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free}
 	{
-		cass_log_set_level(CASS_LOG_INFO);
 		cass_cluster_set_contact_points(_cluster, "127.0.0.1");
 		if (!user.empty() && !password.empty())
 			cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
 		_futureConn = cass_session_connect(_session, _cluster);
 		CassError rc = cass_future_error_code(_futureConn);
 		if (rc != CASS_OK) {
-			syslog(LOG_ERR, "Impossible to connect to database");
+			std::string desc("Impossible to connect to database: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
 		} else {
 			prepareStatements();
 		}

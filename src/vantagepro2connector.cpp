@@ -123,10 +123,13 @@ void VantagePro2Connector::stop()
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
 	_sock.cancel();
-	_sock.close();
 	/* at this point, all shared pointers to *this should be about to be
 	 * destroyed, eventually leading to the VantagePro2Connector to be
-	 * destroyed */
+	 * destroyed
+	 *
+	 * don't close() the socket but let the VantagePro2Connector's
+	 * destructor take care of it if necessary
+	 */
 }
 
 void VantagePro2Connector::sendRequest(const char *req, int reqsize)
@@ -178,6 +181,7 @@ void VantagePro2Connector::flushSocket()
 		_discardBuffer.commit(bytes);
 		std::cerr << "Cleared " << bytes << " bytes" << std::endl;
 		_discardBuffer.consume(_discardBuffer.size());
+		sleep(3); // wait for a few more bytes, just in case
 	}
 }
 
@@ -290,7 +294,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					syslog(LOG_ERR, "Too many transmissions errors on station identification request acknowledgement, aborting");
 					stop();
 				}
 			} else {
@@ -312,7 +316,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					syslog(LOG_ERR, "Too many transmissions errors on station identification CRC validation, aborting");
 					stop();
 				}
 			} else {
@@ -378,7 +382,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					syslog(LOG_ERR, "Too many transmissions errors in measurement acknowledgement, aborting");
 					stop();
 				}
 			} else {
@@ -400,7 +404,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors, aborting");
+					syslog(LOG_ERR, "Too many transmissions errors in measurement CRC, aborting");
 					stop();
 				}
 		} else {
