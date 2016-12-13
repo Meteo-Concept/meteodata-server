@@ -235,6 +235,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_NEXT_MEASURE_TICK:
+		flushSocket();
 		if (e == sys::errc::timed_out) {
 			_currentState = State::SENDING_WAKE_UP_MEASURE;
 			std::cerr << "Time to wake up! We need a new measurement" << std::endl;
@@ -426,6 +427,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		;
 		break;
 
+		break;
 	}
 }
 
