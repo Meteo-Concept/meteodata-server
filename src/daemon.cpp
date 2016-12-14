@@ -80,7 +80,7 @@ int main(int argc, char** argv)
 	std::string configFileName = vm.count("config-file") ?
 		vm["config-file"].as<std::string>() :
 		DEFAULT_CONFIG_FILE;
-	std::ifstream configFile(DEFAULT_CONFIG_FILE);
+	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config), vm);
 		configFile.close();
