@@ -36,6 +36,7 @@ namespace meteodata {
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()},
 		_selectStationByCoords{nullptr, cass_prepared_free},
+		_selectStationDetails{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free}
 	{
 		cass_cluster_set_contact_points(_cluster, "127.0.0.1");
@@ -57,9 +58,21 @@ namespace meteodata {
 		CassFuture* prepareFuture = cass_session_prepare(_session, "SELECT station FROM meteodata.coordinates WHERE elevation = ? AND latitude = ? AND longitude = ?");
 		CassError rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
-			syslog(LOG_ERR, "Could not prepare statement selectStationByCoords: %s", cass_error_desc(rc));
+			std::string desc("Could not prepare statement selectStationByCoords: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
 		}
 		_selectStationByCoords.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session, "SELECT name,polling_period FROM meteodata.stations WHERE id = ?");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement selectStationDetails: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_selectStationDetails.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 
 		prepareFuture = cass_session_prepare(_session,
@@ -120,13 +133,48 @@ namespace meteodata {
 
 		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
-			syslog(LOG_ERR, "Could not prepare statement insertDataPoint: %s", cass_error_desc(rc));
+			std::string desc("Could not prepare statement insertdataPoint: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
 		}
 		_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 	}
 
-	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station)
+	bool DbConnection::getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod)
+	{
+		CassFuture* query;
+		{ /* mutex scope */
+			std::lock_guard<std::mutex> queryMutex{_selectDetailsMutex};
+			CassStatement* statement = cass_prepared_bind(_selectStationDetails.get());
+			std::cerr << "Statement prepared" << std::endl;
+			cass_statement_bind_uuid(statement, 0, uuid);
+			query = cass_session_execute(_session, statement);
+			std::cerr << "Executed statement" << std::endl;
+			cass_statement_free(statement);
+		}
+
+		const CassResult* result = cass_future_get_result(query);
+		bool ret = false;
+		if (result) {
+			const CassRow* row = cass_result_first_row(result);
+			if (row) {
+				const char *stationName;
+				size_t size;
+				cass_value_get_string(cass_row_get_column(row,0), &stationName, &size);
+				cass_value_get_int32(cass_row_get_column(row,1), &pollPeriod);
+				name.clear();
+				name.append(stationName);
+				ret = true;
+			}
+		}
+		cass_result_free(result);
+		cass_future_free(query);
+
+		return ret;
+	}
+
+	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station, std::string& name, int& pollPeriod)
 	{
 		CassFuture* query;
 		{ /* mutex scope */
@@ -147,6 +195,7 @@ namespace meteodata {
 			const CassRow* row = cass_result_first_row(result);
 			if (row) {
 				cass_value_get_uuid(cass_row_get_column(row,0), &station);
+				getStationDetails(station, name, pollPeriod);
 				ret = true;
 			}
 		}

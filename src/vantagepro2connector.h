@@ -165,6 +165,10 @@ private:
 	 */
 	void recvWakeUp();
 	/**
+	 * @brief Wait for the station to acknowledge last request
+	 */
+	void recvAck();
+	/**
 	 * @brief Wait for the station to answer the request
 	 *
 	 * @tparam MutableBuffer the type of the buffer in which the answer
@@ -173,7 +177,7 @@ private:
 	 * function will not send the success event until the buffer is full
 	 */
 	template <typename MutableBuffer>
-	void waitForData(const MutableBuffer& buffer);
+	void recvData(const MutableBuffer& buffer);
 	/**
 	 * @brief Empty the communication buffer
 	 */
@@ -231,7 +235,14 @@ private:
 	 * @brief The connected station's identifier in the database
 	 */
 	CassUuid _station;
-
+	/**
+	 * @brief The station's name
+	 */
+	std::string _stationName;
+	/**
+	 * @brief The amount of time between two queries for data to the stations
+	 */
+	int _pollingPeriod;
 	/**
 	 * @brief A one-character buffer to receive acknowledgements from the
 	 * station

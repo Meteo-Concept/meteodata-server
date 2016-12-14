@@ -65,7 +65,7 @@ namespace meteodata {
 		 *
 		 * @return The unique identifier of the station
 		 */
-		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station);
+		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station, std::string& name, int& pollPeriod);
 
 		/**
 		 * @brief Insert a new data point in the database
@@ -96,10 +96,15 @@ namespace meteodata {
 		 */
 		CassSession* _session;
 		/**
-		 * @brief The prepared statement for the getStationByCoords()
+		 * @brief The first prepared statement for the getStationByCoords()
 		 * method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectStationByCoords;
+		/**
+		 * @brief The second prepared statement for the getStationByCoords()
+		 * method
+		 */
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectStationDetails;
 		/**
 		 * @brief The prepared statement for the insetDataPoint() method
 		 */
@@ -113,9 +118,25 @@ namespace meteodata {
 		 */
 		std::mutex _selectMutex;
 		/**
+		 * @brief A mutual exclusion semaphore to protect _selectStationDetails
+		 */
+		std::mutex _selectDetailsMutex;
+		/**
 		 * @brief Prepare the Cassandra query/insert statements
 		 */
 		void prepareStatements();
+		/**
+		 * @brief Get the name of a station and its polling period
+		 *
+		 * @param uuid The station identifier
+		 * @param name Where to store the name of the station
+		 * @param pollPeriod Where to store the polling period of the
+		 * station (the amount of time which should separate two
+		 * measurements)
+		 *
+		 * @return True if, and only if, all went well
+		 */
+		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod);
 	};
 }
 

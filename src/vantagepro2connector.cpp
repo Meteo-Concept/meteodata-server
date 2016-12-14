@@ -81,13 +81,13 @@ void VantagePro2Connector::waitForNextMeasure()
 	chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
 	// extract the difference between now  and now rounded up to the next multiple of 5 minutes
 	// e.g.: if now = 11:27:53, then rounded = 2min 53s
-	chrono::time_duration rounded = chrono::minutes(now.minutes() % 5) + chrono::seconds(now.seconds());
+	chrono::time_duration rounded = chrono::minutes(now.minutes() % _pollingPeriod) + chrono::seconds(now.seconds());
 	// we wait 5 min - rounded to take the next measurement exactly
 	// when the clock hits the next multiple of five minutes (tolerating
 	// an error of around a couple of seconds)
-	std::cerr << "Next measurement will be taken in " << (chrono::minutes(5) - rounded)
-		  << " at approximately " << (now + chrono::minutes(5) - rounded) << std::endl;
-	_timer.expires_from_now(chrono::minutes(5) - rounded);
+	std::cerr << "Next measurement will be taken in " << (chrono::minutes(_pollingPeriod) - rounded)
+		  << " at approximately " << (now + chrono::minutes(_pollingPeriod) - rounded) << std::endl;
+	_timer.expires_from_now(chrono::minutes(_pollingPeriod) - rounded);
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 }
 
@@ -122,14 +122,13 @@ void VantagePro2Connector::stop()
 	_stopped = true;
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
-	_sock.cancel();
-	/* at this point, all shared pointers to *this should be about to be
-	 * destroyed, eventually leading to the VantagePro2Connector to be
-	 * destroyed
-	 *
-	 * don't close() the socket but let the VantagePro2Connector's
-	 * destructor take care of it if necessary
+	/* close the socket (but check if it's not been wrecked by the other
+	 * end before)
 	 */
+	if (_sock.is_open()) {
+		_sock.cancel();
+		_sock.close();
+	}
 }
 
 void VantagePro2Connector::sendRequest(const char *req, int reqsize)
@@ -148,18 +147,37 @@ void VantagePro2Connector::sendRequest(const char *req, int reqsize)
 void VantagePro2Connector::recvWakeUp()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
-	_timer.expires_from_now(chrono::seconds(6));
+	_timer.expires_from_now(chrono::seconds(2));
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read_until(_sock, _discardBuffer, "\n\r",
-		[this,self](const sys::error_code& ec, std::size_t) {
+		[this,self](const sys::error_code& ec, std::size_t n) {
 			_timer.cancel();
+			_discardBuffer.consume(n);
 			handleEvent(ec);
 		}
 	);
 }
 
+void VantagePro2Connector::recvAck()
+{
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	_timer.expires_from_now(chrono::seconds(6));
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
+	async_read(_sock, asio::buffer(&_ackBuffer, 1),
+		[this,self](const sys::error_code& ec, std::size_t) {
+			_timer.cancel();
+			if (_ackBuffer == '\n' || _ackBuffer == '\r') {
+				//we eat some garbage, discard and carry on
+				recvAck();
+			} else {
+				handleEvent(ec);
+			}
+		}
+	);
+}
+
 template <typename MutableBuffer>
-void VantagePro2Connector::waitForData(const MutableBuffer& buffer)
+void VantagePro2Connector::recvData(const MutableBuffer& buffer)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
@@ -220,11 +238,12 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 			_currentState = restartState;
 			restart();
 		} else {
+			syslog(LOG_ERR, "station %s: Too many timeouts, aborting", _stationName.c_str());
 			stop();
 		}
 	} else { /* TCP reset by peer, etc. */
-		syslog(LOG_ERR, "unknown error: %s",
-			e.message().c_str());
+		syslog(LOG_ERR, "station %s: Unknown error: %s",
+			e.message().c_str(), _stationName.c_str());
 		stop();
 	}
 }
@@ -279,7 +298,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		if (e == sys::errc::success) {
 			_currentState = State::WAITING_ACK_STATION;
 			std::cerr << "Sent identification request" << std::endl;
-			waitForData(asio::buffer(&_ackBuffer,1));
+			recvAck();
 		}
 		break;
 
@@ -294,13 +313,12 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors on station identification request acknowledgement, aborting");
-					stop();
+					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the identification request", _stationName.c_str());
 				}
 			} else {
 				_currentState = State::WAITING_DATA_STATION;
 				std::cerr << "Identification request acked by station" << std::endl;
-				waitForData(asio::buffer(_coords));
+				recvData(asio::buffer(_coords));
 			}
 		}
 		break;
@@ -316,17 +334,18 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors on station identification CRC validation, aborting");
+					syslog(LOG_ERR, "station %s: Too many transmissions errors on station identification CRC validation, aborting", _stationName.c_str());
 					stop();
 				}
 			} else {
 				// From documentation, latitude, longitude and elevation are stored contiguously
 				// in this order in the station's EEPROM
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
-				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station);
+				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod);
 				flushSocket();
 				if (found) {
-					std::cerr << "Received correct identification" << std::endl;
+					std::cerr << "Received correct identification from station " << _stationName << std::endl;
+					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());
 					waitForNextMeasure();
 				} else {
 					std::cerr << "Unknown station! Aborting" << std::endl;
@@ -367,7 +386,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		if (e == sys::errc::success) {
 			_currentState = State::WAITING_ACK_MEASURE;
 			std::cerr << "Sent measurement request" << std::endl;
-			waitForData(asio::buffer(&_ackBuffer, 1));
+			recvAck();
 		}
 		break;
 
@@ -382,13 +401,12 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors in measurement acknowledgement, aborting");
-					stop();
+					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the measurement request", _stationName.c_str());
 				}
 			} else {
 				_currentState = State::WAITING_DATA_MEASURE;
 				std::cerr << "Station has acked measurement request" << std::endl;
-				waitForData(_message.getBuffer());
+				recvData(_message.getBuffer());
 			}
 		}
 		break;
@@ -404,7 +422,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					flushSocket();
 					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 				} else {
-					syslog(LOG_ERR, "Too many transmissions errors in measurement CRC, aborting");
+					syslog(LOG_ERR, "station %s: Too many transmissions errors in measurement CRC, aborting", _stationName.c_str());
 					stop();
 				}
 		} else {
@@ -418,7 +436,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					waitForNextMeasure();
 				} else {
 					std::cerr << "Failed to store measurement! Aborting" << std::endl;
-					syslog(LOG_ERR, "Couldn't store measurement");
+					syslog(LOG_ERR, "station %s: Couldn't store measurement", _stationName.c_str());
 					stop();
 				}
 			}
