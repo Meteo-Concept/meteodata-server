@@ -138,6 +138,8 @@ void VantagePro2Connector::sendRequest(const char *req, int reqsize)
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_write(_sock, asio::buffer(req, reqsize),
 		[this,self](const sys::error_code& ec, std::size_t) {
+			if (ec == sys::errc::operation_canceled)
+				return;
 			_timer.cancel();
 			handleEvent(ec);
 		}
@@ -151,6 +153,8 @@ void VantagePro2Connector::recvWakeUp()
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read_until(_sock, _discardBuffer, "\n\r",
 		[this,self](const sys::error_code& ec, std::size_t n) {
+			if (ec == sys::errc::operation_canceled)
+				return;
 			_timer.cancel();
 			_discardBuffer.consume(n);
 			handleEvent(ec);
@@ -165,6 +169,8 @@ void VantagePro2Connector::recvAck()
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read(_sock, asio::buffer(&_ackBuffer, 1),
 		[this,self](const sys::error_code& ec, std::size_t) {
+			if (ec == sys::errc::operation_canceled)
+				return;
 			_timer.cancel();
 			if (_ackBuffer == '\n' || _ackBuffer == '\r') {
 				//we eat some garbage, discard and carry on
@@ -184,6 +190,8 @@ void VantagePro2Connector::recvData(const MutableBuffer& buffer)
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read(_sock, buffer,
 		[this,self](const sys::error_code& ec, std::size_t) {
+			if (ec == sys::errc::operation_canceled)
+				return;
 			_timer.cancel();
 			handleEvent(ec);
 		}
@@ -199,7 +207,6 @@ void VantagePro2Connector::flushSocket()
 		_discardBuffer.commit(bytes);
 		std::cerr << "Cleared " << bytes << " bytes" << std::endl;
 		_discardBuffer.consume(_discardBuffer.size());
-		sleep(3); // wait for a few more bytes, just in case
 	}
 }
 
@@ -236,6 +243,7 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 	} else if (e == sys::errc::timed_out) {
 		if (++_timeouts < 5) {
 			_currentState = restartState;
+			flushSocket();
 			restart();
 		} else {
 			syslog(LOG_ERR, "station %s: Too many timeouts, aborting", _stationName.c_str());
@@ -308,12 +316,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_getStationRequest, sizeof(_getStationRequest)));
 		if (e == sys::errc::success) {
 			if (_ackBuffer != 0x06) {
+				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
 				if (++_transmissionErrors < 5) {
 					_currentState = State::SENDING_REQ_STATION;
 					flushSocket();
 					sendRequest(_getStationRequest, sizeof(_getStationRequest));
 				} else {
 					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the identification request", _stationName.c_str());
+					stop();
 				}
 			} else {
 				_currentState = State::WAITING_DATA_STATION;
@@ -396,12 +406,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_getMeasureRequest, sizeof(_getMeasureRequest)));
 		if (e == sys::errc::success) {
 			if (_ackBuffer != 0x06) {
+				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
 				if (++_transmissionErrors < 5) {
 					_currentState = State::SENDING_REQ_MEASURE;
 					flushSocket();
 					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 				} else {
 					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the measurement request", _stationName.c_str());
+					stop();
 				}
 			} else {
 				_currentState = State::WAITING_DATA_MEASURE;
@@ -425,7 +437,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					syslog(LOG_ERR, "station %s: Too many transmissions errors in measurement CRC, aborting", _stationName.c_str());
 					stop();
 				}
-		} else {
+			} else {
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
 				flushSocket();
 				std::cerr << "Got measurement, storing it" << std::endl;
