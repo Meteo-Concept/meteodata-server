@@ -198,16 +198,27 @@ void VantagePro2Connector::recvData(const MutableBuffer& buffer)
 	);
 }
 
-
-void VantagePro2Connector::flushSocket()
+template <typename Restarter>
+void VantagePro2Connector::flushSocketAndRetry(State restartState, Restarter restart)
 {
-	while (_sock.available() > 0) {
-		auto bufs = _discardBuffer.prepare(512);
-		std::size_t bytes = _sock.receive(bufs);
-		_discardBuffer.commit(bytes);
-		std::cerr << "Cleared " << bytes << " bytes" << std::endl;
-		_discardBuffer.consume(_discardBuffer.size());
-	}
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	// wait before flushing in order not to leave garbage behind
+	_timer.expires_from_now(chrono::seconds(10));
+	_timer.async_wait(
+		[restartState,restart,this,self](const sys::error_code& ec) {
+			if (ec == sys::errc::operation_canceled)
+				return;
+			if (_sock.available() > 0) {
+				auto bufs = _discardBuffer.prepare(512);
+				std::size_t bytes = _sock.receive(bufs);
+				_discardBuffer.commit(bytes);
+				syslog(LOG_DEBUG, "station %s : Cleared %lu bytes", _stationName.c_str(), bytes);
+				_discardBuffer.consume(_discardBuffer.size());
+			}
+			_currentState = restartState;
+			restart();
+		}
+	);
 }
 
 template <typename Restarter>
@@ -243,8 +254,7 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 	} else if (e == sys::errc::timed_out) {
 		if (++_timeouts < 5) {
 			_currentState = restartState;
-			flushSocket();
-			restart();
+			flushSocketAndRetry(restartState, restart);
 		} else {
 			syslog(LOG_ERR, "station %s: Too many timeouts, aborting", _stationName.c_str());
 			stop();
@@ -266,7 +276,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_NEXT_MEASURE_TICK:
-		flushSocket();
 		if (e == sys::errc::timed_out) {
 			_currentState = State::SENDING_WAKE_UP_MEASURE;
 			std::cerr << "Time to wake up! We need a new measurement" << std::endl;
@@ -293,7 +302,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_echoRequest, sizeof(_echoRequest)));
 		if (e == sys::errc::success) {
 			_currentState = State::SENDING_REQ_STATION;
-			flushSocket();
 			std::cerr << "Station has woken up" << std::endl;
 			sendRequest(_getStationRequest, sizeof(_getStationRequest));
 		}
@@ -316,11 +324,11 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_getStationRequest, sizeof(_getStationRequest)));
 		if (e == sys::errc::success) {
 			if (_ackBuffer != 0x06) {
-				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
+				syslog(LOG_DEBUG, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
 				if (++_transmissionErrors < 5) {
-					_currentState = State::SENDING_REQ_STATION;
-					flushSocket();
-					sendRequest(_getStationRequest, sizeof(_getStationRequest));
+					flushSocketAndRetry(State::SENDING_REQ_STATION,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_getStationRequest, sizeof(_getStationRequest)));
 				} else {
 					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the identification request", _stationName.c_str());
 					stop();
@@ -340,9 +348,9 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		if (e == sys::errc::success) {
 			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
 				if (++_transmissionErrors < 5) {
-					_currentState = State::SENDING_REQ_STATION;
-					flushSocket();
-					sendRequest(_getStationRequest, sizeof(_getStationRequest));
+					flushSocketAndRetry(State::SENDING_REQ_STATION,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_getStationRequest, sizeof(_getStationRequest)));
 				} else {
 					syslog(LOG_ERR, "station %s: Too many transmissions errors on station identification CRC validation, aborting", _stationName.c_str());
 					stop();
@@ -352,7 +360,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				// in this order in the station's EEPROM
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
 				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod);
-				flushSocket();
 				if (found) {
 					std::cerr << "Received correct identification from station " << _stationName << std::endl;
 					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());
@@ -383,7 +390,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_echoRequest, sizeof(_echoRequest)));
 		if (e == sys::errc::success) {
 			_currentState = State::SENDING_REQ_MEASURE;
-			flushSocket();
 			std::cerr << "Station is woken up, ready to send a measurement" << std::endl;
 			sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
 		}
@@ -401,16 +407,24 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_ACK_MEASURE:
-		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
+		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
 			std::bind(&VantagePro2Connector::sendRequest, this,
-				_getMeasureRequest, sizeof(_getMeasureRequest)));
+				_echoRequest, sizeof(_echoRequest)));
 		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
+			if (_ackBuffer == 'L') {
+				syslog(LOG_WARNING, "station %s : Was waiting for acknowledgement, got %i, continuing", _stationName.c_str(), _ackBuffer);
+				_currentState = State::WAITING_DATA_MEASURE;
+				std::cerr << "Missed the acknowledgement but receiving data anyway" << std::endl;
+				char* rawBuffer = asio::buffer_cast<char*>(asio::buffer(_message.getBuffer()));
+				rawBuffer[0] = _ackBuffer;
+				auto offsetBuffer = asio::buffer(asio::buffer(_message.getBuffer()) + 1);
+				recvData(offsetBuffer);
+			} else if (_ackBuffer != 0x06) {
+				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i, retrying", _stationName.c_str(), _ackBuffer);
 				if (++_transmissionErrors < 5) {
-					_currentState = State::SENDING_REQ_MEASURE;
-					flushSocket();
-					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_echoRequest, sizeof(_echoRequest)));
 				} else {
 					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the measurement request", _stationName.c_str());
 					stop();
@@ -424,22 +438,21 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		break;
 
 	case State::WAITING_DATA_MEASURE:
-		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
+		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
 			std::bind(&VantagePro2Connector::sendRequest, this,
-				_getMeasureRequest, sizeof(_getMeasureRequest)));
+				_echoRequest, sizeof(_echoRequest)));
 		if (e == sys::errc::success) {
 			if (!_message.isValid()) {
 				if (++_transmissionErrors < 5) {
-					_currentState = State::SENDING_REQ_MEASURE;
-					flushSocket();
-					sendRequest(_getMeasureRequest, sizeof(_getMeasureRequest));
+					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_echoRequest, sizeof(_echoRequest)));
 				} else {
 					syslog(LOG_ERR, "station %s: Too many transmissions errors in measurement CRC, aborting", _stationName.c_str());
 					stop();
 				}
 			} else {
 				_currentState = State::WAITING_NEXT_MEASURE_TICK;
-				flushSocket();
 				std::cerr << "Got measurement, storing it" << std::endl;
 				bool ret = _db.insertDataPoint(_station, _message);
 				if (ret) {

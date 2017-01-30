@@ -180,8 +180,16 @@ private:
 	void recvData(const MutableBuffer& buffer);
 	/**
 	 * @brief Empty the communication buffer
+	 *
+	 * @tparam Restarter the type of the function to call to retry the
+	 * operation
+	 * @param restartState the state in which the state machine must jump
+	 * before calling the restart function
+	 * @param restart a function to call to retry the current operation
+	 * (which is about to fail)
 	 */
-	void flushSocket();
+	template <typename Restarter>
+	void flushSocketAndRetry(State restartState, Restarter restart);
 
 
 	/**
