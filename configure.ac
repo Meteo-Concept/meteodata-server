@@ -28,7 +28,7 @@ AM_COND_IF([HAVE_DOT], [AC_SUBST(DOT_IS_AVAILABLE,["YES"])], [AC_SUBST(DOT_IS_AV
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([syslog.h unistd.h])
+AC_CHECK_HEADERS([syslog.h unistd.h cassandra.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -36,6 +36,7 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AX_PTHREAD
+AC_CHECK_LIB([cassandra],[cass_session_new])
 BOOST_REQUIRE([1.52])
 BOOST_SYSTEM
 BOOST_ASIO
