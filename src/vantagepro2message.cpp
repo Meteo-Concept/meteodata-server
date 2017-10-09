@@ -200,9 +200,7 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	cass_statement_bind_int64(statement, 1, 1000*time(NULL));
 	/*************************************************************/
 	std::string val = from_bartrend_to_diagnostic(_l1.barTrend);
-	if (val.empty())
-		cass_statement_bind_null(statement, 2);
-	else
+	if (!val.empty())
 		cass_statement_bind_string(statement, 2, val.c_str());
 	/*************************************************************/
 	std::cerr << "barometer: " << from_inHg_to_bar(_l2.barometer) << std::endl;
@@ -214,96 +212,62 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	cass_statement_bind_float(statement, 5, from_inHg_to_bar(_l2.barSensorRaw));
 	/*************************************************************/
 	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheight_to_Celsius(_l1.insideTemperature/10.0) << std::endl;
-	if (_l1.insideTemperature == 32767)
-		cass_statement_bind_null(statement, 6);
-	else
+	if (_l1.insideTemperature != 32767)
 		cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_l1.insideTemperature/10.0));
 	/*************************************************************/
-	if (_l1.outsideTemperature == 32767)
-		cass_statement_bind_null(statement, 7);
-	else
+	if (_l1.outsideTemperature != 32767)
 		cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(_l1.outsideTemperature/10.0));
 	/*************************************************************/
 	std::cerr << "Inside insideHumidity: " << (int)_l1.insideHumidity << std::endl;
-	if (_l1.insideHumidity == 255)
-		cass_statement_bind_null(statement, 8);
-	else
+	if (_l1.insideHumidity != 255)
 		cass_statement_bind_int32(statement, 8, _l1.insideHumidity);
 	/*************************************************************/
-	if (_l1.outsideHumidity == 255)
-		cass_statement_bind_null(statement, 9);
-	else
+	if (_l1.outsideHumidity != 255)
 		cass_statement_bind_int32(statement, 9, _l1.outsideHumidity);
 	/*************************************************************/
 	for (int i=0 ; i<7 ; i++) {
-		if (_l1.extraTemp[1] == 255)
-			cass_statement_bind_null(statement, 10+i);
-		else
+		if (_l1.extraTemp[1] != 255)
 			cass_statement_bind_float(statement, 10+i, from_Farenheight_to_Celsius(_l1.extraTemp[i] - 90));
 	}
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
-		if (_l1.soilTemp[i] == 255)
-			cass_statement_bind_null(statement, 17+i);
-		else
+		if (_l1.soilTemp[i] != 255)
 			cass_statement_bind_float(statement, 17+i, from_Farenheight_to_Celsius(_l1.soilTemp[i] - 90));
-		if (_l1.leafTemp[i] == 255)
-			cass_statement_bind_null(statement, 21+i);
-		else
+		if (_l1.leafTemp[i] != 255)
 			cass_statement_bind_float(statement, 21+i, from_Farenheight_to_Celsius(_l1.leafTemp[i] - 90));
 	}
 	/*************************************************************/
 	for (int i=0 ; i<7 ; i++) {
-		if (_l1.extraHum[i] == 255)
-			cass_statement_bind_null(statement, 25+i);
-		else
+		if (_l1.extraHum[i] != 255)
 			cass_statement_bind_int32(statement, 25+i, _l1.extraHum[i]);
 	}
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
-		if (_l1.soilMoistures[i] == 255)
-			cass_statement_bind_null(statement, 32+i);
-		else
+		if (_l1.soilMoistures[i] != 255)
 			cass_statement_bind_int32(statement, 32+i, _l1.soilMoistures[i]);
 		if (_l1.leafWetnesses[i] >= 0 && _l1.leafWetnesses[i] <= 15)
 			cass_statement_bind_int32(statement, 36+i, _l1.leafWetnesses[i]);
-		else
-			cass_statement_bind_null(statement, 36+i);
 	}
 	/*************************************************************/
-	if (_l1.windSpeed == 255)
-		cass_statement_bind_null(statement, 40);
-	else
+	if (_l1.windSpeed != 255)
 		cass_statement_bind_float(statement, 40, from_mph_to_kph(_l1.windSpeed));
 	/*************************************************************/
-	if (_l1.windDir == 32767)
-		cass_statement_bind_null(statement, 41);
-	else
+	if (_l1.windDir != 32767)
 		cass_statement_bind_int32(statement, 41, _l1.windDir);
 	/*************************************************************/
-	if (_l2.tenMinAvgWindSpeed == 32767)
-		cass_statement_bind_null(statement, 42);
-	else
+	if (_l2.tenMinAvgWindSpeed != 32767)
 		cass_statement_bind_float(statement, 42, from_mph_to_kph(_l2.tenMinAvgWindSpeed) / 10);
 	/*************************************************************/
-	if (_l2.twoMinAvgWindSpeed == 32767)
-		cass_statement_bind_null(statement, 43);
-	else
+	if (_l2.twoMinAvgWindSpeed != 32767)
 		cass_statement_bind_float(statement, 43, from_mph_to_kph(_l2.twoMinAvgWindSpeed) / 10);
 	/*************************************************************/
-	if (_l2.tenMinWindGust == 255)
-		cass_statement_bind_null(statement, 44);
-	else
+	if (_l2.tenMinWindGust != 255)
 		cass_statement_bind_float(statement, 44, from_mph_to_kph(_l2.tenMinWindGust));
 	/*************************************************************/
-	if (_l2.windGustDir == 65535)
-		cass_statement_bind_null(statement, 45);
-	else
+	if (_l2.windGustDir != 65535)
 		cass_statement_bind_float(statement, 45, _l2.windGustDir);
 	/*************************************************************/
-	if (_l1.rainRate == 65535)
-		cass_statement_bind_null(statement, 46);
-	else
+	if (_l1.rainRate != 65535)
 		cass_statement_bind_float(statement, 46, from_rainrate_to_mm(_l1.rainRate));
 	/*************************************************************/
 	cass_statement_bind_float(statement, 47, from_rainrate_to_mm(_l2.last15MinRain));
@@ -329,58 +293,36 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 				_l2.dayStartDateCurrentStorm + 2000,
 				_l2.monthStartDateCurrentStorm,
 				_l2.yearStartDateCurrentStorm));
-	else
-		cass_statement_bind_null(statement, 54);
 	/*************************************************************/
-	if (_l2.uv == 255)
-		cass_statement_bind_null(statement, 55);
-	else
+	if (_l2.uv != 255)
 		cass_statement_bind_int32(statement, 55, _l2.uv);
 	/*************************************************************/
-	if (_l2.solarRad == 32767)
-		cass_statement_bind_null(statement,56);
-	else
+	if (_l2.solarRad != 32767)
 		cass_statement_bind_int32(statement, 56, _l2.solarRad);
 	/*************************************************************/
-	if (_l2.dewPoint == 255)
-		cass_statement_bind_null(statement, 57);
-	else
+	if (_l2.dewPoint != 255)
 		cass_statement_bind_float(statement, 57, from_Farenheight_to_Celsius(_l2.dewPoint));
 	/*************************************************************/
-	if (_l2.heatIndex == 255)
-		cass_statement_bind_null(statement, 58);
-	else
+	if (_l2.heatIndex != 255)
 		cass_statement_bind_float(statement, 58, from_Farenheight_to_Celsius(_l2.heatIndex));
 	/*************************************************************/
-	if (_l2.windChill == 255)
-		cass_statement_bind_null(statement, 59);
-	else
+	if (_l2.windChill != 255)
 		cass_statement_bind_float(statement, 59, from_Farenheight_to_Celsius(_l2.windChill));
 	/*************************************************************/
-	if (_l2.thswIndex == 255)
-		cass_statement_bind_null(statement, 60);
-	else
+	if (_l2.thswIndex != 255)
 		cass_statement_bind_float(statement, 60, from_Farenheight_to_Celsius(_l2.thswIndex));
 	/*************************************************************/
-	if (_l1.dayET == 65535)
-		cass_statement_bind_null(statement, 61);
-	else
+	if (_l1.dayET != 65535)
 		cass_statement_bind_float(statement, 61, from_in_to_mm(_l1.dayET) / 1000);
 	/*************************************************************/
-	if (_l1.monthET == 65535)
-		cass_statement_bind_null(statement, 62);
-	else
+	if (_l1.monthET != 65535)
 		cass_statement_bind_float(statement, 62, from_in_to_mm(_l1.monthET) / 100);
 	/*************************************************************/
-	if (_l1.yearET == 65535)
-		cass_statement_bind_null(statement, 63);
-	else
+	if (_l1.yearET != 65535)
 		cass_statement_bind_float(statement, 63, from_in_to_mm(_l1.yearET) / 100);
 	/*************************************************************/
 	val = from_forecast_to_diagnostic(_l1.forecastIcons);
-	if (val.empty())
-		cass_statement_bind_null(statement, 64);
-	else
+	if (!val.empty())
 		cass_statement_bind_string(statement, 64, val.c_str());
 	/*************************************************************/
 	cass_statement_bind_int32(statement, 65, _l1.forecastIcons);
