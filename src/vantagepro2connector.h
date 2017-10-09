@@ -27,6 +27,7 @@
 #include <iostream>
 #include <memory>
 #include <array>
+#include <vector>
 #include <functional>
 
 #include <boost/system/error_code.hpp>
@@ -90,6 +91,12 @@ private:
 		SENDING_REQ_MEASURE, /*!< Waiting for a measurement request to be sent */
 		WAITING_ACK_MEASURE, /*!< Waiting for the station to acknowledge the measurement request */
 		WAITING_DATA_MEASURE, /*!< Waiting for the station to answer the measurement request */
+		SENDING_REQ_ARCHIVE, /*!< Waiting for the archive request to be sent */
+		WAITING_ACK_ARCHIVE, /*!< Waiting for the archive request acknowledgement */
+		SENDING_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters to be sent */
+		WAITING_ACK_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters acknowledgement */
+		WAITING_ARCHIVE_PAGE, /*!< Waiting for the next page of archive */
+		SENDING_ARCHIVE_PAGE_ANSWER, /*!< Waiting for the archive page confirmation to be sent */
 		STOPPED /*!< Final state for cleanup operations */
 	};
 	/* Events have type sys::error_code */
@@ -191,6 +198,31 @@ private:
 	template <typename Restarter>
 	void flushSocketAndRetry(State restartState, Restarter restart);
 
+	/**
+	 * @brief Count the number of missing data points since last insertion
+	 * in the database
+	 *
+	 * \a countMissingDataPoints does some bookkeeping and records
+	 * \a newTimestamp as the last time an entry was registered in the
+	 * database. If that insertion is older than \a _period then it returns
+	 * the number of data points that should have been collected since then
+	 * and set previousTimestamp to the time of the last insertion.
+	 *
+	 * @param newTimestamp the new timestamp to be recorded as the last
+	 * insertion time
+	 * @param[out] previousTimestamp the time of previous insertion
+	 * @return the number of data points that should have been collected
+	 * between \a previousTimestamp et \a newTimestamp.
+	 */
+	int countMissingDataPoints(chrono::ptime newTimestamp, chrono::ptime& previousTimestamp);
+
+	/**
+	 * @brief Inserts the data points reconstructed from the archive into
+	 * the database
+	 *
+	 * @return true if, and only if, everything went all right
+	 */
+	bool insertArchivePoints();
 
 	/**
 	 * @brief The current state of the state machine
@@ -276,6 +308,10 @@ private:
 	 * @brief A measurement request, querying one data point
 	 */
 	static constexpr char _getMeasureRequest[] = "LPS 3 2\n";
+	/**
+	 * @brief An archive request, for a range an archived data points
+	 */
+	static constexpr char _getArchiveRequest[] = "DMPAFT\n";
 };
 
 }

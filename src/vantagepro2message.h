@@ -328,4 +328,162 @@ private:
 
 }
 
+namespace {
+/**
+ * @brief Convert a forecast index to a human-readable description
+ *
+ * @param value the forecast index
+ *
+ * @return a description of the forecast identified by index
+ */
+std::string from_forecast_to_diagnostic(uint8_t value) {
+	static const std::map<uint8_t, std::string> forecasts = {
+		{8,  "Mostly Clear"},
+		{6,  "Partly Cloudy"},
+		{2,  "Mostly Cloudy"},
+		{3,  "Mostly Cloudy, Rain within 12 hours"},
+		{18, "Mostly Cloudy, Snow within 12 hours"},
+		{19, "Mostly Cloudy, Rain or snow within 12 hours"},
+		{7,  "Partly Cloudy, Rain within 12 hours"},
+		{22, "Partly Cloudy, Snow within 12 hours"},
+		{23, "Partly Cloudy, Rain or Snow within 12 hours"}
+	};
+	auto it = forecasts.find(value);
+	return (it == forecasts.cend()) ? std::string() : it->second;
+}
+
+/**
+ * @brief Convert a barometric trend value to a human-readable description
+ *
+ * @param value the barometric trend value
+ *
+ * @return the textual description corresponding to the barometric trend value
+ */
+std::string from_bartrend_to_diagnostic(uint8_t value) {
+	static const std::map<uint8_t, std::string> bartrends = {
+		{196, "Falling rapidly"},
+		{236, "Falling slowly"},
+		{0,   "Steady"},
+		{20,  "Raising slowly"},
+		{60,  "Raising rapidly"}
+	};
+	auto it = bartrends.find(value);
+	return (it == bartrends.cend()) ? std::string() : it->second;
+}
+
+/**
+ * @brief Convert a date to a value that can be entered in a Cassandra column
+ * of type "date"
+ *
+ * @param day the day
+ * @param month the month
+ * @param year the year
+ *
+ * @return a value corresponding to the date given as parameter suitable for
+ * insertion in a Cassandra database
+ */
+uint32_t from_daymonthyear_to_CassandraDate(int day, int month, int year)
+{
+	struct tm date;
+	memset(&date, 0, sizeof(date));
+	date.tm_mday = day;
+	date.tm_mon = month;
+	date.tm_year = year;
+	return cass_date_from_epoch(mktime(&date));
+}
+
+/** @brief Convert an hour and minute value to a value that can be entered in a
+ * Cassandra column of type "time"
+ *
+ * @param hour the hour
+ * @param min the minutes
+ *
+ * @return a value corresponding to the time given as parameter suitable for
+ * insertion in a Cassandra database
+ */
+int64_t from_hourmin_to_CassandraTime(int hour, int min)
+{
+	struct tm date;
+	time_t currentTime = time(NULL);
+	localtime_r(&currentTime, &date);
+	date.tm_hour = hour;
+	date.tm_min = min;
+	date.tm_sec = 0;
+	return cass_time_from_epoch(mktime(&date));
+}
+
+/**
+ * @brief Convert a pression given in inches of mercury to bar
+ *
+ * @param inHg the value to convert
+ *
+ * @return the parameter value converted to bar
+ */
+inline float from_inHg_to_bar(int inHg)
+{
+	return inHg * 0.03386;
+}
+
+/**
+ * @brief Convert a temperature given in Farenheight degrees to Celsius degrees
+ *
+ * @param f the value to convert
+ *
+ * @return the parameter value converted to Celsius degrees
+ */
+inline float from_Farenheight_to_Celsius(float f)
+{
+	return (f - 32.0) / 1.80;
+}
+
+/**
+ * @brief Convert a velocity from miles per hour to meters per second
+ *
+ * @param mph the value to convert
+ *
+ * @return the parameter value converted to meters per second
+ */
+inline float from_mph_to_mps(int mph)
+{
+	return mph * 0.44704;
+}
+
+/**
+ * @brief Convert a velocity from miles per hour to kilometers per hour
+ *
+ * @param mph the value to convert
+ *
+ * @return the parameter value converted to kilometers per hour
+ */
+inline float from_mph_to_kph(int mph)
+{
+	return mph * 1.609;
+}
+
+/**
+ * @brief Convert a distance from inches to millimeters
+ *
+ * @param in the value to convert
+ *
+ * @return the parameter value converted to millimeters
+ */
+inline float from_in_to_mm(int in)
+{
+	return in * 25.4;
+}
+
+/**
+ * @brief Convert a number of rain clicks to millimeters of rain
+ *
+ * @param rr the value to convert
+ *
+ * @return the parameter value converted to millimeters of rain
+ */
+inline float from_rainrate_to_mm(int rr)
+{
+	//assume the raw value is in 0.2mm/hour, this is configurable
+	return rr * 0.2;
+}
+}
+
 #endif /* VANTAGEPRO2MESSAGE_H */
