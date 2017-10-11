@@ -12,9 +12,13 @@ meteodata_SOURCES = \
 		    message.h\
 		    vantagepro2message.h\
 		    vantagepro2message.cpp\
-		    vantagepro2archivepage.h
+		    vantagepro2archivepage.h\
+		    vantagepro2archivepage.cpp\
+		    vantagepro2archivemessage.h\
+		    vantagepro2archivemessage.cpp
+
 
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
-meteodata_CXXFLAGS = -std=c++11
+meteodata_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
 meteodata_LDADD = -lcassandra $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
