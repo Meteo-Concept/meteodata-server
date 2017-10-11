@@ -30,6 +30,8 @@
 
 #include <cstring>
 
+#include <cstring>
+
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
