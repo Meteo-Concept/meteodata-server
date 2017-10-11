@@ -26,6 +26,7 @@
 
 #include <cassandra.h>
 
+#include <ctime>
 #include <functional>
 #include <tuple>
 #include <memory>
@@ -65,7 +66,7 @@ namespace meteodata {
 		 *
 		 * @return The unique identifier of the station
 		 */
-		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station, std::string& name, int& pollPeriod);
+		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime, time_t& lastDataInsertionTime);
 
 		/**
 		 * @brief Insert a new data point in the database
@@ -81,6 +82,7 @@ namespace meteodata {
 		 * inserted, false otherwise
 		 */
 		bool insertDataPoint(const CassUuid station, const Message& message);
+		bool updateLastArchiveDownloadTime(const CassUuid station, const time_t& time);
 
 	private:
 		/**
@@ -106,9 +108,19 @@ namespace meteodata {
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectStationDetails;
 		/**
+		 * @brief The second prepared statement for the getLastInsertionTime()
+		 * method
+		 */
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectLastDataInsertionTime;
+		/**
 		 * @brief The prepared statement for the insetDataPoint() method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _insertDataPoint;
+		/**
+		 * @brief The prepared statement for the
+		 * updateLastArchiveDownload() method
+		 */
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _updateLastArchiveDownloadTime;
 		/**
 		 * @brief A mutual exclusion semaphore to protect _insertDataPoint
 		 */
@@ -118,9 +130,9 @@ namespace meteodata {
 		 */
 		std::mutex _selectMutex;
 		/**
-		 * @brief A mutual exclusion semaphore to protect _selectStationDetails
+		 * @brief A mutual exclusion semaphore to protect _updateLastArchiveDownloadTime
 		 */
-		std::mutex _selectDetailsMutex;
+		std::mutex _updateLastArchiveDownloadMutex;
 		/**
 		 * @brief Prepare the Cassandra query/insert statements
 		 */
@@ -136,7 +148,9 @@ namespace meteodata {
 		 *
 		 * @return True if, and only if, all went well
 		 */
-		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod);
+		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime);
+
+		bool getLastDataInsertionTime(const CassUuid& uuid, time_t& lastDataInsertionTime);
 	};
 }
 

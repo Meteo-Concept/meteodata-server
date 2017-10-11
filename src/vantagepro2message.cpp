@@ -25,6 +25,8 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <iterator>
+#include <algorithm>
 
 #include "vantagepro2message.h"
 #include "dbconnection.h"
@@ -163,7 +165,7 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	if (_l1.yearET != 65535)
 		cass_statement_bind_float(statement, 63, from_in_to_mm(_l1.yearET) / 100);
 	/*************************************************************/
-	val = from_forecast_to_diagnostic(_l1.forecastIcons);
+	val = from_forecast_to_diagnostic(_l1.forecastRuleNumber);
 	if (!val.empty())
 		cass_statement_bind_string(statement, 64, val.c_str());
 	/*************************************************************/
@@ -190,9 +192,27 @@ bool VantagePro2Message::validateCRC(const void* msg, size_t len)
 	for (unsigned int i=0 ; i<len ; i++) {
 		uint8_t index = (crc >> 8) ^ bytes[i];
 		crc = CRC_VALUES[index] ^ ((crc << 8) & 0xFFFF);
+		if (i == len - 3)
+			std::cerr << "CRC should be equal to " << std::hex << crc << std::dec << std::endl;
 	}
 
 	return crc == 0;
+}
+
+void VantagePro2Message::computeCRC(void* msg, size_t len)
+{
+	uint8_t* bytes = reinterpret_cast<uint8_t*>(msg);
+	unsigned int crc = 0;
+	unsigned int i;
+	for (i=0 ; i<len-2 ; i++) {
+		uint8_t index = (crc >> 8) ^ bytes[i];
+		crc = CRC_VALUES[index] ^ ((crc << 8) & 0xFFFF);
+	}
+
+	std::cerr << "CRC computed: " << std::hex << crc << std::dec << std::endl;
+
+	bytes[i]   = (crc & 0xFF00) >> 8;
+	bytes[i+1] = (crc & 0x00FF);
 }
 
 bool VantagePro2Message::isValid() const

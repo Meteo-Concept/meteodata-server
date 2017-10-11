@@ -37,7 +37,9 @@ namespace meteodata {
 		_session{cass_session_new()},
 		_selectStationByCoords{nullptr, cass_prepared_free},
 		_selectStationDetails{nullptr, cass_prepared_free},
-		_insertDataPoint{nullptr, cass_prepared_free}
+		_selectLastDataInsertionTime{nullptr, cass_prepared_free},
+		_insertDataPoint{nullptr, cass_prepared_free},
+		_updateLastArchiveDownloadTime{nullptr, cass_prepared_free}
 	{
 		cass_cluster_set_contact_points(_cluster, "127.0.0.1");
 		if (!user.empty() && !password.empty())
@@ -65,7 +67,7 @@ namespace meteodata {
 		_selectStationByCoords.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 
-		prepareFuture = cass_session_prepare(_session, "SELECT name,polling_period FROM meteodata.stations WHERE id = ?");
+		prepareFuture = cass_session_prepare(_session, "SELECT name,polling_period,last_archive_download FROM meteodata.stations WHERE id = ?");
 		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
 			std::string desc("Could not prepare statement selectStationDetails: ");
@@ -73,6 +75,16 @@ namespace meteodata {
 			throw std::runtime_error(desc);
 		}
 		_selectStationDetails.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session, "SELECT time FROM meteodata.meteo WHERE station = ? LIMIT 1");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement selectLastInsertionTime: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_selectLastDataInsertionTime.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 
 		prepareFuture = cass_session_prepare(_session,
@@ -139,20 +151,28 @@ namespace meteodata {
 		}
 		_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session, "UPDATE meteodata.stations SET last_archive_download = ? WHERE id = ?");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement updateLastArchiveDownloadTime: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_updateLastArchiveDownloadTime.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
 	}
 
-	bool DbConnection::getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod)
+	// /!\ must be called under _selectMutex lock
+	bool DbConnection::getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime)
 	{
 		CassFuture* query;
-		{ /* mutex scope */
-			std::lock_guard<std::mutex> queryMutex{_selectDetailsMutex};
-			CassStatement* statement = cass_prepared_bind(_selectStationDetails.get());
-			std::cerr << "Statement prepared" << std::endl;
-			cass_statement_bind_uuid(statement, 0, uuid);
-			query = cass_session_execute(_session, statement);
-			std::cerr << "Executed statement" << std::endl;
-			cass_statement_free(statement);
-		}
+		CassStatement* statement = cass_prepared_bind(_selectStationDetails.get());
+		std::cerr << "Statement prepared" << std::endl;
+		cass_statement_bind_uuid(statement, 0, uuid);
+		query = cass_session_execute(_session, statement);
+		std::cerr << "Executed statement" << std::endl;
+		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = false;
@@ -163,8 +183,11 @@ namespace meteodata {
 				size_t size;
 				cass_value_get_string(cass_row_get_column(row,0), &stationName, &size);
 				cass_value_get_int32(cass_row_get_column(row,1), &pollPeriod);
+				cass_int64_t timeMillisec;
+				cass_value_get_int64(cass_row_get_column(row,2), &timeMillisec);
+				lastArchiveDownloadTime = timeMillisec/1000;
 				name.clear();
-				name.append(stationName);
+				name.insert(0, stationName, size);
 				ret = true;
 			}
 		}
@@ -173,8 +196,39 @@ namespace meteodata {
 
 		return ret;
 	}
+	
+	// /!\ must be called under _selectMutex lock
+	bool DbConnection::getLastDataInsertionTime(const CassUuid& uuid, time_t& lastDataInsertionTime)
+	{
+		CassFuture* query;
+		CassStatement* statement = cass_prepared_bind(_selectLastDataInsertionTime.get());
+		std::cerr << "Statement prepared" << std::endl;
+		cass_statement_bind_uuid(statement, 0, uuid);
+		query = cass_session_execute(_session, statement);
+		std::cerr << "Executed statement" << std::endl;
+		cass_statement_free(statement);
 
-	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station, std::string& name, int& pollPeriod)
+		const CassResult* result = cass_future_get_result(query);
+		bool ret = false;
+		if (result) {
+			const CassRow* row = cass_result_first_row(result);
+			ret = true;
+			if (row) {
+				cass_int64_t insertionTimeMillisec;
+				cass_value_get_int64(cass_row_get_column(row,0), &insertionTimeMillisec);
+				std::cerr << "Last insertion was at " << insertionTimeMillisec << std::endl;
+				lastDataInsertionTime = insertionTimeMillisec / 1000;
+			} else {
+				lastDataInsertionTime = 0;
+			}
+		}
+		cass_result_free(result);
+		cass_future_free(query);
+
+		return ret;
+	}
+
+	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime, time_t& lastDataInsertionTime)
 	{
 		CassFuture* query;
 		{ /* mutex scope */
@@ -195,8 +249,9 @@ namespace meteodata {
 			const CassRow* row = cass_result_first_row(result);
 			if (row) {
 				cass_value_get_uuid(cass_row_get_column(row,0), &station);
-				getStationDetails(station, name, pollPeriod);
-				ret = true;
+				ret = getStationDetails(station, name, pollPeriod, lastArchiveDownloadTime);
+				if (ret)
+					getLastDataInsertionTime(station, lastDataInsertionTime);
 			}
 		}
 		cass_result_free(result);
@@ -213,6 +268,34 @@ namespace meteodata {
 			std::cerr << "About to insert data point in database" << std::endl;
 			CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
 			msg.populateDataPoint(station, statement);
+			query = cass_session_execute(_session, statement);
+			cass_statement_free(statement);
+		}
+
+		const CassResult* result = cass_future_get_result(query);
+		bool ret = true;
+		if (!result) {
+			const char* error_message;
+			size_t error_message_length;
+			cass_future_error_message(query, &error_message, &error_message_length);
+			std::cerr << "Error from Cassandra: " << error_message << std::endl;
+			ret = false;
+		}
+		cass_result_free(result);
+		cass_future_free(query);
+
+		return ret;
+	}
+
+	bool DbConnection::updateLastArchiveDownloadTime(const CassUuid station, const time_t& time)
+	{
+		CassFuture* query;
+		{ /* mutex scope */
+			std::lock_guard<std::mutex> queryMutex{_updateLastArchiveDownloadMutex};
+			std::cerr << "About to update an archive download time in database" << std::endl;
+			CassStatement* statement = cass_prepared_bind(_updateLastArchiveDownloadTime.get());
+			cass_statement_bind_int64(statement, 0, time * 1000);
+			cass_statement_bind_uuid(statement, 1, station);
 			query = cass_session_execute(_session, statement);
 			cass_statement_free(statement);
 		}

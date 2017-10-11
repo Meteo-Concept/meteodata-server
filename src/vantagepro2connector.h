@@ -42,6 +42,7 @@
 
 #include "connector.h"
 #include "vantagepro2message.h"
+#include "vantagepro2archivepage.h"
 
 
 namespace meteodata {
@@ -95,12 +96,22 @@ private:
 		WAITING_ACK_ARCHIVE, /*!< Waiting for the archive request acknowledgement */
 		SENDING_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters to be sent */
 		WAITING_ACK_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters acknowledgement */
+		WAITING_ARCHIVE_NB_PAGES, /*!< Waiting for the archive size */
+		SENDING_ACK_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download acknowledgement to be sent */
+		SENDING_ABORT_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download abortion notice to be sent */
 		WAITING_ARCHIVE_PAGE, /*!< Waiting for the next page of archive */
 		SENDING_ARCHIVE_PAGE_ANSWER, /*!< Waiting for the archive page confirmation to be sent */
 		STOPPED /*!< Final state for cleanup operations */
 	};
 	/* Events have type sys::error_code */
 
+
+	struct ArchiveRequestParams
+	{
+		uint16_t date;
+		uint16_t time;
+		uint16_t crc;
+	} __attribute((packed));
 
 	/**
 	 * @brief Check an event and handle generic errors such as timeouts and
@@ -167,6 +178,9 @@ private:
 	 * @param reqsize the request size
 	 */
 	void sendRequest(const char* req, int reqsize);
+
+	template<typename PODType>
+	void sendBuffer(const std::shared_ptr<PODType>& req, int reqsize);
 	/**
 	 * @brief Wait for the station to answer a wake up request
 	 */
@@ -175,6 +189,12 @@ private:
 	 * @brief Wait for the station to acknowledge last request
 	 */
 	void recvAck();
+	/**
+	 * @brief Send an acknowledgement to the station
+	 */
+	void sendAck();
+	void sendNak();
+	void sendAbort();
 	/**
 	 * @brief Wait for the station to answer the request
 	 *
@@ -198,31 +218,7 @@ private:
 	template <typename Restarter>
 	void flushSocketAndRetry(State restartState, Restarter restart);
 
-	/**
-	 * @brief Count the number of missing data points since last insertion
-	 * in the database
-	 *
-	 * \a countMissingDataPoints does some bookkeeping and records
-	 * \a newTimestamp as the last time an entry was registered in the
-	 * database. If that insertion is older than \a _period then it returns
-	 * the number of data points that should have been collected since then
-	 * and set previousTimestamp to the time of the last insertion.
-	 *
-	 * @param newTimestamp the new timestamp to be recorded as the last
-	 * insertion time
-	 * @param[out] previousTimestamp the time of previous insertion
-	 * @return the number of data points that should have been collected
-	 * between \a previousTimestamp et \a newTimestamp.
-	 */
-	int countMissingDataPoints(chrono::ptime newTimestamp, chrono::ptime& previousTimestamp);
-
-	/**
-	 * @brief Inserts the data points reconstructed from the archive into
-	 * the database
-	 *
-	 * @return true if, and only if, everything went all right
-	 */
-	bool insertArchivePoints();
+	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const chrono::ptime& time);
 
 	/**
 	 * @brief The current state of the state machine
@@ -295,6 +291,19 @@ private:
 	 * @brief A buffer to receive the coordinates from the station
 	 */
 	int16_t _coords[4];
+
+	struct
+	{
+		uint16_t pagesLeft;
+		uint16_t index;
+		uint16_t crc;
+	} __attribute__((packed)) _archiveSize;
+
+	VantagePro2ArchivePage _archivePage;
+
+	chrono::ptime _lastArchive;
+	chrono::ptime _lastData;
+
 	/**
 	 * @brief An echo request, typically used for the wake up procedure
 	 */
@@ -312,6 +321,18 @@ private:
 	 * @brief An archive request, for a range an archived data points
 	 */
 	static constexpr char _getArchiveRequest[] = "DMPAFT\n";
+	/**
+	 * @brief An acknowledgement
+	 */
+	static constexpr char _ack[] = "\x06";
+	/**
+	 * @brief A negative acknowledgement
+	 */
+	static constexpr char _nak[] = "\x21";
+	/**
+	 * @brief An abort/cancel order
+	 */
+	static constexpr char _abort[] = "\x1B";
 };
 
 }
