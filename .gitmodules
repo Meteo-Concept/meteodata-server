@@ -1,3 +1,6 @@
 [submodule "cassandra-driver"]
 	path = cassandra-driver
 	url = https://github.com/datastax/cpp-driver
+[submodule "date"]
+	path = src/date
+	url = https://github.com/HowardHinnant/date

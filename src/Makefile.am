@@ -15,10 +15,14 @@ meteodata_SOURCES = \
 		    vantagepro2archivepage.h\
 		    vantagepro2archivepage.cpp\
 		    vantagepro2archivemessage.h\
-		    vantagepro2archivemessage.cpp
+		    vantagepro2archivemessage.cpp\
+		    date/src/tz.cpp\
+                    date/include/date/date.h\
+                    date/include/date/tz.h\
+                    date/include/date/tz_private.h\
+                    date/include/date/ios.h
 
-
-meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
-meteodata_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic
+meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
+meteodata_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic -DUSE_OS_TZDB=1
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
-meteodata_LDADD = -lcassandra $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
