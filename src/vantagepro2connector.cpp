@@ -632,19 +632,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		}
 		break;
 
-/*	case State::SENDING_ACK_ARCHIVE_DOWNLOAD:
-		// We cannot retry anything here, we are in the middle of a request, just bail out
-		if (e != sys::errc::success) {
-			syslog(LOG_ERR, "station %s : Connection to the station lost while requesting archive", _stationName.c_str());
-			stop();
-		} else {
-			_currentState = State::WAITING_ARCHIVE_PAGE;
-			std::cerr << "Archive downloading acked" << std::endl;
-			std::cerr << _archiveSize.pagesLeft << " pages left to download" << std::endl;
-			recvData(_archivePage.getBuffer());
-		}
-		break;
-*/
 	case State::SENDING_ABORT_ARCHIVE_DOWNLOAD:
 		// We cannot retry anything here, we are in the middle of a request, just bail out
 		if (e != sys::errc::success) {
