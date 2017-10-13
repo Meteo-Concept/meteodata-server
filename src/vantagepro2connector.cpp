@@ -913,6 +913,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 			_setTimeTimer.async_wait(std::bind(&VantagePro2Connector::handleSetTimeDeadline, self, _1));
 			_currentState = State::WAITING_NEXT_MEASURE_TICK;
+			waitForNextMeasure();
 		}
 		break;
 
