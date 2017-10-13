@@ -133,7 +133,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	/*************************************************************/
 	// ET is not exploitable, it's given over the last hour
 	/*************************************************************/
-	std::string val = from_forecast_to_diagnostic(_data.forecast);
+	std::string val = VantagePro2Message::from_forecast_to_diagnostic(_data.forecast);
 	if (!val.empty())
 		cass_statement_bind_string(statement, 64, val.c_str());
 	/*************************************************************/
