@@ -26,12 +26,14 @@
 
 #include <cstdint>
 #include <array>
+#include <chrono>
 
 #include <boost/asio.hpp>
 
 #include <cassandra.h>
 
 #include "message.h"
+#include "timeoffseter.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -41,6 +43,7 @@ using std::uint64_t;
 namespace meteodata {
 
 namespace asio = boost::asio;
+namespace chrono = std::chrono;
 
 /**
  * @brief A Message able to receive and store one raw data point from a
@@ -88,7 +91,7 @@ public:
 		uint8_t  soilMoisture[4];
 	} __attribute__((packed));
 
-	VantagePro2ArchiveMessage(ArchiveDataPoint data);
+	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 private:
@@ -96,6 +99,8 @@ private:
 	 * @brief The data point
 	 */
 	ArchiveDataPoint _data;
+
+	const TimeOffseter* _timeOffseter;
 };
 
 }

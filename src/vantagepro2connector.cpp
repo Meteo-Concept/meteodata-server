@@ -22,11 +22,13 @@
  */
 
 #include <iostream>
+#include <iomanip>
 #include <memory>
 #include <array>
 #include <functional>
 #include <iterator>
 #include <algorithm>
+#include <chrono>
 
 #include <cstring>
 
@@ -34,8 +36,7 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/basic_waitable_timer.hpp>
 
 #include <syslog.h>
 #include <unistd.h>
@@ -46,21 +47,25 @@
 #include "connector.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivepage.h"
+#include "timeoffseter.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
 namespace sys = boost::system; //system() is a function, it cannot be redefined
 //as a namespace
-namespace chrono = boost::posix_time;
+namespace chrono = std::chrono;
 
 namespace meteodata {
 
 using namespace std::placeholders;
+using namespace date;
 
 constexpr char VantagePro2Connector::_echoRequest[];
 constexpr char VantagePro2Connector::_getStationRequest[];
 constexpr char VantagePro2Connector::_getMeasureRequest[];
 constexpr char VantagePro2Connector::_getArchiveRequest[];
+constexpr char VantagePro2Connector::_getTimezoneRequest[];
+constexpr char VantagePro2Connector::_settimeRequest[];
 constexpr char VantagePro2Connector::_ack[];
 constexpr char VantagePro2Connector::_nak[];
 constexpr char VantagePro2Connector::_abort[];
@@ -68,7 +73,8 @@ constexpr char VantagePro2Connector::_abort[];
 VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
 	DbConnection& db) :
 	Connector(ioService, db),
-	_timer(ioService)
+	_timer(ioService),
+	_setTimeTimer(ioService)
 {
 }
 
@@ -80,18 +86,44 @@ void VantagePro2Connector::start()
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
-std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const chrono::ptime& time)
+std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const date::local_seconds& time)
 {
 	auto buffer = std::make_shared<VantagePro2Connector::ArchiveRequestParams>();
-	unsigned int y = time.date().year();
-	unsigned int m = time.date().month();
-	unsigned int d = time.date().day();
-	unsigned int h = time.time_of_day().hours();
-	unsigned int min = time.time_of_day().minutes();
+	auto timeUTC = _timeOffseter.convertFromLocalTime(time);
+	auto daypoint = date::floor<date::days>(timeUTC);
+	auto ymd = date::year_month_day(daypoint);   // calendar date
+	auto tod = date::make_time(timeUTC - daypoint); // Yields time_of_day type
+
+	// Obtain individual components as integers
+	auto y   = int(ymd.year());
+	auto m   = unsigned(ymd.month());
+	auto d   = unsigned(ymd.day());
+	auto h   = tod.hours().count();
+	auto min = tod.minutes().count();
 
 	buffer->date = ((y - 2000) << 9) + (m << 5) + d;
 	buffer->time = h * 100 + min;
 	VantagePro2Message::computeCRC(buffer.get(), 6);
+
+	return buffer;
+}
+
+std::shared_ptr<VantagePro2Connector::SettimeRequestParams> VantagePro2Connector::buildSettimeParams()
+{
+	auto buffer = std::make_shared<VantagePro2Connector::SettimeRequestParams>();
+
+	auto nowLocal = date::floor<chrono::seconds>(_timeOffseter.convertToLocalTime(chrono::system_clock::now()));
+	auto daypoint = date::floor<date::days>(nowLocal);
+	auto ymd = date::year_month_day(daypoint);   // calendar date
+	auto tod = date::make_time(nowLocal - daypoint); // Yields time_of_day type
+
+	buffer->seconds = tod.seconds().count();
+	buffer->minutes = tod.minutes().count();
+	buffer->hours   = tod.hours().count();
+	buffer->day     = unsigned(ymd.day());
+	buffer->month   = unsigned(ymd.month());
+	buffer->year    = int(ymd.year()) - 1900;
+	VantagePro2Message::computeCRC(buffer.get(), sizeof(VantagePro2Connector::SettimeRequestParams));
 
 	return buffer;
 }
@@ -104,16 +136,12 @@ void VantagePro2Connector::waitForNextMeasure()
 	_timeouts = 0;
 	_transmissionErrors = 0;
 
-	chrono::time_duration now = chrono::seconds(chrono::second_clock::local_time().time_of_day().total_seconds());
-	// extract the difference between now  and now rounded up to the next multiple of 5 minutes
-	// e.g.: if now = 11:27:53, then rounded = 2min 53s
-	chrono::time_duration rounded = chrono::minutes(now.minutes() % _pollingPeriod) + chrono::seconds(now.seconds());
-	// we wait 5 min - rounded to take the next measurement exactly
-	// when the clock hits the next multiple of five minutes (tolerating
-	// an error of around a couple of seconds)
-	std::cerr << "Next measurement will be taken in " << (chrono::minutes(_pollingPeriod) - rounded)
-		  << " at approximately " << (chrono::second_clock::local_time() + chrono::minutes(_pollingPeriod) - rounded) << std::endl;
-	_timer.expires_from_now(chrono::minutes(_pollingPeriod) - rounded);
+	 auto tp = chrono::minutes(_pollingPeriod) -
+	       (chrono::system_clock::now().time_since_epoch() % chrono::minutes(_pollingPeriod));
+	std::cerr << "Next measurement will be taken in "
+		  << chrono::duration_cast<chrono::minutes>(tp).count() << "min "
+		  << chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count() << "s " << std::endl;
+	_timer.expires_from_now(tp);
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 }
 
@@ -128,7 +156,7 @@ void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 		return;
 
 	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= asio::deadline_timer::traits_type::now()) {
+	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		std::cerr << "Timed out!" << std::endl;
 		_timeouts++;
 		_sock.cancel();
@@ -141,6 +169,26 @@ void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 	}
 }
 
+void VantagePro2Connector::handleSetTimeDeadline(const sys::error_code& e)
+{
+	std::cerr << "SetTime time deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
+	if (e == sys::errc::operation_canceled)
+		return;
+
+	// verify that the timeout is not spurious
+	if (_timer.expires_at() <= chrono::steady_clock::now()) {
+		std::cerr << "Timed out! We have to reset the station clock ASAP" << std::endl;
+		/* This timer does not interrupt the normal handling of events
+		 * but signals with a flag that the time should be set */
+		_setTimeRequested = true;
+	} else {
+		/* spurious handler call, restart the timer without changing the
+		 * deadline */
+		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+		_setTimeTimer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
+	}
+}
+
 void VantagePro2Connector::stop()
 {
 	/* hijack the state machine to force STOPPED state */
@@ -148,6 +196,7 @@ void VantagePro2Connector::stop()
 	_stopped = true;
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
+	_setTimeTimer.cancel();
 	/* close the socket (but check if it's not been wrecked by the other
 	 * end before)
 	 */
@@ -155,6 +204,9 @@ void VantagePro2Connector::stop()
 		_sock.cancel();
 		_sock.close();
 	}
+
+	/* After the return of this function, no one should hold a pointer to
+	 * self (aka this) anymore, so this instance will be destroyed */
 }
 
 void VantagePro2Connector::sendRequest(const char *req, int reqsize)
@@ -420,28 +472,85 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				time_t lastArchiveDownloadTime;
 				time_t lastDataInsertionTime;
 				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime, lastDataInsertionTime);
-				_lastArchive = chrono::from_time_t(lastArchiveDownloadTime);
-				_lastData    = chrono::from_time_t(lastDataInsertionTime);
+				_lastArchive = date::local_time<chrono::seconds>(chrono::seconds(lastArchiveDownloadTime));
+				_lastData    = date::sys_time<chrono::seconds>(chrono::seconds(lastDataInsertionTime));
 				if (found) {
 					std::cerr << "Received correct identification from station " << _stationName << std::endl;
 					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());
-					chrono::ptime now = chrono::second_clock::universal_time();
-					std::cerr << "Last data received from station " << _stationName << " dates back from " << _lastData << " (now is " << now << "), disconnected time: " << (now - _lastData) << std::endl;
-					std::cerr << "Is disconnection time superior to " << chrono::minutes(_pollingPeriod) << " ? " <<  ((now - _lastData) > chrono::minutes(_pollingPeriod)) << std::endl;
-					if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
-						syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives...", _stationName.c_str());
-						std::cerr << "Retrieving archived data for " << _stationName << std::endl;
-						_archivePage.prepare(_lastArchive);
-						_currentState = State::SENDING_REQ_ARCHIVE;
-						sendRequest(_getArchiveRequest, std::strlen(_getArchiveRequest));
-					} else {
-						_currentState = State::WAITING_NEXT_MEASURE_TICK;
-						waitForNextMeasure();
-					}
+					std::cerr << "Now fetching timezone information for station " << _stationName << std::endl;
+					_currentState = State::SENDING_REQ_TIMEZONE;
+					sendRequest(_getTimezoneRequest, std::strlen(_getTimezoneRequest));
 				} else {
 					std::cerr << "Unknown station (" << _coords[0] << ", " << _coords[1] << ", " << _coords[2] << ") ! Aborting" << std::endl;
 					syslog(LOG_ERR, "An unknown station has attempted a connection");
 					stop();
+				}
+			}
+		}
+		break;
+
+	case State::SENDING_REQ_TIMEZONE:
+		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ACK_TIMEZONE;
+			std::cerr << "Sent identification request" << std::endl;
+			recvAck();
+		}
+		break;
+
+	case State::WAITING_ACK_TIMEZONE:
+		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
+		if (e == sys::errc::success) {
+			if (_ackBuffer != 0x06) {
+				syslog(LOG_DEBUG, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
+				if (++_transmissionErrors < 5) {
+					flushSocketAndRetry(State::SENDING_REQ_TIMEZONE,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
+				} else {
+					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the timezone request", _stationName.c_str());
+					stop();
+				}
+			} else {
+				_currentState = State::WAITING_DATA_TIMEZONE;
+				std::cerr << "Timezone request acked by station" << std::endl;
+				recvData(asio::buffer(&_timezoneBuffer,sizeof(_timezoneBuffer)));
+			}
+		}
+		break;
+
+	case State::WAITING_DATA_TIMEZONE:
+		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
+		if (e == sys::errc::success) {
+			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+				if (++_transmissionErrors < 5) {
+					flushSocketAndRetry(State::SENDING_REQ_TIMEZONE,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
+				} else {
+					syslog(LOG_ERR, "station %s: Too many transmissions errors on station identification CRC validation, aborting", _stationName.c_str());
+					stop();
+				}
+			} else {
+				_timeOffseter.prepare(_timezoneBuffer);
+				chrono::system_clock::time_point now = chrono::system_clock::now();
+				std::cerr << "Last data received from station " << _stationName << " dates back from "
+				          << _lastData << std::endl;
+				if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
+					syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives...", _stationName.c_str());
+					std::cerr << "Retrieving archived data for " << _stationName << std::endl;
+					_archivePage.prepare(_lastData, &_timeOffseter);
+					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
+					sendRequest(_echoRequest, std::strlen(_echoRequest));
+				} else {
+					_currentState = State::WAITING_NEXT_MEASURE_TICK;
+					waitForNextMeasure();
 				}
 			}
 		}
@@ -526,19 +635,47 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					stop();
 				}
 			} else {
-				_currentState = State::WAITING_NEXT_MEASURE_TICK;
 				std::cerr << "Got measurement, storing it" << std::endl;
 				bool ret = _db.insertDataPoint(_station, _message);
 				if (ret) {
-					std::cerr << "Measurement stored\n"
-						  << "Now sleeping until next measurement" << std::endl;
-					waitForNextMeasure();
+					std::cerr << "Measurement stored for station " << _stationName << std::endl;
+					if (_setTimeRequested) {
+						std::cerr << "Station " << _stationName << "'s clock has to be set" << std::endl;
+						_currentState = State::SENDING_SETTIME;
+						sendRequest(_settimeRequest, std::strlen(_settimeRequest));
+					} else {
+						_currentState = State::WAITING_NEXT_MEASURE_TICK;
+						std::cerr << "Now sleeping until next measurement" << std::endl;
+						waitForNextMeasure();
+					}
 				} else {
 					std::cerr << "Failed to store measurement! Aborting" << std::endl;
 					syslog(LOG_ERR, "station %s: Couldn't store measurement", _stationName.c_str());
 					stop();
 				}
 			}
+		}
+		break;
+
+	case State::SENDING_WAKE_UP_ARCHIVE:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, std::strlen(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ECHO_ARCHIVE;
+			std::cerr << "Waking up station for archive request" << std::endl;
+			recvWakeUp();
+		}
+		break;
+
+	case State::WAITING_ECHO_ARCHIVE:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, std::strlen(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::SENDING_REQ_ARCHIVE;
+			std::cerr << "Station is woken up, ready to send archives" << std::endl;
+			sendRequest(_getArchiveRequest, std::strlen(_getArchiveRequest));
 		}
 		break;
 
@@ -694,7 +831,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					std::cerr << "Archive data stored\n"
 						  << "Now sleeping until next measurement" << std::endl;
 
-					time_t lastArchiveDownloadTime = (_archivePage.lastArchiveRecordDateTime() - chrono::from_time_t(0)).total_seconds();
+					time_t lastArchiveDownloadTime = date::floor<chrono::seconds>(_archivePage.lastArchiveRecordDateTime().time_since_epoch()).count();
 					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime); 
 					if (!ret)
 						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
@@ -708,6 +845,74 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					stop();
 				}
 			}
+		}
+		break;
+
+	case State::SENDING_SETTIME:
+		handleGenericErrors(e, State::SENDING_SETTIME,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_settimeRequest, std::strlen(_settimeRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ACK_SETTIME;
+			std::cerr << "Sent settime request" << std::endl;
+			recvAck();
+		}
+		break;
+
+	case State::WAITING_ACK_SETTIME:
+		handleGenericErrors(e, State::SENDING_SETTIME,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_settimeRequest, std::strlen(_settimeRequest)));
+		if (e == sys::errc::success) {
+			if (_ackBuffer != 0x06) {
+				syslog(LOG_DEBUG, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
+				if (++_transmissionErrors < 5) {
+					flushSocketAndRetry(State::SENDING_SETTIME,
+						std::bind(&VantagePro2Connector::sendRequest, this,
+							_settimeRequest, std::strlen(_settimeRequest)));
+				} else {
+					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the archive request", _stationName.c_str());
+					stop();
+				}
+			} else {
+				_currentState = State::SENDING_SETTIME_PARAMS;
+				std::cerr << "Archive download request acked by station" << std::endl;
+				auto buffer = buildSettimeParams();
+				sendBuffer(std::move(buffer), sizeof(SettimeRequestParams));
+			}
+		}
+		break;
+
+	case State::SENDING_SETTIME_PARAMS:
+		// We cannot retry anything here, we are in the middle of a request, just bail out
+		if (e != sys::errc::success) {
+			syslog(LOG_ERR, "station %s : Connection to the station lost while setting clock", _stationName.c_str());
+			stop();
+		} else {
+			_currentState = State::WAITING_ACK_TIME_SET;
+			std::cerr << "Sent time parameters" << std::endl;
+			recvAck();
+		}
+		break;
+
+	case State::WAITING_ACK_TIME_SET:
+		// We cannot retry anything here, we are in the middle of a request, just bail out
+		if (e != sys::errc::success) {
+			syslog(LOG_ERR, "station %s : Connection to the station lost while setting clock", _stationName.c_str());
+			std::cerr << "Station " << _stationName << " has not acked the clock setting, continueing anyway" << std::endl;
+		} else if (_ackBuffer != 0x06) {
+				syslog(LOG_DEBUG, "station %s : Was waiting for acknowledgement, got %i", _stationName.c_str(), _ackBuffer);
+				syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the archive request", _stationName.c_str());
+				std::cerr << "Received " << (int)_ackBuffer << " (NAK?) from station " << _stationName << ", continueing anyway" << std::endl;
+		}
+
+		std::cerr << "Time set for station " << _stationName << std::endl;
+		_setTimeRequested = false;
+		_setTimeTimer.expires_from_now(chrono::hours(1));
+		{
+			auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+			_setTimeTimer.async_wait(std::bind(&VantagePro2Connector::handleSetTimeDeadline, self, _1));
+			_currentState = State::WAITING_NEXT_MEASURE_TICK;
 		}
 		break;
 

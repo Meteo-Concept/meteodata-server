@@ -27,9 +27,11 @@
 #include <cstdint>
 #include <ctime>
 #include <array>
+#include <chrono>
 
 #include <boost/asio.hpp>
 
+#include <date/date.h>
 #include <cassandra.h>
 
 #include "message.h"
@@ -38,6 +40,8 @@ using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
+
+namespace chrono = std::chrono;
 
 namespace meteodata {
 
@@ -585,59 +589,25 @@ std::string from_bartrend_to_diagnostic(uint8_t value) {
  * @return a value corresponding to the date given as parameter suitable for
  * insertion in a Cassandra database
  */
-uint32_t from_daymonthyear_to_CassandraDate(int day, int month, int year)
+uint32_t from_daymonthyear_to_CassandraDate(int d, int m, int y)
 {
-	struct tm date;
-	memset(&date, 0, sizeof(date));
-	date.tm_mday = day;
-	date.tm_mon = month;
-	date.tm_year = year;
-	return cass_date_from_epoch(mktime(&date));
+	date::sys_time<chrono::seconds> tp = date::sys_days(date::day(d)/m/y);
+	return cass_date_from_epoch(tp.time_since_epoch().count());
 }
 
 /** @brief Convert an hour and minute value to a value that can be entered in a
  * Cassandra column of type "time"
  *
- * @param hour the hour
- * @param min the minutes
+ * @param h the hour
+ * @param m the minutes
  *
  * @return a value corresponding to the time given as parameter suitable for
  * insertion in a Cassandra database
  */
-int64_t from_hourmin_to_CassandraTime(int hour, int min)
+int64_t from_hourmin_to_CassandraTime(int h, int m)
 {
-	struct tm date;
-	time_t currentTime = time(NULL);
-	localtime_r(&currentTime, &date);
-	date.tm_hour = hour;
-	date.tm_min = min;
-	date.tm_sec = 0;
-	return cass_time_from_epoch(mktime(&date));
-}
-
-/** @brief Convert a date and time to a value that can be entered in a
- * Cassandra column of type "time"
- *
- * @param day the day
- * @param month the month
- * @param year the year
- * @param hour the hour
- * @param min the minutes
- *
- * @return a value corresponding to the time given as parameter suitable for
- * insertion in a Cassandra database
- */
-int64_t from_daymonthyearhourmin_to_CassandraTime(int day, int month, int year, int hour, int min)
-{
-	struct tm date;
-	memset(&date, 0, sizeof(date));
-	date.tm_mday = day;
-	date.tm_mon = month - 1; //tm_month has range [0; 11]
-	date.tm_year = year - 1900; // tm_year is offset by 1900
-	date.tm_hour = hour;
-	date.tm_min = min;
-	date.tm_sec = 0;
-	return mktime(&date) * 1000;
+	date::sys_time<chrono::seconds> tp = date::sys_days() + chrono::hours(h) + chrono::minutes(m);
+	return cass_time_from_epoch(tp.time_since_epoch().count());
 }
 
 /**

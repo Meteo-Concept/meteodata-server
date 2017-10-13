@@ -26,11 +26,12 @@
 
 #include <cstdint>
 #include <iterator>
+#include <chrono>
 
 #include <boost/asio.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "vantagepro2archivemessage.h"
+#include "timeoffseter.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -40,7 +41,7 @@ using std::uint64_t;
 namespace meteodata {
 
 namespace asio = boost::asio;
-namespace chrono = boost::posix_time;
+namespace chrono = std::chrono;
 
 /**
  * @brief A class able to store an archive page downloaded from a VantagePro2 (R)
@@ -99,7 +100,7 @@ public:
 	 */
 	auto cend() const { return _archiveMessages.cend(); }
 
-	chrono::ptime lastArchiveRecordDateTime() const;
+	date::local_seconds lastArchiveRecordDateTime() const;
 
 	/**
 	 * @brief Clear the archive page and make it ready for any future
@@ -107,7 +108,7 @@ public:
 	 */
 	void clear();
 
-	void prepare(const chrono::ptime& beginning);
+	void prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter);
 
 private:
 
@@ -124,10 +125,11 @@ private:
 	 */
 	ArchivePage _page;
 
-	chrono::ptime _beginning;
-	chrono::ptime _now;
+	date::sys_seconds _beginning;
+	date::sys_seconds _now;
+	date::sys_seconds _mostRecent;
 
-	chrono::ptime _mostRecent;
+	const TimeOffseter* _timeOffseter;
 
 	/**
 	 * @brief A collection of ArchiveMessage, constructed on-the-fly as archive data is received

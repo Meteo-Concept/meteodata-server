@@ -21,15 +21,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
+#include <chrono>
+
+#include <date/date.h>
+#include <date/tz.h>
+
 #include "vantagepro2archivepage.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivemessage.h"
 
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/date_time/gregorian/greg_date.hpp>
+#include "timeoffseter.h"
 
-namespace chrono = boost::posix_time;
-namespace greg = boost::gregorian;
+namespace chrono = std::chrono;
 
 namespace meteodata
 {
@@ -45,34 +49,36 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 		return false;
 
 	std::cerr << "Year: " << point.year << " | month: " << point.month << " | day: " << point.day << " | time: " << point.time << std::endl;
-	std::cerr << "This archive records apparently dates from " << chrono::ptime(greg::date(point.year + 2000, point.month, point.day), chrono::hours(point.time / 100) + chrono::minutes(point.time % 100)) << std::endl;
 
-	chrono::ptime datetime(greg::date(point.year + 2000, point.month, point.day), chrono::hours(point.time / 100) + chrono::minutes(point.time % 100));
-	if (datetime > _beginning && datetime <= _now) {
-		if (datetime > _mostRecent)
-			_mostRecent = datetime;
+	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
+			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
+	if (time > _beginning && time <= _now) {
+		if (time > _mostRecent)
+			_mostRecent = time;
 		return true;
 	}
+	return false;
 }
 
 void VantagePro2ArchivePage::storeToMessages()
 {
 	for (int i=0 ; i < 4 ; i++) {
 		if (isRelevant(_page.points[i]))
-			_archiveMessages.emplace_back(_page.points[i]);
+			_archiveMessages.emplace_back(_page.points[i], _timeOffseter);
 	}
 }
 
-chrono::ptime VantagePro2ArchivePage::lastArchiveRecordDateTime() const
+date::local_seconds VantagePro2ArchivePage::lastArchiveRecordDateTime() const
 {
-	return _mostRecent;
+	return _timeOffseter->convertToLocalTime(_mostRecent);
 }
 
-void VantagePro2ArchivePage::prepare(const chrono::ptime& beginning)
+void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter)
 {
+	_timeOffseter = timeOffseter;
 	_beginning = beginning;
-	_now = chrono::second_clock::universal_time();
-	_mostRecent = beginning;
+	_now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_mostRecent = _beginning;
 
 	std::cerr << "Archive page size: " << sizeof(ArchivePage) << " bytes" << std::endl;
 	std::cerr << "Archive data point size: " << sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint) << " bytes" << std::endl;

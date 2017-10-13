@@ -22,32 +22,38 @@
  */
 
 #include <iostream>
+#include <chrono>
+
+#include <date/date.h>
+#include <date/tz.h>
 
 #include "vantagepro2archivemessage.h"
 #include "vantagepro2message.h"
+#include "timeoffseter.h"
 
 namespace meteodata
 {
 
-VantagePro2ArchiveMessage::VantagePro2ArchiveMessage(ArchiveDataPoint data) :
+VantagePro2ArchiveMessage::VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter) :
 	Message(),
-	_data(data)
+	_data(data),
+	_timeOffseter(timeOffseter)
 {}
 
 void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	std::cerr << "Populating the new datapoint" << std::endl;
+	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
 	/*************************************************************/
 	cass_statement_bind_int64(statement, 1,
-			from_daymonthyearhourmin_to_CassandraTime(
+		date::floor<chrono::milliseconds>(_timeOffseter->convertFromLocalTime(
 				_data.day,
 				_data.month,
 				_data.year + 2000,
 				_data.time / 100,
 				_data.time % 100
-			)
+			)).time_since_epoch().count()
 		);
 	/*************************************************************/
 	// No bar trend

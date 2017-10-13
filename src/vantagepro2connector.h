@@ -32,13 +32,14 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/basic_waitable_timer.hpp>
 
 #include <syslog.h>
 #include <unistd.h>
 
 #include <cassandra.h>
+#include <date/date.h>
+#include <date/tz.h>
 
 #include "connector.h"
 #include "vantagepro2message.h"
@@ -51,7 +52,7 @@ namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
 namespace sys = boost::system; //system() is a function, it cannot be redefined
 			       //as a namespace
-namespace chrono = boost::posix_time;
+namespace chrono = std::chrono;
 
 using namespace std::placeholders;
 using namespace meteodata;
@@ -87,11 +88,16 @@ private:
 		SENDING_REQ_STATION, /*!< Waiting for the identification request to be sent */
 		WAITING_ACK_STATION, /*!< Waiting for the identification request to be acknowledgement */
 		WAITING_DATA_STATION, /*!< Waiting for the station to answer the identification */
+		SENDING_REQ_TIMEZONE,
+		WAITING_ACK_TIMEZONE,
+		WAITING_DATA_TIMEZONE,
 		SENDING_WAKE_UP_MEASURE, /*!< Waiting for the wake up request to be sent (before measurement) */
 		WAITING_ECHO_MEASURE, /*!< Waiting for the station to answer the wake up request */
 		SENDING_REQ_MEASURE, /*!< Waiting for a measurement request to be sent */
 		WAITING_ACK_MEASURE, /*!< Waiting for the station to acknowledge the measurement request */
 		WAITING_DATA_MEASURE, /*!< Waiting for the station to answer the measurement request */
+		SENDING_WAKE_UP_ARCHIVE,
+		WAITING_ECHO_ARCHIVE,
 		SENDING_REQ_ARCHIVE, /*!< Waiting for the archive request to be sent */
 		WAITING_ACK_ARCHIVE, /*!< Waiting for the archive request acknowledgement */
 		SENDING_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters to be sent */
@@ -101,10 +107,24 @@ private:
 		SENDING_ABORT_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download abortion notice to be sent */
 		WAITING_ARCHIVE_PAGE, /*!< Waiting for the next page of archive */
 		SENDING_ARCHIVE_PAGE_ANSWER, /*!< Waiting for the archive page confirmation to be sent */
+		SENDING_SETTIME,
+		WAITING_ACK_SETTIME,
+		SENDING_SETTIME_PARAMS,
+		WAITING_ACK_TIME_SET,
 		STOPPED /*!< Final state for cleanup operations */
 	};
 	/* Events have type sys::error_code */
 
+	struct SettimeRequestParams
+	{
+		uint8_t seconds;
+		uint8_t minutes;
+		uint8_t hours;
+		uint8_t day;
+		uint8_t month;
+		uint8_t year;
+		uint16_t crc;
+	} __attribute((packed));
 
 	struct ArchiveRequestParams
 	{
@@ -155,6 +175,7 @@ private:
 	 * timer has been interrupted before the deadline
 	 */
 	void checkDeadline(const sys::error_code& e);
+	void handleSetTimeDeadline(const sys::error_code& e);
 	/**
 	 * @brief Cease all operations and close the socket
 	 *
@@ -218,7 +239,8 @@ private:
 	template <typename Restarter>
 	void flushSocketAndRetry(State restartState, Restarter restart);
 
-	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const chrono::ptime& time);
+	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const date::local_seconds& time);
+	std::shared_ptr<SettimeRequestParams> buildSettimeParams();
 
 	/**
 	 * @brief The current state of the state machine
@@ -228,7 +250,10 @@ private:
 	 * @brief A Boost::Asio timer used to time out on network operations and
 	 * to wait between two measurements
 	 */
-	asio::deadline_timer _timer;
+	asio::basic_waitable_timer<chrono::steady_clock> _timer;
+	asio::basic_waitable_timer<chrono::steady_clock> _setTimeTimer;
+
+	bool _setTimeRequested = true;
 	/**
 	 * @brief A dummy buffer to store acknowledgements and the like from
 	 * the station
@@ -292,6 +317,8 @@ private:
 	 */
 	int16_t _coords[4];
 
+	TimeOffseter::VantagePro2TimezoneBuffer _timezoneBuffer;
+
 	struct
 	{
 		uint16_t pagesLeft;
@@ -301,8 +328,10 @@ private:
 
 	VantagePro2ArchivePage _archivePage;
 
-	chrono::ptime _lastArchive;
-	chrono::ptime _lastData;
+	date::local_time<chrono::seconds> _lastArchive;
+	date::sys_seconds                 _lastData;
+
+	TimeOffseter _timeOffseter;
 
 	/**
 	 * @brief An echo request, typically used for the wake up procedure
@@ -321,6 +350,10 @@ private:
 	 * @brief An archive request, for a range an archived data points
 	 */
 	static constexpr char _getArchiveRequest[] = "DMPAFT\n";
+
+	static constexpr char _settimeRequest[] = "SETTIME\n";
+
+	static constexpr char _getTimezoneRequest[] = "EEBRD 11 06\n";
 	/**
 	 * @brief An acknowledgement
 	 */
