@@ -1,3 +1,12 @@
+version 0.7
+===========
+
+	Second official release
+
+	Meteodata-server now supports detecting the station timezone, adjusting the clock
+        and retrieving the station's archives when the station has been disconnected for
+	too long.
+
 version 0.1
 ===========
 
