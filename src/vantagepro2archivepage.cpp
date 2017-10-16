@@ -89,4 +89,4 @@ void VantagePro2ArchivePage::clear()
 	_archiveMessages.clear();
 }
 
-};
+}

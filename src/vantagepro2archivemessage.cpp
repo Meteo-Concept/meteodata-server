@@ -144,4 +144,4 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	// No sunset time
 }
 
-};
+}

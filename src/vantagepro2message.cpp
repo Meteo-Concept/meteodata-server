@@ -450,4 +450,4 @@ bool VantagePro2Message::isValid() const
 	return validateCRC(&_l1, sizeof(Loop1)) &&
 	       validateCRC(&_l2, sizeof(Loop2));
 }
-};
+}
