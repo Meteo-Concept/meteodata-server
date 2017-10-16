@@ -594,15 +594,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			std::bind(&VantagePro2Connector::sendRequest, this,
 				_echoRequest, std::strlen(_echoRequest)));
 		if (e == sys::errc::success) {
-			if (_ackBuffer == 'L') {
-				syslog(LOG_WARNING, "station %s : Was waiting for acknowledgement, got %i, continuing", _stationName.c_str(), _ackBuffer);
-				_currentState = State::WAITING_DATA_MEASURE;
-				std::cerr << "Missed the acknowledgement but receiving data anyway" << std::endl;
-				char* rawBuffer = asio::buffer_cast<char*>(asio::buffer(_message.getBuffer()));
-				rawBuffer[0] = _ackBuffer;
-				auto offsetBuffer = asio::buffer(asio::buffer(_message.getBuffer()) + 1);
-				recvData(offsetBuffer);
-			} else if (_ackBuffer != 0x06) {
+			if (_ackBuffer != 0x06) {
 				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i, retrying", _stationName.c_str(), _ackBuffer);
 				if (++_transmissionErrors < 5) {
 					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
