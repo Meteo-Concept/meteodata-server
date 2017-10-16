@@ -80,6 +80,15 @@ VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
 
 void VantagePro2Connector::start()
 {
+	boost::asio::socket_base::keep_alive keepalive(true);
+	boost::asio::detail::socket_option::integer<SOL_TCP, TCP_KEEPIDLE> keepaliveIdleTime(30);
+	boost::asio::detail::socket_option::integer<SOL_TCP, TCP_KEEPINTVL> keepaliveInterval(10);
+	boost::asio::detail::socket_option::integer<SOL_TCP, TCP_KEEPCNT> keepaliveProbes(2);
+	_sock.set_option(keepalive);
+	_sock.set_option(keepaliveIdleTime);
+	_sock.set_option(keepaliveInterval);
+	_sock.set_option(keepaliveProbes);
+
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_currentState = State::STARTING;
 
