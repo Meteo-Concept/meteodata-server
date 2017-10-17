@@ -38,6 +38,8 @@ namespace chrono = std::chrono;
 namespace meteodata
 {
 
+constexpr int VantagePro2ArchivePage::NUMBER_OF_DATA_POINTS_PER_PAGE;
+
 bool VantagePro2ArchivePage::isValid() const
 {
 	return VantagePro2Message::validateCRC(&_page, sizeof(ArchivePage));
@@ -62,7 +64,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 
 void VantagePro2ArchivePage::storeToMessages()
 {
-	for (int i=0 ; i < 4 ; i++) {
+	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE ; i++) {
 		if (isRelevant(_page.points[i]))
 			_archiveMessages.emplace_back(_page.points[i], _timeOffseter);
 	}

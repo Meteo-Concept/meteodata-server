@@ -112,10 +112,12 @@ public:
 
 private:
 
+	static constexpr int NUMBER_OF_DATA_POINTS_PER_PAGE = 5;
+
 	struct ArchivePage
 	{
 		uint8_t sequenceNumber; /*!< The sequence number sent at the beginning of each archive page */
-		VantagePro2ArchiveMessage::ArchiveDataPoint points[5]; /*!< The five data points this page contains */
+		VantagePro2ArchiveMessage::ArchiveDataPoint points[NUMBER_OF_DATA_POINTS_PER_PAGE]; /*!< The data points this page contains */
 		int : 32;
 		uint16_t crc; /*!< The CRC sent at the bottom of each archive page */
 	} __attribute__((packed));
