@@ -40,21 +40,72 @@ namespace meteodata {
 
 namespace chrono = std::chrono;
 
+/**
+ * @brief Perform conversion between station time and server (POSIX) time
+ *
+ * The VantagePro2 and VantageVue stations can be configured in local time or
+ * in UTC time, and the timestamp of the archived data are to be interpreted
+ * according to this configuration. There are two ways to configure the time
+ * zone of a station: either by giving an index in an array of timezones
+ * hardcoded in the station's firmware or by giving the offset to UTC. In the
+ * former case, the station can automatically handle Daylight Saving Time (DST)
+ * for some timezones (in Europe and USA). The rules to do so are hardcoded in
+ * the firmware and we have no guarantee they are correct. Of course, for a lot
+ * of complex cases (I'm looking at you Arizona...), it is mandatory to
+ * manually handle DST, there is also a setting for that.
+ *
+ * This class attempts to detect the setting currently used by the station to
+ * convert the archive timestamps to UTC. It is also used to compute the
+ * station local time to set the clock.
+ */
 class TimeOffseter
 {
 public:
 
+	/**
+	 * @brief Store the portion of a station's EEPROM relative to the time
+	 * configuration
+	 */
 	struct VantagePro2TimezoneBuffer
 	{
-		uint8_t timeZone;
-		uint8_t manualDST;
-		uint8_t activeDST;
-		int16_t gmtOffset;
-		uint8_t gmtOrZone;
+		uint8_t timeZone;  /*!< The time zone configured for the station
+				       if \a gmtOrZone is not set */
+		uint8_t manualDST;  /*!< If set, the DST is handled manually and
+				       the station does not set the clock
+				       automatically, ignored if gmtOrZone is
+				       set */
+		uint8_t activeDST; /*!< If set and the DST is handled manually,
+				     indicates that the DST is active */
+		int16_t gmtOffset; /*!< The offset to UTC configured for this
+				     station if \a gmtOrZone is set */
+		uint8_t gmtOrZone; /*!< If set, \a timeZone is used, if unset
+				     \a gmtOffset is used */
 	} __attribute__((packed));
 
+	/**
+	 * @brief Initialize the \a TimeOffseter with a
+	 * \a VantagePro2TimezoneBuffer received from a station
+	 *
+	 * The \a TimeOffseter must be initialized before it can converts times,
+	 * this method is responsible for parsing the \a buffer and preparing
+	 * this \a TimeOffseter for incoming timestamp conversions.
+	 */
 	void prepare(const VantagePro2TimezoneBuffer& buffer);
 
+	/**
+	 * @brief Convert a timestamp given as fields and expressed as station
+	 * time to POSIX time
+	 *
+	 * @tparam Duration The expected resolution of the returned timestamp
+	 * @param d The day
+	 * @param m The month
+	 * @param y The year
+	 * @param h The hour
+	 * @param min The minutes
+	 *
+	 * @return A timestamp in POSIX time corresponding to the same time
+	 * point as \a y-\a m-\a d \a h:\a min:00 in station time
+	 */
 	template<typename Duration = chrono::system_clock::duration>
 	date::sys_time<Duration> convertFromLocalTime(int d, int m, int y, int h, int min) const
 	{
@@ -69,6 +120,16 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Convert a timestamp given as a duration from Epoch in station
+	 * time to POSIX time
+	 *
+	 * @tparam Duration The expected resolution of the returned timestamp
+	 * @param time The timestamp in station time
+	 *
+	 * @return A timestamp in POSIX time corresponding to the same time
+	 * point as \a time
+	 */
 	template<typename Duration>
 	date::sys_time<Duration> convertFromLocalTime(const date::local_time<Duration>& time) const
 	{
@@ -79,6 +140,16 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Convert a timestamp given as a duration from Epoch in POSIX
+	 * time to station time
+	 *
+	 * @tparam Duration The expected resolution of the returned timestamp
+	 * @param time The timestamp in POSIX time
+	 *
+	 * @return A timestamp in station time corresponding to the same time
+	 * point as \a time
+	 */
 	template<typename Duration>
 	date::local_time<Duration> convertToLocalTime(const date::sys_time<Duration>& time) const
 	{
@@ -90,11 +161,19 @@ public:
 	}
 
 private:
+	/**
+	 * @brief Describe how the \a TimeOffseter should perform time
+	 * conversions
+	 */
 	union
 	{
-		const date::time_zone* timezone;
-		chrono::minutes timeOffset;
+		const date::time_zone* timezone; /*!< The station time is given by a IANA timezone */
+		chrono::minutes timeOffset; /*!< The station time is given by a static offset to UTC */
 	} _timezoneInfo;
+	/**
+	 * @brief Tell whether \a _timezoneInfo.timezone or \a _timezoneInfo.timeOffset should be
+	 * taken into account
+	 */
 	bool byTimezone;
 };
 

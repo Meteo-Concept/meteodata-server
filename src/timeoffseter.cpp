@@ -31,12 +31,19 @@
 
 namespace
 {
-	using namespace std::chrono;
+	namespace chrono = std::chrono;
 	using namespace std::literals::chrono_literals;
 
-	minutes vantageTimezoneIndex2Offet(int index)
+	/**
+	 * @brief Map a VantagePro2 timezone identifier with a static offset to UTC
+	 *
+	 * @param index A VantagePro2 timezone index from Davis Instruments (R) documentation
+	 *
+	 * @return The offset between the identified timezone and UTC, in minutes
+	 */
+	chrono::minutes vantageTimezoneIndex2Offet(int index)
 	{
-		constexpr minutes timeOffsets[47] =
+		constexpr chrono::minutes timeOffsets[47] =
 		{         -12h,         -11h,         -10h,         -9h,         -8h, -7h, -6h, -6h,  -6h,  -5h,
 		           -5h,          -4h,          -4h, -3h - 30min,         -3h, -3h, -2h, -1h, 0min, 0min,
 		            1h,           1h,           1h,          2h,          2h,  2h,  2h,  2h,   3h,   3h,

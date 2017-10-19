@@ -62,7 +62,11 @@ namespace meteodata {
 		 * @param latitude The latitude of the station
 		 * @param longitude The longitude of the station
 		 * @param altitude The elevation of the station
-		 * @param station Where to store UUID corresponding to the station
+		 * @param[out] station Where to store UUID corresponding to the station
+		 * @param[out] name The common name given to the station
+		 * @param[out] pollPeriod The period of time between two measurements from the station
+		 * @param[out] lastArchiveDownloadTime The timestamp of the last archive entry downloaded from the station (in station's time)
+		 * @param[out] lastDataInsertionTime The timestamp of the last data from the station inserted into the database
 		 *
 		 * @return The unique identifier of the station
 		 */
@@ -82,6 +86,23 @@ namespace meteodata {
 		 * inserted, false otherwise
 		 */
 		bool insertDataPoint(const CassUuid station, const Message& message);
+		
+		/**
+		 * @brief Insert in the database the time of the last archive
+		 * entry downloaded from a station
+		 *
+		 * In order to download archive, it is necessary to have the
+		 * timestamp of an existing entry in the station'a archive so we
+		 * store the timestamp of the last entry retrieved from the
+		 * station each time we download archives.
+		 *
+		 * @param station The identifier of the station of interest
+		 * @param time The new timestamp of the last archive entry
+		 * downloaded from \a station
+		 *
+		 * @return True if the last archive timestamp could be updated,
+		 * false otherwise.
+		 */
 		bool updateLastArchiveDownloadTime(const CassUuid station, const time_t& time);
 
 	private:
@@ -141,16 +162,29 @@ namespace meteodata {
 		 * @brief Get the name of a station and its polling period
 		 *
 		 * @param uuid The station identifier
-		 * @param name Where to store the name of the station
-		 * @param pollPeriod Where to store the polling period of the
+		 * @param[out] name Where to store the name of the station
+		 * @param[out] pollPeriod Where to store the polling period of the
 		 * station (the amount of time which should separate two
 		 * measurements)
+		 * @param[out] lastArchiveDownloadTime The timestamp of the
+		 * last archive entry downloaded from the database
 		 *
 		 * @return True if, and only if, all went well
 		 */
 		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime);
-
-		bool getLastDataInsertionTime(const CassUuid& uuid, time_t& lastDataInsertionTime);
+		/**
+		 * @brief Identify the last time data was retrieved from a
+		 * station
+		 *
+		 * @param station The station of interest
+		 * @param[out] lastDataInsertionTime The timestamp of the last
+		 * entry corresponding to the database
+		 *
+		 * @return True if everything went well and
+		 * lastDataInsertionTime is the expected result, false if the
+		 * query failed
+		 */
+		bool getLastDataInsertionTime(const CassUuid& station, time_t& lastDataInsertionTime);
 	};
 }
 

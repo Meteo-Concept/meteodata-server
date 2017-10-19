@@ -356,9 +356,9 @@ namespace {
  * @brief Convert a date to a value that can be entered in a Cassandra column
  * of type "date"
  *
- * @param day the day
- * @param month the month
- * @param year the year
+ * @param d the day
+ * @param m the month
+ * @param y the year
  *
  * @return a value corresponding to the date given as parameter suitable for
  * insertion in a Cassandra database

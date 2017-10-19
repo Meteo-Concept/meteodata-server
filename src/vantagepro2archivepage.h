@@ -100,6 +100,12 @@ public:
 	 */
 	auto cend() const { return _archiveMessages.cend(); }
 
+	/**
+	 * @brief Give the timestamp of the most recent relevant archive entry
+	 *
+	 * @return The timestamp of the last archive entry which should be
+	 * inserted into the database
+	 */
 	date::local_seconds lastArchiveRecordDateTime() const;
 
 	/**
@@ -108,12 +114,33 @@ public:
 	 */
 	void clear();
 
+	/**
+	 * @brief Prepare an archive page so that the archive download may
+	 * start
+	 *
+	 * This function essentially initialize some internal state so that
+	 * archive entries downloaded from the station are correctly parsed.
+	 * It is especially important to inform the \a VantagePro2ArchivePage
+	 * of the time setting of the station.
+	 *
+	 * @param beginning The timestamp of the last data entry from the
+	 * station stored into the database
+	 * @param timeOffseter The \a TimeOffseter able to convert timestamps
+	 * between the server POSIX time and the station local time
+	 */
 	void prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter);
 
 private:
 
+	/**
+	 * @brief The number of archive entries in each downloaded page
+	 */
 	static constexpr int NUMBER_OF_DATA_POINTS_PER_PAGE = 5;
 
+	/**
+	 * @brief A type of buffer able to receive one page of archive
+	 * downloaded using commands DMP or DMPAFT
+	 */
 	struct ArchivePage
 	{
 		uint8_t sequenceNumber; /*!< The sequence number sent at the beginning of each archive page */
@@ -127,14 +154,35 @@ private:
 	 */
 	ArchivePage _page;
 
+	/**
+	 * @brief The time since which archived data must be collected
+	 */
 	date::sys_seconds _beginning;
+	/**
+	 * @brief The timestamp of the beginning of the archive retrieval
+	 */
 	date::sys_seconds _now;
+	/**
+	 * @brief The timestamp of the most recent archive entry fetched
+	 * so far from the station
+	 *
+	 * This value is used to update the database. Next time archive
+	 * have to be retrieved from the station, it will be possible to
+	 * pass this value to the station to limit the archive download
+	 * to more recent entries, in order to avoid processing already
+	 * outdated entries.
+	 */
 	date::sys_seconds _mostRecent;
 
+	/**
+	 * @brief The time converter that is to be used to parse the
+	 * station's timestamps
+	 */
 	const TimeOffseter* _timeOffseter;
 
 	/**
-	 * @brief A collection of ArchiveMessage, constructed on-the-fly as archive data is received
+	 * @brief A collection of ArchiveMessage, constructed on-the-fly as
+	 * archive data is received
 	 */
 	std::vector<VantagePro2ArchiveMessage> _archiveMessages;
 
@@ -144,6 +192,19 @@ private:
 	 */
 	std::array<asio::mutable_buffer,1> _pageBuffer = { {asio::buffer(&_page, sizeof(ArchivePage))} };
 
+	/**
+	 * @brief Tell whether an archive entry should be inserted into the
+	 * database
+	 *
+	 * Criteria for entering the database are essentially fitting a hole in
+	 * the timeseries of data for this station and having a consistent
+	 * timestamp (not newer than current time).
+	 *
+	 * @param point The archive entry
+	 *
+	 * @return True if, and only if, \a point should be inserted in the
+	 * database
+	 */
 	bool isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point);
 };
 

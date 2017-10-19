@@ -81,56 +81,74 @@ private:
 	 * @brief Represent a state in the state machine
 	 */
 	enum class State {
-		STARTING, /*!< Initial state */
-		WAITING_NEXT_MEASURE_TICK, /*!< Waiting for the timer to hit the deadline for the next measurement */
-		SENDING_WAKE_UP_STATION, /*!< Waiting for the wake up request to be sent */
-		WAITING_ECHO_STATION, /*!< Waiting for the station to answer the wake up request */
-		SENDING_REQ_STATION, /*!< Waiting for the identification request to be sent */
-		WAITING_ACK_STATION, /*!< Waiting for the identification request to be acknowledgement */
-		WAITING_DATA_STATION, /*!< Waiting for the station to answer the identification */
-		SENDING_REQ_TIMEZONE,
-		WAITING_ACK_TIMEZONE,
-		WAITING_DATA_TIMEZONE,
-		SENDING_WAKE_UP_MEASURE, /*!< Waiting for the wake up request to be sent (before measurement) */
-		WAITING_ECHO_MEASURE, /*!< Waiting for the station to answer the wake up request */
-		SENDING_REQ_MEASURE, /*!< Waiting for a measurement request to be sent */
-		WAITING_ACK_MEASURE, /*!< Waiting for the station to acknowledge the measurement request */
-		WAITING_DATA_MEASURE, /*!< Waiting for the station to answer the measurement request */
-		SENDING_WAKE_UP_ARCHIVE,
-		WAITING_ECHO_ARCHIVE,
-		SENDING_REQ_ARCHIVE, /*!< Waiting for the archive request to be sent */
-		WAITING_ACK_ARCHIVE, /*!< Waiting for the archive request acknowledgement */
-		SENDING_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters to be sent */
-		WAITING_ACK_ARCHIVE_PARAMS, /*!< Waiting for the archive download parameters acknowledgement */
-		WAITING_ARCHIVE_NB_PAGES, /*!< Waiting for the archive size */
-		SENDING_ACK_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download acknowledgement to be sent */
-		SENDING_ABORT_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download abortion notice to be sent */
-		WAITING_ARCHIVE_PAGE, /*!< Waiting for the next page of archive */
-		SENDING_ARCHIVE_PAGE_ANSWER, /*!< Waiting for the archive page confirmation to be sent */
-		SENDING_SETTIME,
-		WAITING_ACK_SETTIME,
-		SENDING_SETTIME_PARAMS,
-		WAITING_ACK_TIME_SET,
-		STOPPED /*!< Final state for cleanup operations */
+		STARTING,                       /*!< Initial state                                                      */
+		WAITING_NEXT_MEASURE_TICK,      /*!< Waiting for the timer to hit the deadline for the next measurement */
+		SENDING_WAKE_UP_STATION,        /*!< Waiting for the wake up request to be sent                         */
+		WAITING_ECHO_STATION,           /*!< Waiting for the station to answer the wake up request              */
+		SENDING_REQ_STATION,            /*!< Waiting for the identification request to be sent                  */
+		WAITING_ACK_STATION,            /*!< Waiting for the identification request to be acknowledgement       */
+		WAITING_DATA_STATION,           /*!< Waiting for the station to answer the identification               */
+		SENDING_REQ_TIMEZONE,           /*!< Waiting for the timezone information request to be sent            */
+		WAITING_ACK_TIMEZONE,           /*!< Waiting for the station to acknowledge the timezone information request */
+		WAITING_DATA_TIMEZONE,          /*!< Waiting for the station to answer the timezone information request */
+		SENDING_WAKE_UP_MEASURE,        /*!< Waiting for the wake up request to be sent (before measurement)    */
+		WAITING_ECHO_MEASURE,           /*!< Waiting for the station to answer the wake up request              */
+		SENDING_REQ_MEASURE,            /*!< Waiting for a measurement request to be sent                       */
+		WAITING_ACK_MEASURE,            /*!< Waiting for the station to acknowledge the measurement request     */
+		WAITING_DATA_MEASURE,           /*!< Waiting for the station to answer the measurement request          */
+		SENDING_WAKE_UP_ARCHIVE,        /*!< Waiting for the wake up order to be sent to download archive       */
+		WAITING_ECHO_ARCHIVE,           /*!< Waiting for the station to answer the wake up request to start downloading archive */
+		SENDING_REQ_ARCHIVE,            /*!< Waiting for the archive request to be sent                         */
+		WAITING_ACK_ARCHIVE,            /*!< Waiting for the archive request acknowledgement                    */
+		SENDING_ARCHIVE_PARAMS,         /*!< Waiting for the archive download parameters to be sent             */
+		WAITING_ACK_ARCHIVE_PARAMS,     /*!< Waiting for the archive download parameters acknowledgement        */
+		WAITING_ARCHIVE_NB_PAGES,       /*!< Waiting for the archive size                                       */
+		SENDING_ACK_ARCHIVE_DOWNLOAD,   /*!< Waiting for the archive download acknowledgement to be sent        */
+		SENDING_ABORT_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download abortion notice to be sent        */
+		WAITING_ARCHIVE_PAGE,           /*!< Waiting for the next page of archive                               */
+		SENDING_ARCHIVE_PAGE_ANSWER,    /*!< Waiting for the archive page confirmation to be sent               */
+		SENDING_SETTIME,                /*!< Waiting for the time setting request to be sent                    */
+		WAITING_ACK_SETTIME,            /*!< Waiting for the station to acknowledge the time setting request    */
+		SENDING_SETTIME_PARAMS,         /*!< Waiting for the time setting parameters to be sent                 */
+		WAITING_ACK_TIME_SET,           /*!< Waiting for the station to confirm the completion of the time setting */
+		STOPPED                         /*!< Final state for cleanup operations                                 */
 	};
 	/* Events have type sys::error_code */
 
+	/**
+	 * @brief The buffer that can be sent to the station to set the clock
+	 */
 	struct SettimeRequestParams
 	{
-		uint8_t seconds;
-		uint8_t minutes;
-		uint8_t hours;
-		uint8_t day;
-		uint8_t month;
-		uint8_t year;
-		uint16_t crc;
+		uint8_t seconds; /*!< The seconds     */
+		uint8_t minutes; /*!< The minutes     */
+		uint8_t hours;   /*!< The hour        */
+		uint8_t day;     /*!< The day         */
+		uint8_t month;   /*!< The month       */
+		uint8_t year;    /*!< The year - 2000 */
+		uint16_t crc;    /*!< The CRC of the above fields */
 	} __attribute((packed));
 
+	/**
+	 * @brief The buffer that can be sent to the station to download archived data
+	 */
 	struct ArchiveRequestParams
 	{
+		/**
+		 * @brief The date of an existing archive entry used to
+		 * indicate the start of the download in the station's archive
+		 *
+		 * This field is built as | year - 2000 (7 bits) | month (counting from 1) (4 bits) | day of month (5 bits) |
+		 **/
 		uint16_t date;
+		/**
+		 * @brief The time of an existing archive entry used to
+		 * indicate the start of the download in the station's archive
+		 *
+		 * This field is built as hours * 100 + minutes
+		 **/
 		uint16_t time;
-		uint16_t crc;
+		uint16_t crc; /*!< The CRC of the above fields */
 	} __attribute((packed));
 
 	/**
@@ -171,10 +189,21 @@ private:
 	 * @brief Verify that the timer that has just expired really means that
 	 * the associated deadline has expired
 	 *
+	 * This method is associated with \a _timer .
+	 *
 	 * @param e an error code which is positioned to a specific value if the
 	 * timer has been interrupted before the deadline
 	 */
 	void checkDeadline(const sys::error_code& e);
+	/**
+	 * @brief Verify that the timer that has just expired really means that
+	 * the associated deadline has expired
+	 *
+	 * This method is associated with \a _setTimeTimer .
+	 *
+	 * @param e an error code which is positioned to a specific value if the
+	 * timer has been interrupted before the deadline
+	 */
 	void handleSetTimeDeadline(const sys::error_code& e);
 	/**
 	 * @brief Cease all operations and close the socket
@@ -200,6 +229,14 @@ private:
 	 */
 	void sendRequest(const char* req, int reqsize);
 
+	/**
+	 * @brief Send a buffer over to the station
+	 *
+	 * @tparam PODType The type of the buffer that is to be sent, it must
+	 * be a packed structure
+	 * @param req A shared pointer onto the buffer
+	 * @param reqsize The size in bytes of the buffer
+	 */
 	template<typename PODType>
 	void sendBuffer(const std::shared_ptr<PODType>& req, int reqsize);
 	/**
@@ -211,10 +248,17 @@ private:
 	 */
 	void recvAck();
 	/**
-	 * @brief Send an acknowledgement to the station
+	 * @brief Send an acknowledgement (ACK) to the station
 	 */
 	void sendAck();
+	/**
+	 * @brief Send a negative acknowledgement (NAK) to the station
+	 */
 	void sendNak();
+	/**
+	 * @brief Send a notice to the station that the current request
+	 * is cancelled
+	 */
 	void sendAbort();
 	/**
 	 * @brief Wait for the station to answer the request
@@ -239,7 +283,32 @@ private:
 	template <typename Restarter>
 	void flushSocketAndRetry(State restartState, Restarter restart);
 
+	/**
+	 * @brief Construct an \a ArchiveRequestParams from the timestamp
+	 * of an archive entry retrieved from the station
+	 *
+	 * After the return of this method, the caller is the only owner
+	 * of the \a ArchiveRequestParams returned by this function. The
+	 * \a ArchiveRequestParams is returned as a shared pointer so that
+	 * it can be shared easily with an asynchronous I/O function.
+	 *
+	 * @param time The timestamp of an entry which must exist in the
+	 * station's archive (otherwise the entire archive will be downloaded)
+	 *
+	 * @return A shared pointer on a newly built \a ArchiveRequestParams
+	 */
 	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const date::local_seconds& time);
+	/**
+	 * @brief Construct an \a SettimeRequestParams from the current
+	 * server (POSIX) time
+	 *
+	 * After the return of this method, the caller is the only owner
+	 * of the \a SettimeRequestParams returned by this function. The
+	 * \a SettimeRequestParams is returned as a shared pointer so that
+	 * it can be shared easily with an asynchronous I/O function.
+	 *
+	 * @return A shared pointer on a newly built \a SettimeRequestParams
+	 */
 	std::shared_ptr<SettimeRequestParams> buildSettimeParams();
 
 	/**
@@ -251,8 +320,16 @@ private:
 	 * to wait between two measurements
 	 */
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
+	/**
+	 * @brief A Boost::Asio timer used to periodically trigger a clock
+	 * setting operation
+	 */
 	asio::basic_waitable_timer<chrono::steady_clock> _setTimeTimer;
 
+	/**
+	 * @brief A boolean flag indicating that the station clock should
+	 * be set when possible
+	 */
 	bool _setTimeRequested = true;
 	/**
 	 * @brief A dummy buffer to store acknowledgements and the like from
@@ -304,6 +381,7 @@ private:
 	 * @brief The amount of time between two queries for data to the stations
 	 */
 	int _pollingPeriod;
+
 	/**
 	 * @brief A one-character buffer to receive acknowledgements from the
 	 * station
@@ -316,21 +394,57 @@ private:
 	 * @brief A buffer to receive the coordinates from the station
 	 */
 	int16_t _coords[4];
-
+	/**
+	 * @brief A buffer to receive the timezone setting of the station
+	 */
 	TimeOffseter::VantagePro2TimezoneBuffer _timezoneBuffer;
 
-	struct
+	/**
+	 * @brief A type of buffer able to receive the answer of the station to
+	 * an archive download request
+	 */
+	struct ArchiveSizeBuffer
 	{
-		uint16_t pagesLeft;
-		uint16_t index;
-		uint16_t crc;
-	} __attribute__((packed)) _archiveSize;
+		uint16_t pagesLeft; /*!< The number of pages that will be sent by the station */
+		uint16_t index;     /*!< The index (in [0-4]) in the first page of data of the
+				      first entry posterior to the timestamp sent as a parameter
+				      to the download request */
+		uint16_t crc;       /*!< The CRC of the above fields */
+	} __attribute__((packed));
 
+	/**
+	 * @brief A buffer used to store the answer of the station to an
+	 * archive download request
+	 */
+	ArchiveSizeBuffer _archiveSize;
+
+	/**
+	 * @brief An \a ArchivePage which will receive all downloaded archive
+	 * entries from the station
+	 *
+	 * The \a VantagePro2Connector uses only one \a VantagePro2ArchivePage even if
+	 * typically several pages are sent during a download. The buffer is recycled
+	 * for each page. Before receiving a new page, the connector must call
+	 * \ref VantagePro2ArchivePage::storeToMessages to save the data in the
+	 * current page before the buffer can be reused.
+	 */
 	VantagePro2ArchivePage _archivePage;
 
+	/**
+	 * @brief The timestamp (in station's time) of the last archive entry
+	 * retrieved from the station
+	 */
 	date::local_time<chrono::seconds> _lastArchive;
-	date::sys_seconds                 _lastData;
+	/**
+	 * @brief The timestamp (in POSIX time) of the last data retrieved from
+	 * the station
+	 */
+	date::sys_seconds _lastData;
 
+	/**
+	 * @brief The \a TimeOffseter to use to convert timestamps between the
+	 * station's time and POSIX time
+	 */
 	TimeOffseter _timeOffseter;
 
 	/**
@@ -350,9 +464,13 @@ private:
 	 * @brief An archive request, for a range an archived data points
 	 */
 	static constexpr char _getArchiveRequest[] = "DMPAFT\n";
-
+	/**
+	 * @brief A clock setting request
+	 */
 	static constexpr char _settimeRequest[] = "SETTIME\n";
-
+	/**
+	 * @brief A timezone information request
+	 */
 	static constexpr char _getTimezoneRequest[] = "EEBRD 11 06\n";
 	/**
 	 * @brief An acknowledgement
