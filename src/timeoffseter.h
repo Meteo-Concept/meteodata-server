@@ -112,7 +112,7 @@ public:
 		if (byTimezone) {
 			date::local_time<Duration> local = date::local_days(date::day(d)/m/y) +
 			       	chrono::hours(h) + chrono::minutes(min);
-			return date::make_zoned(_timezoneInfo.timezone, local).get_sys_time();
+			return date::make_zoned(_timezoneInfo.timezone, local, date::choose::latest).get_sys_time();
 		} else {
 			date::sys_time<Duration> local = date::sys_days(date::day(d)/m/y) +
 			       	chrono::hours(h) + chrono::minutes(min);
@@ -134,7 +134,7 @@ public:
 	date::sys_time<Duration> convertFromLocalTime(const date::local_time<Duration>& time) const
 	{
 		if (byTimezone) {
-			return date::make_zoned(_timezoneInfo.timezone, time).get_sys_time();
+			return date::make_zoned(_timezoneInfo.timezone, time, date::choose::latest).get_sys_time();
 		} else {
 			return date::sys_time<Duration>{(time - _timezoneInfo.timeOffset).time_since_epoch()};
 		}
