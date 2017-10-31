@@ -369,6 +369,19 @@ inline uint32_t from_daymonthyear_to_CassandraDate(int d, int m, int y)
 	return cass_date_from_epoch(tp.time_since_epoch().count());
 }
 
+/**
+ * @brief Convert the date of today to a value that can be entered in a
+ * Cassandra column of type "date"
+ *
+ * @return a value corresponding to the date given as parameter suitable for
+ * insertion in a Cassandra database
+ */
+inline uint32_t today_to_CassandraDate()
+{
+	date::sys_time<chrono::seconds> tp = date::sys_days();
+	return cass_date_from_epoch(tp.time_since_epoch().count());
+}
+
 /** @brief Convert an hour and minute value to a value that can be entered in a
  * Cassandra column of type "time"
  *

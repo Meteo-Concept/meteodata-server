@@ -90,8 +90,9 @@ namespace meteodata {
 		prepareFuture = cass_session_prepare(_session,
 			"INSERT INTO meteodata.meteo ("
 			"station,"
+			"date,"
 			"time,"
-			"bartrend,barometer,barometer_abs,barometer_raw,"
+			"barometer"
 			"insidetemp,outsidetemp,"
 			"insidehum,outsidehum,"
 			"extratemp1,extratemp2, extratemp3,extratemp4,"
@@ -105,43 +106,36 @@ namespace meteodata {
 			"leafwetnesses1, leafwetnesses2, leafwetnesses3,"
 				"leafwetnesses4,"
 			"windspeed, winddir,"
-			"avgwindspeed_10min, avgwindspeed_2min,"
 			"windgust_10min, windgustdir,"
-			"rainrate, rain_15min, rain_1h, rain_24h,"
-			"dayrain, monthrain, yearrain,"
-			"stormrain, stormstartdate,"
+			"rainrate"
+			"yearrain,"
 			"UV, solarrad,"
 			"dewpoint, heatindex, windchill, thswindex,"
-			"dayET, monthET, yearET,"
-			"forecast, forecast_icons,"
-			"sunrise, sunset)"
+			"yearET)"
 			"VALUES ("
-			"?,"
-			"?,"
+			"?," // station: 0
+			"?," // date: 1
+			"?," // time: 2
+			"?," // barometer: 3
+			"?,?," // {in,out}sidetemp: 4, 5
+			"?,?," // {in,out}sidehum: 6, 7
 			"?,?,?,?,"
-			"?,?,"
-			"?,?,"
+				"?,?,?," // extratemp: 8-14
+			"?,?,?,?," // soiltemp: 15-18
+			"?,?,?,?," // leaftemp: 19-22
 			"?,?,?,?,"
-				"?,?,?,"
-			"?,?,?,?,"
-			"?,?,?,?,"
-			"?,?,?,?,"
-				"?,?,?,"
+				"?,?,?," // extrahum: 23-29
 			"?,?,?,"
-				"?,"
+				"?," // soilmoistures: 30-33
 			"?,?,?,"
-				"?,"
-			"?,?,"
-			"?,?,"
-			"?,?,"
-			"?,?,?,?,"
-			"?,?,?,"
-			"?,?,"
-			"?,?,"
-			"?,?,?,?,"
-			"?,?,?,"
-			"?,?,"
-			"?,?)");
+				"?," // leafwetnesses: 34-37
+			"?,?," // wind: 38-39
+			"?,?," // windgust: 40-41
+			"?,"   // rainrate: 42
+			"?,"   // yearrain: 43
+			"?,?," // UV, solarrad: 44-45
+			"?,?,?,?," // dewpoint, heatindex, windchill, THSW index: 46-49
+			"?,"); // yearET: 50
 
 		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
