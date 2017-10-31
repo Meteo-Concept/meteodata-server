@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata
+bin_PROGRAMS = meteodata meteodata-minmax
 meteodata_SOURCES = \
 		    daemon.cpp\
 		    dbconnection.cpp\
@@ -24,7 +24,18 @@ meteodata_SOURCES = \
                     date/include/date/tz_private.h\
                     date/include/date/ios.h
 
+meteodata_minmax_SOURCES = \
+			   minmax.cpp\
+			   dbconnection_minmax.h\
+			   dbconnection_minmax.cpp\
+			   date/include/date/date.h
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
 meteodata_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic -DUSE_OS_TZDB=1
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
 meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+meteodata_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
+meteodata_minmax_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic
+meteodata_minmax_LDFLAGS = 
+meteodata_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
