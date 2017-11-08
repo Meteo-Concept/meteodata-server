@@ -42,9 +42,9 @@ These first two options can also be set in the configuration file (by default,
 `/etc/meteodata/db_credentials`.
 
 - `--help`: Display an help message presenting the available options and exits
--`--version`: Display the version of Meteodata and exit
--`--config-file`: Gives the path to the configuration file
--`--no-daemon | -D`: Normally, Meteodata runs as a daemon and outputs error
+- `--version`: Display the version of Meteodata and exit
+- `--config-file`: Gives the path to the configuration file
+- `--no-daemon | -D`: Normally, Meteodata runs as a daemon and outputs error
 messages and warnings to syslog but using this option makes it skip the
 daemonization process and outputs debug messages on the standard error output.
 
