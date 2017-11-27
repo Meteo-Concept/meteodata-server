@@ -52,7 +52,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 				_data.month,
 				_data.year + 2000,
 				0,
-				0,
+				0
 			)).time_since_epoch().count()
 		);
 	/*************************************************************/
