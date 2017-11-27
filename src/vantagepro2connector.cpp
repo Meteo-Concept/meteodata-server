@@ -45,7 +45,7 @@
 
 #include "vantagepro2connector.h"
 #include "connector.h"
-#include "vantagepro2message.h"
+#include "vantagepro2calculator.h"
 #include "vantagepro2archivepage.h"
 #include "timeoffseter.h"
 
@@ -62,7 +62,6 @@ using namespace date;
 
 constexpr char VantagePro2Connector::_echoRequest[];
 constexpr char VantagePro2Connector::_getStationRequest[];
-constexpr char VantagePro2Connector::_getMeasureRequest[];
 constexpr char VantagePro2Connector::_getArchiveRequest[];
 constexpr char VantagePro2Connector::_getTimezoneRequest[];
 constexpr char VantagePro2Connector::_settimeRequest[];
@@ -112,7 +111,7 @@ std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector
 
 	buffer->date = ((y - 2000) << 9) + (m << 5) + d;
 	buffer->time = h * 100 + min;
-	VantagePro2Message::computeCRC(buffer.get(), 6);
+	VantagePro2Calculator::computeCRC(buffer.get(), 6);
 
 	return buffer;
 }
@@ -132,7 +131,7 @@ std::shared_ptr<VantagePro2Connector::SettimeRequestParams> VantagePro2Connector
 	buffer->day     = unsigned(ymd.day());
 	buffer->month   = unsigned(ymd.month());
 	buffer->year    = int(ymd.year()) - 1900;
-	VantagePro2Message::computeCRC(buffer.get(), sizeof(VantagePro2Connector::SettimeRequestParams));
+	VantagePro2Calculator::computeCRC(buffer.get(), sizeof(VantagePro2Connector::SettimeRequestParams));
 
 	return buffer;
 }
@@ -397,7 +396,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 
 	case State::WAITING_NEXT_MEASURE_TICK:
 		if (e == sys::errc::timed_out) {
-			_currentState = State::SENDING_WAKE_UP_MEASURE;
+			_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 			std::cerr << "Time to wake up! We need a new measurement" << std::endl;
 			sendRequest(_echoRequest, std::strlen(_echoRequest));
 		} else {
@@ -466,7 +465,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			std::bind(&VantagePro2Connector::sendRequest, this,
 				_getStationRequest, std::strlen(_getStationRequest)));
 		if (e == sys::errc::success) {
-			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+			if (!VantagePro2Calculator::validateCRC(_coords, sizeof(_coords))) {
 				if (++_transmissionErrors < 5) {
 					flushSocketAndRetry(State::SENDING_REQ_STATION,
 						std::bind(&VantagePro2Connector::sendRequest, this,
@@ -537,7 +536,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			std::bind(&VantagePro2Connector::sendRequest, this,
 				_getTimezoneRequest, std::strlen(_getTimezoneRequest)));
 		if (e == sys::errc::success) {
-			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+			if (!VantagePro2Calculator::validateCRC(_coords, sizeof(_coords))) {
 				if (++_transmissionErrors < 5) {
 					flushSocketAndRetry(State::SENDING_REQ_TIMEZONE,
 						std::bind(&VantagePro2Connector::sendRequest, this,
@@ -552,7 +551,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cerr << "Last data received from station " << _stationName << " dates back from "
 				          << _lastData << std::endl;
 				if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
-					syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives...", _stationName.c_str());
+					syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives now...", _stationName.c_str());
 					std::cerr << "Retrieving archived data for " << _stationName << std::endl;
 					_archivePage.prepare(_lastData, &_timeOffseter);
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
@@ -560,99 +559,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				} else {
 					_currentState = State::WAITING_NEXT_MEASURE_TICK;
 					waitForNextMeasure();
-				}
-			}
-		}
-		break;
-
-	case State::SENDING_WAKE_UP_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ECHO_MEASURE;
-			std::cerr << "Waking up station for next request" << std::endl;
-			recvWakeUp();
-		}
-		break;
-
-	case State::WAITING_ECHO_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_REQ_MEASURE;
-			std::cerr << "Station is woken up, ready to send a measurement" << std::endl;
-			sendRequest(_getMeasureRequest, std::strlen(_getMeasureRequest));
-		}
-		break;
-
-	case State::SENDING_REQ_MEASURE:
-		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_getMeasureRequest, std::strlen(_getMeasureRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_MEASURE;
-			std::cerr << "Sent measurement request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i, retrying", _stationName.c_str(), _ackBuffer);
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
-						std::bind(&VantagePro2Connector::sendRequest, this,
-							_echoRequest, std::strlen(_echoRequest)));
-				} else {
-					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the measurement request", _stationName.c_str());
-					stop();
-				}
-			} else {
-				_currentState = State::WAITING_DATA_MEASURE;
-				std::cerr << "Station has acked measurement request" << std::endl;
-				recvData(_message.getBuffer());
-			}
-		}
-		break;
-
-	case State::WAITING_DATA_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			if (!_message.isValid()) {
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
-						std::bind(&VantagePro2Connector::sendRequest, this,
-							_echoRequest, std::strlen(_echoRequest)));
-				} else {
-					syslog(LOG_ERR, "station %s: Too many transmissions errors in measurement CRC, aborting", _stationName.c_str());
-					stop();
-				}
-			} else {
-				std::cerr << "Got measurement, storing it" << std::endl;
-				bool ret = _db.insertDataPoint(_station, _message);
-				if (ret) {
-					std::cerr << "Measurement stored for station " << _stationName << std::endl;
-					if (_setTimeRequested) {
-						std::cerr << "Station " << _stationName << "'s clock has to be set" << std::endl;
-						_currentState = State::SENDING_SETTIME;
-						sendRequest(_settimeRequest, std::strlen(_settimeRequest));
-					} else {
-						_currentState = State::WAITING_NEXT_MEASURE_TICK;
-						std::cerr << "Now sleeping until next measurement" << std::endl;
-						waitForNextMeasure();
-					}
-				} else {
-					std::cerr << "Failed to store measurement! Aborting" << std::endl;
-					syslog(LOG_ERR, "station %s: Couldn't store measurement", _stationName.c_str());
-					stop();
 				}
 			}
 		}
@@ -754,7 +660,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			std::cerr << "Station " << _stationName << " has not sent the archive size" << std::endl;
 			stop();
 		} else {
-			if (VantagePro2Message::validateCRC(&_archiveSize,sizeof(_archiveSize))) {
+			if (VantagePro2Calculator::validateCRC(&_archiveSize,sizeof(_archiveSize))) {
 				_currentState = State::SENDING_ACK_ARCHIVE_DOWNLOAD;
 				std::cerr << "Archive size has a valid CRC, continueing" << std::endl;
 

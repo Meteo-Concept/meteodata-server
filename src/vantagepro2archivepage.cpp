@@ -28,7 +28,7 @@
 #include <date/tz.h>
 
 #include "vantagepro2archivepage.h"
-#include "vantagepro2message.h"
+#include "vantagepro2calculator.h"
 #include "vantagepro2archivemessage.h"
 
 #include "timeoffseter.h"
@@ -42,7 +42,7 @@ constexpr int VantagePro2ArchivePage::NUMBER_OF_DATA_POINTS_PER_PAGE;
 
 bool VantagePro2ArchivePage::isValid() const
 {
-	return VantagePro2Message::validateCRC(&_page, sizeof(ArchivePage));
+	return VantagePro2Calculator::validateCRC(&_page, sizeof(ArchivePage));
 }
 
 bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point)

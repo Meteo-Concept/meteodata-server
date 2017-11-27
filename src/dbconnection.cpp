@@ -95,23 +95,18 @@ namespace meteodata {
 			"barometer"
 			"insidetemp,outsidetemp,"
 			"insidehum,outsidehum,"
-			"extratemp1,extratemp2, extratemp3,extratemp4,"
-				"extratemp5, extratemp6,extratemp7,"
+			"extratemp1,extratemp2, extratemp3,"
+			"extrahum1, extrahum2,"
 			"soiltemp1, soiltemp2, soiltemp3, soiltemp4,"
-			"leaftemp1, leaftemp2, leaftemp3, leaftemp4,"
-			"extrahum1, extrahum2, extrahum3, extrahum4,"
-				"extrahum5, extrahum6, extrahum7,"
-			"soilmoistures1, soilmoistures2, soilmoistures3,"
-				"soilmoistures4,"
-			"leafwetnesses1, leafwetnesses2, leafwetnesses3,"
-				"leafwetnesses4,"
+			"soilmoistures1, soilmoistures2, soilmoistures3, soilmoistures4,"
+			"leaftemp1, leaftemp2,"
+			"leafwetnesses1, leafwetnesses2,"
 			"windspeed, winddir,"
-			"windgust_10min, windgustdir,"
-			"rainrate"
-			"yearrain,"
+			"windgust, windgustdir,"
+			"rainrate, rainfall,"
+			"et,"
 			"UV, solarrad,"
-			"dewpoint, heatindex, windchill, thswindex,"
-			"yearET)"
+			"dewpoint, heatindex, windchill, thswindex)"
 			"VALUES ("
 			"?," // station: 0
 			"?," // date: 1
@@ -119,24 +114,19 @@ namespace meteodata {
 			"?," // barometer: 3
 			"?,?," // {in,out}sidetemp: 4, 5
 			"?,?," // {in,out}sidehum: 6, 7
-			"?,?,?,?,"
-				"?,?,?," // extratemp: 8-14
-			"?,?,?,?," // soiltemp: 15-18
-			"?,?,?,?," // leaftemp: 19-22
-			"?,?,?,?,"
-				"?,?,?," // extrahum: 23-29
-			"?,?,?,"
-				"?," // soilmoistures: 30-33
-			"?,?,?,"
-				"?," // leafwetnesses: 34-37
-			"?,?," // wind: 38-39
-			"?,?," // windgust: 40-41
-			"?,"   // rainrate: 42
-			"?,"   // yearrain: 43
-			"?,?," // UV, solarrad: 44-45
-			"?,?,?,?," // dewpoint, heatindex, windchill, THSW index: 46-49
-			"?,"); // yearET: 50
-
+			"?,?,?," // extratemp: 8-10
+			"?,?," // extrahum: 11-12
+			"?,?,?,?," // soiltemp: 13-16
+			"?,?,?,?," // soilmoistures: 17-20
+			"?,?," // leaftemp: 21-22
+			"?,?," // leafwetnesses: 23-24
+			"?,?," // wind: 25-26
+			"?,?," // windgust: 27-28
+			"?,?,"   // rain: 29-30
+			"?,"   // et: 31
+			"?,?," // UV, solarrad: 32-33
+			"?,?,?,?)" // dewpoint, heatindex, windchill, THSW index: 34-37
+			);
 		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
 			std::string desc("Could not prepare statement insertdataPoint: ");

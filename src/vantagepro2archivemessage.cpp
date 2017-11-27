@@ -28,7 +28,7 @@
 #include <date/tz.h>
 
 #include "vantagepro2archivemessage.h"
-#include "vantagepro2message.h"
+#include "vantagepro2calculator.h"
 #include "timeoffseter.h"
 
 namespace meteodata
@@ -89,53 +89,96 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	}
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
-		if (_data.soilTemp[i] != 255)
-			cass_statement_bind_float(statement, 15+i, from_Farenheight_to_Celsius(_data.soilTemp[i] - 90));
-		if (_data.leafTemp[i] != 255)
-			cass_statement_bind_float(statement, 19+i, from_Farenheight_to_Celsius(_data.leafTemp[i] - 90));
 		if (_data.extraHum[i] != 255)
-			cass_statement_bind_int32(statement, 23+i, _data.extraHum[i]);
-		if (_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15)
-			cass_statement_bind_int32(statement, 34+i, _data.leafWetness[i]);
+			cass_statement_bind_int32(statement, 11+i, _data.extraHum[i]);
 	}
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
-		if (_data.soilMoisture[i] != 255)
-			cass_statement_bind_int32(statement, 30+i, _data.soilMoisture[i]);
+		if (_data.soilTemp[i] != 255)
+			cass_statement_bind_float(statement, 13+i, from_Farenheight_to_Celsius(_data.soilTemp[i] - 90));
+		for (int i=0 ; i<4 ; i++) {
+			if (_data.soilMoisture[i] != 255)
+				cass_statement_bind_int32(statement, 17+i, _data.soilMoisture[i]);
+		}
+	}
+	/*************************************************************/
+	for (int i=0 ; i<2 ; i++) {
+		if (_data.leafTemp[i] != 255)
+			cass_statement_bind_float(statement, 21+i, from_Farenheight_to_Celsius(_data.leafTemp[i] - 90));
+		if (_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15)
+			cass_statement_bind_int32(statement, 23+i, _data.leafWetness[i]);
 	}
 	/*************************************************************/
 	if (_data.avgWindSpeed != 255)
-		cass_statement_bind_float(statement, 38, from_mph_to_kph(_data.avgWindSpeed));
+		cass_statement_bind_float(statement, 25, from_mph_to_kph(_data.avgWindSpeed));
 	/*************************************************************/
 	if (_data.prevailingWindDir != 255)
-		cass_statement_bind_int32(statement, 39, _data.prevailingWindDir);
+		cass_statement_bind_int32(statement, 26, _data.prevailingWindDir);
 	/*************************************************************/
 	if (_data.maxWindSpeed != 255)
-		cass_statement_bind_float(statement, 40, from_mph_to_kph(_data.maxWindSpeed));
+		cass_statement_bind_float(statement, 27, from_mph_to_kph(_data.maxWindSpeed));
 	/*************************************************************/
 	if (_data.maxWindSpeedDir != 255)
-		cass_statement_bind_int32(statement, 41, _data.maxWindSpeedDir);
+		cass_statement_bind_int32(statement, 28, _data.maxWindSpeedDir);
 	/*************************************************************/
 	if (_data.maxRainRate != 65535)
-		cass_statement_bind_float(statement, 42, from_rainrate_to_mm(_data.maxRainRate));
+		cass_statement_bind_float(statement, 29, from_rainrate_to_mm(_data.maxRainRate));
 	/*************************************************************/
-	// No year rain
+	if (_data.rainfall != 65535)
+		cass_statement_bind_float(statement, 30, from_rainrate_to_mm(_data.rainfall));
+	/*************************************************************/
+	if (_data.et != 255)
+		cass_statement_bind_float(statement, 31, from_in_to_mm(_data.et * 1000));
 	/*************************************************************/
 	if (_data.uv != 255)
-		cass_statement_bind_int32(statement, 44, _data.uv);
+		cass_statement_bind_int32(statement, 32, _data.uv);
 	/*************************************************************/
 	if (_data.solarRad != 32767)
-		cass_statement_bind_int32(statement, 45, _data.solarRad);
+		cass_statement_bind_int32(statement, 33, _data.solarRad);
 	/*************************************************************/
-	// No dew point
+	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
+		cass_statement_bind_float(statement, 34,
+			dew_point(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum
+			)
+		);
 	/*************************************************************/
-	// No heat index
+	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
+		cass_statement_bind_float(statement, 35,
+			heat_index(
+				_data.outsideTemp / 10,
+				_data.outsideHum
+			)
+		);
 	/*************************************************************/
-	// No wind chill
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255)
+		cass_statement_bind_float(statement, 36,
+			wind_chill(
+				_data.outsideTemp / 10,
+				_data.avgWindSpeed
+			)
+		);
 	/*************************************************************/
-	// No THSW index
-	/*************************************************************/
-	// ET is not exploitable, it's given over the last hour
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
+	 && _data.outsideHum != 255 && _data.solarRad != 32767)
+		cass_statement_bind_float(statement, 37,
+			thsw_index(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum,
+				from_mph_to_mps(_data.avgWindSpeed),
+				_data.solarRad
+			)
+		);
+	else if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
+	 && _data.outsideHum != 255 && _data.solarRad == 32767)
+		cass_statement_bind_float(statement, 37,
+			thsw_index(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum,
+				from_mph_to_mps(_data.avgWindSpeed)
+			)
+		);
 }
 
 }

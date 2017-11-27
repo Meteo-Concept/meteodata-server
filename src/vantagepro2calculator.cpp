@@ -1,6 +1,6 @@
 /**
  * @file vantagepro2message.cpp
- * @brief Implementation of the VantagePro2Message class
+ * @brief Implementation of the VantagePro2Calculator class
  * @author Laurent Georget
  * @date 2016-10-05
  */
@@ -28,12 +28,12 @@
 #include <iterator>
 #include <algorithm>
 
-#include "vantagepro2message.h"
+#include "vantagepro2calculator.h"
 #include "dbconnection.h"
 
 namespace meteodata
 {
-constexpr int VantagePro2Message::CRC_VALUES[];
+constexpr int VantagePro2Calculator::CRC_VALUES[];
 
 /**
  * @brief Convert a forecast index to a human-readable description
@@ -42,7 +42,7 @@ constexpr int VantagePro2Message::CRC_VALUES[];
  *
  * @return a description of the forecast identified by a rule
  */
-std::string VantagePro2Message::from_forecast_to_diagnostic(uint8_t value) {
+std::string VantagePro2Calculator::from_forecast_to_diagnostic(uint8_t value) {
 	static const std::map<uint8_t, std::string> forecasts = {
 		{0, "Mostly clear and cooler."},
 		{1, "Mostly clear with little temperature change."},
@@ -253,7 +253,7 @@ std::string VantagePro2Message::from_forecast_to_diagnostic(uint8_t value) {
  *
  * @return the textual description corresponding to the barometric trend value
  */
-std::string VantagePro2Message::from_bartrend_to_diagnostic(uint8_t value) {
+std::string VantagePro2Calculator::from_bartrend_to_diagnostic(uint8_t value) {
 	static const std::map<uint8_t, std::string> bartrends = {
 		{196, "Falling rapidly"},
 		{236, "Falling slowly"},
@@ -265,97 +265,7 @@ std::string VantagePro2Message::from_bartrend_to_diagnostic(uint8_t value) {
 	return (it == bartrends.cend()) ? std::string() : it->second;
 }
 
-void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStatement* const statement) const
-{
-	std::cerr << "Populating the new datapoint" << std::endl;
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, stationId);
-	/*************************************************************/
-	cass_statement_bind_int32(statement, 1, today_to_CassandraDate());
-	cass_statement_bind_int64(statement, 2, 1000*time(NULL));
-	/*************************************************************/
-	std::cerr << "barometer: " << from_inHg_to_bar(_l2.barometer) << std::endl;
-	cass_statement_bind_float(statement, 3, from_inHg_to_bar(_l2.barometer));
-	/*************************************************************/
-	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheight_to_Celsius(_l1.insideTemperature/10.0) << std::endl;
-	if (_l1.insideTemperature != 32767)
-		cass_statement_bind_float(statement, 4, from_Farenheight_to_Celsius(_l1.insideTemperature/10.0));
-	/*************************************************************/
-	if (_l1.outsideTemperature != 32767)
-		cass_statement_bind_float(statement, 5, from_Farenheight_to_Celsius(_l1.outsideTemperature/10.0));
-	/*************************************************************/
-	std::cerr << "Inside insideHumidity: " << (int)_l1.insideHumidity << std::endl;
-	if (_l1.insideHumidity != 255)
-		cass_statement_bind_int32(statement, 6, _l1.insideHumidity);
-	/*************************************************************/
-	if (_l1.outsideHumidity != 255)
-		cass_statement_bind_int32(statement, 7, _l1.outsideHumidity);
-	/*************************************************************/
-	for (int i=0 ; i<7 ; i++) {
-		if (_l1.extraTemp[1] != 255)
-			cass_statement_bind_float(statement, 8+i, from_Farenheight_to_Celsius(_l1.extraTemp[i] - 90));
-	}
-	/*************************************************************/
-	for (int i=0 ; i<4 ; i++) {
-		if (_l1.soilTemp[i] != 255)
-			cass_statement_bind_float(statement, 15+i, from_Farenheight_to_Celsius(_l1.soilTemp[i] - 90));
-		if (_l1.leafTemp[i] != 255)
-			cass_statement_bind_float(statement, 19+i, from_Farenheight_to_Celsius(_l1.leafTemp[i] - 90));
-	}
-	/*************************************************************/
-	for (int i=0 ; i<7 ; i++) {
-		if (_l1.extraHum[i] != 255)
-			cass_statement_bind_int32(statement, 23+i, _l1.extraHum[i]);
-	}
-	/*************************************************************/
-	for (int i=0 ; i<4 ; i++) {
-		if (_l1.soilMoistures[i] != 255)
-			cass_statement_bind_int32(statement, 30+i, _l1.soilMoistures[i]);
-		if (_l1.leafWetnesses[i] >= 0 && _l1.leafWetnesses[i] <= 15)
-			cass_statement_bind_int32(statement, 34+i, _l1.leafWetnesses[i]);
-	}
-	/*************************************************************/
-	if (_l1.windSpeed != 255)
-		cass_statement_bind_float(statement, 38, from_mph_to_kph(_l1.windSpeed));
-	/*************************************************************/
-	if (_l1.windDir != 32767)
-		cass_statement_bind_int32(statement, 39, _l1.windDir);
-	/*************************************************************/
-	if (_l2.tenMinWindGust != 255)
-		cass_statement_bind_float(statement, 40, from_mph_to_kph(_l2.tenMinWindGust));
-	/*************************************************************/
-	if (_l2.windGustDir != 65535)
-		cass_statement_bind_float(statement, 41, _l2.windGustDir);
-	/*************************************************************/
-	if (_l1.rainRate != 65535)
-		cass_statement_bind_float(statement, 42, from_rainrate_to_mm(_l1.rainRate));
-	/*************************************************************/
-	cass_statement_bind_float(statement, 43, from_rainrate_to_mm(_l1.yearRain));
-	/*************************************************************/
-	if (_l2.uv != 255)
-		cass_statement_bind_int32(statement, 44, _l2.uv);
-	/*************************************************************/
-	if (_l2.solarRad != 32767)
-		cass_statement_bind_int32(statement, 45, _l2.solarRad);
-	/*************************************************************/
-	if (_l2.dewPoint != 255)
-		cass_statement_bind_float(statement, 46, from_Farenheight_to_Celsius(_l2.dewPoint));
-	/*************************************************************/
-	if (_l2.heatIndex != 255)
-		cass_statement_bind_float(statement, 47, from_Farenheight_to_Celsius(_l2.heatIndex));
-	/*************************************************************/
-	if (_l2.windChill != 255)
-		cass_statement_bind_float(statement, 48, from_Farenheight_to_Celsius(_l2.windChill));
-	/*************************************************************/
-	if (_l2.thswIndex != 255)
-		cass_statement_bind_float(statement, 49, from_Farenheight_to_Celsius(_l2.thswIndex));
-	/*************************************************************/
-	if (_l1.yearET != 65535)
-		cass_statement_bind_float(statement, 50, from_in_to_mm(_l1.yearET) / 100);
-	/*************************************************************/
-}
-
-bool VantagePro2Message::validateCRC(const void* msg, size_t len)
+bool VantagePro2Calculator::validateCRC(const void* msg, size_t len)
 {
 	//byte-wise reading
 	const uint8_t* bytes = reinterpret_cast<const uint8_t*>(msg);
@@ -370,7 +280,7 @@ bool VantagePro2Message::validateCRC(const void* msg, size_t len)
 	return crc == 0;
 }
 
-void VantagePro2Message::computeCRC(void* msg, size_t len)
+void VantagePro2Calculator::computeCRC(void* msg, size_t len)
 {
 	uint8_t* bytes = reinterpret_cast<uint8_t*>(msg);
 	unsigned int crc = 0;
@@ -384,11 +294,5 @@ void VantagePro2Message::computeCRC(void* msg, size_t len)
 
 	bytes[i]   = (crc & 0xFF00) >> 8;
 	bytes[i+1] = (crc & 0x00FF);
-}
-
-bool VantagePro2Message::isValid() const
-{
-	return validateCRC(&_l1, sizeof(Loop1)) &&
-	       validateCRC(&_l2, sizeof(Loop2));
 }
 }

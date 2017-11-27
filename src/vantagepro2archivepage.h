@@ -66,7 +66,7 @@ public:
 
 	/**
 	 * @brief Check the integrity of the received data by computing its CRC
-	 * @see VantagePro2Message::validateCRC
+	 * @see VantagePro2Calculator::validateCRC
 	 *
 	 * @return true if, and only if, the data has been correctly received
 	 */

@@ -10,8 +10,8 @@ meteodata_SOURCES = \
 		    meteo_server.h\
 		    meteo_server.cpp\
 		    message.h\
-		    vantagepro2message.h\
-		    vantagepro2message.cpp\
+		    vantagepro2calculator.h\
+		    vantagepro2calculator.cpp\
 		    vantagepro2archivepage.h\
 		    vantagepro2archivepage.cpp\
 		    vantagepro2archivemessage.h\
