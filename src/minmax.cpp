@@ -118,7 +118,7 @@ int main(int argc, char** argv)
 		selectedDate = year_month_day{year{y}/m/d};
 		if (selectedDate > system_clock::now()) {
 			std::cerr << selectedDate << " looks like it's in the future, that's problematic" << std::endl;
-			return EINVAL;	
+			return EINVAL;
 		}
 	}
 

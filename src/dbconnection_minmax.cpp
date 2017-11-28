@@ -194,12 +194,12 @@ bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_d
 		if (row) {
 			int param = 0;
 			cass_value_get_float(cass_row_get_column(row, param++),  &values.insideTemp_max);
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<2 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++),  &values.leafTemp_max[i]);
 			cass_value_get_float(cass_row_get_column(row, param++), &values.outsideTemp_max);
 			for (int i=0 ; i<4 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++), &values.soilTemp_max[i]);
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<3 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++), &values.extraTemp_max[i]);
 			ret = true;
 		}
@@ -233,12 +233,12 @@ bool DbConnectionMinmax::getValues18hTo18h(const CassUuid& uuid, const date::sys
 		if (row) {
 			int param = 0;
 			cass_value_get_float(cass_row_get_column(row, param++),  &values.insideTemp_min);
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<2 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++),  &values.leafTemp_min[i]);
 			cass_value_get_float(cass_row_get_column(row, param++), &values.outsideTemp_min);
 			for (int i=0 ; i<4 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++), &values.soilTemp_min[i]);
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<3 ; i++)
 				cass_value_get_float(cass_row_get_column(row, param++), &values.extraTemp_min[i]);
 			ret = true;
 		}
@@ -276,7 +276,7 @@ bool DbConnectionMinmax::getValues0hTo0h(const CassUuid& uuid, const date::sys_d
 			cass_value_get_float(cass_row_get_column(row, res++), &values.barometer_min);
 			cass_value_get_float(cass_row_get_column(row, res++), &values.barometer_max);
 			cass_value_get_float(cass_row_get_column(row, res++), &values.barometer_avg);
-			for (int i=0 ; i<4 ; i++) {
+			for (int i=0 ; i<2 ; i++) {
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.leafWetnesses_min[i]);
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.leafWetnesses_max[i]);
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.leafWetnesses_avg[i]);
@@ -292,7 +292,7 @@ bool DbConnectionMinmax::getValues0hTo0h(const CassUuid& uuid, const date::sys_d
 			cass_value_get_int32(cass_row_get_column(row, res++), &values.outsideHum_min);
 			cass_value_get_int32(cass_row_get_column(row, res++), &values.outsideHum_max);
 			cass_value_get_int32(cass_row_get_column(row, res++), &values.outsideHum_avg);
-			for (int i=0 ; i<7 ; i++) {
+			for (int i=0 ; i<2 ; i++) {
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.extraHum_min[i]);
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.extraHum_max[i]);
 				cass_value_get_int32(cass_row_get_column(row, res++), &values.extraHum_avg[i]);
@@ -401,12 +401,12 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 	cass_statement_bind_float(statement, param++, values.insideTemp_min);
 	cass_statement_bind_float(statement, param++, values.insideTemp_max);
 	cass_statement_bind_float(statement, param++, values.insideTemp_avg);
-	for (int i=0 ; i<4 ; i++) {
+	for (int i=0 ; i<2 ; i++) {
 		cass_statement_bind_float(statement, param++, values.leafTemp_min[i]);
 		cass_statement_bind_float(statement, param++, values.leafTemp_max[i]);
 		cass_statement_bind_float(statement, param++, values.leafTemp_avg[i]);
 	}
-	for (int i=0 ; i<4 ; i++) {
+	for (int i=0 ; i<2 ; i++) {
 		cass_statement_bind_int32(statement, param++, values.leafWetnesses_min[i]);
 		cass_statement_bind_int32(statement, param++, values.leafWetnesses_max[i]);
 		cass_statement_bind_int32(statement, param++, values.leafWetnesses_avg[i]);
@@ -428,12 +428,12 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 		cass_statement_bind_float(statement, param++, values.soilTemp_max[i]);
 		cass_statement_bind_float(statement, param++, values.soilTemp_avg[i]);
 	}
-	for (int i=0 ; i<7 ; i++) {
+	for (int i=0 ; i<3 ; i++) {
 		cass_statement_bind_float(statement, param++, values.extraTemp_min[i]);
 		cass_statement_bind_float(statement, param++, values.extraTemp_max[i]);
 		cass_statement_bind_float(statement, param++, values.extraTemp_avg[i]);
 	}
-	for (int i=0 ; i<7 ; i++) {
+	for (int i=0 ; i<2 ; i++) {
 		cass_statement_bind_int32(statement, param++, values.extraHum_min[i]);
 		cass_statement_bind_int32(statement, param++, values.extraHum_max[i]);
 		cass_statement_bind_int32(statement, param++, values.extraHum_avg[i]);
