@@ -85,7 +85,7 @@ public:
 		uint8_t  maxWindSpeedDir;   /*!< The direction of the wind of maximal velocity                 */
 		uint8_t  prevailingWindDir; /*!< The prevailing wind direction over the duration of the entry  */
 		uint8_t  uv;                /*!< The average UV index over the duration of the entry           */
-		uint8_t  et;                /*!< The total evapotranspriation measured over the duration of the entry */
+		uint8_t  et;                /*!< The total evapotranspiration measured over the last hour (one entry per hour) */
 		uint16_t maxSolarRad;       /*!< The maximal solar radiation over the duration of the entry    */
 		uint8_t  maxUV;             /*!< The maximal UV index measured over the duration of the entry  */
 		uint8_t  forecast;          /*!< The forecast at the end of the entry period                   */
