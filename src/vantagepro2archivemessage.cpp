@@ -113,7 +113,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 		cass_statement_bind_float(statement, 25, from_mph_to_kph(_data.avgWindSpeed));
 	/*************************************************************/
 	if (_data.prevailingWindDir != 255)
-		cass_statement_bind_int32(statement, 26, _data.prevailingWindDir);
+		cass_statement_bind_int32(statement, 26, _data.prevailingWindDir * 22.5);
 	/*************************************************************/
 	if (_data.maxWindSpeed != 255)
 		cass_statement_bind_float(statement, 27, from_mph_to_kph(_data.maxWindSpeed));
