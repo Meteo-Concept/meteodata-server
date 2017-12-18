@@ -42,29 +42,31 @@ VantagePro2ArchiveMessage::VantagePro2ArchiveMessage(const ArchiveDataPoint& dat
 
 void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_int32(statement, 1,
-		date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
-				_data.day,
-				_data.month,
-				_data.year + 2000,
-				0,
-				0
-			)).time_since_epoch().count()
-		);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		date::floor<chrono::milliseconds>(_timeOffseter->convertFromLocalTime(
+	auto timestamp = _timeOffseter->convertFromLocalTime(
 				_data.day,
 				_data.month,
 				_data.year + 2000,
 				_data.time / 100,
 				_data.time % 100
-			)).time_since_epoch().count()
-		);
+			);
+
+	auto date      = _timeOffseter->convertFromLocalTime(
+				_data.day,
+				_data.month,
+				_data.year + 2000,
+				0,
+				0
+			);
+
+	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
+	/*************************************************************/
+	cass_statement_bind_uuid(statement, 0, station);
+	/*************************************************************/
+	cass_statement_bind_int32(statement, 1,
+			date::floor<chrono::seconds>(date).time_since_epoch().count());
+	/*************************************************************/
+	cass_statement_bind_int64(statement, 2,
+			date::floor<chrono::milliseconds>(timestamp).time_since_epoch().count());
 	/*************************************************************/
 	std::cerr << "barometer: " << from_inHg_to_bar(_data.barometer) << std::endl;
 	cass_statement_bind_float(statement, 3, from_inHg_to_bar(_data.barometer));
