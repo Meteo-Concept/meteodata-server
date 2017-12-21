@@ -187,13 +187,13 @@ inline float from_inHg_to_bar(int inHg)
 }
 
 /**
- * @brief Convert a temperature given in Farenheight degrees to Celsius degrees
+ * @brief Convert a temperature given in Farenheit degrees to Celsius degrees
  *
  * @param f the value to convert
  *
  * @return the parameter value converted to Celsius degrees
  */
-inline float from_Farenheight_to_Celsius(float f)
+inline float from_Farenheit_to_Celsius(float f)
 {
 	return (f - 32.0) / 1.80;
 }
@@ -248,64 +248,64 @@ inline float from_rainrate_to_mm(int rr)
 }
 
 // Formula of Magnus-Tetens
-inline float dew_point(float t_celsius, int hum)
+inline float dew_point(double t_celsius, int hum)
 {
-	float rh = hum / 100.0f - 1;
-	float alpha = (17.27 * t_celsius) / (237.7 + t_celsius) + std::log1p(rh);
-	float tr = (237.7 * alpha) / (17.27 - alpha);
+	double rh = hum / 100.0 - 1;
+	double alpha = (17.27 * t_celsius) / (237.7 + t_celsius) + std::log1p(rh);
+	double tr = (237.7 * alpha) / (17.27 - alpha);
 	return tr;
 }
 
 // Formula of NWS (See http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml)
-inline float heat_index(float t_farenheight, int hum)
+inline float heat_index(double t_farenheit, int hum)
 {
-	float hi_farenheight =
-		0.5 * (t_farenheight + 61.0 +
-			(t_farenheight - 68.0) * 1.2 +
+	double hi_farenheit =
+		0.5 * (t_farenheit + 61.0 +
+			(t_farenheit - 68.0) * 1.2 +
 			hum * 0.094);
 
-	if ((hi_farenheight + t_farenheight) / 2 > 80.0f) {
-		hi_farenheight =
+	if ((hi_farenheit + t_farenheit) / 2 > 80.0) {
+		hi_farenheit =
 			-42.379 +
-			2.04901523 * t_farenheight +
+			2.04901523 * t_farenheit +
 			10.14333127 * hum +
-			-0.22475541 * t_farenheight * hum +
-			-0.00683783 * std::pow(t_farenheight, 2) +
-			-0.05481717 * std::pow(hum, 2) +
-			0.00122874  * std::pow(t_farenheight, 2) * hum +
-			0.00085282  * t_farenheight * std::pow(hum, 2) +
-			-0.00000199 * std::pow(t_farenheight, 2) * std::pow(hum, 2);
+			-0.22475541 * t_farenheit * hum +
+			-0.00683783 * std::pow(t_farenheit, 2) +
+			-0.05481717 * hum * hum +
+			0.00122874  * std::pow(t_farenheit, 2) * hum +
+			0.00085282  * t_farenheit * hum * hum +
+			-0.00000199 * std::pow(t_farenheit, 2) * hum * hum;
 
-		if (hum < 13 && hi_farenheight >= 80.0f && hi_farenheight <= 112.0f)
-			hi_farenheight -=
+		if (hum < 13 && hi_farenheit >= 80.0 && hi_farenheit <= 112.0)
+			hi_farenheit -=
 				((13 - hum) / 4.0) *
-					std::sqrt(17.0 - std::abs(t_farenheight - 95.0) / 17.0);
-		else if (hum > 85 && hi_farenheight >= 80.0f && hi_farenheight <= 87.0f)
-			hi_farenheight +=
+					std::sqrt(17.0 - std::abs(t_farenheit - 95.0) / 17.0);
+		else if (hum > 85 && hi_farenheit >= 80.0 && hi_farenheit <= 87.0)
+			hi_farenheit +=
 				((hum - 85) / 10.0) *
-					((87.0 - hi_farenheight) / 5.0);
+					((87.0 - hi_farenheit) / 5.0);
 	}
-	return from_Farenheight_to_Celsius(hi_farenheight);
+	return from_Farenheit_to_Celsius(hi_farenheit);
 }
 
 // Formula from Davis Instruments
-inline float wind_chill(float t_farenheight, float wind_mph)
+inline float wind_chill(double t_farenheit, double wind_mph)
 {
-	float rc;
-	if (wind_mph < 5.0 || t_farenheight >= 91.4)
-		rc = t_farenheight;
+	double rc;
+	if (wind_mph < 5.0 || t_farenheit >= 91.4)
+		rc = t_farenheit;
 	else
-		rc = 35.74 + 0.6215 * t_farenheight
+		rc = 35.74 + 0.6215 * t_farenheit
 			 - 35.75 * std::pow(wind_mph, 0.16)
-			 + 0.4275 * t_farenheight * std::pow(wind_mph, 0.16);
+			 + 0.4275 * t_farenheit * std::pow(wind_mph, 0.16);
 
-	return from_Farenheight_to_Celsius(std::min(rc, t_farenheight));
+	return from_Farenheit_to_Celsius(rc < t_farenheit ? rc : t_farenheit);
 }
 
 // Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))
-inline float thsw_index(float t_celsius, int hum, float wind_ms, float solarRad)
+inline float thsw_index(double t_celsius, int hum, double wind_ms, double solarRad)
 {
-	float waterVaporPressure = (hum / 100.0f) * 6.105
+	double waterVaporPressure = (hum / 100.0) * 6.105
 		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
 	return t_celsius
 	     + 0.348 * waterVaporPressure
@@ -314,14 +314,61 @@ inline float thsw_index(float t_celsius, int hum, float wind_ms, float solarRad)
 	     - 4.25;
 }
 
-inline float thsw_index(float t_celsius, int hum, float wind_ms)
+inline float thsw_index(double t_celsius, int hum, double wind_ms)
 {
-	float waterVaporPressure = (hum / 100.0f) * 6.105
+	double waterVaporPressure = (hum / 100.0) * 6.105
 		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
 	return t_celsius
 	     + 0.33 * waterVaporPressure
 	     - 0.70 * wind_ms
 	     - 4.0;
+}
+
+inline bool insolated(uint64_t timestamp, double solarRad, double latitude, double longitude)
+{
+	// J2000.0 - astronomical epoch, 01/01/2000 at 12:00 in terrestrial time (TT) in the gregorian calendar
+	// aka julian day 2451545.0 or 01/01/2000 at 11:58:55.816 UTC or 01/01/2000 at 11:59:27.816 TAI
+	constexpr uint64_t J2000_0 = 946724335;
+	// All the below constants are for calculations in degrees, not in radians so some conversions are needed
+	constexpr double pi = 3.14159265258079;
+	constexpr double raddeg = pi / 180.0;
+	// Fractional days since J2000.0
+	double fDays = (timestamp - J2000_0) / (24.0 * 3600.0);
+
+	// Mean longitude of the sun
+	double l = 280.46646 * 0.98564736 * fDays * raddeg;
+	// Mean anomaly of the sun (or the Earth, it's the same, they both revolve one around the other)
+	double m = 357.52911 + 0.985600281 * fDays * raddeg;
+	// Difference between the true and mean anomalies of the sun
+	double c = (1.914602 - 0.00000013188 * fDays) * std::sin(m) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m);
+	// Obliquity of the Earth, the approximation could be refined, but it's okay as it stands for about a century
+	double epsilon = 23.43929 * raddeg;
+	// Sine of the solar declination angle
+	double sin_delta = std::sin(l + c) * std::sin(epsilon);
+
+	// y -- no particular meaning, commonly introduced to facilitate the expression of the equation of time
+	double y = std::pow(std::tan(epsilon/2.0), 2.0);
+	// Excentricity of the Earth's orbit
+	double e = 0.016708634 - 0.0000000011509 * fDays;
+	// Equation of time -- angular difference between apparent solar time and mean time
+	double eq = y * std::sin(2*l) - 2 * e * std::sin(m) + 4 * e * y * std::sin(m) * std::cos(2 * l);
+
+	// Mean solar time corresponding to the UTC timestamp in parameter
+	// pi / (12.0 * 3600.0) is the coefficient to convert a timestamp in seconds to a value in radians
+	double h = (timestamp * pi / (12.0*3600.0)) + eq - longitude;
+	// Sine of the solar altitude
+	double sin_alpha = std::cos(h) * std::cos(latitude * raddeg) * std::cos(std::asin(sin_delta))
+	                 + std::sin(latitude * raddeg) * sin_delta;
+
+	if (sin_alpha >= -1.0 && sin_alpha <= 1.0) {
+		double alpha = std::asin(sin_alpha);
+		if (alpha < 3.0) {
+			return false;
+		}
+		double threshold = 0.73 + 0.06 * std::cos(360*fDays*raddeg) * 1080 * std::pow(sin_alpha, 1.25);
+		return solarRad > threshold;
+	}
+	return false;
 }
 
 }

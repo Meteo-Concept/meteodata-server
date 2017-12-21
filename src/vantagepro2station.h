@@ -1,11 +1,11 @@
 /**
- * @file timeoffseter.h
- * @brief Definition of the TimeOffseter class
+ * @file vantagepro2station.h
+ * @brief Definition of the VantagePro2Station class
  * @author Laurent Georget
- * @date 2017-10-11
+ * @date 2016-10-05
  */
 /*
- * Copyright (C) 2017  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,53 +20,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#ifndef VANTAGEPRO2STATION_H
+#define VANTAGEPRO2STATION_H
 
-#ifndef TIMEOFFSETER_H
-#define TIMEOFFSETER_H
+#include <iostream>
+#include <memory>
+#include <string>
+#include <ctime>
 
-#include <chrono>
-
+#include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
 
-#include "message.h"
-
-using std::uint8_t;
-using std::uint16_t;
-using std::uint32_t;
-using std::uint64_t;
-
-namespace meteodata {
+#include "dbconnection.h"
 
 namespace chrono = std::chrono;
 
-/**
- * @brief Perform conversion between station time and server (POSIX) time
- *
- * The VantagePro2 and VantageVue stations can be configured in local time or
- * in UTC time, and the timestamp of the archived data are to be interpreted
- * according to this configuration. There are two ways to configure the time
- * zone of a station: either by giving an index in an array of timezones
- * hardcoded in the station's firmware or by giving the offset to UTC. In the
- * former case, the station can automatically handle Daylight Saving Time (DST)
- * for some timezones (in Europe and USA). The rules to do so are hardcoded in
- * the firmware and we have no guarantee they are correct. Of course, for a lot
- * of complex cases (I'm looking at you Arizona...), it is mandatory to
- * manually handle DST, there is also a setting for that.
- *
- * This class attempts to detect the setting currently used by the station to
- * convert the archive timestamps to UTC. It is also used to compute the
- * station local time to set the clock.
- */
-class TimeOffseter
+namespace meteodata
+{
+class VantagePro2Station
 {
 public:
-
 	/**
 	 * @brief Store the portion of a station's EEPROM relative to the time
 	 * configuration
 	 */
-	struct VantagePro2TimezoneBuffer
+	struct TimezoneBuffer
 	{
 		uint8_t timeZone;  /*!< The time zone configured for the station
 				       if \a gmtOrZone is not set */
@@ -82,15 +61,16 @@ public:
 				     \a gmtOffset is used */
 	} __attribute__((packed));
 
-	/**
-	 * @brief Initialize the \a TimeOffseter with a
-	 * \a VantagePro2TimezoneBuffer received from a station
-	 *
-	 * The \a TimeOffseter must be initialized before it can converts times,
-	 * this method is responsible for parsing the \a buffer and preparing
-	 * this \a TimeOffseter for incoming timestamp conversions.
-	 */
-	void prepare(const VantagePro2TimezoneBuffer& buffer);
+	void hydrate(const CassRow* row);
+	bool updateLastArchiveDownloadTime(DbConnection& db, const date::local_seconds& newTimestamp);
+	void prepareTimeOffseter(const TimezoneBuffer& buffer);
+
+	inline float getLatitude() const { return _latitude; }
+	inline float getLongitude() const { return _longitude; }
+	inline int   getPollingPeriod() const { return _pollingPeriod; }
+	inline const std::string& getName() const { return _name; }
+	inline const CassUuid& getId() const { return _id; }
+	inline const date::zoned_seconds& getLastArchiveDownloadTimestamp() const { return _lastArchiveDownload; }
 
 	/**
 	 * @brief Convert a timestamp given as fields and expressed as station
@@ -111,11 +91,11 @@ public:
 	{
 		if (byTimezone) {
 			date::local_time<Duration> local = date::local_days(date::day(d)/m/y) +
-			       	chrono::hours(h) + chrono::minutes(min);
+				chrono::hours(h) + chrono::minutes(min);
 			return date::make_zoned(_timezoneInfo.timezone, local, date::choose::latest).get_sys_time();
 		} else {
 			date::sys_time<Duration> local = date::sys_days(date::day(d)/m/y) +
-			       	chrono::hours(h) + chrono::minutes(min);
+				chrono::hours(h) + chrono::minutes(min);
 			return local - _timezoneInfo.timeOffset;
 		}
 	}
@@ -160,7 +140,14 @@ public:
 		}
 	}
 
-private:
+protected:
+	CassUuid _id;
+	std::string _name;
+	float _latitude;
+	float _longitude;
+	int _pollingPeriod;
+	date::zoned_seconds _lastArchiveDownload;
+
 	/**
 	 * @brief Describe how the \a TimeOffseter should perform time
 	 * conversions
@@ -176,7 +163,6 @@ private:
 	 */
 	bool byTimezone;
 };
-
 }
 
-#endif /* VANTAGEPRO2ARCHIVEMESSAGE_H */
+#endif // CONNECTOR_H

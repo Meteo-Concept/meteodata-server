@@ -47,7 +47,6 @@
 #include "connector.h"
 #include "vantagepro2calculator.h"
 #include "vantagepro2archivepage.h"
-#include "timeoffseter.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -94,13 +93,13 @@ void VantagePro2Connector::start()
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
-std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const date::local_seconds& time)
+std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams()
 {
 	auto buffer = std::make_shared<VantagePro2Connector::ArchiveRequestParams>();
-	auto timeUTC = _timeOffseter.convertFromLocalTime(time);
-	auto daypoint = date::floor<date::days>(timeUTC);
+	auto time = _station.getLastArchiveDownloadTimestamp().get_local_time();
+	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
-	auto tod = date::make_time(timeUTC - daypoint); // Yields time_of_day type
+	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
 
 	// Obtain individual components as integers
 	auto y   = int(ymd.year());
@@ -120,7 +119,7 @@ std::shared_ptr<VantagePro2Connector::SettimeRequestParams> VantagePro2Connector
 {
 	auto buffer = std::make_shared<VantagePro2Connector::SettimeRequestParams>();
 
-	auto nowLocal = date::floor<chrono::seconds>(_timeOffseter.convertToLocalTime(chrono::system_clock::now()));
+	auto nowLocal = date::floor<chrono::seconds>(_station.convertToLocalTime(chrono::system_clock::now()));
 	auto daypoint = date::floor<date::days>(nowLocal);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
 	auto tod = date::make_time(nowLocal - daypoint); // Yields time_of_day type
@@ -238,7 +237,7 @@ void VantagePro2Connector::sendBuffer(const std::shared_ptr<T>& buffer, int reqs
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
-	
+
 	// passing buffer to the lambda keeps the buffer alive
 	async_write(_sock, asio::buffer(buffer.get(), reqsize),
 		[this,self,buffer](const sys::error_code& ec, std::size_t) {
@@ -477,12 +476,15 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			} else {
 				// From documentation, latitude, longitude and elevation are stored contiguously
 				// in this order in the station's EEPROM
-				time_t lastArchiveDownloadTime;
+				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _stationId);
 				time_t lastDataInsertionTime;
-				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime, lastDataInsertionTime);
-				_lastArchive = date::local_time<chrono::seconds>(chrono::seconds(lastArchiveDownloadTime));
-				_lastData    = date::sys_time<chrono::seconds>(chrono::seconds(lastDataInsertionTime));
-				if (found) {
+				if (found &&
+				    _db.getStationRow(_stationId,
+					    std::bind(&VantagePro2Station::hydrate, _station, _1)) &&
+				    _db.getLastDataInsertionTime(_stationId, lastDataInsertionTime)
+				   ) {
+					_lastData = date::floor<chrono::seconds>(chrono::system_clock::from_time_t(lastDataInsertionTime));
+					_stationName = _station.getName();
 					std::cerr << "Received correct identification from station " << _stationName << std::endl;
 					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());
 					std::cerr << "Now fetching timezone information for station " << _stationName << std::endl;
@@ -546,14 +548,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					stop();
 				}
 			} else {
-				_timeOffseter.prepare(_timezoneBuffer);
+				_station.prepareTimeOffseter(_timezoneBuffer);
 				chrono::system_clock::time_point now = chrono::system_clock::now();
 				std::cerr << "Last data received from station " << _stationName << " dates back from "
 				          << _lastData << std::endl;
 				if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
 					syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives now...", _stationName.c_str());
 					std::cerr << "Retrieving archived data for " << _stationName << std::endl;
-					_archivePage.prepare(_lastData, &_timeOffseter);
+					_archivePage.prepare(_lastData, &_station);
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
@@ -615,7 +617,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			} else {
 				_currentState = State::SENDING_ARCHIVE_PARAMS;
 				std::cerr << "Archive download request acked by station" << std::endl;
-				auto buffer = buildArchiveRequestParams(_lastArchive);
+				auto buffer = buildArchiveRequestParams();
 				sendBuffer(std::move(buffer), sizeof(ArchiveRequestParams));
 			}
 		}
@@ -652,7 +654,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			}
 		}
 		break;
-	
+
 	case State::WAITING_ARCHIVE_NB_PAGES:
 		// We cannot retry anything here, we are in the middle of a request, just bail out
 		if (e != sys::errc::success) {
@@ -732,14 +734,13 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			} else {
 				bool ret = true;
 				for (auto it = _archivePage.cbegin() ; ret && it != _archivePage.cend() ; ++it) {
-					ret = _db.insertDataPoint(_station, *it);
+					ret = _db.insertDataPoint(_stationId, *it);
 				}
 				if (ret) {
 					std::cerr << "Archive data stored\n"
 						  << "Now sleeping until next measurement" << std::endl;
 
-					time_t lastArchiveDownloadTime = date::floor<chrono::seconds>(_archivePage.lastArchiveRecordDateTime().time_since_epoch()).count();
-					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime); 
+					ret = _station.updateLastArchiveDownloadTime(_db, _archivePage.lastArchiveRecordDateTime());
 					if (!ret)
 						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
 

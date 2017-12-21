@@ -31,7 +31,7 @@
 #include <boost/asio.hpp>
 
 #include "vantagepro2archivemessage.h"
-#include "timeoffseter.h"
+#include "vantagepro2station.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -125,10 +125,8 @@ public:
 	 *
 	 * @param beginning The timestamp of the last data entry from the
 	 * station stored into the database
-	 * @param timeOffseter The \a TimeOffseter able to convert timestamps
-	 * between the server POSIX time and the station local time
 	 */
-	void prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter);
+	void prepare(const date::sys_seconds& beginning, const VantagePro2Station* station);
 
 private:
 
@@ -174,11 +172,7 @@ private:
 	 */
 	date::sys_seconds _mostRecent;
 
-	/**
-	 * @brief The time converter that is to be used to parse the
-	 * station's timestamps
-	 */
-	const TimeOffseter* _timeOffseter;
+	const VantagePro2Station* _station;
 
 	/**
 	 * @brief A collection of ArchiveMessage, constructed on-the-fly as

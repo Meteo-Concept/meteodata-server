@@ -31,8 +31,6 @@
 #include "vantagepro2calculator.h"
 #include "vantagepro2archivemessage.h"
 
-#include "timeoffseter.h"
-
 namespace chrono = std::chrono;
 
 namespace meteodata
@@ -52,7 +50,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 
 	std::cerr << "Year: " << point.year << " | month: " << point.month << " | day: " << point.day << " | time: " << point.time << std::endl;
 
-	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
+	date::sys_seconds time = date::floor<chrono::seconds>(_station->convertFromLocalTime(
 			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
 	if (time > _beginning && time <= _now) {
 		if (time > _mostRecent)
@@ -66,18 +64,18 @@ void VantagePro2ArchivePage::storeToMessages()
 {
 	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE ; i++) {
 		if (isRelevant(_page.points[i]))
-			_archiveMessages.emplace_back(_page.points[i], _timeOffseter);
+			_archiveMessages.emplace_back(_page.points[i], _station);
 	}
 }
 
 date::local_seconds VantagePro2ArchivePage::lastArchiveRecordDateTime() const
 {
-	return _timeOffseter->convertToLocalTime(_mostRecent);
+	return _station->convertToLocalTime(_mostRecent);
 }
 
-void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter)
+void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const VantagePro2Station* station)
 {
-	_timeOffseter = timeOffseter;
+	_station = station;
 	_beginning = beginning;
 	_now = date::floor<chrono::seconds>(chrono::system_clock::now());
 	_mostRecent = _beginning;

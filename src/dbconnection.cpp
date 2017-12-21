@@ -24,6 +24,7 @@
 #include <iostream>
 #include <mutex>
 #include <exception>
+#include <functional>
 
 #include <cassandra.h>
 #include <syslog.h>
@@ -106,7 +107,8 @@ namespace meteodata {
 			"rainrate, rainfall,"
 			"et,"
 			"UV, solarrad,"
-			"dewpoint, heatindex, windchill, thswindex)"
+			"dewpoint, heatindex, windchill, thswindex,"
+			"insolation_time)"
 			"VALUES ("
 			"?," // station: 0
 			"?," // date: 1
@@ -125,7 +127,8 @@ namespace meteodata {
 			"?,?,"   // rain: 29-30
 			"?,"   // et: 31
 			"?,?," // UV, solarrad: 32-33
-			"?,?,?,?)" // dewpoint, heatindex, windchill, THSW index: 34-37
+			"?,?,?,?," // dewpoint, heatindex, windchill, THSW index: 34-37
+			"?)" // insolation time: 38
 			);
 		rc = cass_future_error_code(prepareFuture);
 		if (rc != CASS_OK) {
@@ -147,8 +150,7 @@ namespace meteodata {
 		cass_future_free(prepareFuture);
 	}
 
-	// /!\ must be called under _selectMutex lock
-	bool DbConnection::getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime)
+	bool DbConnection::getStationRow(const CassUuid& uuid, std::function<void(const CassRow*)> callback)
 	{
 		CassFuture* query;
 		CassStatement* statement = cass_prepared_bind(_selectStationDetails.get());
@@ -161,27 +163,15 @@ namespace meteodata {
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = false;
 		if (result) {
-			const CassRow* row = cass_result_first_row(result);
-			if (row) {
-				const char *stationName;
-				size_t size;
-				cass_value_get_string(cass_row_get_column(row,0), &stationName, &size);
-				cass_value_get_int32(cass_row_get_column(row,1), &pollPeriod);
-				cass_int64_t timeMillisec;
-				cass_value_get_int64(cass_row_get_column(row,2), &timeMillisec);
-				lastArchiveDownloadTime = timeMillisec/1000;
-				name.clear();
-				name.insert(0, stationName, size);
-				ret = true;
-			}
+			callback(cass_result_first_row(result));
+			ret = true;
 		}
 		cass_result_free(result);
 		cass_future_free(query);
 
 		return ret;
 	}
-	
-	// /!\ must be called under _selectMutex lock
+
 	bool DbConnection::getLastDataInsertionTime(const CassUuid& uuid, time_t& lastDataInsertionTime)
 	{
 		CassFuture* query;
@@ -212,20 +202,17 @@ namespace meteodata {
 		return ret;
 	}
 
-	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime, time_t& lastDataInsertionTime)
+	bool DbConnection::getStationByCoords(int elevation, int latitude, int longitude, CassUuid& station)
 	{
 		CassFuture* query;
-		{ /* mutex scope */
-			std::lock_guard<std::mutex> queryMutex{_selectMutex};
-			CassStatement* statement = cass_prepared_bind(_selectStationByCoords.get());
-			std::cerr << "Statement prepared" << std::endl;
-			cass_statement_bind_int32(statement, 0, elevation);
-			cass_statement_bind_int32(statement, 1, latitude);
-			cass_statement_bind_int32(statement, 2, longitude);
-			query = cass_session_execute(_session, statement);
-			std::cerr << "Executed statement" << std::endl;
-			cass_statement_free(statement);
-		}
+		CassStatement* statement = cass_prepared_bind(_selectStationByCoords.get());
+		std::cerr << "Statement prepared" << std::endl;
+		cass_statement_bind_int32(statement, 0, elevation);
+		cass_statement_bind_int32(statement, 1, latitude);
+		cass_statement_bind_int32(statement, 2, longitude);
+		query = cass_session_execute(_session, statement);
+		std::cerr << "Executed statement" << std::endl;
+		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = false;
@@ -233,9 +220,7 @@ namespace meteodata {
 			const CassRow* row = cass_result_first_row(result);
 			if (row) {
 				cass_value_get_uuid(cass_row_get_column(row,0), &station);
-				ret = getStationDetails(station, name, pollPeriod, lastArchiveDownloadTime);
-				if (ret)
-					getLastDataInsertionTime(station, lastDataInsertionTime);
+				ret = true;
 			}
 		}
 		cass_result_free(result);
@@ -247,14 +232,11 @@ namespace meteodata {
 	bool DbConnection::insertDataPoint(const CassUuid station, const Message& msg)
 	{
 		CassFuture* query;
-		{ /* mutex scope */
-			std::lock_guard<std::mutex> queryMutex{_insertMutex};
-			std::cerr << "About to insert data point in database" << std::endl;
-			CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
-			msg.populateDataPoint(station, statement);
-			query = cass_session_execute(_session, statement);
-			cass_statement_free(statement);
-		}
+		std::cerr << "About to insert data point in database" << std::endl;
+		CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
+		msg.populateDataPoint(station, statement);
+		query = cass_session_execute(_session, statement);
+		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = true;
@@ -274,15 +256,12 @@ namespace meteodata {
 	bool DbConnection::updateLastArchiveDownloadTime(const CassUuid station, const time_t& time)
 	{
 		CassFuture* query;
-		{ /* mutex scope */
-			std::lock_guard<std::mutex> queryMutex{_updateLastArchiveDownloadMutex};
-			std::cerr << "About to update an archive download time in database" << std::endl;
-			CassStatement* statement = cass_prepared_bind(_updateLastArchiveDownloadTime.get());
-			cass_statement_bind_int64(statement, 0, time * 1000);
-			cass_statement_bind_uuid(statement, 1, station);
-			query = cass_session_execute(_session, statement);
-			cass_statement_free(statement);
-		}
+		std::cerr << "About to update an archive download time in database" << std::endl;
+		CassStatement* statement = cass_prepared_bind(_updateLastArchiveDownloadTime.get());
+		cass_statement_bind_int64(statement, 0, time * 1000);
+		cass_statement_bind_uuid(statement, 1, station);
+		query = cass_session_execute(_session, statement);
+		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = true;

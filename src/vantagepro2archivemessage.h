@@ -33,7 +33,7 @@
 #include <cassandra.h>
 
 #include "message.h"
-#include "timeoffseter.h"
+#include "vantagepro2station.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -107,7 +107,7 @@ public:
 	 * @param timeOffseter The \a TimeOffseter having all the clues to correctly
 	 * convert timestamps from and to the station local time
 	 */
-	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter);
+	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const VantagePro2Station* station);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 private:
@@ -116,11 +116,7 @@ private:
 	 */
 	ArchiveDataPoint _data;
 
-	/**
-	 * @brief The \a TimeOffseter able to convert the archive entries' timestamps to
-	 * POSIX time
-	 */
-	const TimeOffseter* _timeOffseter;
+	const VantagePro2Station* _station;
 };
 
 }

@@ -43,6 +43,7 @@
 
 #include "connector.h"
 #include "vantagepro2archivepage.h"
+#include "vantagepro2station.h"
 
 
 namespace meteodata {
@@ -286,12 +287,9 @@ private:
 	 * \a ArchiveRequestParams is returned as a shared pointer so that
 	 * it can be shared easily with an asynchronous I/O function.
 	 *
-	 * @param time The timestamp of an entry which must exist in the
-	 * station's archive (otherwise the entire archive will be downloaded)
-	 *
 	 * @return A shared pointer on a newly built \a ArchiveRequestParams
 	 */
-	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const date::local_seconds& time);
+	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams();
 	/**
 	 * @brief Construct an \a SettimeRequestParams from the current
 	 * server (POSIX) time
@@ -361,7 +359,7 @@ private:
 	/**
 	 * @brief The connected station's identifier in the database
 	 */
-	CassUuid _station;
+	CassUuid _stationId;
 	/**
 	 * @brief The station's name
 	 */
@@ -386,7 +384,7 @@ private:
 	/**
 	 * @brief A buffer to receive the timezone setting of the station
 	 */
-	TimeOffseter::VantagePro2TimezoneBuffer _timezoneBuffer;
+	VantagePro2Station::TimezoneBuffer _timezoneBuffer;
 
 	/**
 	 * @brief A type of buffer able to receive the answer of the station to
@@ -430,11 +428,7 @@ private:
 	 */
 	date::sys_seconds _lastData;
 
-	/**
-	 * @brief The \a TimeOffseter to use to convert timestamps between the
-	 * station's time and POSIX time
-	 */
-	TimeOffseter _timeOffseter;
+	VantagePro2Station _station;
 
 	/**
 	 * @brief An echo request, typically used for the wake up procedure
