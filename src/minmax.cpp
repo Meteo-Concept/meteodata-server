@@ -172,11 +172,11 @@ int main(int argc, char** argv)
 
 			values.outsideTemp_avg = (values.outsideTemp_max + values.outsideTemp_min) / 2;
 			values.insideTemp_avg = (values.insideTemp_max + values.insideTemp_min) / 2;
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<2 ; i++)
 				values.leafTemp_avg[i]  = (values.leafTemp_max[i] + values.leafTemp_min[i]) / 2;
 			for (int i=0 ; i<4 ; i++)
 				values.soilTemp_avg[i]  = (values.soilTemp_max[i] + values.soilTemp_min[i]) / 2;
-			for (int i=0 ; i<7 ; i++)
+			for (int i=0 ; i<3 ; i++)
 				values.extraTemp_avg[i] = (values.extraTemp_max[i] + values.extraTemp_min[i]) / 2;
 
 			std::cerr << "Inserting into database" << std::endl;
