@@ -104,11 +104,15 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 		cass_statement_bind_float(statement, 40, from_mph_to_kph(_data.avgWindSpeed));
 	/*************************************************************/
 	if (_data.prevailingWindDir != 255)
-		cass_statement_bind_int32(statement, 41, _data.prevailingWindDir);
+		cass_statement_bind_int32(statement, 41, static_cast<int>(_data.prevailingWindDir * 22.5));
 	/*************************************************************/
 	// No 10-min or 2-min average wind speed
 	/*************************************************************/
-	// No wind gust measurements
+	if (_data.maxWindSpeed != 255)
+		cass_statement_bind_float(statement, 44, from_mph_to_kph(_data.maxWindSpeed));
+	/*************************************************************/
+	if (_data.maxWindSpeedDir != 255)
+		cass_statement_bind_int32(statement, 45, static_cast<int>(_data.maxWindSpeedDir * 22.5));
 	/*************************************************************/
 	if (_data.maxRainRate != 65535)
 		cass_statement_bind_float(statement, 46, from_rainrate_to_mm(_data.maxRainRate));
@@ -123,13 +127,49 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	if (_data.solarRad != 32767)
 		cass_statement_bind_int32(statement, 56, _data.solarRad);
 	/*************************************************************/
-	// No dew point
+	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
+		cass_statement_bind_float(statement, 57,
+			dew_point(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum
+			)
+		);
 	/*************************************************************/
-	// No heat index
+	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
+		cass_statement_bind_float(statement, 58,
+			heat_index(
+				_data.outsideTemp / 10,
+				_data.outsideHum
+			)
+		);
 	/*************************************************************/
-	// No wind chill
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255)
+		cass_statement_bind_float(statement, 59,
+			wind_chill(
+				_data.outsideTemp / 10,
+				_data.avgWindSpeed
+			)
+		);
 	/*************************************************************/
-	// No THSW index
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
+	 && _data.outsideHum != 255 && _data.solarRad != 32767)
+		cass_statement_bind_float(statement, 60,
+			thsw_index(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum,
+				from_mph_to_mps(_data.avgWindSpeed),
+				_data.solarRad
+			)
+		);
+	else if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
+	 && _data.outsideHum != 255 && _data.solarRad == 32767)
+		cass_statement_bind_float(statement, 60,
+			thsw_index(
+				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				_data.outsideHum,
+				from_mph_to_mps(_data.avgWindSpeed)
+			)
+		);
 	/*************************************************************/
 	// ET is not exploitable, it's given over the last hour
 	/*************************************************************/
@@ -142,6 +182,9 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	// No sunrise time
 	/*************************************************************/
 	// No sunset time
+	/*************************************************************/
+	cass_statement_bind_float(statement, 68, _data.rainfall);
+	cass_statement_bind_float(statement, 69, _data.et);
 }
 
 }

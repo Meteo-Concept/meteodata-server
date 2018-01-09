@@ -33,6 +33,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <utility>
 
 #include <date/date.h>
 
@@ -62,65 +63,102 @@ namespace meteodata {
 		struct Values
 		{
 			// Values from 0h to 0h
-			float insideTemp_max;
-			float leafTemp_max[4];
-			float outsideTemp_max;
-			float soilTemp_max[4];
-			float extraTemp_max[7];
+			std::pair<bool, float> insideTemp_max;
+ 			std::pair<bool, float> leafTemp_max[4];
+			std::pair<bool, float> outsideTemp_max;
+ 			std::pair<bool, float> soilTemp_max[4];
+ 			std::pair<bool, float> extraTemp_max[7];
 
 			// Values from 18h to 18h
-			float insideTemp_min;
-			float leafTemp_min[4];
-			float outsideTemp_min;
-			float soilTemp_min[4];
-			float extraTemp_min[7];
+			std::pair<bool, float> insideTemp_min;
+ 			std::pair<bool, float> leafTemp_min[4];
+			std::pair<bool, float> outsideTemp_min;
+ 			std::pair<bool, float> soilTemp_min[4];
+ 			std::pair<bool, float> extraTemp_min[7];
 
 			// Values from 0h to 0h
-			float barometer_min;
-			float barometer_max;
-			float barometer_avg;
-			int leafWetnesses_min[4];
-			int leafWetnesses_max[4];
-			int leafWetnesses_avg[4];
-			int soilMoistures_min[4];
-			int soilMoistures_max[4];
-			int soilMoistures_avg[4];
-			int insideHum_min;
-			int insideHum_max;
-			int insideHum_avg;
-			int outsideHum_min;
-			int outsideHum_max;
-			int outsideHum_avg;
-			int extraHum_min[7];
-			int extraHum_max[7];
-			int extraHum_avg[7];
-			int solarRad_max;
-			int solarRad_avg;
-			int uv_max;
-			int uv_avg;
-			int winddir;
-			float windgust_max;
-			float windgust_avg;
-			float windspeed_max;
-			float windspeed_avg;
-			float rainrate_max;
-			float dewpoint_min;
-			float dewpoint_max;
-			float dewpoint_avg;
+			std::pair<bool, float> barometer_min;
+			std::pair<bool, float> barometer_max;
+			std::pair<bool, float> barometer_avg;
+ 			std::pair<bool, int> leafWetnesses_min[4];
+ 			std::pair<bool, int> leafWetnesses_max[4];
+ 			std::pair<bool, int> leafWetnesses_avg[4];
+ 			std::pair<bool, int> soilMoistures_min[4];
+ 			std::pair<bool, int> soilMoistures_max[4];
+ 			std::pair<bool, int> soilMoistures_avg[4];
+			std::pair<bool, int> insideHum_min;
+			std::pair<bool, int> insideHum_max;
+			std::pair<bool, int> insideHum_avg;
+			std::pair<bool, int> outsideHum_min;
+			std::pair<bool, int> outsideHum_max;
+			std::pair<bool, int> outsideHum_avg;
+ 			std::pair<bool, int> extraHum_min[7];
+ 			std::pair<bool, int> extraHum_max[7];
+ 			std::pair<bool, int> extraHum_avg[7];
+ 			std::pair<bool, int> solarRad_max;
+ 			std::pair<bool, int> solarRad_avg;
+ 			std::pair<bool, int> uv_max;
+ 			std::pair<bool, int> uv_avg;
+ 			std::pair<bool, int> winddir;
+ 			std::pair<bool, float> windgust_max;
+ 			std::pair<bool, float> windgust_avg;
+ 			std::pair<bool, float> windspeed_max;
+ 			std::pair<bool, float> windspeed_avg;
+			std::pair<bool, float> rainrate_max;
+			std::pair<bool, float> dewpoint_min;
+			std::pair<bool, float> dewpoint_max;
+			std::pair<bool, float> dewpoint_avg;
 
 			// Computed values
-			float dayRain;
-			float monthRain;
-			float yearRain;
-			float dayEt;
-			float monthEt;
-			float yearEt;
-			float insideTemp_avg;
-			float leafTemp_avg[4];
-			float outsideTemp_avg;
-			float soilTemp_avg[4];
-			float extraTemp_avg[7];
+			std::pair<bool, float> dayRain;
+			std::pair<bool, float> monthRain;
+			std::pair<bool, float> yearRain;
+			std::pair<bool, float> dayEt;
+			std::pair<bool, float> monthEt;
+			std::pair<bool, float> yearEt;
+			std::pair<bool, float> insideTemp_avg;
+ 			std::pair<bool, float> leafTemp_avg[4];
+			std::pair<bool, float> outsideTemp_avg;
+ 			std::pair<bool, float> soilTemp_avg[4];
+ 			std::pair<bool, float> extraTemp_avg[7];
 		};
+
+		inline void storeCassandraInt(const CassRow* row, int column, std::pair<bool, int>& value)
+		{
+			const CassValue* raw = cass_row_get_column(row, column);
+			if (cass_value_is_null(raw)) {
+				std::cerr << "Detected an int null value at column " << column << std::endl;
+				value.first = false;
+			} else {
+				value.first = true;
+				cass_value_get_int32(raw, &value.second);
+			}
+		}
+
+		inline void storeCassandraFloat(const CassRow* row, int column, std::pair<bool, float>& value)
+		{
+			const CassValue* raw = cass_row_get_column(row, column);
+			if (cass_value_is_null(raw)) {
+				std::cerr << "Detected a float null value as column " << column << std::endl;
+				value.first = false;
+			} else {
+				value.first = true;
+				cass_value_get_float(raw, &value.second);
+			}
+		}
+
+		inline void bindCassandraInt(CassStatement* stmt, int column, const std::pair<bool, int>& value)
+		{
+			if (value.first)
+				cass_statement_bind_int32(stmt, column, value.second);
+		}
+
+		inline void bindCassandraFloat(CassStatement* stmt, int column, const std::pair<bool, float>& value)
+		{
+			if (value.first)
+				cass_statement_bind_float(stmt, column, value.second);
+		}
+
 
 		bool getAllStations(std::vector<CassUuid>& stations);
 
@@ -129,8 +167,8 @@ namespace meteodata {
 		bool getValues6hTo6h(const CassUuid& station, const date::sys_days& date, Values& values);
 		bool getValues18hTo18h(const CassUuid& station, const date::sys_days& date, Values& values);
 		bool getValues0hTo0h(const CassUuid& station, const date::sys_days& date, Values& values);
-		bool getYearlyValuesNow(const CassUuid& station, float& rain, float& et);
-		bool getYearlyValues(const CassUuid& station, const date::sys_days& date, float& rain, float& et);
+		bool getYearlyValuesNow(const CassUuid& station, std::pair<bool, float>& rain, std::pair<bool, float>& et);
+		bool getYearlyValues(const CassUuid& station, const date::sys_days& date, std::pair<bool, float>& rain, std::pair<bool, float>& et);
 
 	private:
 		/**
@@ -155,22 +193,22 @@ namespace meteodata {
 		static constexpr char SELECT_VALUES_6H_TO_6H_STMT[] =
 			"SELECT "
 				"MAX(insideTemp)     AS insideTemp_max,"
-				"MAX(leafTemp1)      AS leafTemp1_max,"
-				"MAX(leafTemp2)      AS leafTemp2_max,"
-				"MAX(leafTemp3)      AS leafTemp3_max,"
-				"MAX(leafTemp4)      AS leafTemp4_max,"
+ 				"MAX(leafTemp1)      AS leafTemp1_max,"
+ 				"MAX(leafTemp2)      AS leafTemp2_max,"
+ 				"MAX(leafTemp3)      AS leafTemp3_max,"
+ 				"MAX(leafTemp4)      AS leafTemp4_max,"
 				"MAX(outsideTemp)    AS outsideTemp_max,"
-				"MAX(soilTemp1)      AS soilTemp1_max,"
-				"MAX(soilTemp2)      AS soilTemp2_max,"
-				"MAX(soilTemp3)      AS soilTemp3_max,"
-				"MAX(soilTemp4)      AS soilTemp4_max,"
-				"MAX(extraTemp1)     AS extraTemp1_max,"
-				"MAX(extraTemp2)     AS extraTemp2_max,"
-				"MAX(extraTemp3)     AS extraTemp3_max,"
-				"MAX(extraTemp4)     AS extraTemp4_max,"
-				"MAX(extraTemp5)     AS extraTemp5_max,"
-				"MAX(extraTemp6)     AS extraTemp6_max,"
-				"MAX(extraTemp7)     AS extraTemp7_max "
+ 				"MAX(soilTemp1)      AS soilTemp1_max,"
+ 				"MAX(soilTemp2)      AS soilTemp2_max,"
+ 				"MAX(soilTemp3)      AS soilTemp3_max,"
+ 				"MAX(soilTemp4)      AS soilTemp4_max,"
+ 				"MAX(extraTemp1)     AS extraTemp1_max,"
+ 				"MAX(extraTemp2)     AS extraTemp2_max,"
+ 				"MAX(extraTemp3)     AS extraTemp3_max,"
+ 				"MAX(extraTemp4)     AS extraTemp4_max,"
+ 				"MAX(extraTemp5)     AS extraTemp5_max,"
+ 				"MAX(extraTemp6)     AS extraTemp6_max,"
+ 				"MAX(extraTemp7)     AS extraTemp7_max "
 				" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 			//	" FROM meteodata.meteo WHERE id = ? AND date IN (?,?) AND time >= ? AND time < ?";
 		/**
@@ -184,66 +222,66 @@ namespace meteodata {
 				"MIN(barometer)               AS barometer_min,"
 				"MAX(barometer)               AS barometer_max,"
 				"AVG(barometer)               AS barometer_avg,"
-				"MIN(leafWetnesses1)          AS leafWetnesses1_min,"
-				"MAX(leafWetnesses1)          AS leafWetnesses1_max,"
-				"AVG(leafWetnesses1)          AS leafWetnesses1_avg,"
-				"MIN(leafWetnesses2)          AS leafWetnesses2_min,"
-				"MAX(leafWetnesses2)          AS leafWetnesses2_max,"
-				"AVG(leafWetnesses2)          AS leafWetnesses2_avg,"
-				"MIN(leafWetnesses3)          AS leafWetnesses3_min,"
-				"MAX(leafWetnesses3)          AS leafWetnesses3_max,"
-				"AVG(leafWetnesses3)          AS leafWetnesses3_avg,"
-				"MIN(leafWetnesses4)          AS leafWetnesses4_min,"
-				"MAX(leafWetnesses4)          AS leafWetnesses4_max,"
-				"AVG(leafWetnesses4)          AS leafWetnesses4_avg,"
-				"MIN(soilMoistures1)          AS soilMoistures1_min,"
-				"MAX(soilMoistures1)          AS soilMoistures1_max,"
-				"AVG(soilMoistures1)          AS soilMoistures1_avg,"
-				"MIN(soilMoistures2)          AS soilMoistures2_min,"
-				"MAX(soilMoistures2)          AS soilMoistures2_max,"
-				"AVG(soilMoistures2)          AS soilMoistures2_avg,"
-				"MIN(soilMoistures3)          AS soilMoistures3_min,"
-				"MAX(soilMoistures3)          AS soilMoistures3_max,"
-				"AVG(soilMoistures3)          AS soilMoistures3_avg,"
-				"MIN(soilMoistures4)          AS soilMoistures4_min,"
-				"MAX(soilMoistures4)          AS soilMoistures4_max,"
-				"AVG(soilMoistures4)          AS soilMoistures4_avg,"
+ 				"MIN(leafWetnesses1)          AS leafWetnesses1_min,"
+ 				"MAX(leafWetnesses1)          AS leafWetnesses1_max,"
+ 				"AVG(leafWetnesses1)          AS leafWetnesses1_avg,"
+ 				"MIN(leafWetnesses2)          AS leafWetnesses2_min,"
+ 				"MAX(leafWetnesses2)          AS leafWetnesses2_max,"
+ 				"AVG(leafWetnesses2)          AS leafWetnesses2_avg,"
+ 				"MIN(leafWetnesses3)          AS leafWetnesses3_min,"
+ 				"MAX(leafWetnesses3)          AS leafWetnesses3_max,"
+ 				"AVG(leafWetnesses3)          AS leafWetnesses3_avg,"
+ 				"MIN(leafWetnesses4)          AS leafWetnesses4_min,"
+ 				"MAX(leafWetnesses4)          AS leafWetnesses4_max,"
+ 				"AVG(leafWetnesses4)          AS leafWetnesses4_avg,"
+ 				"MIN(soilMoistures1)          AS soilMoistures1_min,"
+ 				"MAX(soilMoistures1)          AS soilMoistures1_max,"
+ 				"AVG(soilMoistures1)          AS soilMoistures1_avg,"
+ 				"MIN(soilMoistures2)          AS soilMoistures2_min,"
+ 				"MAX(soilMoistures2)          AS soilMoistures2_max,"
+ 				"AVG(soilMoistures2)          AS soilMoistures2_avg,"
+ 				"MIN(soilMoistures3)          AS soilMoistures3_min,"
+ 				"MAX(soilMoistures3)          AS soilMoistures3_max,"
+ 				"AVG(soilMoistures3)          AS soilMoistures3_avg,"
+ 				"MIN(soilMoistures4)          AS soilMoistures4_min,"
+ 				"MAX(soilMoistures4)          AS soilMoistures4_max,"
+ 				"AVG(soilMoistures4)          AS soilMoistures4_avg,"
 				"MIN(insideHum)               AS insideHum_min,"
 				"MAX(insideHum)               AS insideHum_max,"
 				"AVG(insideHum)               AS insideHum_avg,"
 				"MIN(outsideHum)              AS outsideHum_min,"
 				"MAX(outsideHum)              AS outsideHum_max,"
 				"AVG(outsideHum)              AS outsideHum_avg,"
-				"MIN(extraHum1)               AS extraHum1_min,"
-				"MAX(extraHum1)               AS extraHum1_max,"
-				"AVG(extraHum1)               AS extraHum1_avg,"
-				"MIN(extraHum2)               AS extraHum2_min,"
-				"MAX(extraHum2)               AS extraHum2_max,"
-				"AVG(extraHum2)               AS extraHum2_avg,"
-				"MIN(extraHum3)               AS extraHum3_min,"
-				"MAX(extraHum3)               AS extraHum3_max,"
-				"AVG(extraHum3)               AS extraHum3_avg,"
-				"MIN(extraHum4)               AS extraHum4_min,"
-				"MAX(extraHum4)               AS extraHum4_max,"
-				"AVG(extraHum4)               AS extraHum4_avg,"
-				"MIN(extraHum5)               AS extraHum5_min,"
-				"MAX(extraHum5)               AS extraHum5_max,"
-				"AVG(extraHum5)               AS extraHum5_avg,"
-				"MIN(extraHum6)               AS extraHum6_min,"
-				"MAX(extraHum6)               AS extraHum6_max,"
-				"AVG(extraHum6)               AS extraHum6_avg,"
-				"MIN(extraHum7)               AS extraHum7_min,"
-				"MAX(extraHum7)               AS extraHum7_max,"
-				"AVG(extraHum7)               AS extraHum7_avg,"
-				"MAX(solarRad)                AS solarRad_max,"
-				"AVG(solarRad)                AS solarRad_avg,"
-				"MAX(uv)                      AS uv_max,"
-				"AVG(uv)                      AS uv_avg,"
-				"COUNTMAXOCCURRENCES(winddir) AS winddir,"
-				"MAX(windgust_10min)                AS windgust_max,"
-				"AVG(windgust_10min)                AS windgust_avg,"
-				"MAX(windspeed)               AS windspeed_max,"
-				"AVG(windspeed)               AS windspeed_avg,"
+ 				"MIN(extraHum1)               AS extraHum1_min,"
+ 				"MAX(extraHum1)               AS extraHum1_max,"
+ 				"AVG(extraHum1)               AS extraHum1_avg,"
+ 				"MIN(extraHum2)               AS extraHum2_min,"
+ 				"MAX(extraHum2)               AS extraHum2_max,"
+ 				"AVG(extraHum2)               AS extraHum2_avg,"
+ 				"MIN(extraHum3)               AS extraHum3_min,"
+ 				"MAX(extraHum3)               AS extraHum3_max,"
+ 				"AVG(extraHum3)               AS extraHum3_avg,"
+ 				"MIN(extraHum4)               AS extraHum4_min,"
+ 				"MAX(extraHum4)               AS extraHum4_max,"
+ 				"AVG(extraHum4)               AS extraHum4_avg,"
+ 				"MIN(extraHum5)               AS extraHum5_min,"
+ 				"MAX(extraHum5)               AS extraHum5_max,"
+ 				"AVG(extraHum5)               AS extraHum5_avg,"
+ 				"MIN(extraHum6)               AS extraHum6_min,"
+ 				"MAX(extraHum6)               AS extraHum6_max,"
+ 				"AVG(extraHum6)               AS extraHum6_avg,"
+ 				"MIN(extraHum7)               AS extraHum7_min,"
+ 				"MAX(extraHum7)               AS extraHum7_max,"
+ 				"AVG(extraHum7)               AS extraHum7_avg,"
+ 				"MAX(solarRad)                AS solarRad_max,"
+ 				"AVG(solarRad)                AS solarRad_avg,"
+ 				"MAX(uv)                      AS uv_max,"
+ 				"AVG(uv)                      AS uv_avg,"
+ 				"COUNTMAXOCCURRENCES(winddir) AS winddir,"
+ 				"MAX(windgust_10min)                AS windgust_max,"
+ 				"AVG(windgust_10min)                AS windgust_avg,"
+ 				"MAX(windspeed)               AS windspeed_max,"
+ 				"AVG(windspeed)               AS windspeed_avg,"
 				"MAX(rainrate)                AS rainrate_max,"
 				"MIN(dewpoint)                AS dewpoint_min,"
 				"MIN(dewpoint)                AS dewpoint_max,"
@@ -259,22 +297,22 @@ namespace meteodata {
 		static constexpr char SELECT_VALUES_18H_TO_18H_STMT[] =
 			"SELECT "
 				"MIN(insideTemp)     AS insideTemp_min,"
-				"MIN(leafTemp1)      AS leafTemp1_min,"
-				"MIN(leafTemp2)      AS leafTemp2_min,"
-				"MIN(leafTemp3)      AS leafTemp3_min,"
-				"MIN(leafTemp4)      AS leafTemp4_min,"
+ 				"MIN(leafTemp1)      AS leafTemp1_min,"
+ 				"MIN(leafTemp2)      AS leafTemp2_min,"
+ 				"MIN(leafTemp3)      AS leafTemp3_min,"
+ 				"MIN(leafTemp4)      AS leafTemp4_min,"
 				"MIN(outsideTemp)    AS outsideTemp_min,"
-				"MIN(soilTemp1)      AS soilTemp1_min,"
-				"MIN(soilTemp2)      AS soilTemp2_min,"
-				"MIN(soilTemp3)      AS soilTemp3_min,"
-				"MIN(soilTemp4)      AS soilTemp4_min,"
-				"MIN(extraTemp1)     AS extraTemp1_min,"
-				"MIN(extraTemp2)     AS extraTemp2_min,"
-				"MIN(extraTemp3)     AS extraTemp3_min,"
-				"MIN(extraTemp4)     AS extraTemp4_min,"
-				"MIN(extraTemp5)     AS extraTemp5_min,"
-				"MIN(extraTemp6)     AS extraTemp6_min,"
-				"MIN(extraTemp7)     AS extraTemp7_min "
+ 				"MIN(soilTemp1)      AS soilTemp1_min,"
+ 				"MIN(soilTemp2)      AS soilTemp2_min,"
+ 				"MIN(soilTemp3)      AS soilTemp3_min,"
+ 				"MIN(soilTemp4)      AS soilTemp4_min,"
+ 				"MIN(extraTemp1)     AS extraTemp1_min,"
+ 				"MIN(extraTemp2)     AS extraTemp2_min,"
+ 				"MIN(extraTemp3)     AS extraTemp3_min,"
+ 				"MIN(extraTemp4)     AS extraTemp4_min,"
+ 				"MIN(extraTemp5)     AS extraTemp5_min,"
+ 				"MIN(extraTemp6)     AS extraTemp6_min,"
+ 				"MIN(extraTemp7)     AS extraTemp7_min "
 				" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 			//	" FROM meteodata.meteo WHERE id = ? AND date IN (?,?) AND time >= ? AND time <= ?";
 		/**

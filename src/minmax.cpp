@@ -54,6 +54,27 @@ using namespace date;
 using namespace std::chrono;
 namespace po = boost::program_options;
 
+inline void computeMean(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
+{
+	if (op1.first && op2.first) {
+		result.second = (op1.second + op2.second) / 2;
+		result.first = true;
+	} else {
+		result.first = false;
+	}
+}
+
+inline void computeDiff(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
+{
+	if (op1.first && op2.first) {
+		result.second = op1.second - op2.second;
+		result.first = true;
+	} else {
+		result.first = false;
+	}
+}
+
+
 /**
  * @brief Entry point
  *
@@ -150,9 +171,9 @@ int main(int argc, char** argv)
 			db.getValues18hTo18h(station, selectedDate, values);
 
 			std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
-			float  rainToday,      etToday,
-			       rainYesterday,  etYesterday,
-			       rainBeginMonth, etBeginMonth;
+			std::pair<bool, float>  rainToday,      etToday,
+						rainYesterday,  etYesterday,
+						rainBeginMonth, etBeginMonth;
 
 			if (date::floor<date::days>(system_clock::now()) == selectedDate)
 				db.getYearlyValuesNow(station, rainToday, etToday);
@@ -163,21 +184,22 @@ int main(int argc, char** argv)
 			date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
 			db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
 
-			values.dayRain   = rainToday - rainYesterday;
-			values.monthRain = rainToday - rainBeginMonth;
+			computeDiff(values.dayRain, rainToday, rainYesterday);
+			computeDiff(values.monthRain, rainToday, rainBeginMonth);
 			values.yearRain  = rainToday;
-			values.dayEt     = etToday - etYesterday;
-			values.monthEt   = etToday - etBeginMonth;
+			computeDiff(values.dayEt, etToday, etYesterday);
+			computeDiff(values.monthEt, etToday, etBeginMonth);
 			values.yearEt    = etToday;
 
-			values.outsideTemp_avg = (values.outsideTemp_max + values.outsideTemp_min) / 2;
-			values.insideTemp_avg = (values.insideTemp_max + values.insideTemp_min) / 2;
+			computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
+			computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
+
 			for (int i=0 ; i<4 ; i++)
-				values.leafTemp_avg[i]  = (values.leafTemp_max[i] + values.leafTemp_min[i]) / 2;
+				computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
 			for (int i=0 ; i<4 ; i++)
-				values.soilTemp_avg[i]  = (values.soilTemp_max[i] + values.soilTemp_min[i]) / 2;
+				computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
 			for (int i=0 ; i<7 ; i++)
-				values.extraTemp_avg[i] = (values.extraTemp_max[i] + values.extraTemp_min[i]) / 2;
+				computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
 
 			std::cerr << "Inserting into database" << std::endl;
 			db.insertDataPoint(station, selectedDate, values);

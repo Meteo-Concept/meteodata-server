@@ -114,7 +114,8 @@ namespace meteodata {
 			"dewpoint, heatindex, windchill, thswindex,"
 			"dayET, monthET, yearET,"
 			"forecast, forecast_icons,"
-			"sunrise, sunset)"
+			"sunrise, sunset,"
+			"rain_archive, etp_archive)"
 			"VALUES ("
 			"?,"
 			"?,"
@@ -140,6 +141,7 @@ namespace meteodata {
 			"?,?,"
 			"?,?,?,?,"
 			"?,?,?,"
+			"?,?,"
 			"?,?,"
 			"?,?)");
 

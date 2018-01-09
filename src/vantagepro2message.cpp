@@ -412,6 +412,9 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 			_l1.timeOfSunset / 100,
 			_l1.timeOfSunset % 100
 		));
+	/*************************************************************/
+	// No rain archive
+	// No ETP archive
 }
 
 bool VantagePro2Message::validateCRC(const void* msg, size_t len)

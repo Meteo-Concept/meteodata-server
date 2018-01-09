@@ -922,7 +922,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		/* discard everything, only spurious events from cancelled
 		    operations can get here */
 		;
-		break;
 
 		break;
 	}

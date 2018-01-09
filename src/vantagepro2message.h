@@ -456,6 +456,85 @@ inline float from_rainrate_to_mm(int rr)
 	//assume the raw value is in 0.2mm/hour, this is configurable
 	return rr * 0.2;
 }
+
+
+// Formula of Magnus-Tetens
+inline float dew_point(float t_celsius, int hum)
+{
+	float rh = hum / 100.0f - 1;
+	float alpha = (17.27 * t_celsius) / (237.7 + t_celsius) + std::log1p(rh);
+	float tr = (237.7 * alpha) / (17.27 - alpha);
+	return tr;
+}
+
+// Formula of NWS (See http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml)
+inline float heat_index(float t_farenheight, int hum)
+{
+	float hi_farenheight =
+		0.5 * (t_farenheight + 61.0 +
+			(t_farenheight - 68.0) * 1.2 +
+			hum * 0.094);
+
+	if ((hi_farenheight + t_farenheight) / 2 > 80.0f) {
+		hi_farenheight =
+			-42.379 +
+			2.04901523 * t_farenheight +
+			10.14333127 * hum +
+			-0.22475541 * t_farenheight * hum +
+			-0.00683783 * std::pow(t_farenheight, 2) +
+			-0.05481717 * std::pow(hum, 2) +
+			0.00122874  * std::pow(t_farenheight, 2) * hum +
+			0.00085282  * t_farenheight * std::pow(hum, 2) +
+			-0.00000199 * std::pow(t_farenheight, 2) * std::pow(hum, 2);
+
+		if (hum < 13 && hi_farenheight >= 80.0f && hi_farenheight <= 112.0f)
+			hi_farenheight -=
+				((13 - hum) / 4.0) *
+					std::sqrt(17.0 - std::abs(t_farenheight - 95.0) / 17.0);
+		else if (hum > 85 && hi_farenheight >= 80.0f && hi_farenheight <= 87.0f)
+			hi_farenheight +=
+				((hum - 85) / 10.0) *
+					((87.0 - hi_farenheight) / 5.0);
+	}
+	return from_Farenheight_to_Celsius(hi_farenheight);
+}
+
+// Formula from Davis Instruments
+inline float wind_chill(float t_farenheight, float wind_mph)
+{
+	float rc;
+	if (wind_mph < 5.0 || t_farenheight >= 91.4)
+		rc = t_farenheight;
+	else
+		rc = 35.74 + 0.6215 * t_farenheight
+			 - 35.75 * std::pow(wind_mph, 0.16)
+			 + 0.4275 * t_farenheight * std::pow(wind_mph, 0.16);
+
+	return from_Farenheight_to_Celsius(std::min(rc, t_farenheight));
+}
+
+// Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))
+inline float thsw_index(float t_celsius, int hum, float wind_ms, float solarRad)
+{
+	float waterVaporPressure = (hum / 100.0f) * 6.105
+		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
+	return t_celsius
+	     + 0.348 * waterVaporPressure
+	     - 0.70 * wind_ms
+	     + 0.70 * solarRad / (wind_ms + 10.0)
+	     - 4.25;
+}
+
+inline float thsw_index(float t_celsius, int hum, float wind_ms)
+{
+	float waterVaporPressure = (hum / 100.0f) * 6.105
+		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
+	return t_celsius
+	     + 0.33 * waterVaporPressure
+	     - 0.70 * wind_ms
+	     - 4.0;
+}
+
 }
 
 #endif /* VANTAGEPRO2MESSAGE_H */
