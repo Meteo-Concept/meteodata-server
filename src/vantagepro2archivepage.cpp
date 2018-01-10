@@ -54,7 +54,8 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 
 	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
 			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
-	if (time > _beginning && time <= _now) {
+	date::sys_days now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	if (time > _beginning && time <= now) {
 		if (time > _mostRecent)
 			_mostRecent = time;
 		return true;
@@ -79,7 +80,6 @@ void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const T
 {
 	_timeOffseter = timeOffseter;
 	_beginning = beginning;
-	_now = date::floor<chrono::seconds>(chrono::system_clock::now());
 	_mostRecent = _beginning;
 
 	std::cerr << "Archive page size: " << sizeof(ArchivePage) << " bytes" << std::endl;
