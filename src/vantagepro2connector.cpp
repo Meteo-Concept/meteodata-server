@@ -95,13 +95,13 @@ void VantagePro2Connector::start()
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
-std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const date::local_seconds& time)
+std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const date::sys_seconds& time)
 {
 	auto buffer = std::make_shared<VantagePro2Connector::ArchiveRequestParams>();
-	auto timeUTC = _timeOffseter.convertFromLocalTime(time);
-	auto daypoint = date::floor<date::days>(timeUTC);
+	auto timeStation = _timeOffseter.convertToLocalTime(time);
+	auto daypoint = date::floor<date::days>(timeStation);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
-	auto tod = date::make_time(timeUTC - daypoint); // Yields time_of_day type
+	auto tod = date::make_time(timeStation - daypoint); // Yields time_of_day type
 
 	// Obtain individual components as integers
 	auto y   = int(ymd.year());
@@ -481,8 +481,8 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				time_t lastArchiveDownloadTime;
 				time_t lastDataInsertionTime;
 				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime, lastDataInsertionTime);
-				_lastArchive = date::local_time<chrono::seconds>(chrono::seconds(lastArchiveDownloadTime));
-				_lastData    = date::sys_time<chrono::seconds>(chrono::seconds(lastDataInsertionTime));
+				_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
+				_lastData    = date::sys_seconds(chrono::seconds(lastDataInsertionTime));
 				if (found) {
 					std::cerr << "Received correct identification from station " << _stationName << std::endl;
 					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());

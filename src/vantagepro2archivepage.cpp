@@ -54,7 +54,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 
 	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
 			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
-	date::sys_days now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
 	if (time > _beginning && time <= now) {
 		if (time > _mostRecent)
 			_mostRecent = time;
@@ -69,11 +69,6 @@ void VantagePro2ArchivePage::storeToMessages()
 		if (isRelevant(_page.points[i]))
 			_archiveMessages.emplace_back(_page.points[i], _timeOffseter);
 	}
-}
-
-date::local_seconds VantagePro2ArchivePage::lastArchiveRecordDateTime() const
-{
-	return _timeOffseter->convertToLocalTime(_mostRecent);
 }
 
 void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter)

@@ -60,7 +60,8 @@ public:
 	 * @return a reference to the buffer in which the
 	 * VantagePro2ArchivePage can store data from the station
 	 */
-	std::array<asio::mutable_buffer,1>& getBuffer() {
+	inline std::array<asio::mutable_buffer,1>& getBuffer()
+	{
 		return _pageBuffer;
 	}
 
@@ -89,7 +90,7 @@ public:
 	 * @return An iterator pointing onto the first archive message in the
 	 * archive
 	 */
-	auto cbegin() const { return _archiveMessages.cbegin(); }
+	inline auto cbegin() const { return _archiveMessages.cbegin(); }
 
 	/**
 	 * @brief Provide an iterator on the collection of
@@ -98,7 +99,7 @@ public:
 	 * @return An iterator pointing past the last archive message in the
 	 * archive
 	 */
-	auto cend() const { return _archiveMessages.cend(); }
+	inline auto cend() const { return _archiveMessages.cend(); }
 
 	/**
 	 * @brief Give the timestamp of the most recent relevant archive entry
@@ -106,7 +107,10 @@ public:
 	 * @return The timestamp of the last archive entry which should be
 	 * inserted into the database
 	 */
-	date::local_seconds lastArchiveRecordDateTime() const;
+	inline date::sys_seconds lastArchiveRecordDateTime() const
+	{
+		return _mostRecent;
+	}
 
 	/**
 	 * @brief Clear the archive page and make it ready for any future

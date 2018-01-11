@@ -297,7 +297,7 @@ private:
 	 *
 	 * @return A shared pointer on a newly built \a ArchiveRequestParams
 	 */
-	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const date::local_seconds& time);
+	std::shared_ptr<ArchiveRequestParams> buildArchiveRequestParams(const date::sys_seconds& time);
 	/**
 	 * @brief Construct an \a SettimeRequestParams from the current
 	 * server (POSIX) time
@@ -431,10 +431,10 @@ private:
 	VantagePro2ArchivePage _archivePage;
 
 	/**
-	 * @brief The timestamp (in station's time) of the last archive entry
+	 * @brief The timestamp (in POSIX time) of the last archive entry
 	 * retrieved from the station
 	 */
-	date::local_time<chrono::seconds> _lastArchive;
+	date::sys_seconds _lastArchive;
 	/**
 	 * @brief The timestamp (in POSIX time) of the last data retrieved from
 	 * the station
