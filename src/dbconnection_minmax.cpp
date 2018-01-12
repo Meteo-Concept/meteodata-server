@@ -45,7 +45,7 @@ constexpr char DbConnectionMinmax::SELECT_ALL_STATIONS_STMT[];
 
 namespace chrono = std::chrono;
 
-DbConnectionMinmax::DbConnectionMinmax(const std::string& user, const std::string& password) :
+DbConnectionMinmax::DbConnectionMinmax(const std::string& address, const std::string& user, const std::string& password) :
 	_cluster{cass_cluster_new()},
 	_session{cass_session_new()},
 	_selectAllStations{nullptr, cass_prepared_free},
@@ -56,7 +56,7 @@ DbConnectionMinmax::DbConnectionMinmax(const std::string& user, const std::strin
 	_selectYearlyValuesNow{nullptr, cass_prepared_free},
 	_insertDataPoint{nullptr, cass_prepared_free}
 {
-	cass_cluster_set_contact_points(_cluster, "127.0.0.1");
+	cass_cluster_set_contact_points(_cluster, address.c_str());
 	if (!user.empty() && !password.empty())
 		cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
 	_futureConn = cass_session_connect(_session, _cluster);

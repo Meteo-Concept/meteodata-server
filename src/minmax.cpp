@@ -88,6 +88,7 @@ int main(int argc, char** argv)
 {
 	std::string user;
 	std::string password;
+	std::string address;
 	date::sys_days selectedDate{date::floor<date::days>(system_clock::now())};
 	int y, m, d;
 
@@ -95,6 +96,7 @@ int main(int argc, char** argv)
 	config.add_options()
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
+		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 	;
 
 	po::options_description desc("Allowed options");
@@ -145,7 +147,7 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnectionMinmax db(user, password);
+		DbConnectionMinmax db(address, user, password);
 		DbConnectionMinmax::Values values;
 
 		cass_log_set_level(CASS_LOG_INFO);

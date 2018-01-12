@@ -54,7 +54,7 @@ namespace meteodata {
 		 * @param user the username to use
 		 * @param password the password corresponding to the username
 		 */
-		DbConnectionMinmax(const std::string& user = "", const std::string& password = "");
+		DbConnectionMinmax(const std::string& address = "127.0.0.1", const std::string& user = "", const std::string& password = "");
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
