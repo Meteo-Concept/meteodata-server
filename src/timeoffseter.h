@@ -82,6 +82,12 @@ public:
 				     \a gmtOffset is used */
 	} __attribute__((packed));
 
+	enum class PredefinedTimezone
+	{
+		UTC = 0,
+		FRANCE
+	};
+
 	/**
 	 * @brief Initialize the \a TimeOffseter with a
 	 * \a VantagePro2TimezoneBuffer received from a station
@@ -91,6 +97,8 @@ public:
 	 * this \a TimeOffseter for incoming timestamp conversions.
 	 */
 	void prepare(const VantagePro2TimezoneBuffer& buffer);
+
+	static TimeOffseter getTimeOffseterFor(PredefinedTimezone tz);
 
 	/**
 	 * @brief Convert a timestamp given as fields and expressed as station
@@ -109,13 +117,13 @@ public:
 	template<typename Duration = chrono::system_clock::duration>
 	date::sys_time<Duration> convertFromLocalTime(int d, int m, int y, int h, int min) const
 	{
-		if (byTimezone) {
+		if (_byTimezone) {
 			date::local_time<Duration> local = date::local_days(date::day(d)/m/y) +
-			       	chrono::hours(h) + chrono::minutes(min);
+				chrono::hours(h) + chrono::minutes(min);
 			return date::make_zoned(_timezoneInfo.timezone, local, date::choose::latest).get_sys_time();
 		} else {
 			date::sys_time<Duration> local = date::sys_days(date::day(d)/m/y) +
-			       	chrono::hours(h) + chrono::minutes(min);
+				chrono::hours(h) + chrono::minutes(min);
 			return local - _timezoneInfo.timeOffset;
 		}
 	}
@@ -133,7 +141,7 @@ public:
 	template<typename Duration>
 	date::sys_time<Duration> convertFromLocalTime(const date::local_time<Duration>& time) const
 	{
-		if (byTimezone) {
+		if (_byTimezone) {
 			return date::make_zoned(_timezoneInfo.timezone, time, date::choose::latest).get_sys_time();
 		} else {
 			return date::sys_time<Duration>{(time - _timezoneInfo.timeOffset).time_since_epoch()};
@@ -153,7 +161,7 @@ public:
 	template<typename Duration>
 	date::local_time<Duration> convertToLocalTime(const date::sys_time<Duration>& time) const
 	{
-		if (byTimezone) {
+		if (_byTimezone) {
 			return date::make_zoned(_timezoneInfo.timezone, time).get_local_time();
 		} else {
 			return date::local_time<Duration>{(time + _timezoneInfo.timeOffset).time_since_epoch()};
@@ -174,7 +182,7 @@ private:
 	 * @brief Tell whether \a _timezoneInfo.timezone or \a _timezoneInfo.timeOffset should be
 	 * taken into account
 	 */
-	bool byTimezone;
+	bool _byTimezone;
 };
 
 }

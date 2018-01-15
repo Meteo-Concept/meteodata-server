@@ -50,8 +50,8 @@ public:
 	 * @param user the username to use with the database
 	 * @param password the password corresponding to the username
 	 */
-	MeteoServer(boost::asio::io_service& io, const std::string& user,
-			const std::string& password);
+	MeteoServer(boost::asio::io_service& io, const std::string& address,
+		const std::string& user, const std::string& password);
 	/**
 	 * @brief Start listening on the port, construct a connector,
 	 * and wait for a station to present itself
@@ -68,6 +68,7 @@ public:
 	 * pass it over the socket.
 	 */
 	void startAccepting();
+	void start();
 	/**
 	 * @brief Dispatch a new connector and resume listening on the
 	 * port
@@ -80,6 +81,7 @@ public:
 		const boost::system::error_code& error);
 
 private:
+	boost::asio::io_service& _ioService;
 	/**
 	 * @brief The Boost::Asio object that handles the accept()
 	 * operations

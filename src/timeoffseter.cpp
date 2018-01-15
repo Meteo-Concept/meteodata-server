@@ -62,7 +62,7 @@ namespace meteodata
 	void TimeOffseter::prepare(const TimeOffseter::VantagePro2TimezoneBuffer& buffer)
 	{
 		if (buffer.gmtOrZone == 0 && buffer.manualDST == 0) { // full automatic mode
-			byTimezone = true;
+			_byTimezone = true;
 			if (buffer.timeZone == 4) {
 				_timezoneInfo.timezone = date::locate_zone("America/Tijuana");
 			} else if (buffer.timeZone == 5) {
@@ -94,11 +94,11 @@ namespace meteodata
 					  << "about DST settings for its timezone (or so we believe)"
 					  << std::endl;
 				_timezoneInfo.timeOffset = vantageTimezoneIndex2Offet(buffer.timeZone);
-				byTimezone = false;
+				_byTimezone = false;
 			}
 		} else if (buffer.gmtOrZone == 0 && buffer.manualDST !=0) { //timezone but manual DST
 			_timezoneInfo.timeOffset = vantageTimezoneIndex2Offet(buffer.timeZone);
-			byTimezone = false;
+			_byTimezone = false;
 		} else {
 			int hours = buffer.gmtOffset / 100;
 			int minutes = (buffer.gmtOffset < 0 ? -buffer.gmtOffset : buffer.gmtOffset) % 100;
@@ -106,7 +106,23 @@ namespace meteodata
 			_timezoneInfo.timeOffset = chrono::hours(hours) +
 				                   chrono::minutes(minutes);
 
-			byTimezone = false;
+			_byTimezone = false;
 		}
+	}
+
+	TimeOffseter TimeOffseter::getTimeOffseterFor(PredefinedTimezone tz)
+	{
+		TimeOffseter t;
+		switch (tz) {
+			case PredefinedTimezone::UTC:
+				t._byTimezone = false;
+				t._timezoneInfo.timeOffset = chrono::minutes(0);
+				break;
+			case PredefinedTimezone::FRANCE:
+				t._byTimezone = true;
+				t._timezoneInfo.timezone = date::locate_zone("Europe/Paris");
+				break;
+		}
+		return t;
 	}
 }

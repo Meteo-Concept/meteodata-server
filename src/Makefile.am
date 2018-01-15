@@ -18,6 +18,8 @@ meteodata_SOURCES = \
 		    vantagepro2archivemessage.cpp\
 		    timeoffseter.h\
 		    timeoffseter.cpp\
+		    weatherlinkdownloader.h\
+		    weatherlinkdownloader.cpp\
 		    date/src/tz.cpp\
                     date/include/date/date.h\
                     date/include/date/tz.h\

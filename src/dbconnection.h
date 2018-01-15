@@ -51,7 +51,7 @@ namespace meteodata {
 		 * @param user the username to use
 		 * @param password the password corresponding to the username
 		 */
-		DbConnection(const std::string& user = "", const std::string& password = "");
+		DbConnection(const std::string& address = "127.0.0.1", const std::string& user = "", const std::string& password = "");
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
@@ -105,6 +105,36 @@ namespace meteodata {
 		 */
 		bool updateLastArchiveDownloadTime(const CassUuid station, const time_t& time);
 
+		/**
+		 * @brief Get the name of a station and its polling period
+		 *
+		 * @param uuid The station identifier
+		 * @param[out] name Where to store the name of the station
+		 * @param[out] pollPeriod Where to store the polling period of the
+		 * station (the amount of time which should separate two
+		 * measurements)
+		 * @param[out] lastArchiveDownloadTime The timestamp of the
+		 * last archive entry downloaded from the database
+		 *
+		 * @return True if, and only if, all went well
+		 */
+		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime);
+		/**
+		 * @brief Identify the last time data was retrieved from a
+		 * station
+		 *
+		 * @param station The station of interest
+		 * @param[out] lastDataInsertionTime The timestamp of the last
+		 * entry corresponding to the database
+		 *
+		 * @return True if everything went well and
+		 * lastDataInsertionTime is the expected result, false if the
+		 * query failed
+		 */
+		bool getLastDataInsertionTime(const CassUuid& station, time_t& lastDataInsertionTime);
+
+		bool getAllWeatherlinkStations(std::vector<std::tuple<CassUuid, std::string, int>>& stations);
+
 	private:
 		/**
 		 * @brief The Cassandra connection handle
@@ -142,6 +172,8 @@ namespace meteodata {
 		 * updateLastArchiveDownload() method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _updateLastArchiveDownloadTime;
+
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectWeatherlinkStations;
 		/**
 		 * @brief A mutual exclusion semaphore to protect _insertDataPoint
 		 */
@@ -158,33 +190,6 @@ namespace meteodata {
 		 * @brief Prepare the Cassandra query/insert statements
 		 */
 		void prepareStatements();
-		/**
-		 * @brief Get the name of a station and its polling period
-		 *
-		 * @param uuid The station identifier
-		 * @param[out] name Where to store the name of the station
-		 * @param[out] pollPeriod Where to store the polling period of the
-		 * station (the amount of time which should separate two
-		 * measurements)
-		 * @param[out] lastArchiveDownloadTime The timestamp of the
-		 * last archive entry downloaded from the database
-		 *
-		 * @return True if, and only if, all went well
-		 */
-		bool getStationDetails(const CassUuid& uuid, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime);
-		/**
-		 * @brief Identify the last time data was retrieved from a
-		 * station
-		 *
-		 * @param station The station of interest
-		 * @param[out] lastDataInsertionTime The timestamp of the last
-		 * entry corresponding to the database
-		 *
-		 * @return True if everything went well and
-		 * lastDataInsertionTime is the expected result, false if the
-		 * query failed
-		 */
-		bool getLastDataInsertionTime(const CassUuid& station, time_t& lastDataInsertionTime);
 	};
 }
 

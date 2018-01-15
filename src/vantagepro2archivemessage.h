@@ -110,6 +110,26 @@ public:
 	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 
+	inline date::sys_seconds getTimestamp() const {
+		return date::floor<chrono::seconds>(
+			_timeOffseter->convertFromLocalTime(
+				_data.day, _data.month, _data.year + 2000,
+				_data.time / 100, _data.time % 100)
+			);
+	}
+
+	/**
+	 * @brief Do very basic checks on the consistency of the data point
+	 *
+	 * For now, this method checks that the date is not '0', nor in the future.
+	 * It's not entirely foolproof but cover all known cases of uninitialized
+	 * archive records.
+	 */
+	inline bool looksValid() const {
+		return memcmp(&_data, "\0\0\0\0", 32) != 0 &&
+		       getTimestamp() < date::sys_seconds();
+	}
+
 private:
 	/**
 	 * @brief The data point, an individual archive entry received from the station

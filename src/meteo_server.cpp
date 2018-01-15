@@ -23,12 +23,15 @@
 
 #include <syslog.h>
 
+#include <tuple>
 #include <functional>
 
 #include <boost/asio.hpp>
 
 #include "meteo_server.h"
+#include "timeoffseter.h"
 #include "connector.h"
+#include "weatherlinkdownloader.h"
 #include "vantagepro2connector.h"
 
 using namespace boost::asio;
@@ -37,11 +40,29 @@ using namespace boost::asio::ip;
 namespace meteodata
 {
 
-MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& user, const std::string& password) :
+MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& address,
+		const std::string& user, const std::string& password) :
+	_ioService(ioService),
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
-	_db(user,password)
+	_db(address, user, password)
 {
 	syslog(LOG_NOTICE, "Meteodata has started succesfully");
+}
+
+void MeteoServer::start()
+{
+	std::vector<std::tuple<CassUuid, std::string, int>> weatherlinkStations;
+	_db.getAllWeatherlinkStations(weatherlinkStations);
+	for (const auto& station : weatherlinkStations) {
+		auto wld =
+			std::make_shared<WeatherlinkDownloader>(
+				std::get<0>(station), std::get<1>(station),
+				_ioService, _db,
+				TimeOffseter::PredefinedTimezone(std::get<2>(station))
+			);
+		wld->start();
+	}
+	startAccepting();
 }
 
 void MeteoServer::startAccepting()

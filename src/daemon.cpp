@@ -59,11 +59,13 @@ int main(int argc, char** argv)
 {
 	std::string user;
 	std::string password;
+	std::string address;
 
 	po::options_description config("Configuration");
 	config.add_options()
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
+		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 	;
 
 	po::options_description desc("Allowed options");
@@ -89,7 +91,7 @@ int main(int argc, char** argv)
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " [-u user -p password]\n";
+		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
 			"password or none of them." << std::endl;
@@ -129,11 +131,12 @@ int main(int argc, char** argv)
 
 	try {
 		boost::asio::io_service ioService;
-		MeteoServer server(ioService, user, password);
-		server.startAccepting();
+		MeteoServer server(ioService, address, user, password);
+		server.start();
 		ioService.run();
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
+		std::cerr << e.what() << std::endl;
 		syslog(LOG_ERR, "%s", e.what());
 		closelog();
 		return 255;

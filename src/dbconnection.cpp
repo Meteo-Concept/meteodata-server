@@ -24,6 +24,8 @@
 #include <iostream>
 #include <mutex>
 #include <exception>
+#include <vector>
+#include <utility>
 
 #include <cassandra.h>
 #include <syslog.h>
@@ -32,16 +34,17 @@
 #include "dbconnection.h"
 
 namespace meteodata {
-	DbConnection::DbConnection(const std::string& user, const std::string& password) :
+	DbConnection::DbConnection(const std::string& address, const std::string& user, const std::string& password) :
 		_cluster{cass_cluster_new()},
 		_session{cass_session_new()},
 		_selectStationByCoords{nullptr, cass_prepared_free},
 		_selectStationDetails{nullptr, cass_prepared_free},
 		_selectLastDataInsertionTime{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free},
-		_updateLastArchiveDownloadTime{nullptr, cass_prepared_free}
+		_updateLastArchiveDownloadTime{nullptr, cass_prepared_free},
+		_selectWeatherlinkStations{nullptr, cass_prepared_free}
 	{
-		cass_cluster_set_contact_points(_cluster, "127.0.0.1");
+		cass_cluster_set_contact_points(_cluster, address.c_str());
 		if (!user.empty() && !password.empty())
 			cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
 		_futureConn = cass_session_connect(_session, _cluster);
@@ -163,6 +166,16 @@ namespace meteodata {
 		}
 		_updateLastArchiveDownloadTime.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session, "SELECT * FROM meteodata.weatherlink");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement selectWeatherlinkStations: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_selectWeatherlinkStations.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
 	}
 
 	// /!\ must be called under _selectMutex lock
@@ -173,7 +186,7 @@ namespace meteodata {
 		std::cerr << "Statement prepared" << std::endl;
 		cass_statement_bind_uuid(statement, 0, uuid);
 		query = cass_session_execute(_session, statement);
-		std::cerr << "Executed statement" << std::endl;
+		std::cerr << "Executed statement getStationDetails" << std::endl;
 		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
@@ -207,7 +220,7 @@ namespace meteodata {
 		std::cerr << "Statement prepared" << std::endl;
 		cass_statement_bind_uuid(statement, 0, uuid);
 		query = cass_session_execute(_session, statement);
-		std::cerr << "Executed statement" << std::endl;
+		std::cerr << "Executed statement getLastDataInsertionTime" << std::endl;
 		cass_statement_free(statement);
 
 		const CassResult* result = cass_future_get_result(query);
@@ -241,7 +254,7 @@ namespace meteodata {
 			cass_statement_bind_int32(statement, 1, latitude);
 			cass_statement_bind_int32(statement, 2, longitude);
 			query = cass_session_execute(_session, statement);
-			std::cerr << "Executed statement" << std::endl;
+			std::cerr << "Executed statement getStationByCoords" << std::endl;
 			cass_statement_free(statement);
 		}
 
@@ -313,6 +326,41 @@ namespace meteodata {
 		}
 		cass_result_free(result);
 		cass_future_free(query);
+
+		return ret;
+	}
+
+	bool DbConnection::getAllWeatherlinkStations(std::vector<std::tuple<CassUuid, std::string, int>>& stations)
+	{
+		std::unique_ptr<CassStatement, void(&)(CassStatement*)> statement{
+			cass_prepared_bind(_selectWeatherlinkStations.get()),
+			cass_statement_free
+		};
+		std::unique_ptr<CassFuture, void(&)(CassFuture*)> query{
+			cass_session_execute(_session, statement.get()),
+			cass_future_free
+		};
+
+		const CassResult* result = cass_future_get_result(query.get());
+		bool ret = false;
+		if (result) {
+			std::unique_ptr<CassIterator, void(&)(CassIterator*)> iterator{
+				cass_iterator_from_result(result),
+				cass_iterator_free
+			};
+			while (cass_iterator_next(iterator.get())) {
+				const CassRow* row = cass_iterator_get_row(iterator.get());
+				CassUuid station;
+				cass_value_get_uuid(cass_row_get_column(row,0), &station);
+				const char *authString;
+				size_t size;
+				cass_value_get_string(cass_row_get_column(row,1), &authString, &size);
+				int timezone;
+				cass_value_get_int32(cass_row_get_column(row,2), &timezone);
+				stations.emplace_back(station, std::string{authString, size}, timezone);
+			}
+			ret = true;
+		}
 
 		return ret;
 	}
