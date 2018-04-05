@@ -86,7 +86,8 @@ namespace meteodata {
 		 * inserted, false otherwise
 		 */
 		bool insertDataPoint(const CassUuid station, const Message& message);
-		
+		bool insertV2DataPoint(const CassUuid station, const Message& message);
+
 		/**
 		 * @brief Insert in the database the time of the last archive
 		 * entry downloaded from a station
@@ -167,6 +168,7 @@ namespace meteodata {
 		 * @brief The prepared statement for the insetDataPoint() method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _insertDataPoint;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _insertDataPointInNewDB;
 		/**
 		 * @brief The prepared statement for the
 		 * updateLastArchiveDownload() method

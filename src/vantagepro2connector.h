@@ -107,6 +107,8 @@ private:
 		SENDING_ABORT_ARCHIVE_DOWNLOAD, /*!< Waiting for the archive download abortion notice to be sent        */
 		WAITING_ARCHIVE_PAGE,           /*!< Waiting for the next page of archive                               */
 		SENDING_ARCHIVE_PAGE_ANSWER,    /*!< Waiting for the archive page confirmation to be sent               */
+		SENDING_WAKE_UP_SETTIME,        /*!< Waiting for the wake up order to be sent to set the clock          */
+		WAITING_ECHO_SETTIME,           /*!< Waiting for the station to answer the wake up request to set the clock */
 		SENDING_SETTIME,                /*!< Waiting for the time setting request to be sent                    */
 		WAITING_ACK_SETTIME,            /*!< Waiting for the station to acknowledge the time setting request    */
 		SENDING_SETTIME_PARAMS,         /*!< Waiting for the time setting parameters to be sent                 */

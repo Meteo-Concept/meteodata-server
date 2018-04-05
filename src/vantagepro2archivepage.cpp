@@ -30,6 +30,7 @@
 #include "vantagepro2archivepage.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivemessage.h"
+#include "dbconnection.h"
 
 #include "timeoffseter.h"
 
@@ -45,7 +46,7 @@ bool VantagePro2ArchivePage::isValid() const
 	return VantagePro2Message::validateCRC(&_page, sizeof(ArchivePage));
 }
 
-bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point)
+bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point, bool v2)
 {
 	if (*reinterpret_cast<const uint32_t*>(&point) == 0xFFFFFFFF) // dash value
 		return false;
@@ -55,7 +56,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
 			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
 	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
-	if (time > _beginning && time <= now) {
+	if ((time > _beginning || v2) && time <= now) {
 		if (time > _mostRecent)
 			_mostRecent = time;
 		return true;
@@ -63,12 +64,16 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 	return false;
 }
 
-void VantagePro2ArchivePage::storeToMessages()
+bool VantagePro2ArchivePage::store(DbConnection& db, const CassUuid& station)
 {
-	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE ; i++) {
-		if (isRelevant(_page.points[i]))
-			_archiveMessages.emplace_back(_page.points[i], _timeOffseter);
+	bool ret = true;
+	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE && ret ; i++) {
+		if (isRelevant(_page.points[i], false))
+			ret = db.insertDataPoint(station, VantagePro2ArchiveMessage(_page.points[i], _timeOffseter));
+		if (ret && isRelevant(_page.points[i], true))
+			ret = db.insertV2DataPoint(station, VantagePro2ArchiveMessage(_page.points[i], _timeOffseter));
 	}
+	return ret;
 }
 
 void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const TimeOffseter* timeOffseter)
@@ -79,11 +84,6 @@ void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const T
 
 	std::cerr << "Archive page size: " << sizeof(ArchivePage) << " bytes" << std::endl;
 	std::cerr << "Archive data point size: " << sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint) << " bytes" << std::endl;
-}
-
-void VantagePro2ArchivePage::clear()
-{
-	_archiveMessages.clear();
 }
 
 }

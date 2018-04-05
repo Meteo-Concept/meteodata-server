@@ -53,6 +53,7 @@ public:
 	 * measured values stored in the current Message
 	 */
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const = 0;
+	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const = 0;
 };
 
 }

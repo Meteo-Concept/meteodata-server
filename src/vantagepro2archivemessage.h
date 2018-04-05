@@ -109,6 +109,7 @@ public:
 	 */
 	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
+	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 	inline date::sys_seconds getTimestamp() const {
 		return date::floor<chrono::seconds>(

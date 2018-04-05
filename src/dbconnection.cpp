@@ -41,6 +41,7 @@ namespace meteodata {
 		_selectStationDetails{nullptr, cass_prepared_free},
 		_selectLastDataInsertionTime{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free},
+		_insertDataPointInNewDB{nullptr, cass_prepared_free},
 		_updateLastArchiveDownloadTime{nullptr, cass_prepared_free},
 		_selectWeatherlinkStations{nullptr, cass_prepared_free}
 	{
@@ -155,6 +156,63 @@ namespace meteodata {
 			throw std::runtime_error(desc);
 		}
 		_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session,
+			"INSERT INTO meteodata_v2.meteo ("
+			"station,"
+			"day, time,"
+			"barometer,"
+			"dewpoint,"
+			"extrahum1, extrahum2,"
+			"extratemp1,extratemp2, extratemp3,"
+			"heatindex,"
+			"insidehum,insidetemp,"
+			"leaftemp1, leaftemp2,"
+			"leafwetnesses1, leafwetnesses2,"
+			"outsidehum,outsidetemp,"
+			"rainrate, rainfall,"
+			"et,"
+			"soilmoistures1, soilmoistures2, soilmoistures3,"
+				"soilmoistures4,"
+			"soiltemp1, soiltemp2, soiltemp3, soiltemp4,"
+			"solarrad,"
+			"thswindex,"
+			"uv,"
+			"windchill,"
+			"winddir, windgust, windspeed,"
+			"insolation_time)"
+			"VALUES ("
+			"?,"
+			"?, ?,"
+			"?,"
+			"?,"
+			"?, ?,"
+			"?,?, ?,"
+			"?,"
+			"?,?,"
+			"?, ?,"
+			"?, ?,"
+			"?,?,"
+			"?, ?,"
+			"?,"
+			"?, ?, ?,"
+				"?,"
+			"?, ?, ?, ?,"
+			"?,"
+			"?,"
+			"?,"
+			"?,"
+			"?, ?, ?,"
+			"?)");
+
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement insertdataPointInNewDB: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_insertDataPointInNewDB.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 
 		prepareFuture = cass_session_prepare(_session, "UPDATE meteodata.stations SET last_archive_download = ? WHERE id = ?");
@@ -289,6 +347,34 @@ namespace meteodata {
 
 		const CassResult* result = cass_future_get_result(query);
 		bool ret = true;
+		if (!result) {
+			const char* error_message;
+			size_t error_message_length;
+			cass_future_error_message(query, &error_message, &error_message_length);
+			std::cerr << "Error from Cassandra: " << error_message << std::endl;
+			ret = false;
+		}
+		cass_result_free(result);
+		cass_future_free(query);
+
+		return ret;
+	}
+
+	bool DbConnection::insertV2DataPoint(const CassUuid station, const Message& msg)
+	{
+		bool ret = true;
+
+		CassFuture* query;
+		{ /* mutex scope */
+			std::lock_guard<std::mutex> queryMutex{_insertMutex};
+			std::cerr << "About to insert data point in database" << std::endl;
+			CassStatement* statement = cass_prepared_bind(_insertDataPointInNewDB.get());
+			msg.populateV2DataPoint(station, statement);
+			query = cass_session_execute(_session, statement);
+			cass_statement_free(statement);
+		}
+
+		const CassResult* result = cass_future_get_result(query);
 		if (!result) {
 			const char* error_message;
 			size_t error_message_length;

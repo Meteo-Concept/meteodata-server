@@ -108,6 +108,7 @@ public:
 	static std::string from_forecast_to_diagnostic(uint8_t value);
 
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
+	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 private:
 	/**

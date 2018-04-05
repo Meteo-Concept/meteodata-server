@@ -84,7 +84,7 @@ void WeatherlinkDownloader::start()
 void WeatherlinkDownloader::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
-	_timer.expires_from_now(chrono::minutes(_pollingPeriod));
+	_timer.expires_from_now(chrono::hours(1));
 	_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, _1));
 }
 
@@ -253,8 +253,10 @@ void WeatherlinkDownloader::download()
 	for (auto it = pages.cbegin() ; it != pages.cend() && ret ; ++it) {
 		std::cerr << "Analyzing page " << it->getTimestamp() << std::endl;
 		if (it->looksValid()) {
-			ret = _db.insertDataPoint(_station, *it);
+			ret = _db.insertDataPoint(_station, *it) && _db.insertV2DataPoint(_station, *it);
 			_lastArchive = it->getTimestamp();
+		} else {
+			std::cerr << "Record looks invalid, discarding..." << std::endl;
 		}
 		//Otherwise, just discard
 	}

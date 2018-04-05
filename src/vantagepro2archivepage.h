@@ -43,6 +43,8 @@ namespace meteodata {
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
+class DbConnection;
+
 /**
  * @brief A class able to store an archive page downloaded from a VantagePro2 (R)
  * station, by Davis Instruments (R)
@@ -74,32 +76,8 @@ public:
 	bool isValid() const;
 
 	/**
-	 * @brief Store the archive data in instances of
-	 * \a VantagePro2ArchiveMessage and clear to buffer
-	 *
-	 * \a storeToMessages must be called once data has been received and
-	 * validated in order to commit the data points and prepare the
-	 * \a ArchivePage for more incoming data.
 	 */
-	void storeToMessages();
-
-	/**
-	 * @brief Provide an iterator on the collection of
-	 * \a VantagePro2ArchiveMessage built from the archive data
-	 *
-	 * @return An iterator pointing onto the first archive message in the
-	 * archive
-	 */
-	inline auto cbegin() const { return _archiveMessages.cbegin(); }
-
-	/**
-	 * @brief Provide an iterator on the collection of
-	 * \a VantagePro2ArchiveMessage built from the archive data
-	 *
-	 * @return An iterator pointing past the last archive message in the
-	 * archive
-	 */
-	inline auto cend() const { return _archiveMessages.cend(); }
+	bool store(DbConnection& db, const CassUuid& station);
 
 	/**
 	 * @brief Give the timestamp of the most recent relevant archive entry
@@ -111,12 +89,6 @@ public:
 	{
 		return _mostRecent;
 	}
-
-	/**
-	 * @brief Clear the archive page and make it ready for any future
-	 * download
-	 */
-	void clear();
 
 	/**
 	 * @brief Prepare an archive page so that the archive download may
@@ -185,12 +157,6 @@ private:
 	const TimeOffseter* _timeOffseter;
 
 	/**
-	 * @brief A collection of ArchiveMessage, constructed on-the-fly as
-	 * archive data is received
-	 */
-	std::vector<VantagePro2ArchiveMessage> _archiveMessages;
-
-	/**
 	 * @brief The Boost::Asio buffer in which the raw data point from the
 	 * station is to be received
 	 */
@@ -205,11 +171,12 @@ private:
 	 * timestamp (not newer than current time).
 	 *
 	 * @param point The archive entry
+	 * @param v2 Whether we are considering the v1 or v2 database
 	 *
 	 * @return True if, and only if, \a point should be inserted in the
 	 * database
 	 */
-	bool isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point);
+	bool isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point, bool v2);
 };
 
 }

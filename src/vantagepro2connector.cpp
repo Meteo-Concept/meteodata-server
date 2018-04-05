@@ -558,8 +558,9 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
-					_currentState = State::WAITING_NEXT_MEASURE_TICK;
-					waitForNextMeasure();
+					std::cerr << "Station " << _stationName << "'s clock has to be set" << std::endl;
+					_currentState = State::SENDING_WAKE_UP_SETTIME;
+					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				}
 			}
 		}
@@ -639,16 +640,10 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cerr << "Got measurement, storing it" << std::endl;
 				bool ret = _db.insertDataPoint(_station, _message);
 				if (ret) {
-					std::cerr << "Measurement stored for station " << _stationName << std::endl;
-					if (_setTimeRequested) {
-						std::cerr << "Station " << _stationName << "'s clock has to be set" << std::endl;
-						_currentState = State::SENDING_SETTIME;
-						sendRequest(_settimeRequest, std::strlen(_settimeRequest));
-					} else {
-						_currentState = State::WAITING_NEXT_MEASURE_TICK;
-						std::cerr << "Now sleeping until next measurement" << std::endl;
-						waitForNextMeasure();
-					}
+					std::cerr << "Measurement stored for station, now getting the archive file " << _stationName << std::endl;
+					_archivePage.prepare(_lastData, &_timeOffseter);
+					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
+					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
 					std::cerr << "Failed to store measurement! Aborting" << std::endl;
 					syslog(LOG_ERR, "station %s: Couldn't store measurement", _stationName.c_str());
@@ -793,7 +788,20 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			stop();
 		} else {
 			if (_archivePage.isValid()) {
-				_archivePage.storeToMessages();
+				bool ret = _archivePage.store(_db, _station);
+				if (ret) {
+					std::cerr << "Archive data page stored, updating the archive download time" << std::endl;
+
+					time_t lastArchiveDownloadTime = date::floor<chrono::seconds>(_archivePage.lastArchiveRecordDateTime().time_since_epoch()).count();
+					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+					if (!ret)
+						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+
+				} else {
+					std::cerr << "Failed to store archive! Aborting" << std::endl;
+					syslog(LOG_ERR, "station %s: Couldn't store archive", _stationName.c_str());
+					stop();
+				}
 				_archiveSize.pagesLeft--;
 				_currentState = State::SENDING_ARCHIVE_PAGE_ANSWER;
 				std::cerr << "Received correct archive data" << std::endl;
@@ -824,28 +832,33 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cerr << _archiveSize.pagesLeft << " pages left to download" << std::endl;
 				recvData(_archivePage.getBuffer());
 			} else {
-				bool ret = true;
-				for (auto it = _archivePage.cbegin() ; ret && it != _archivePage.cend() ; ++it) {
-					ret = _db.insertDataPoint(_station, *it);
-				}
-				if (ret) {
-					std::cerr << "Archive data stored\n"
-						  << "Now sleeping until next measurement" << std::endl;
-
-					time_t lastArchiveDownloadTime = date::floor<chrono::seconds>(_archivePage.lastArchiveRecordDateTime().time_since_epoch()).count();
-					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime); 
-					if (!ret)
-						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
-
-					_archivePage.clear();
-					_currentState = State::WAITING_NEXT_MEASURE_TICK;
-					waitForNextMeasure();
-				} else {
-					std::cerr << "Failed to store archive! Aborting" << std::endl;
-					syslog(LOG_ERR, "station %s: Couldn't store archive", _stationName.c_str());
-					stop();
-				}
+				std::cerr << "Archive data stored\n"
+					  << "Now sleeping until next measurement" << std::endl;
+				_currentState = State::WAITING_NEXT_MEASURE_TICK;
+				waitForNextMeasure();
 			}
+		}
+		break;
+
+	case State::SENDING_WAKE_UP_SETTIME:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, std::strlen(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ECHO_SETTIME;
+			std::cerr << "Waking up station for clock setting" << std::endl;
+			recvWakeUp();
+		}
+		break;
+
+	case State::WAITING_ECHO_SETTIME:
+		handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_echoRequest, std::strlen(_echoRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::SENDING_SETTIME;
+			std::cerr << "Station is woken up, ready to receive clock setting" << std::endl;
+			sendRequest(_settimeRequest, std::strlen(_settimeRequest));
 		}
 		break;
 
