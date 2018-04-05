@@ -126,8 +126,8 @@ public:
 	 * archive records.
 	 */
 	inline bool looksValid() const {
-		return memcmp(&_data, "\0\0\0\0", 32) != 0 &&
-		       getTimestamp() < date::sys_seconds();
+		return memcmp(&_data, "\0\0\0\0", 4) != 0 &&
+		       getTimestamp() < chrono::system_clock::now();
 	}
 
 private:
