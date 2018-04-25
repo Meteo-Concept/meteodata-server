@@ -264,7 +264,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	if (_data.maxRainRate != 65535)
 		cass_statement_bind_float(statement, 19, from_rainrate_to_mm(_data.maxRainRate));
 	/*************************************************************/
-	cass_statement_bind_float(statement, 20, _data.rainfall);
+	cass_statement_bind_float(statement, 20, from_rainrate_to_mm(_data.rainfall));
 	/*************************************************************/
 	cass_statement_bind_float(statement, 21, _data.et);
 	/*************************************************************/
