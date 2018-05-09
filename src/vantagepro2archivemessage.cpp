@@ -266,7 +266,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	/*************************************************************/
 	cass_statement_bind_float(statement, 20, from_rainrate_to_mm(_data.rainfall));
 	/*************************************************************/
-	cass_statement_bind_float(statement, 21, _data.et);
+	cass_statement_bind_float(statement, 21, from_in_to_mm(_data.et) / 1000);
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
 		if (_data.soilMoisture[i] != 255)
