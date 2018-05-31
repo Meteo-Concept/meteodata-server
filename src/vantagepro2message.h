@@ -26,6 +26,7 @@
 
 #include <cstdint>
 #include <ctime>
+#include <cmath>
 #include <array>
 #include <chrono>
 
@@ -534,6 +535,47 @@ inline float thsw_index(float t_celsius, int hum, float wind_ms)
 	     + 0.33 * waterVaporPressure
 	     - 0.70 * wind_ms
 	     - 4.0;
+}
+
+inline bool insolated(float solarRad, float latitude, float longitude, time_t timestamp)
+{
+	double fDays = (timestamp - 946724335) / (24 * 3600.); // 946724335 = J2000.0
+	double raddeg = 3.14159265358979 / 180.;
+
+	// Mean longitude of the sun
+	double l = 280.46646 * 0.98564736 * fDays * raddeg;
+	// Mean anomaly of the syn
+	double m = 357.52911 + 0.985600281 * fDays * raddeg;
+	// Difference between the mean and true anomalies of the sun
+	double c = (1.914602 - 0.00000013188 * fDays) * std::sin(m) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m);
+	// Obliquity of the Earth (approximation correct for the next century)
+	double epsilon = 23.43929 * raddeg;
+	// Sine of the solar declination angle
+	double sin_delta = std::sin(l + c) * std::sin(epsilon);
+
+	// y -- no particular meaning but facilitates the expression of the equation of time
+	double y = std::pow(std::tan(epsilon / 2.), 2.);
+	// Excentricity of the Earth's orbit
+	double e = 0.016708634 - 0.0000000011509 * fDays;
+	// Equation of the time -- angular difference between apparent solar time and mean time
+	double eq = y * std::sin(2 * l) - 2 * e * std::sin(m) + 4 * e * y * std::sin(m) * std::cos(2 * l);
+
+	// Mean solar time of the UTC timestamp in parameter
+	// pi / (12. * 3600.) is the coefficient to convert a timestamp in seconds to a value in radians
+	double h = (timestamp * 3.14159265358979 / (12. * 3600.)) + eq - longitude;
+	// Sine of the solar altitude
+	double sin_alpha = std::cos(h) * std::cos(latitude * raddeg) * std::cos(std::asin(sin_delta))
+		+ std::sin(latitude * raddeg) * sin_delta;
+
+	if (sin_alpha >= -1. && sin_alpha <= 1.) {
+		double alpha = std::asin(sin_alpha);
+		if (alpha < 3.)
+			return false;
+
+		double threshold = 0.73 + 0.06 * std::cos(360 * fDays * raddeg) * 1080 * std::pow(sin_alpha, 1.25);
+		return solarRad > threshold;
+	}
+	return false;
 }
 
 }

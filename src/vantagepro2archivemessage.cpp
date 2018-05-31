@@ -189,30 +189,30 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 
 void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_uint32(statement, 1,
-		cass_date_from_epoch(
-			date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
-					_data.day,
-					_data.month,
-					_data.year + 2000,
-					_data.time / 100,
-					_data.time % 100
-			)).time_since_epoch().count()
-		)
-	);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		date::floor<chrono::milliseconds>(_timeOffseter->convertFromLocalTime(
+	auto timestamp = _timeOffseter->convertFromLocalTime(
 				_data.day,
 				_data.month,
 				_data.year + 2000,
 				_data.time / 100,
 				_data.time % 100
-			)).time_since_epoch().count()
-		);
+			);
+
+	/*************************************************************/
+	cass_statement_bind_uuid(statement, 0, station);
+	/*************************************************************/
+	cass_statement_bind_uint32(statement, 1,
+		cass_date_from_epoch(
+			date::floor<chrono::seconds>(
+				timestamp
+			).time_since_epoch().count()
+		)
+	);
+	/*************************************************************/
+	cass_statement_bind_int64(statement, 2,
+		date::floor<chrono::milliseconds>(
+			timestamp
+		).time_since_epoch().count()
+	);
 	/*************************************************************/
 	std::cerr << "barometer: " << from_inHg_to_bar(_data.barometer) << std::endl;
 	cass_statement_bind_float(statement, 3, from_inHg_to_bar(_data.barometer));
@@ -321,7 +321,15 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	if (_data.avgWindSpeed != 255)
 		cass_statement_bind_float(statement, 36, from_mph_to_kph(_data.avgWindSpeed));
 	/*************************************************************/
-	// No insolation
+	if (_data.solarRad != 32767) {
+		bool ins = insolated(
+			_data.solarRad,
+			_timeOffseter->getLatitude(),
+			_timeOffseter->getLongitude(),
+			date::floor<chrono::seconds>(timestamp).time_since_epoch().count()
+		);
+		cass_statement_bind_int32(statement, 37, ins) ? _timeOffseter->getMeasureStep() : 0;
+	}
 	/*************************************************************/
 }
 

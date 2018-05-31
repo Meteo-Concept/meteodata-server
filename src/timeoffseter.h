@@ -61,7 +61,6 @@ namespace chrono = std::chrono;
 class TimeOffseter
 {
 public:
-
 	/**
 	 * @brief Store the portion of a station's EEPROM relative to the time
 	 * configuration
@@ -168,6 +167,19 @@ public:
 		}
 	}
 
+	inline float getLatitude() const { return _latitude; }
+	inline void setLatitude(float lat) {
+		_latitude = lat;
+	}
+	inline float getLongitude() const { return _longitude; }
+	inline void setLongitude(float lon) {
+		_longitude = lon;
+	}
+	inline float getMeasureStep() const { return _measureStep; }
+	inline void setMeasureStep(int step) {
+		_measureStep = step;
+	}
+
 private:
 	/**
 	 * @brief Describe how the \a TimeOffseter should perform time
@@ -183,6 +195,10 @@ private:
 	 * taken into account
 	 */
 	bool _byTimezone;
+
+	float _latitude;
+	float _longitude;
+	int _measureStep;
 };
 
 }
