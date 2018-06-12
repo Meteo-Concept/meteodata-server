@@ -569,10 +569,10 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 
 	if (sin_alpha >= -1. && sin_alpha <= 1.) {
 		double alpha = std::asin(sin_alpha);
-		if (alpha < 3.)
+		if (alpha < 3. * raddeg)
 			return false;
 
-		double threshold = 0.73 + 0.06 * std::cos(360 * fDays * raddeg) * 1080 * std::pow(sin_alpha, 1.25);
+		double threshold = (0.73 + 0.06 * std::cos(360 * fDays/365 * raddeg)) * 1080 * std::pow(sin_alpha, 1.25);
 		return solarRad > threshold;
 	}
 	return false;
