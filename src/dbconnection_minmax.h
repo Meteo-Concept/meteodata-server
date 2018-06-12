@@ -284,7 +284,7 @@ namespace meteodata {
  				"AVG(windspeed)               AS windspeed_avg,"
 				"MAX(rainrate)                AS rainrate_max,"
 				"MIN(dewpoint)                AS dewpoint_min,"
-				"MIN(dewpoint)                AS dewpoint_max,"
+				"MAX(dewpoint)                AS dewpoint_max,"
 				"AVG(dewpoint)                AS dewpoint_avg "
 				" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 			//	" FROM meteodata.meteo WHERE id = ? AND date = ?";
