@@ -74,6 +74,16 @@ inline void computeDiff(std::pair<bool, float>& result, const std::pair<bool, fl
 	}
 }
 
+inline void computeAdd(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
+{
+	if (op1.first && op2.first) {
+		result.second = op1.second + op2.second;
+		result.first = true;
+	} else {
+		result.first = false;
+	}
+}
+
 
 /**
  * @brief Entry point
@@ -141,7 +151,7 @@ int main(int argc, char** argv)
 		selectedDate = year_month_day{year{y}/m/d};
 		if (selectedDate > system_clock::now()) {
 			std::cerr << selectedDate << " looks like it's in the future, that's problematic" << std::endl;
-			return EINVAL;	
+			return EINVAL;
 		}
 	}
 
@@ -165,11 +175,11 @@ int main(int argc, char** argv)
 		std::cerr << stations.size() << " stations identified\n" <<std::endl;
 
 		for (const CassUuid& station : stations) {
-			std::cerr << "Getting values from 0h to 0h (wind, rain, pressure, etc.)" << std::endl;
+			std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
 			db.getValues0hTo0h(station, selectedDate, values);
-			std::cerr << "Getting values from 6h to 6h (Tx)" << std::endl;
+			std::cerr << "Getting values from 6h to 6h (Tx, rainfall)" << std::endl;
 			db.getValues6hTo6h(station, selectedDate, values);
-			std::cerr << "Getting values from 18h to 18h (Tx)" << std::endl;
+			std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
 			db.getValues18hTo18h(station, selectedDate, values);
 
 			std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
@@ -177,30 +187,39 @@ int main(int argc, char** argv)
 						rainYesterday,  etYesterday,
 						rainBeginMonth, etBeginMonth;
 
-			if (date::floor<date::days>(system_clock::now()) == selectedDate)
-				db.getYearlyValuesNow(station, rainToday, etToday);
-			else
-				db.getYearlyValues(station, selectedDate + date::days(1), rainToday, etToday);
-			db.getYearlyValues(station, selectedDate, rainYesterday, etYesterday);
 			auto ymd = date::year_month_day(selectedDate);
-			date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
-			db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
+			if (unsigned(ymd.month()) != 1 && unsigned(ymd.day()) != 1) {
+				db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
+				computeAdd(rainToday, values.rainfall, rainYesterday);
+				computeAdd(etToday, values.et, etYesterday);
+			} else {
+				rainToday = values.rainfall;
+				etToday = values.et;
+			}
 
-			computeDiff(values.dayRain, rainToday, rainYesterday);
-			computeDiff(values.monthRain, rainToday, rainBeginMonth);
-			values.yearRain  = rainToday;
-			computeDiff(values.dayEt, etToday, etYesterday);
-			computeDiff(values.monthEt, etToday, etBeginMonth);
-			values.yearEt    = etToday;
+			if (unsigned(ymd.month()) != 1) {
+				date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
+				db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
+				computeDiff(values.monthRain, rainToday, rainBeginMonth);
+				computeDiff(values.monthEt, etToday, etBeginMonth);
+			} else {
+				values.monthRain  = rainToday;
+				values.monthEt    = etToday;
+			}
+
+			values.dayRain  = values.rainfall;
+			values.yearRain = rainToday;
+			values.dayEt    = values.et;
+			values.yearEt   = etToday;
 
 			computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
 			computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
 
-			for (int i=0 ; i<4 ; i++)
+			for (int i=0 ; i<2 ; i++)
 				computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
 			for (int i=0 ; i<4 ; i++)
 				computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
-			for (int i=0 ; i<7 ; i++)
+			for (int i=0 ; i<3 ; i++)
 				computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
 
 			std::cerr << "Inserting into database" << std::endl;
