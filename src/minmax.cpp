@@ -54,36 +54,12 @@ using namespace date;
 using namespace std::chrono;
 namespace po = boost::program_options;
 
-inline void computeMean(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
+template<typename T1, typename T2>
+inline std::ostream& operator<<(std::ostream& os, const std::pair<T1,T2>& pair)
 {
-	if (op1.first && op2.first) {
-		result.second = (op1.second + op2.second) / 2;
-		result.first = true;
-	} else {
-		result.first = false;
-	}
+	os << "(" << pair.first << ", " << pair.second << ")";
+	return os;
 }
-
-inline void computeDiff(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
-{
-	if (op1.first && op2.first) {
-		result.second = op1.second - op2.second;
-		result.first = true;
-	} else {
-		result.first = false;
-	}
-}
-
-inline void computeAdd(std::pair<bool, float>& result, const std::pair<bool, float>& op1, const std::pair<bool, float>& op2)
-{
-	if (op1.first && op2.first) {
-		result.second = op1.second + op2.second;
-		result.first = true;
-	} else {
-		result.first = false;
-	}
-}
-
 
 /**
  * @brief Entry point
@@ -182,29 +158,31 @@ int main(int argc, char** argv)
 			std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
 			db.getValues18hTo18h(station, selectedDate, values);
 
+			std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
+
 			std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
 			std::pair<bool, float>  rainToday,      etToday,
 						rainYesterday,  etYesterday,
 						rainBeginMonth, etBeginMonth;
 
 			auto ymd = date::year_month_day(selectedDate);
-			if (unsigned(ymd.month()) != 1 && unsigned(ymd.day()) != 1) {
-				db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
-				computeAdd(rainToday, values.rainfall, rainYesterday);
-				computeAdd(etToday, values.et, etYesterday);
-			} else {
+			if (unsigned(ymd.month()) == 1 && unsigned(ymd.day()) == 1) {
 				rainToday = values.rainfall;
 				etToday = values.et;
+			} else {
+				db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
+				compute(rainToday, values.rainfall, rainYesterday, std::plus<float>());
+				compute(etToday, values.et, etYesterday, std::plus<float>());
 			}
 
-			if (unsigned(ymd.month()) != 1) {
-				date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
-				db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
-				computeDiff(values.monthRain, rainToday, rainBeginMonth);
-				computeDiff(values.monthEt, etToday, etBeginMonth);
-			} else {
+			if (unsigned(ymd.month()) == 1) {
 				values.monthRain  = rainToday;
 				values.monthEt    = etToday;
+			} else {
+				date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
+				db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
+				compute(values.monthRain, rainToday, rainBeginMonth, std::minus<float>());
+				compute(values.monthEt, etToday, etBeginMonth, std::minus<float>());
 			}
 
 			values.dayRain  = values.rainfall;

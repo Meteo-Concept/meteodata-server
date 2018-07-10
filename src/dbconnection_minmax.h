@@ -38,6 +38,36 @@
 #include <date/date.h>
 
 namespace meteodata {
+
+template<typename T, typename Op>
+inline void compute(std::pair<bool, T>& result, const std::pair<bool, T>& op1, const std::pair<bool, T>& op2, Op op)
+{
+	if (op1.first && op2.first) {
+		result.second = op(op1.second, op2.second);
+		result.first = true;
+	} else {
+		result.first = false;
+	}
+}
+
+template<typename T>
+inline void computeMin(std::pair<bool, T>& result, const std::pair<bool, T>& op1, const std::pair<bool, T>& op2)
+{
+	compute(result, op1, op2, [](const T& t1, const T& t2){ return t1 < t2 ? t1 : t2; });
+}
+
+template<typename T>
+inline void computeMax(std::pair<bool, T>& result, const std::pair<bool, T>& op1, const std::pair<bool, T>& op2)
+{
+	compute(result, op1, op2, [](const T& t1, const T& t2){ return t1 >= t2 ? t1 : t2; });
+}
+
+template<typename T>
+inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op1, const std::pair<bool, T>& op2)
+{
+	compute(result, op1, op2, [](const T& t1, const T& t2){ return (t1 + t2) / 2; });
+}
+
 	/**
 	 * @brief A handle to the database to insert meteorological measures
 	 *
@@ -191,7 +221,7 @@ namespace meteodata {
 		 * method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllStations;
-		static constexpr char SELECT_VALUES_6H_TO_6H_STMT[] =
+		static constexpr char SELECT_VALUES_AFTER_6H_STMT[] =
 			"SELECT "
 				"MAX(insidetemp)     AS insideTemp_max,"
 				"MAX(leaftemp1)      AS leafTemp1_max,"
@@ -206,14 +236,32 @@ namespace meteodata {
 				"MAX(extratemp3)     AS extraTemp3_max,"
 				"SUM(rainfall)       AS rainfall "
 			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
-				" FROM meteodata_v2.meteo WHERE station = ? AND day IN (?,?) AND time >= ? AND time < ?";
+				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time >= ?";
+
+		static constexpr char SELECT_VALUES_BEFORE_6H_STMT[] =
+			"SELECT "
+				"MAX(insidetemp)     AS insideTemp_max,"
+				"MAX(leaftemp1)      AS leafTemp1_max,"
+				"MAX(leaftemp2)      AS leafTemp2_max,"
+				"MAX(outsidetemp)    AS outsideTemp_max,"
+				"MAX(soiltemp1)      AS soilTemp1_max,"
+				"MAX(soiltemp2)      AS soilTemp2_max,"
+				"MAX(soiltemp3)      AS soilTemp3_max,"
+				"MAX(soiltemp4)      AS soilTemp4_max,"
+				"MAX(extratemp1)     AS extraTemp1_max,"
+				"MAX(extratemp2)     AS extraTemp2_max,"
+				"MAX(extratemp3)     AS extraTemp3_max,"
+				"SUM(rainfall)       AS rainfall "
+			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
+				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time < ?";
 		/**
 		 * @brief The first prepared statement for the getValues()
 		 * method
 		 */
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValues6hTo6h;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesAfter6h;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesAfter18h;
 
-		static constexpr char SELECT_VALUES_0H_TO_0H_STMT[] =
+		static constexpr char SELECT_VALUES_ALL_DAY_STMT[] =
 			"SELECT "
 				"MIN(barometer)               AS barometer_min,"
 				"MAX(barometer)               AS barometer_max,"
@@ -261,16 +309,16 @@ namespace meteodata {
 				"MIN(dewpoint)                AS dewpoint_min,"
 				"MAX(dewpoint)                AS dewpoint_max,"
 				"AVG(dewpoint)                AS dewpoint_avg,"
-				"SUM(et)                      AS et "
+				"SUM(et)                      AS et"
 			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 				" FROM meteodata_v2.meteo WHERE station = ? AND day = ?";
 		/**
 		 * @brief The first prepared statement for the getValues()
 		 * method
 		 */
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValues0hTo0h;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesAllDay;
 
-		static constexpr char SELECT_VALUES_18H_TO_18H_STMT[] =
+		static constexpr char SELECT_VALUES_AFTER_18H_STMT[] =
 			"SELECT "
 				"MIN(insidetemp)     AS insideTemp_min,"
 				"MIN(leaftemp1)      AS leafTemp1_min,"
@@ -284,12 +332,29 @@ namespace meteodata {
 				"MIN(extratemp2)     AS extraTemp2_min,"
 				"MIN(extratemp3)     AS extraTemp3_min "
 			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
-				" FROM meteodata_v2.meteo WHERE station = ? AND day IN (?,?) AND time >= ? AND time <= ?";
+				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time >= ?";
+
+		static constexpr char SELECT_VALUES_BEFORE_18H_STMT[] =
+			"SELECT "
+				"MIN(insidetemp)     AS insideTemp_min,"
+				"MIN(leaftemp1)      AS leafTemp1_min,"
+				"MIN(leaftemp2)      AS leafTemp2_min,"
+				"MIN(outsidetemp)    AS outsideTemp_min,"
+				"MIN(soiltemp1)      AS soilTemp1_min,"
+				"MIN(soiltemp2)      AS soilTemp2_min,"
+				"MIN(soiltemp3)      AS soilTemp3_min,"
+				"MIN(soiltemp4)      AS soilTemp4_min,"
+				"MIN(extratemp1)     AS extraTemp1_min,"
+				"MIN(extratemp2)     AS extraTemp2_min,"
+				"MIN(extratemp3)     AS extraTemp3_min "
+			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
+				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time < ?";
 		/**
 		 * @brief The first prepared statement for the getValues()
 		 * method
 		 */
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValues18hTo18h;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesBefore6h;
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesBefore18h;
 
 		static constexpr char SELECT_YEARLY_VALUES_STMT[] =
 			//"SELECT yearrain,yearET FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ? LIMIT 1";

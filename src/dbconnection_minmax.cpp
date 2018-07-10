@@ -33,12 +33,16 @@
 
 #include "dbconnection_minmax.h"
 
+using namespace date;
+
 namespace meteodata {
 
 constexpr char DbConnectionMinmax::INSERT_DATAPOINT_STMT[];
-constexpr char DbConnectionMinmax::SELECT_VALUES_0H_TO_0H_STMT[];
-constexpr char DbConnectionMinmax::SELECT_VALUES_6H_TO_6H_STMT[];
-constexpr char DbConnectionMinmax::SELECT_VALUES_18H_TO_18H_STMT[];
+constexpr char DbConnectionMinmax::SELECT_VALUES_ALL_DAY_STMT[];
+constexpr char DbConnectionMinmax::SELECT_VALUES_BEFORE_6H_STMT[];
+constexpr char DbConnectionMinmax::SELECT_VALUES_AFTER_6H_STMT[];
+constexpr char DbConnectionMinmax::SELECT_VALUES_BEFORE_18H_STMT[];
+constexpr char DbConnectionMinmax::SELECT_VALUES_AFTER_18H_STMT[];
 constexpr char DbConnectionMinmax::SELECT_YEARLY_VALUES_STMT[];
 constexpr char DbConnectionMinmax::SELECT_ALL_STATIONS_STMT[];
 
@@ -61,9 +65,11 @@ DbConnectionMinmax::DbConnectionMinmax(const std::string& address, const std::st
 	_cluster{cass_cluster_new()},
 	_session{cass_session_new()},
 	_selectAllStations{nullptr, cass_prepared_free},
-	_selectValues6hTo6h{nullptr, cass_prepared_free},
-	_selectValues0hTo0h{nullptr, cass_prepared_free},
-	_selectValues18hTo18h{nullptr, cass_prepared_free},
+	_selectValuesAfter6h{nullptr, cass_prepared_free},
+	_selectValuesAfter18h{nullptr, cass_prepared_free},
+	_selectValuesAllDay{nullptr, cass_prepared_free},
+	_selectValuesBefore6h{nullptr, cass_prepared_free},
+	_selectValuesBefore18h{nullptr, cass_prepared_free},
 	_selectYearlyValues{nullptr, cass_prepared_free},
 	_insertDataPoint{nullptr, cass_prepared_free}
 {
@@ -93,34 +99,54 @@ void DbConnectionMinmax::prepareStatements()
 	_selectAllStations.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
-	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_6H_TO_6H_STMT);
+	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_BEFORE_6H_STMT);
 	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement _selectValues6hTo6h: ");
+		std::string desc("Could not prepare statement _selectValuesBefore6h: ");
 		desc.append(cass_error_desc(rc));
 		throw std::runtime_error(desc);
 	}
-	_selectValues6hTo6h.reset(cass_future_get_prepared(prepareFuture));
+	_selectValuesBefore6h.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
-	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_18H_TO_18H_STMT);
+	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_AFTER_6H_STMT);
 	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement _selectValues18hTo18h: ");
+		std::string desc("Could not prepare statement _selectValuesAfter6h: ");
 		desc.append(cass_error_desc(rc));
 		throw std::runtime_error(desc);
 	}
-	_selectValues18hTo18h.reset(cass_future_get_prepared(prepareFuture));
+	_selectValuesAfter6h.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
-	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_0H_TO_0H_STMT);
+	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_ALL_DAY_STMT);
 	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement _selectValues0hTo0h: ");
+		std::string desc("Could not prepare statement _selectValuesAllDay: ");
 		desc.append(cass_error_desc(rc));
 		throw std::runtime_error(desc);
 	}
-	_selectValues0hTo0h.reset(cass_future_get_prepared(prepareFuture));
+	_selectValuesAllDay.reset(cass_future_get_prepared(prepareFuture));
+	cass_future_free(prepareFuture);
+
+	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_BEFORE_18H_STMT);
+	rc = cass_future_error_code(prepareFuture);
+	if (rc != CASS_OK) {
+		std::string desc("Could not prepare statement _selectValuesBefore6h: ");
+		desc.append(cass_error_desc(rc));
+		throw std::runtime_error(desc);
+	}
+	_selectValuesBefore18h.reset(cass_future_get_prepared(prepareFuture));
+	cass_future_free(prepareFuture);
+
+	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_AFTER_18H_STMT);
+	rc = cass_future_error_code(prepareFuture);
+	if (rc != CASS_OK) {
+		std::string desc("Could not prepare statement _selectValuesAfter18h: ");
+		desc.append(cass_error_desc(rc));
+		throw std::runtime_error(desc);
+	}
+	_selectValuesAfter18h.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
 	prepareFuture = cass_session_prepare(_session, SELECT_YEARLY_VALUES_STMT);
@@ -175,18 +201,22 @@ bool DbConnectionMinmax::getAllStations(std::vector<CassUuid>& stations)
 bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_days& date, DbConnectionMinmax::Values& values)
 {
 	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectValues6hTo6h.get());
+	CassStatement* statement = cass_prepared_bind(_selectValuesAfter6h.get());
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
 	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date));
-	cass_statement_bind_uint32(statement, 2, from_sysdays_to_CassandraDate(date + date::days(1)));
 	auto morning = date + chrono::hours(6);
-	auto nextMorning = date + date::days(1) + chrono::hours(6);
-	cass_statement_bind_int64(statement, 3, from_systime_to_CassandraDateTime(morning));
-	cass_statement_bind_int64(statement, 4, from_systime_to_CassandraDateTime(nextMorning));
+	cass_statement_bind_int64(statement, 2, from_systime_to_CassandraDateTime(morning));
 	query = cass_session_execute(_session, statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
+
+	std::pair<bool, float> insideTemp_max[2];
+	std::pair<bool, float> leafTemp_max[2][2];
+	std::pair<bool, float> outsideTemp_max[2];
+	std::pair<bool, float> soilTemp_max[2][4];
+	std::pair<bool, float> extraTemp_max[2][3];
+	std::pair<bool, float> rainfall[2];
 
 	const CassResult* result = cass_future_get_result(query);
 	bool ret = false;
@@ -194,20 +224,62 @@ bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_d
 		const CassRow* row = cass_result_first_row(result);
 		if (row) {
 			int param = 0;
-			storeCassandraFloat(row, param++, values.insideTemp_max);
+			storeCassandraFloat(row, param++, insideTemp_max[0]);
 			for (int i=0 ; i<2 ; i++)
-				storeCassandraFloat(row, param++,  values.leafTemp_max[i]);
-			storeCassandraFloat(row, param++, values.outsideTemp_max);
+				storeCassandraFloat(row, param++,  leafTemp_max[0][i]);
+			storeCassandraFloat(row, param++, outsideTemp_max[0]);
 			for (int i=0 ; i<4 ; i++)
-				storeCassandraFloat(row, param++, values.soilTemp_max[i]);
+				storeCassandraFloat(row, param++, soilTemp_max[0][i]);
 			for (int i=0 ; i<3 ; i++)
-				storeCassandraFloat(row, param++, values.extraTemp_max[i]);
-			storeCassandraFloat(row, param++, values.rainfall);
+				storeCassandraFloat(row, param++, extraTemp_max[0][i]);
+			storeCassandraFloat(row, param++, rainfall[0]);
 			ret = true;
 		}
 	}
 	cass_result_free(result);
 	cass_future_free(query);
+
+	statement = cass_prepared_bind(_selectValuesBefore6h.get());
+	std::cerr << "Statement prepared" << std::endl;
+	cass_statement_bind_uuid(statement, 0, uuid);
+	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date + date::days(1)));
+	auto nextMorning = date + date::days(1) + chrono::hours(6);
+	cass_statement_bind_int64(statement, 2, from_systime_to_CassandraDateTime(nextMorning));
+	query = cass_session_execute(_session, statement);
+	std::cerr << "Executed statement" << std::endl;
+	cass_statement_free(statement);
+
+	result = cass_future_get_result(query);
+	ret = false;
+	if (result) {
+		const CassRow* row = cass_result_first_row(result);
+		if (row) {
+			int param = 0;
+			storeCassandraFloat(row, param++, insideTemp_max[1]);
+			for (int i=0 ; i<2 ; i++)
+				storeCassandraFloat(row, param++,  leafTemp_max[1][i]);
+			storeCassandraFloat(row, param++, outsideTemp_max[1]);
+			for (int i=0 ; i<4 ; i++)
+				storeCassandraFloat(row, param++, soilTemp_max[1][i]);
+			for (int i=0 ; i<3 ; i++)
+				storeCassandraFloat(row, param++, extraTemp_max[1][i]);
+			storeCassandraFloat(row, param++, rainfall[1]);
+			ret = true;
+		}
+	}
+
+	cass_result_free(result);
+	cass_future_free(query);
+
+	computeMax(values.insideTemp_max, insideTemp_max[0], insideTemp_max[1]);
+	for (int i=0 ; i<2 ; i++)
+		computeMax(values.leafTemp_max[i], leafTemp_max[0][i], leafTemp_max[1][i]);
+	computeMax(values.outsideTemp_max, outsideTemp_max[0], outsideTemp_max[1]);
+	for (int i=0 ; i<2 ; i++)
+		computeMax(values.soilTemp_max[i], soilTemp_max[0][i], soilTemp_max[1][i]);
+	for (int i=0 ; i<2 ; i++)
+		computeMax(values.extraTemp_max[i], extraTemp_max[0][i], extraTemp_max[1][i]);
+	compute(values.rainfall, rainfall[0], rainfall[1], std::plus<float>());
 
 	return ret;
 }
@@ -215,18 +287,21 @@ bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_d
 bool DbConnectionMinmax::getValues18hTo18h(const CassUuid& uuid, const date::sys_days& date, DbConnectionMinmax::Values& values)
 {
 	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectValues18hTo18h.get());
+	CassStatement* statement = cass_prepared_bind(_selectValuesAfter18h.get());
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
 	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date - date::days(1)));
-	cass_statement_bind_uint32(statement, 2, from_sysdays_to_CassandraDate(date));
 	auto previousEvening = date - date::days(1) + chrono::hours(18);
-	auto evening         = date + chrono::hours(18);
-	cass_statement_bind_int64(statement, 3, from_systime_to_CassandraDateTime(previousEvening));
-	cass_statement_bind_int64(statement, 4, from_systime_to_CassandraDateTime(evening));
+	cass_statement_bind_int64(statement, 2, from_systime_to_CassandraDateTime(previousEvening));
 	query = cass_session_execute(_session, statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
+
+	std::pair<bool, float> insideTemp_min[2];
+	std::pair<bool, float> leafTemp_min[2][2];
+	std::pair<bool, float> outsideTemp_min[2];
+	std::pair<bool, float> soilTemp_min[2][4];
+	std::pair<bool, float> extraTemp_min[2][3];
 
 	const CassResult* result = cass_future_get_result(query);
 	bool ret = false;
@@ -234,19 +309,59 @@ bool DbConnectionMinmax::getValues18hTo18h(const CassUuid& uuid, const date::sys
 		const CassRow* row = cass_result_first_row(result);
 		if (row) {
 			int param = 0;
-			storeCassandraFloat(row, param++,  values.insideTemp_min);
+			storeCassandraFloat(row, param++, insideTemp_min[0]);
 			for (int i=0 ; i<2 ; i++)
-				storeCassandraFloat(row, param++,  values.leafTemp_min[i]);
-			storeCassandraFloat(row, param++, values.outsideTemp_min);
+				storeCassandraFloat(row, param++,  leafTemp_min[0][i]);
+			storeCassandraFloat(row, param++, outsideTemp_min[0]);
 			for (int i=0 ; i<4 ; i++)
-				storeCassandraFloat(row, param++, values.soilTemp_min[i]);
+				storeCassandraFloat(row, param++, soilTemp_min[0][i]);
 			for (int i=0 ; i<3 ; i++)
-				storeCassandraFloat(row, param++, values.extraTemp_min[i]);
+				storeCassandraFloat(row, param++, extraTemp_min[0][i]);
 			ret = true;
 		}
 	}
 	cass_result_free(result);
 	cass_future_free(query);
+
+	statement = cass_prepared_bind(_selectValuesBefore18h.get());
+	std::cerr << "Statement prepared" << std::endl;
+	cass_statement_bind_uuid(statement, 0, uuid);
+	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date));
+	auto evening = date + chrono::hours(18);
+	cass_statement_bind_int64(statement, 2, from_systime_to_CassandraDateTime(evening));
+	query = cass_session_execute(_session, statement);
+	std::cerr << "Executed statement" << std::endl;
+	cass_statement_free(statement);
+
+	result = cass_future_get_result(query);
+	ret = false;
+	if (result) {
+		const CassRow* row = cass_result_first_row(result);
+		if (row) {
+			int param = 0;
+			storeCassandraFloat(row, param++, insideTemp_min[1]);
+			for (int i=0 ; i<2 ; i++)
+				storeCassandraFloat(row, param++,  leafTemp_min[1][i]);
+			storeCassandraFloat(row, param++, outsideTemp_min[1]);
+			for (int i=0 ; i<4 ; i++)
+				storeCassandraFloat(row, param++, soilTemp_min[1][i]);
+			for (int i=0 ; i<3 ; i++)
+				storeCassandraFloat(row, param++, extraTemp_min[1][i]);
+			ret = true;
+		}
+	}
+
+	cass_result_free(result);
+	cass_future_free(query);
+
+	computeMin(values.insideTemp_min, insideTemp_min[0], insideTemp_min[1]);
+	for (int i=0 ; i<2 ; i++)
+		computeMin(values.leafTemp_min[i], leafTemp_min[0][i], leafTemp_min[1][i]);
+	computeMin(values.outsideTemp_min, outsideTemp_min[0], outsideTemp_min[1]);
+	for (int i=0 ; i<2 ; i++)
+		computeMin(values.soilTemp_min[i], soilTemp_min[0][i], soilTemp_min[1][i]);
+	for (int i=0 ; i<2 ; i++)
+		computeMin(values.extraTemp_min[i], extraTemp_min[0][i], extraTemp_min[1][i]);
 
 	return ret;
 }
@@ -254,7 +369,7 @@ bool DbConnectionMinmax::getValues18hTo18h(const CassUuid& uuid, const date::sys
 bool DbConnectionMinmax::getValues0hTo0h(const CassUuid& uuid, const date::sys_days& date, DbConnectionMinmax::Values& values)
 {
 	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectValues0hTo0h.get());
+	CassStatement* statement = cass_prepared_bind(_selectValuesAllDay.get());
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
 //	cass_statement_bind_int64(statement, 1, date::sys_time<chrono::milliseconds>(date).time_since_epoch().count());
