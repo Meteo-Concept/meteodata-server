@@ -200,6 +200,31 @@ int main(int argc, char** argv)
 			for (int i=0 ; i<3 ; i++)
 				computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
 
+			std::vector<std::pair<int,float>> winds;
+			std::cerr << "Getting wind values for day " << selectedDate << std::endl;
+			db.getWindValues(station, selectedDate, winds);
+
+			int count = 0;
+			int dirs[16] = {0};
+			for (auto&& w : winds) {
+				if (w.second / 3.6 >= 2.0) {
+					int rounded = ((w.first % 360) * 100 + 1125) / 2250;
+					dirs[rounded]++;
+					count++;
+				}
+			}
+			if (count == 0) {
+				values.winddir.first = false;
+			}  else {
+				values.winddir.second.resize(16);
+				for (int i=0 ; i<16 ; i++) {
+					int v = dirs[i];
+					std::cerr << "v = " << v << " | count = " << count << std::endl;
+					values.winddir.second[i] = v * 1000 / count;
+				}
+				values.winddir.first = true;
+			}
+
 			std::cerr << "Inserting into database" << std::endl;
 			db.insertDataPoint(station, selectedDate, values);
 			std::cerr << "-----------------------" << std::endl;

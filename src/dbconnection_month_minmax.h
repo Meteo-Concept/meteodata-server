@@ -37,6 +37,8 @@
 
 #include <date/date.h>
 
+#include "dbconnection_common.h"
+
 namespace meteodata {
 
 /**
@@ -46,7 +48,7 @@ namespace meteodata {
  * connector to query details about the station and insert measures in
  * the database periodically.
  */
-class DbConnectionMonthMinmax
+class DbConnectionMonthMinmax : public DbConnectionCommon
 {
 	public:
 		/**
@@ -59,7 +61,7 @@ class DbConnectionMonthMinmax
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
-		virtual ~DbConnectionMonthMinmax();
+		virtual ~DbConnectionMonthMinmax() = default;
 
 		struct Values
 		{
@@ -133,34 +135,11 @@ class DbConnectionMonthMinmax
 			}
 		}
 
-
-		bool getAllStations(std::vector<CassUuid>& stations);
-
 		bool insertDataPoint(const CassUuid& station, int year, int month, const Values& values);
 
 		bool getDailyValues(const CassUuid& station, int year, int month, Values& values);
-		bool getWindValues(const CassUuid& station, const date::sys_days& date, std::vector<std::pair<int,float>>& values);
 
 	private:
-		/**
-		 * @brief The Cassandra connection handle
-		 */
-		CassFuture* _futureConn;
-		/**
-		 * @brief The Cassandra cluster
-		 */
-		CassCluster* _cluster;
-		/**
-		 * @brief The Cassandra session data
-		 */
-		CassSession* _session;
-
-		static constexpr char SELECT_ALL_STATIONS_STMT[] = "SELECT id FROM meteodata.stations";
-		/**
-		 * @brief The first prepared statement for the getAllStations()
-		 * method
-		 */
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllStations;
 		static constexpr char SELECT_DAILY_VALUES_STMT[] =
 			"SELECT "
 			"AVG(outsidetemp_avg)		AS outsidetemp, "
@@ -182,19 +161,11 @@ class DbConnectionMonthMinmax
 			"MAX(uv_max)			AS uv_max "
 			" FROM meteodata_v2.minmax WHERE station = ? AND monthyear = ?";
 			//" FROM meteodata.minmax WHERE station = ? AND date >= ? AND date < ?";
-
-		static constexpr char SELECT_WIND_VALUES_STMT[] =
-			"SELECT "
-			"winddir,"
-			"windspeed "
-			" FROM meteodata_v2.meteo WHERE station = ? AND day = ?";
-			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 		/**
 		 * @brief The first prepared statement for the getValues()
 		 * method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectDailyValues;
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectWindValues;
 
 		static constexpr char INSERT_DATAPOINT_STMT[] =
 			"INSERT INTO meteodata_v2.month_minmax ("

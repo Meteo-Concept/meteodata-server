@@ -37,6 +37,8 @@
 
 #include <date/date.h>
 
+#include "dbconnection_common.h"
+
 namespace meteodata {
 
 template<typename T, typename Op>
@@ -75,7 +77,7 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 	 * connector to query details about the station and insert measures in
 	 * the database periodically.
 	 */
-	class DbConnectionMinmax
+	class DbConnectionMinmax : public DbConnectionCommon
 	{
 	public:
 		/**
@@ -88,7 +90,7 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
-		virtual ~DbConnectionMinmax();
+		virtual ~DbConnectionMinmax() = default;
 
 		struct Values
 		{
@@ -130,7 +132,7 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 			std::pair<bool, int> solarRad_avg;
 			std::pair<bool, int> uv_max;
 			std::pair<bool, int> uv_avg;
-			std::pair<bool, int> winddir;
+			std::pair<bool, std::vector<int>> winddir;
 			std::pair<bool, float> windgust_max;
 			std::pair<bool, float> windgust_avg;
 			std::pair<bool, float> windspeed_max;
@@ -155,45 +157,6 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 			std::pair<bool, float> extraTemp_avg[3];
 		};
 
-		inline void storeCassandraInt(const CassRow* row, int column, std::pair<bool, int>& value)
-		{
-			const CassValue* raw = cass_row_get_column(row, column);
-			if (cass_value_is_null(raw)) {
-			//	std::cerr << "Detected an int null value at column " << column << std::endl;
-				value.first = false;
-			} else {
-				value.first = true;
-				cass_value_get_int32(raw, &value.second);
-			}
-		}
-
-		inline void storeCassandraFloat(const CassRow* row, int column, std::pair<bool, float>& value)
-		{
-			const CassValue* raw = cass_row_get_column(row, column);
-			if (cass_value_is_null(raw)) {
-			//	std::cerr << "Detected a float null value as column " << column << std::endl;
-				value.first = false;
-			} else {
-				value.first = true;
-				cass_value_get_float(raw, &value.second);
-			}
-		}
-
-		inline void bindCassandraInt(CassStatement* stmt, int column, const std::pair<bool, int>& value)
-		{
-			if (value.first)
-				cass_statement_bind_int32(stmt, column, value.second);
-		}
-
-		inline void bindCassandraFloat(CassStatement* stmt, int column, const std::pair<bool, float>& value)
-		{
-			if (value.first)
-				cass_statement_bind_float(stmt, column, value.second);
-		}
-
-
-		bool getAllStations(std::vector<CassUuid>& stations);
-
 		bool insertDataPoint(const CassUuid& station, const date::sys_days& date, const Values& values);
 
 		bool getValues6hTo6h(const CassUuid& station, const date::sys_days& date, Values& values);
@@ -202,25 +165,6 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 		bool getYearlyValues(const CassUuid& station, const date::sys_days& date, std::pair<bool, float>& rain, std::pair<bool, float>& et);
 
 	private:
-		/**
-		 * @brief The Cassandra connection handle
-		 */
-		CassFuture* _futureConn;
-		/**
-		 * @brief The Cassandra cluster
-		 */
-		CassCluster* _cluster;
-		/**
-		 * @brief The Cassandra session data
-		 */
-		CassSession* _session;
-
-		static constexpr char SELECT_ALL_STATIONS_STMT[] = "SELECT id FROM meteodata.stations";
-		/**
-		 * @brief The first prepared statement for the getAllStations()
-		 * method
-		 */
-		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllStations;
 		static constexpr char SELECT_VALUES_AFTER_6H_STMT[] =
 			"SELECT "
 				"MAX(insidetemp)     AS insideTemp_max,"
@@ -300,7 +244,6 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 				"AVG(solarrad)                AS solarRad_avg,"
 				"MAX(uv)                      AS uv_max,"
 				"AVG(uv)                      AS uv_avg,"
-				"COUNTMAXOCCURRENCES(winddir) AS winddir,"
 				"MAX(windgust)                AS windgust_max,"
 				"AVG(windgust)                AS windgust_avg,"
 				"MAX(windspeed)               AS windspeed_max,"
@@ -357,18 +300,17 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectValuesBefore18h;
 
 		static constexpr char SELECT_YEARLY_VALUES_STMT[] =
-			//"SELECT yearrain,yearET FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ? LIMIT 1";
-			"SELECT yearrain,yearet FROM meteodata.minmax WHERE station = ? AND date = ?";
+			"SELECT yearrain,yearet FROM meteodata_v2.minmax WHERE station = ? AND monthyear = ? AND day = ?";
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectYearlyValues;
 
 		static constexpr char INSERT_DATAPOINT_STMT[] =
-			"INSERT INTO meteodata.minmax ("
+			"INSERT INTO meteodata_v2.minmax ("
 			"station,"
-			"date,"
+			"monthyear, day,"
 			"barometer_min, barometer_max, barometer_avg,"
 			"dayet, monthet, yearet,"
 			"dayrain, monthrain, yearrain,"
-			"dewpoint_min, dewpoint_max, dewpoint_avg,"
+			"dewpoint_max, dewpoint_avg,"
 			"insidehum_min, insidehum_max, insidehum_avg,"
 			"insidetemp_min, insidetemp_max, insidetemp_avg,"
 			"leaftemp1_min, leaftemp1_max, leaftemp1_avg,"
@@ -398,11 +340,11 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 			"windspeed_max, windspeed_avg)"
 			" VALUES ("
 			"?,"
-			"?,"
+			"?, ?,"
 			"?, ?, ?,"
 			"?, ?, ?,"
 			"?, ?, ?,"
-			"?, ?, ?,"
+			"?, ?,"
 			"?, ?, ?,"
 			"?, ?, ?,"
 			"?, ?, ?,"

@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include "dbconnection_month_minmax.h"
+#include "dbconnection_common.h"
 
 using namespace date;
 
@@ -39,76 +40,27 @@ namespace meteodata {
 
 constexpr char DbConnectionMonthMinmax::INSERT_DATAPOINT_STMT[];
 constexpr char DbConnectionMonthMinmax::SELECT_DAILY_VALUES_STMT[];
-constexpr char DbConnectionMonthMinmax::SELECT_WIND_VALUES_STMT[];
-constexpr char DbConnectionMonthMinmax::SELECT_ALL_STATIONS_STMT[];
 
 namespace chrono = std::chrono;
 
-inline uint32_t from_sysdays_to_CassandraDate(const date::sys_days& d)
-{
-	date::sys_time<chrono::seconds> tp = d;
-	return cass_date_from_epoch(tp.time_since_epoch().count());
-}
-
-inline std::pair<uint32_t,uint32_t> from_monthyear_to_CassandraDates(int y, int m)
-{
-	sys_time<chrono::seconds> begin = sys_days{year{y}/m/1};
-	sys_time<chrono::seconds> end = begin + months{1};
-	return std::make_pair(cass_date_from_epoch(begin.time_since_epoch().count()), cass_date_from_epoch(end.time_since_epoch().count()));
-}
-
 DbConnectionMonthMinmax::DbConnectionMonthMinmax(const std::string& address, const std::string& user, const std::string& password) :
-	_cluster{cass_cluster_new()},
-	_session{cass_session_new()},
-	_selectAllStations{nullptr, cass_prepared_free},
+	DbConnectionCommon(address, user, password),
 	_selectDailyValues{nullptr, cass_prepared_free},
-	_selectWindValues{nullptr, cass_prepared_free},
 	_insertDataPoint{nullptr, cass_prepared_free}
 {
-	cass_cluster_set_contact_points(_cluster, address.c_str());
-	if (!user.empty() && !password.empty())
-		cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
-	_futureConn = cass_session_connect(_session, _cluster);
-	CassError rc = cass_future_error_code(_futureConn);
-	if (rc != CASS_OK) {
-		std::string desc("Impossible to connect to database: ");
-		desc.append(cass_error_desc(rc));
-		throw std::runtime_error(desc);
-	} else {
-		prepareStatements();
-	}
+	prepareStatements();
 }
 
 void DbConnectionMonthMinmax::prepareStatements()
 {
-	CassFuture* prepareFuture = cass_session_prepare(_session, SELECT_ALL_STATIONS_STMT);
+	CassFuture* prepareFuture = cass_session_prepare(_session, SELECT_DAILY_VALUES_STMT);
 	CassError rc = cass_future_error_code(prepareFuture);
-	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement selectAllStations: ");
-		desc.append(cass_error_desc(rc));
-		throw std::runtime_error(desc);
-	}
-	_selectAllStations.reset(cass_future_get_prepared(prepareFuture));
-	cass_future_free(prepareFuture);
-
-	prepareFuture = cass_session_prepare(_session, SELECT_DAILY_VALUES_STMT);
-	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement _selectDailyValues: ");
 		desc.append(cass_error_desc(rc));
 		throw std::runtime_error(desc);
 	}
 	_selectDailyValues.reset(cass_future_get_prepared(prepareFuture));
-	cass_future_free(prepareFuture);
-
-	prepareFuture = cass_session_prepare(_session, SELECT_WIND_VALUES_STMT);
-	rc = cass_future_error_code(prepareFuture);
-	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement _selectWindValues: ");
-		desc.append(cass_error_desc(rc));
-		throw std::runtime_error(desc);
-	}
-	_selectWindValues.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
 	prepareFuture = cass_session_prepare(_session, INSERT_DATAPOINT_STMT);
@@ -120,34 +72,6 @@ void DbConnectionMonthMinmax::prepareStatements()
 	}
 	_insertDataPoint.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
-}
-
-bool DbConnectionMonthMinmax::getAllStations(std::vector<CassUuid>& stations)
-{
-	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectAllStations.get());
-	std::cerr << "Statement prepared" << std::endl;
-	query = cass_session_execute(_session, statement);
-	std::cerr << "Executed statement" << std::endl;
-	cass_statement_free(statement);
-
-	const CassResult* result = cass_future_get_result(query);
-	bool ret = false;
-	if (result) {
-		CassIterator* iterator = cass_iterator_from_result(result);
-		CassUuid uuid;
-		while (cass_iterator_next(iterator)) {
-			const CassRow* row = cass_iterator_get_row(iterator);
-			cass_value_get_uuid(cass_row_get_column(row,0), &uuid);
-			stations.push_back(uuid);
-		}
-		ret = true;
-		cass_iterator_free(iterator);
-	}
-	cass_result_free(result);
-	cass_future_free(query);
-
-	return ret;
 }
 
 bool DbConnectionMonthMinmax::getDailyValues(const CassUuid& uuid, int year, int month, DbConnectionMonthMinmax::Values& values)
@@ -191,39 +115,6 @@ bool DbConnectionMonthMinmax::getDailyValues(const CassUuid& uuid, int year, int
 	cass_result_free(result);
 	cass_future_free(query);
 	std::cerr << "Saved daily values" << std::endl;
-
-	return ret;
-}
-
-bool DbConnectionMonthMinmax::getWindValues(const CassUuid& uuid, const date::sys_days& date, std::vector<std::pair<int,float>>& values)
-{
-	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectWindValues.get());
-	std::cerr << "Statement prepared" << std::endl;
-	cass_statement_bind_uuid(statement, 0, uuid);
-	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date));
-	query = cass_session_execute(_session, statement);
-	std::cerr << "Executed statement" << std::endl;
-	cass_statement_free(statement);
-
-	bool ret = false;
-	const CassResult* result = cass_future_get_result(query);
-	CassIterator* it = cass_iterator_from_result(result);
-	while(cass_iterator_next(it)) {
-		const CassRow* row = cass_iterator_get_row(it);
-		std::pair<bool,int> dir;
-		std::pair<bool,float> speed;
-		storeCassandraInt(row, 0, dir);
-		storeCassandraFloat(row, 1, speed);
-		if (dir.first && speed.first)
-			values.emplace_back(dir.second, speed.second);
-	}
-	ret = true;
-	cass_iterator_free(it);
-	cass_result_free(result);
-	cass_future_free(query);
-
-	std::cerr << "Saved wind values" << std::endl;
 
 	return ret;
 }
@@ -272,15 +163,5 @@ bool DbConnectionMonthMinmax::insertDataPoint(const CassUuid& station, int year,
 	cass_future_free(query);
 
 	return ret;
-}
-
-DbConnectionMonthMinmax::~DbConnectionMonthMinmax()
-{
-	CassFuture* futureClose = cass_session_close(_session);
-	cass_future_wait(futureClose);
-	cass_future_free(futureClose);
-	cass_future_free(_futureConn);
-	cass_cluster_free(_cluster);
-	cass_session_free(_session);
 }
 }

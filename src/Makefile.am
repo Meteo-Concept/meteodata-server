@@ -28,12 +28,16 @@ meteodata_SOURCES = \
 
 meteodata_minmax_SOURCES = \
 			   minmax.cpp\
+			   dbconnection_common.h\
+			   dbconnection_common.cpp\
 			   dbconnection_minmax.h\
 			   dbconnection_minmax.cpp\
 			   date/include/date/date.h
 
 meteodata_month_minmax_SOURCES = \
 			   month_minmax.cpp\
+			   dbconnection_common.h\
+			   dbconnection_common.cpp\
 			   dbconnection_month_minmax.h\
 			   dbconnection_month_minmax.cpp\
 			   date/include/date/date.h

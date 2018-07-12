@@ -25,13 +25,15 @@
 #include <mutex>
 #include <exception>
 #include <chrono>
-#include <unordered_map>
+#include <vector>
+#include <string>
 
 #include <cassandra.h>
 #include <syslog.h>
 #include <unistd.h>
 
 #include "dbconnection_minmax.h"
+#include "dbconnection_common.h"
 
 using namespace date;
 
@@ -44,27 +46,11 @@ constexpr char DbConnectionMinmax::SELECT_VALUES_AFTER_6H_STMT[];
 constexpr char DbConnectionMinmax::SELECT_VALUES_BEFORE_18H_STMT[];
 constexpr char DbConnectionMinmax::SELECT_VALUES_AFTER_18H_STMT[];
 constexpr char DbConnectionMinmax::SELECT_YEARLY_VALUES_STMT[];
-constexpr char DbConnectionMinmax::SELECT_ALL_STATIONS_STMT[];
 
 namespace chrono = std::chrono;
 
-inline uint32_t from_sysdays_to_CassandraDate(const date::sys_days& d)
-{
-	date::sys_time<chrono::seconds> tp = d;
-	return cass_date_from_epoch(tp.time_since_epoch().count());
-}
-
-template<typename T>
-inline int64_t from_systime_to_CassandraDateTime(const date::sys_time<T>& d)
-{
-	date::sys_time<chrono::milliseconds> tp = d;
-	return cass_time_from_epoch(tp.time_since_epoch().count());
-}
-
 DbConnectionMinmax::DbConnectionMinmax(const std::string& address, const std::string& user, const std::string& password) :
-	_cluster{cass_cluster_new()},
-	_session{cass_session_new()},
-	_selectAllStations{nullptr, cass_prepared_free},
+	DbConnectionCommon(address, user, password),
 	_selectValuesAfter6h{nullptr, cass_prepared_free},
 	_selectValuesAfter18h{nullptr, cass_prepared_free},
 	_selectValuesAllDay{nullptr, cass_prepared_free},
@@ -73,34 +59,13 @@ DbConnectionMinmax::DbConnectionMinmax(const std::string& address, const std::st
 	_selectYearlyValues{nullptr, cass_prepared_free},
 	_insertDataPoint{nullptr, cass_prepared_free}
 {
-	cass_cluster_set_contact_points(_cluster, address.c_str());
-	if (!user.empty() && !password.empty())
-		cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
-	_futureConn = cass_session_connect(_session, _cluster);
-	CassError rc = cass_future_error_code(_futureConn);
-	if (rc != CASS_OK) {
-		std::string desc("Impossible to connect to database: ");
-		desc.append(cass_error_desc(rc));
-		throw std::runtime_error(desc);
-	} else {
-		prepareStatements();
-	}
+	prepareStatements();
 }
 
 void DbConnectionMinmax::prepareStatements()
 {
-	CassFuture* prepareFuture = cass_session_prepare(_session, "SELECT id FROM meteodata.stations");
+	CassFuture* prepareFuture = cass_session_prepare(_session, SELECT_VALUES_BEFORE_6H_STMT);
 	CassError rc = cass_future_error_code(prepareFuture);
-	if (rc != CASS_OK) {
-		std::string desc("Could not prepare statement selectAllStations: ");
-		desc.append(cass_error_desc(rc));
-		throw std::runtime_error(desc);
-	}
-	_selectAllStations.reset(cass_future_get_prepared(prepareFuture));
-	cass_future_free(prepareFuture);
-
-	prepareFuture = cass_session_prepare(_session, SELECT_VALUES_BEFORE_6H_STMT);
-	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement _selectValuesBefore6h: ");
 		desc.append(cass_error_desc(rc));
@@ -170,34 +135,6 @@ void DbConnectionMinmax::prepareStatements()
 	cass_future_free(prepareFuture);
 }
 
-bool DbConnectionMinmax::getAllStations(std::vector<CassUuid>& stations)
-{
-	CassFuture* query;
-	CassStatement* statement = cass_prepared_bind(_selectAllStations.get());
-	std::cerr << "Statement prepared" << std::endl;
-	query = cass_session_execute(_session, statement);
-	std::cerr << "Executed statement" << std::endl;
-	cass_statement_free(statement);
-
-	const CassResult* result = cass_future_get_result(query);
-	bool ret = false;
-	if (result) {
-		CassIterator* iterator = cass_iterator_from_result(result);
-		CassUuid uuid;
-		while (cass_iterator_next(iterator)) {
-			const CassRow* row = cass_iterator_get_row(iterator);
-			cass_value_get_uuid(cass_row_get_column(row,0), &uuid);
-			stations.push_back(uuid);
-		}
-		ret = true;
-		cass_iterator_free(iterator);
-	}
-	cass_result_free(result);
-	cass_future_free(query);
-
-	return ret;
-}
-
 bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_days& date, DbConnectionMinmax::Values& values)
 {
 	CassFuture* query;
@@ -238,6 +175,22 @@ bool DbConnectionMinmax::getValues6hTo6h(const CassUuid& uuid, const date::sys_d
 	}
 	cass_result_free(result);
 	cass_future_free(query);
+
+	auto nextDay = date + date::days(1);
+	if (nextDay > chrono::system_clock::now()) {
+		values.insideTemp_max = insideTemp_max[0];
+		for (int i=0 ; i<2 ; i++)
+			values.leafTemp_max[i] = leafTemp_max[0][i];
+		values.outsideTemp_max = outsideTemp_max[0];
+		for (int i=0 ; i<2 ; i++)
+			values.soilTemp_max[i] = soilTemp_max[0][i];
+		for (int i=0 ; i<2 ; i++)
+			values.extraTemp_max[i] = extraTemp_max[0][i];
+		values.rainfall = rainfall[0];
+
+		// return here immediately since there are no values for tomorrow
+		return ret;
+	}
 
 	statement = cass_prepared_bind(_selectValuesBefore6h.get());
 	std::cerr << "Statement prepared" << std::endl;
@@ -418,7 +371,6 @@ bool DbConnectionMinmax::getValues0hTo0h(const CassUuid& uuid, const date::sys_d
 			storeCassandraInt(row, res++, values.solarRad_avg);
 			storeCassandraInt(row, res++, values.uv_max);
 			storeCassandraInt(row, res++, values.uv_avg);
-			storeCassandraInt(row, res++, values.winddir);
 			storeCassandraFloat(row, res++, values.windgust_max);
 			storeCassandraFloat(row, res++, values.windgust_avg);
 			storeCassandraFloat(row, res++, values.windspeed_max);
@@ -443,9 +395,9 @@ bool DbConnectionMinmax::getYearlyValues(const CassUuid& uuid, const date::sys_d
 	CassStatement* statement = cass_prepared_bind(_selectYearlyValues.get());
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
-	cass_statement_bind_uint32(statement, 1,from_sysdays_to_CassandraDate(date));
-//	cass_statement_bind_int64(statement, 1, (date::sys_time<chrono::milliseconds>(date) + chrono::hours(6)).time_since_epoch().count());
-//	cass_statement_bind_int64(statement, 2, (date::sys_time<chrono::milliseconds>(date) + chrono::hours(6) + chrono::minutes(5)).time_since_epoch().count());
+	year_month_day ymd{date};
+	cass_statement_bind_int32(statement, 1, int(ymd.year()) * 100 + unsigned(ymd.month()));
+	cass_statement_bind_uint32(statement, 2,from_sysdays_to_CassandraDate(date));
 	query = cass_session_execute(_session, statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
@@ -472,7 +424,9 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 	std::cerr << "About to insert data point in database" << std::endl;
 	CassStatement* statement = cass_prepared_bind(_insertDataPoint.get());
 	int param = 0;
+	auto ymd = year_month_day{date};
 	cass_statement_bind_uuid(statement,  param++, station);
+	cass_statement_bind_int32(statement,  param++, int(ymd.year()) * 100 + unsigned(ymd.month()));
 	cass_statement_bind_uint32(statement, param++, cass_date_from_epoch(date::sys_seconds(date).time_since_epoch().count()));
 	bindCassandraFloat(statement, param++, values.barometer_min);
 	bindCassandraFloat(statement, param++, values.barometer_max);
@@ -483,7 +437,6 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 	bindCassandraFloat(statement, param++, values.dayRain);
 	bindCassandraFloat(statement, param++, values.monthRain);
 	bindCassandraFloat(statement, param++, values.yearRain);
-	bindCassandraFloat(statement, param++, values.dewpoint_min);
 	bindCassandraFloat(statement, param++, values.dewpoint_max);
 	bindCassandraFloat(statement, param++, values.dewpoint_avg);
 	bindCassandraInt(statement, param++, values.insideHum_min);
@@ -533,7 +486,7 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 	bindCassandraInt(statement, param++, values.solarRad_avg);
 	bindCassandraInt(statement, param++, values.uv_max);
 	bindCassandraInt(statement, param++, values.uv_avg);
-	bindCassandraInt(statement, param++, values.winddir);
+	bindCassandraList(statement, param++, values.winddir);
 	bindCassandraFloat(statement, param++, values.windgust_max);
 	bindCassandraFloat(statement, param++, values.windgust_avg);
 	bindCassandraFloat(statement, param++, values.windspeed_max);
@@ -554,15 +507,5 @@ bool DbConnectionMinmax::insertDataPoint(const CassUuid& station, const date::sy
 	cass_future_free(query);
 
 	return ret;
-}
-
-DbConnectionMinmax::~DbConnectionMinmax()
-{
-	CassFuture* futureClose = cass_session_close(_session);
-	cass_future_wait(futureClose);
-	cass_future_free(futureClose);
-	cass_future_free(_futureConn);
-	cass_cluster_free(_cluster);
-	cass_session_free(_session);
 }
 }
