@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata meteodata-minmax
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax
 meteodata_SOURCES = \
 		    daemon.cpp\
 		    dbconnection.cpp\
@@ -21,15 +21,21 @@ meteodata_SOURCES = \
 		    weatherlinkdownloader.h\
 		    weatherlinkdownloader.cpp\
 		    date/src/tz.cpp\
-                    date/include/date/date.h\
-                    date/include/date/tz.h\
-                    date/include/date/tz_private.h\
-                    date/include/date/ios.h
+		    date/include/date/date.h\
+		    date/include/date/tz.h\
+		    date/include/date/tz_private.h\
+		    date/include/date/ios.h
 
 meteodata_minmax_SOURCES = \
 			   minmax.cpp\
 			   dbconnection_minmax.h\
 			   dbconnection_minmax.cpp\
+			   date/include/date/date.h
+
+meteodata_month_minmax_SOURCES = \
+			   month_minmax.cpp\
+			   dbconnection_month_minmax.h\
+			   dbconnection_month_minmax.cpp\
 			   date/include/date/date.h
 
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
@@ -41,3 +47,8 @@ meteodata_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) 
 meteodata_minmax_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic
 meteodata_minmax_LDFLAGS = 
 meteodata_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+meteodata_month_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
+meteodata_month_minmax_CXXFLAGS = -std=c++14 -Wall -Wextra -pedantic
+meteodata_month_minmax_LDFLAGS = 
+meteodata_month_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
