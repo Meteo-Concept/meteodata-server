@@ -52,7 +52,7 @@ class DbConnectionCommon
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
-		virtual ~DbConnectionCommon();
+		virtual ~DbConnectionCommon() = default;
 
 
 		bool getAllStations(std::vector<CassUuid>& stations);
@@ -60,17 +60,13 @@ class DbConnectionCommon
 
 	protected:
 		/**
-		 * @brief The Cassandra connection handle
+		 * @brief The Cassandra session data
 		 */
-		CassFuture* _futureConn;
+		std::unique_ptr<CassSession, std::function<void(CassSession*)>> _session;
 		/**
 		 * @brief The Cassandra cluster
 		 */
-		CassCluster* _cluster;
-		/**
-		 * @brief The Cassandra session data
-		 */
-		CassSession* _session;
+		std::unique_ptr<CassCluster, std::function<void(CassCluster*)>> _cluster;
 
 		inline void storeCassandraInt(const CassRow* row, int column, std::pair<bool, int>& value)
 		{

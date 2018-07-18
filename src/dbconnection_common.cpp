@@ -43,16 +43,17 @@ constexpr char DbConnectionCommon::SELECT_WIND_VALUES_STMT[];
 namespace chrono = std::chrono;
 
 DbConnectionCommon::DbConnectionCommon(const std::string& address, const std::string& user, const std::string& password) :
-	_cluster{cass_cluster_new()},
-	_session{cass_session_new()},
+	_session{cass_session_new(), cass_session_free},
+	_cluster{cass_cluster_new(), cass_cluster_free},
 	_selectAllStations{nullptr, cass_prepared_free},
 	_selectWindValues{nullptr, cass_prepared_free}
 {
-	cass_cluster_set_contact_points(_cluster, address.c_str());
+	cass_cluster_set_contact_points(_cluster.get(), address.c_str());
 	if (!user.empty() && !password.empty())
-		cass_cluster_set_credentials_n(_cluster, user.c_str(), user.length(), password.c_str(), password.length());
-	_futureConn = cass_session_connect(_session, _cluster);
-	CassError rc = cass_future_error_code(_futureConn);
+		cass_cluster_set_credentials_n(_cluster.get(), user.c_str(), user.length(), password.c_str(), password.length());
+	CassFuture* futureConn = cass_session_connect(_session.get(), _cluster.get());
+	CassError rc = cass_future_error_code(futureConn);
+	cass_future_free(futureConn);
 	if (rc != CASS_OK) {
 		std::string desc("Impossible to connect to database: ");
 		desc.append(cass_error_desc(rc));
@@ -64,7 +65,7 @@ DbConnectionCommon::DbConnectionCommon(const std::string& address, const std::st
 
 void DbConnectionCommon::prepareStatements()
 {
-	CassFuture* prepareFuture = cass_session_prepare(_session, SELECT_ALL_STATIONS_STMT);
+	CassFuture* prepareFuture = cass_session_prepare(_session.get(), SELECT_ALL_STATIONS_STMT);
 	CassError rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement selectAllStations: ");
@@ -74,7 +75,7 @@ void DbConnectionCommon::prepareStatements()
 	_selectAllStations.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
-	prepareFuture = cass_session_prepare(_session, SELECT_WIND_VALUES_STMT);
+	prepareFuture = cass_session_prepare(_session.get(), SELECT_WIND_VALUES_STMT);
 	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement selectWindValues: ");
@@ -90,7 +91,7 @@ bool DbConnectionCommon::getAllStations(std::vector<CassUuid>& stations)
 	CassFuture* query;
 	CassStatement* statement = cass_prepared_bind(_selectAllStations.get());
 	std::cerr << "Statement prepared" << std::endl;
-	query = cass_session_execute(_session, statement);
+	query = cass_session_execute(_session.get(), statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
 
@@ -120,7 +121,7 @@ bool DbConnectionCommon::getWindValues(const CassUuid& uuid, const date::sys_day
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
 	cass_statement_bind_uint32(statement, 1, from_sysdays_to_CassandraDate(date));
-	query = cass_session_execute(_session, statement);
+	query = cass_session_execute(_session.get(), statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
 
@@ -144,15 +145,5 @@ bool DbConnectionCommon::getWindValues(const CassUuid& uuid, const date::sys_day
 	std::cerr << "Saved wind values" << std::endl;
 
 	return ret;
-}
-
-DbConnectionCommon::~DbConnectionCommon()
-{
-	CassFuture* futureClose = cass_session_close(_session);
-	cass_future_wait(futureClose);
-	cass_future_free(futureClose);
-	cass_future_free(_futureConn);
-	cass_cluster_free(_cluster);
-	cass_session_free(_session);
 }
 }

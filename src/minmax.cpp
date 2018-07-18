@@ -75,8 +75,19 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string fileName;
 	date::sys_days selectedDate{date::floor<date::days>(system_clock::now())};
 	int y, m, d;
+
+	po::options_description desc("Allowed options");
+	desc.add_options()
+		("help", "display the help message and exit")
+		("version", "display the version of Meteodata and exit")
+		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
+		("year,y", po::value<int>(&y), "the date for which the min/max must be computed (defaults to today)")
+		("month,m", po::value<int>(&m), "the date for which the min/max must be computed (defaults to today)")
+		("day,d", po::value<int>(&d), "the date for which the min/max must be computed (defaults to today)")
+	;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -84,24 +95,11 @@ int main(int argc, char** argv)
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 	;
-
-	po::options_description desc("Allowed options");
-	desc.add_options()
-		("help", "display the help message and exit")
-		("version", "display the version of Meteodata and exit")
-		("config-file", po::value<std::string>(), "alternative configuration file")
-		("year,y", po::value<int>(&y), "the date for which the min/max must be computed (defaults to today)")
-		("month,m", po::value<int>(&m), "the date for which the min/max must be computed (defaults to today)")
-		("day,d", po::value<int>(&d), "the date for which the min/max must be computed (defaults to today)")
-	;
 	desc.add(config);
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
-	std::ifstream configFile(configFileName);
+	std::ifstream configFile(vm.count("config-file") ? fileName : DEFAULT_CONFIG_FILE);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config), vm);
 		configFile.close();

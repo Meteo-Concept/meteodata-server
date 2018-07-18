@@ -53,7 +53,7 @@ DbConnectionMonthMinmax::DbConnectionMonthMinmax(const std::string& address, con
 
 void DbConnectionMonthMinmax::prepareStatements()
 {
-	CassFuture* prepareFuture = cass_session_prepare(_session, SELECT_DAILY_VALUES_STMT);
+	CassFuture* prepareFuture = cass_session_prepare(_session.get(), SELECT_DAILY_VALUES_STMT);
 	CassError rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement _selectDailyValues: ");
@@ -63,7 +63,7 @@ void DbConnectionMonthMinmax::prepareStatements()
 	_selectDailyValues.reset(cass_future_get_prepared(prepareFuture));
 	cass_future_free(prepareFuture);
 
-	prepareFuture = cass_session_prepare(_session, INSERT_DATAPOINT_STMT);
+	prepareFuture = cass_session_prepare(_session.get(), INSERT_DATAPOINT_STMT);
 	rc = cass_future_error_code(prepareFuture);
 	if (rc != CASS_OK) {
 		std::string desc("Could not prepare statement insertdataPoint: ");
@@ -82,7 +82,7 @@ bool DbConnectionMonthMinmax::getDailyValues(const CassUuid& uuid, int year, int
 	std::cerr << "Statement prepared" << std::endl;
 	cass_statement_bind_uuid(statement, 0, uuid);
 	cass_statement_bind_int32(statement, 1, year * 100 + month);
-	query = cass_session_execute(_session, statement);
+	query = cass_session_execute(_session.get(), statement);
 	std::cerr << "Executed statement" << std::endl;
 	cass_statement_free(statement);
 
@@ -147,7 +147,7 @@ bool DbConnectionMonthMinmax::insertDataPoint(const CassUuid& station, int year,
 	bindCassandraInt(statement, param++, values.uv_max);
 	bindCassandraList(statement, param++, values.winddir);
 	bindCassandraFloat(statement, param++, values.windgust_max);
-	query = cass_session_execute(_session, statement);
+	query = cass_session_execute(_session.get(), statement);
 	cass_statement_free(statement);
 
 	const CassResult* result = cass_future_get_result(query);
