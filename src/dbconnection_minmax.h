@@ -178,7 +178,8 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 				"MAX(extratemp1)     AS extraTemp1_max,"
 				"MAX(extratemp2)     AS extraTemp2_max,"
 				"MAX(extratemp3)     AS extraTemp3_max,"
-				"SUM(rainfall)       AS rainfall "
+				"SUM(rainfall)       AS rainfall,"
+				"MAX(rainrate)       AS rainrate_max"
 			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time >= ?";
 
@@ -195,7 +196,8 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 				"MAX(extratemp1)     AS extraTemp1_max,"
 				"MAX(extratemp2)     AS extraTemp2_max,"
 				"MAX(extratemp3)     AS extraTemp3_max,"
-				"SUM(rainfall)       AS rainfall "
+				"SUM(rainfall)       AS rainfall,"
+				"MAX(rainrate)       AS rainrate_max"
 			//	" FROM meteodata.meteo WHERE station = ? AND time >= ? AND time < ?";
 				" FROM meteodata_v2.meteo WHERE station = ? AND day = ? AND time < ?";
 		/**
@@ -248,7 +250,6 @@ inline void computeMean(std::pair<bool, T>& result, const std::pair<bool, T>& op
 				"AVG(windgust)                AS windgust_avg,"
 				"MAX(windspeed)               AS windspeed_max,"
 				"AVG(windspeed)               AS windspeed_avg,"
-				"MAX(rainrate)                AS rainrate_max,"
 				"MIN(dewpoint)                AS dewpoint_min,"
 				"MAX(dewpoint)                AS dewpoint_max,"
 				"AVG(dewpoint)                AS dewpoint_avg,"
