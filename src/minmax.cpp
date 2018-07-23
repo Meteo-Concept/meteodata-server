@@ -211,17 +211,14 @@ int main(int argc, char** argv)
 					count++;
 				}
 			}
-			if (count == 0) {
-				values.winddir.first = false;
-			}  else {
-				values.winddir.second.resize(16);
-				for (int i=0 ; i<16 ; i++) {
-					int v = dirs[i];
-					std::cerr << "v = " << v << " | count = " << count << std::endl;
-					values.winddir.second[i] = v * 1000 / count;
-				}
-				values.winddir.first = true;
+
+			values.winddir.second.resize(16);
+			for (int i=0 ; i<16 ; i++) {
+				int v = dirs[i];
+				std::cerr << "v = " << v << " | count = " << count << std::endl;
+				values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
 			}
+			values.winddir.first = true;
 
 			std::cerr << "Inserting into database" << std::endl;
 			db.insertDataPoint(station, selectedDate, values);
