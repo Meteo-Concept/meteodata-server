@@ -41,6 +41,10 @@ BOOST_REQUIRE([1.52])
 BOOST_SYSTEM
 BOOST_ASIO
 BOOST_PROGRAM_OPTIONS
+BOOST_DEFUN([Property_Tree],
+[BOOST_FIND_HEADER([boost/ptree/ptree.hpp])
+BOOST_FIND_HEADER([boost/ptree/xml_parser.hpp])
+])
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

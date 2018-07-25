@@ -63,7 +63,7 @@ class WeatherlinkDownloader : public std::enable_shared_from_this<WeatherlinkDow
 {
 public:
 	WeatherlinkDownloader(const CassUuid& _station, const std::string& auth,
-		asio::io_service& ioService, DbConnection& db,
+		const std::string& apiToken, asio::io_service& ioService, DbConnection& db,
 		TimeOffseter::PredefinedTimezone tz);
 	void start();
 
@@ -71,6 +71,7 @@ private:
 	DbConnection& _db;
 	asio::io_service& _ioService;
 	std::string _authentication;
+	std::string _apiToken;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	/**
 	 * @brief The connected station's identifier in the database
@@ -95,11 +96,13 @@ private:
 	TimeOffseter _timeOffseter;
 
 	static constexpr char HOST[] = "weatherlink.com";
+	static constexpr char APIHOST[] = "api.weatherlink.com";
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
 	static bool compareAsciiCaseInsensitive(const std::string& s1, const std::string& s2);
 	void download();
+	void downloadRealTime();
 };
 
 }

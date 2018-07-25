@@ -26,13 +26,16 @@
 
 #include <cassandra.h>
 
+#include <cstdint>
 #include <ctime>
 #include <functional>
 #include <tuple>
 #include <memory>
 #include <mutex>
 
+#include "date/date.h"
 #include "message.h"
+#include "dbconnection_common.h"
 
 namespace meteodata {
 	/**
@@ -42,7 +45,7 @@ namespace meteodata {
 	 * connector to query details about the station and insert measures in
 	 * the database periodically.
 	 */
-	class DbConnection
+	class DbConnection : public DbConnectionCommon
 	{
 	public:
 		/**
@@ -55,7 +58,7 @@ namespace meteodata {
 		/**
 		 * @brief Close the connection and destroy the database handle
 		 */
-		virtual ~DbConnection();
+		virtual ~DbConnection() = default;
 		/**
 		 * @brief Get the identifier of a station given its coordinates
 		 *
@@ -134,21 +137,11 @@ namespace meteodata {
 		 */
 		bool getLastDataInsertionTime(const CassUuid& station, time_t& lastDataInsertionTime);
 
-		bool getAllWeatherlinkStations(std::vector<std::tuple<CassUuid, std::string, int>>& stations);
+		bool getAllWeatherlinkStations(std::vector<std::tuple<CassUuid, std::string, std::string, int>>& stations);
+
+		bool deleteDataPoints(const CassUuid& station, const date::sys_days& day, const date::sys_seconds& start, const date::sys_seconds& end);
 
 	private:
-		/**
-		 * @brief The Cassandra connection handle
-		 */
-		CassFuture* _futureConn;
-		/**
-		 * @brief The Cassandra cluster
-		 */
-		CassCluster* _cluster;
-		/**
-		 * @brief The Cassandra session data
-		 */
-		CassSession* _session;
 		/**
 		 * @brief The first prepared statement for the getStationByCoords()
 		 * method
@@ -176,6 +169,8 @@ namespace meteodata {
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _updateLastArchiveDownloadTime;
 
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectWeatherlinkStations;
+
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _deleteDataPoints;
 		/**
 		 * @brief A mutual exclusion semaphore to protect _insertDataPoint
 		 */
@@ -188,6 +183,10 @@ namespace meteodata {
 		 * @brief A mutual exclusion semaphore to protect _updateLastArchiveDownloadTime
 		 */
 		std::mutex _updateLastArchiveDownloadMutex;
+		/**
+		 * @brief A mutual exclusion semaphore to protect _deleteDataPoints
+		 */
+		std::mutex _deleteDataPointsMutex;
 		/**
 		 * @brief Prepare the Cassandra query/insert statements
 		 */

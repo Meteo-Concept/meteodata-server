@@ -51,14 +51,14 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 
 void MeteoServer::start()
 {
-	std::vector<std::tuple<CassUuid, std::string, int>> weatherlinkStations;
+	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
 	_db.getAllWeatherlinkStations(weatherlinkStations);
 	for (const auto& station : weatherlinkStations) {
 		auto wld =
 			std::make_shared<WeatherlinkDownloader>(
-				std::get<0>(station), std::get<1>(station),
+				std::get<0>(station), std::get<1>(station), std::get<2>(station),
 				_ioService, _db,
-				TimeOffseter::PredefinedTimezone(std::get<2>(station))
+				TimeOffseter::PredefinedTimezone(std::get<3>(station))
 			);
 		wld->start();
 	}

@@ -41,6 +41,7 @@
 
 #include <cassandra.h>
 
+#include "weatherlink_api_realtime_message.h"
 #include "weatherlinkdownloader.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivepage.h"
@@ -52,19 +53,22 @@ namespace ip = boost::asio::ip;
 namespace sys = boost::system; //system() is a function, it cannot be redefined
 //as a namespace
 namespace chrono = std::chrono;
+namespace args = std::placeholders;
 
 namespace meteodata {
 
-using namespace std::placeholders;
 using namespace date;
 
 constexpr char WeatherlinkDownloader::HOST[];
+constexpr char WeatherlinkDownloader::APIHOST[];
 
 WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-	asio::io_service& ioService, DbConnection& db, TimeOffseter::PredefinedTimezone tz) :
+	const std::string& apiToken, asio::io_service& ioService, DbConnection& db,
+	TimeOffseter::PredefinedTimezone tz) :
 	_db(db),
 	_ioService(ioService),
 	_authentication(auth),
+	_apiToken(apiToken),
 	_timer(_ioService),
 	_station(station)
 {
@@ -84,8 +88,8 @@ void WeatherlinkDownloader::start()
 void WeatherlinkDownloader::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
-	_timer.expires_from_now(chrono::hours(1));
-	_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, _1));
+	_timer.expires_from_now(_pollingPeriod <= 10 ? chrono::minutes(10) : chrono::minutes(_pollingPeriod));
+	_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, args::_1));
 }
 
 void WeatherlinkDownloader::checkDeadline(const sys::error_code& e)
@@ -106,7 +110,7 @@ void WeatherlinkDownloader::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, _1));
+		_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, args::_1));
 	}
 }
 
@@ -121,6 +125,111 @@ bool WeatherlinkDownloader::compareAsciiCaseInsensitive(const std::string& str1,
 		}
 	}
 	return true;
+}
+
+void WeatherlinkDownloader::downloadRealTime()
+{
+	if (_apiToken.empty())
+		return; // no token, no realtime obs
+
+	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
+
+	// Get a list of endpoints corresponding to the server name.
+	ip::tcp::resolver resolver(_ioService);
+	ip::tcp::resolver::query query(APIHOST, "http");
+	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
+
+	// Try each endpoint until we successfully establish a connection.
+	ip::tcp::socket socket(_ioService);
+	boost::asio::connect(socket, endpointIterator);
+
+	// Form the request. We specify the "Connection: close" header so that the
+	// server will close the socket after transmitting the response. This will
+	// allow us to treat all data up until the EOF as the content.
+	boost::asio::streambuf request;
+	std::ostream requestStream(&request);
+	requestStream << "GET " << "/v1/NoaaExt.xml?" << _authentication << "&apiToken=" << _apiToken << " HTTP/1.0\r\n";
+	std::cerr << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.0\r\n";
+	requestStream << "Host: " << APIHOST << "\r\n";
+	requestStream << "Accept: application/xml\r\n";
+	requestStream << "Connection: close\r\n\r\n";
+
+	// Send the request.
+	asio::write(socket, request);
+
+	// Read the response status line. The response streambuf will automatically
+	// grow to accommodate the entire line. The growth may be limited by passing
+	// a maximum size to the streambuf constructor.
+	asio::streambuf response(WeatherlinkApiRealtimeMessage::MAXSIZE);
+	asio::read_until(socket, response, "\r\n");
+
+	// Check that response is OK.
+	std::istream responseStream(&response);
+	std::string httpVersion;
+	responseStream >> httpVersion;
+	unsigned int statusCode;
+	responseStream >> statusCode;
+	std::string statusMessage;
+	std::getline(responseStream, statusMessage);
+	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
+	{
+		syslog(LOG_ERR, "station %s: Bad response from %s", _stationName.c_str(), HOST);
+		std::cerr << "station " << _stationName << " Bad response from " << APIHOST << std::endl;
+		return;
+	}
+	if (statusCode != 200)
+	{
+		syslog(LOG_ERR, "station %s: Error code from %s: %i", _stationName.c_str(), APIHOST, statusCode);
+		std::cerr << "station " << _stationName << " Error from " << HOST << ": " << statusCode << std::endl;
+		return;
+	}
+
+	// Read the response headers, which are terminated by a blank line.
+	asio::read_until(socket, response, "\r\n\r\n");
+
+	// Process the response headers.
+	std::string header;
+	std::istringstream fromheader;
+	std::string field;
+	int size = -1;
+	std::string type;
+	while (std::getline(responseStream, header) && header != "\r") {
+		fromheader.str(header);
+		fromheader >> field;
+		std::cerr << "Header: " << field << std::endl;
+		if (compareAsciiCaseInsensitive(field, "content-length:")) {
+			fromheader >> size;
+			if (size == 0 || size >= WeatherlinkApiRealtimeMessage::MAXSIZE) {
+				syslog(LOG_ERR, "station %s: Output from %s is either null or too big", _stationName.c_str(), APIHOST);
+				std::cerr << "station " << _stationName << ": Output is either null or too big (" << (size / 1000.) << "ko)" << std::endl;
+				return;
+			}
+		} else if (compareAsciiCaseInsensitive(field, "content-type:")) {
+			fromheader >> type;
+			if (!compareAsciiCaseInsensitive(type, "application/xml")) { // WAT?!
+				syslog(LOG_ERR, "station %s: Output from %s is not XML", _stationName.c_str(), APIHOST);
+				std::cerr << "station " << _stationName << ": Output is not XML" << std::endl;
+				return;
+			}
+		}
+	}
+
+	// Read the response body
+	sys::error_code ec;
+	asio::read(socket, response, ec);
+	if (ec && ec != asio::error::eof) {
+		syslog(LOG_ERR, "station %s: download error %s", _stationName.c_str(), ec.message().c_str());
+		std::cerr << "station " << _stationName << ": download error " << ec.message() << std::endl;
+		return;
+	}
+	std::cerr << "Read all the content" << std::endl;
+	WeatherlinkApiRealtimeMessage obs;
+	obs.parse(responseStream);
+	int ret = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
+	if (!ret) {
+		syslog(LOG_ERR, "station %s: Failed to insert real-time observation", _stationName.c_str());
+		std::cerr << "station " << _stationName << ": Failed to insert real-time observation" << std::endl;
+	}
 }
 
 void WeatherlinkDownloader::download()
@@ -218,7 +327,8 @@ void WeatherlinkDownloader::download()
 		std::cerr << "station " << _stationName << ": No Content-Length: in  " << HOST << " output?!" << std::endl;
 		return;
 	} else if (pagesLeft == 0) {
-		std::cerr << "No pages to download, sleeping" << std::endl;
+		std::cerr << "No pages to download, downloading a real-time observation instead" << std::endl;
+		downloadRealTime();
 		return;
 	} else {
 		std::cerr << "We will receive " << pagesLeft << " pages" << std::endl;
@@ -250,23 +360,36 @@ void WeatherlinkDownloader::download()
 	}
 
 	bool ret = true;
+	auto start = _lastArchive;
 	for (auto it = pages.cbegin() ; it != pages.cend() && ret ; ++it) {
 		std::cerr << "Analyzing page " << it->getTimestamp() << std::endl;
 		if (it->looksValid()) {
-			ret = _db.insertDataPoint(_station, *it) && _db.insertV2DataPoint(_station, *it);
 			_lastArchive = it->getTimestamp();
+			auto end = _lastArchive;
+			auto day = date::floor<date::days>(start);
+			auto lastDay = date::floor<date::days>(end);
+			while (day <= lastDay) {
+				ret = _db.deleteDataPoints(_station, day, start, end);
+
+				if (!ret)
+					syslog(LOG_ERR, "station %s: Couldn't delete temporary realtime observations", _stationName.c_str());
+				day += date::days(1);
+			}
+
+			start = end;
+			ret = _db.insertDataPoint(_station, *it) && _db.insertV2DataPoint(_station, *it);
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
 		}
 		//Otherwise, just discard
 	}
+
 	if (ret) {
 		std::cerr << "Archive data stored\n" << std::endl;
 		time_t lastArchiveDownloadTime = _lastArchive.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 		if (!ret)
 			syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
-
 	} else {
 		std::cerr << "Failed to store archive! Aborting" << std::endl;
 		syslog(LOG_ERR, "station %s: Couldn't store archive", _stationName.c_str());
