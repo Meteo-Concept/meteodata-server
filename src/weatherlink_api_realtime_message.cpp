@@ -124,10 +124,10 @@ void WeatherlinkApiRealtimeMessage::populateDataPoint(const CassUuid station, Ca
 	if (!isInvalid(_obs.solarRad))
 		cass_statement_bind_int32(statement, 56, _obs.solarRad);
 	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
+	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity))
 		cass_statement_bind_float(statement, 57,
 			dew_point(
-				_obs.temperatureF,
+				_obs.temperature,
 				_obs.humidity
 			)
 		);
@@ -183,10 +183,10 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 	if (!isInvalid(_obs.pressure))
 		cass_statement_bind_float(statement, 3, _obs.pressure);
 	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
+	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity))
 		cass_statement_bind_float(statement, 4,
 			dew_point(
-				_obs.temperatureF,
+				_obs.temperature,
 				_obs.humidity
 			)
 		);
