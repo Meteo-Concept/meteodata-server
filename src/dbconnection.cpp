@@ -39,6 +39,7 @@ namespace meteodata {
 		DbConnectionCommon(address, user, password),
 		_selectStationByCoords{nullptr, cass_prepared_free},
 		_selectStationDetails{nullptr, cass_prepared_free},
+		_selectAllIcaos{nullptr, cass_prepared_free},
 		_selectLastDataInsertionTime{nullptr, cass_prepared_free},
 		_insertDataPoint{nullptr, cass_prepared_free},
 		_insertDataPointInNewDB{nullptr, cass_prepared_free},
@@ -69,6 +70,16 @@ namespace meteodata {
 			throw std::runtime_error(desc);
 		}
 		_selectStationDetails.reset(cass_future_get_prepared(prepareFuture));
+		cass_future_free(prepareFuture);
+
+		prepareFuture = cass_session_prepare(_session.get(), "SELECT id,icao FROM meteodata.stationsFR");
+		rc = cass_future_error_code(prepareFuture);
+		if (rc != CASS_OK) {
+			std::string desc("Could not prepare statement selectAllIcaos: ");
+			desc.append(cass_error_desc(rc));
+			throw std::runtime_error(desc);
+		}
+		_selectAllIcaos.reset(cass_future_get_prepared(prepareFuture));
 		cass_future_free(prepareFuture);
 
 		prepareFuture = cass_session_prepare(_session.get(), "SELECT time FROM meteodata.meteo WHERE station = ? LIMIT 1");
@@ -452,6 +463,39 @@ namespace meteodata {
 				int timezone;
 				cass_value_get_int32(cass_row_get_column(row,3), &timezone);
 				stations.emplace_back(station, std::string{authString, sizeAuthString}, apiToken, timezone);
+			}
+			ret = true;
+		}
+
+		return ret;
+	}
+
+	bool DbConnection::getAllIcaos(std::vector<std::tuple<CassUuid, std::string>>& stations)
+	{
+		std::unique_ptr<CassStatement, void(&)(CassStatement*)> statement{
+			cass_prepared_bind(_selectAllIcaos.get()),
+			cass_statement_free
+		};
+		std::unique_ptr<CassFuture, void(&)(CassFuture*)> query{
+			cass_session_execute(_session.get(), statement.get()),
+			cass_future_free
+		};
+
+		const CassResult* result = cass_future_get_result(query.get());
+		bool ret = false;
+		if (result) {
+			std::unique_ptr<CassIterator, void(&)(CassIterator*)> iterator{
+				cass_iterator_from_result(result),
+				cass_iterator_free
+			};
+			while (cass_iterator_next(iterator.get())) {
+				const CassRow* row = cass_iterator_get_row(iterator.get());
+				CassUuid station;
+				cass_value_get_uuid(cass_row_get_column(row,0), &station);
+				const char *icaoStr;
+				size_t icaoLength;
+				cass_value_get_string(cass_row_get_column(row,1), &icaoStr, &icaoLength);
+				stations.emplace_back(station, std::string{icaoStr, icaoLength});
 			}
 			ret = true;
 		}

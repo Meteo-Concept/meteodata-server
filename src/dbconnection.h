@@ -32,6 +32,9 @@
 #include <tuple>
 #include <memory>
 #include <mutex>
+#include <tuple>
+#include <vector>
+#include <string>
 
 #include "date/date.h"
 #include "message.h"
@@ -74,6 +77,8 @@ namespace meteodata {
 		 * @return The unique identifier of the station
 		 */
 		bool getStationByCoords(int latitude, int longitude, int altitude, CassUuid& station, std::string& name, int& pollPeriod, time_t& lastArchiveDownloadTime, time_t& lastDataInsertionTime);
+
+		bool getAllIcaos(std::vector<std::tuple<CassUuid, std::string>>& synopStations);
 
 		/**
 		 * @brief Insert a new data point in the database
@@ -153,7 +158,12 @@ namespace meteodata {
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectStationDetails;
 		/**
-		 * @brief The second prepared statement for the getLastInsertionTime()
+		 * @brief The prepared statement for the getAllIcaos()
+		 * method
+		 */
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllIcaos;
+		/**
+		 * @brief The prepared statement for the getLastInsertionTime()
 		 * method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectLastDataInsertionTime;

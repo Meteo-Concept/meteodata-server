@@ -411,6 +411,18 @@ inline float from_Farenheight_to_Celsius(float f)
 }
 
 /**
+ * @brief Convert a temperature given in Celsius degrees to Farenheight degrees
+ *
+ * @param f the value to convert
+ *
+ * @return the parameter value converted to Farenheight degrees
+ */
+inline float from_Celsius_to_Farenheight(float c)
+{
+	return (c * 1.80) + 32.0;
+}
+
+/**
  * @brief Convert a velocity from miles per hour to meters per second
  *
  * @param mph the value to convert

@@ -33,6 +33,7 @@
 #include "connector.h"
 #include "weatherlinkdownloader.h"
 #include "vantagepro2connector.h"
+#include "synopdownloader.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -51,6 +52,7 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 
 void MeteoServer::start()
 {
+	// Start the Weatherlink downloaders workers (one per Weatherlink station)
 	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
 	_db.getAllWeatherlinkStations(weatherlinkStations);
 	for (const auto& station : weatherlinkStations) {
@@ -62,6 +64,12 @@ void MeteoServer::start()
 			);
 		wld->start();
 	}
+
+	// Start the Synop downloader worker (one for all the SYNOP stations)
+	auto synopDownloader = std::make_shared<SynopDownloader>(_ioService, _db);
+	synopDownloader->start();
+
+	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();
 }
 

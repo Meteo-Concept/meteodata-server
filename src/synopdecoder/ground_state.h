@@ -1,0 +1,43 @@
+#ifndef GROUND_STATE_H
+#define GROUND_STATE_H
+
+#include <iostream>
+
+/**
+ * State of the ground without snow or measurable ice cover; E
+ * @see table 0901, A-274
+ */
+enum class GroundStateWithoutSnowOrIce
+{
+	DRY = '0',
+	MOIST,
+	WET,
+	FLOODED,
+	FROZEN,
+	GLAZE,
+	LOOSE_DRY_DUST_OR_SAND,
+	LOOSE_DRY_DUST_OR_SAND_THIN_COVERING,
+	LOOSE_DRY_DUST_OR_SAND_THICK_COVERING,
+	DRY_WITH_CRACKS,
+	NOT_OBSERVED = '/'
+};
+
+/**
+ * State of the ground with snow or measurable ice cover; E
+ * @see table 0975, A-276
+ */
+enum class GroundStateWithSnowOrIce
+{
+	ICE_COVERING = '0',
+	COMPACT_SNOW_COVERING_LESS_THAN_HALF,
+	COMPACT_SNOW_COVERING_MORE_THAN_HALF,
+	EVEN_COMPACT_SNOW_LAYER_COVERING_ALL,
+	UNEVEN_COMPACT_SNOW_LAYER_COVERING_ALL,
+	LOOSE_SNOW_COVERING_LESS_THAN_HALF,
+	LOOSE_SNOW_COVERING_MORE_THAN_HALF,
+	EVEN_LOOSE_SNOW_LAYER_COVERING_ALL,
+	UNEVEN_LOOSE_SNOW_LAYER_COVERING_ALL,
+	SNOW_COVERING_AND_DRIFTS,
+	NOT_OBSERVED = '/'
+};
+#endif /* GROUND_STATE_H */
