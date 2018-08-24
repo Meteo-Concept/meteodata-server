@@ -528,14 +528,14 @@ inline float wind_chill(float t_farenheight, float wind_mph)
 }
 
 // Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))
-inline float thsw_index(float t_celsius, int hum, float wind_ms, float solarRad)
+inline float thsw_index(float t_celsius, int hum, float wind_ms, float netRad)
 {
 	float waterVaporPressure = (hum / 100.0f) * 6.105
 		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
 	return t_celsius
 	     + 0.348 * waterVaporPressure
 	     - 0.70 * wind_ms
-	     + 0.70 * solarRad / (wind_ms + 10.0)
+	     + 0.70 * netRad / (wind_ms + 10.0)
 	     - 4.25;
 }
 

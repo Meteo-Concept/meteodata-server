@@ -495,7 +495,8 @@ namespace meteodata {
 				const char *icaoStr;
 				size_t icaoLength;
 				cass_value_get_string(cass_row_get_column(row,1), &icaoStr, &icaoLength);
-				stations.emplace_back(station, std::string{icaoStr, icaoLength});
+				if (icaoLength != 0)
+					stations.emplace_back(station, std::string{icaoStr, icaoLength});
 			}
 			ret = true;
 		}

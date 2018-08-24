@@ -45,6 +45,7 @@ meteodata_SOURCES = \
 		    synopdecoder/precipitation_amount.h\
 		    synopdecoder/pressure_tendency.h\
 		    synopdecoder/range.h\
+		    synopdecoder/gust_observation.h\
 		    synopdecoder/synop_message.h
 
 meteodata_minmax_SOURCES = \

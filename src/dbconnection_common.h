@@ -137,11 +137,15 @@ class DbConnectionCommon
 
 	private:
 		static constexpr char SELECT_ALL_STATIONS_STMT[] = "SELECT id FROM meteodata.stations";
+		static constexpr char SELECT_ALL_STATIONS_FR_STMT[] = "SELECT id FROM meteodata.stationsFR";
 		/**
-		 * @brief The first prepared statement for the getAllStations()
-		 * method
+		 * @brief The first prepared statement for the getAllStations() method
 		 */
 		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllStations;
+		/**
+		 * @brief The second prepared statement for the getAllStations() method
+		 */
+		std::unique_ptr<const CassPrepared, std::function<void(const CassPrepared*)>> _selectAllStationsFr;
 
 		static constexpr char SELECT_WIND_VALUES_STMT[] =
 			"SELECT "

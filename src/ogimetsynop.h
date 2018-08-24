@@ -63,8 +63,10 @@ private:
 	 */
 	SynopMessage _data;
 
-	std::optional<int> _humidity;
-	std::optional<int> _rainfall;
+	std::experimental::optional<int> _humidity;
+	std::experimental::optional<float> _rainfall;
+	std::experimental::optional<float> _wind_mps;
+	std::experimental::optional<float> _gust;
 };
 
 }

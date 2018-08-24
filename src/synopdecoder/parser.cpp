@@ -6,7 +6,7 @@
 #include <iterator>
 #include <iostream>
 #include <sstream>
-#include <optional>
+#include <experimental/optional>
 
 #include "../date/include/date/date.h"
 
@@ -16,17 +16,17 @@ Parser::Parser()
 
 bool Parser::parseSection0(decltype(_groups)::iterator& it)
 {
-	// Timestamp
-	std::istringstream firstField{*it};
-	std::string icao;
-	std::string messageType;
-	std::getline(firstField, icao, ',');
-	firstField >> date::parse("%Y,%m,%d,%H,%M,", _message._observationTime);
-	firstField >> messageType;
+	// ICAO
+	// Also present in the message later on
 	++it;
 
+	// Timestamp
+	std::istringstream timestamp{*it};
+	timestamp >> date::parse("%Y,%m,%d,%H,%M", _message._observationTime);
+        ++it;
+
 	// Station type
-	if (messageType != "AAXX") {
+	if (*it != "AAXX") {
 		std::cerr << "Message is not of type SYNOP: " << (*it) << std::endl;
 		return false;
 	}
@@ -66,35 +66,35 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 	return true;
 }
 
-std::optional<int> parseInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
+std::experimental::optional<int> parseInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
 {
 	int n = 0;
 	for (auto i=pos ; i<s.length() && i <= endpos ; i++) {
 		if (s[i] == '/')
-			return std::optional<int>();
+			return std::experimental::optional<int>();
 		n = (n * 10) + (s[i] - '0');
 	}
-	return std::optional<int>(n);
+	return std::experimental::optional<int>(n);
 }
 
-std::optional<int> parseSInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
+std::experimental::optional<int> parseSInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
 {
 	int n = 0;
 	if (s[pos] == '/')
-		return std::optional<int>();
+		return std::experimental::optional<int>();
 	for (auto i=pos+1 ; i<s.length() && i <= endpos ; i++) {
 		if (s[i] == '/')
-			return std::optional<int>();
+			return std::experimental::optional<int>();
 		n = (n * 10) + (s[i] - '0');
 	}
 	if (s[pos] == 1)
 		n *= -1;
-	return std::optional<int>(n);
+	return std::experimental::optional<int>(n);
 }
 
-std::optional<PrecipitationAmount> parseRain(const std::string& s)
+std::experimental::optional<PrecipitationAmount> parseRain(const std::string& s)
 {
-	std::optional<int> rrr = parseInt(s, 1, 3);
+	std::experimental::optional<int> rrr = parseInt(s, 1, 3);
 	if (rrr) {
 		std::cerr << "Rain: " << *rrr << std::endl;
 		PrecipitationAmount pr;
@@ -120,7 +120,7 @@ std::optional<PrecipitationAmount> parseRain(const std::string& s)
 			s[4] == '9' ? 15 : 0;
 		return pr;
 	} else {
-		return std::optional<PrecipitationAmount>();
+		return std::experimental::optional<PrecipitationAmount>();
 	}
 }
 
@@ -232,13 +232,13 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 	std::cerr << "Parsed cloud cover" << std::endl;
 
 	// Dominant direction of the wind
-	std::optional<int> n = parseInt(*it, 1, 2);
+	std::experimental::optional<int> n = parseInt(*it, 1, 2);
 	if (n)
 		_message._meanWindDirection = (*n) * 10;
 	std::cerr << "Parsed wind direction" << std::endl;
 
 	// Mean wind speed
-	std::optional<int> ff = parseInt(*it, 3);
+	std::experimental::optional<int> ff = parseInt(*it, 3);
 	if (ff) {
 		//special case first
 		if (*ff == 99) {
@@ -276,8 +276,10 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 				_message._dewPoint = parseSInt(s, 1);
 		} else if (s[0] == '3') {
 			_message._pressureAtStation = parseInt(s, 1);
+			if (_message._pressureAtStation && *_message._pressureAtStation < 5000)
+				*_message._pressureAtStation = *_message._pressureAtStation + 10000;
 		} else if (s[0] == '4') {
-			if (s[1]  != '0' && s[1] == '9') {
+			if (s[1] != '0' && s[1] != '9') {
 				/* station is unable to give pressure at mean sea level
 				 * and give pressure at the station level instead
 				 */
@@ -287,6 +289,8 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 				};
 			} else {
 				_message._pressureAtSeaLevel = parseInt(s, 1);
+				if (_message._pressureAtSeaLevel && *_message._pressureAtSeaLevel < 5000)
+					*_message._pressureAtSeaLevel = *_message._pressureAtSeaLevel + 10000;
 			}
 		} else if (s[0] == '5') {
 			_message._pressureTendency = PressureTendency{
@@ -294,7 +298,7 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 				parseInt(s, 2).value()
 			};
 		} else if (s[0] == '6') {
-			std::optional<PrecipitationAmount> pr = parseRain(s);
+			std::experimental::optional<PrecipitationAmount> pr = parseRain(s);
 
 			if (pr)
 				_message._precipitation.push_back(*pr);
@@ -306,7 +310,7 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 			_message._mediumClouds = static_cast<MediumClouds>(s[3]);
 			_message._highClouds = static_cast<HighClouds>(s[4]);
 		} else if (s[0] == '9') {
-			// don't care
+			// Don't care
 		}
 
 		indicative = s[0];
@@ -352,7 +356,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 			_message._minSoilTemperature = parseSInt(s, 2);
 		} else if (s[0] == '4') {
 			_message._groundStateWithSnowOrIce = static_cast<GroundStateWithSnowOrIce>(s[1]);
-			std::optional<int> maybeSnow = parseInt(s, 2);
+			std::experimental::optional<int> maybeSnow = parseInt(s, 2);
 			if (maybeSnow) {
 				SnowDepth d;
 				int sss = *maybeSnow;
@@ -384,7 +388,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				++it;
 				_message._directSolarRadiationLast24Hours = parseInt(*it, 1);
 			} else if (s[1] == '5' && s[2] == '3') {
-				std::optional<int> time = parseInt(s, 3);
+				std::experimental::optional<int> time = parseInt(s, 3);
 				if (time)
 					_message._minutesOfSunshineLastHour = *time * 6; // conversion from tenths of hours to minutes
 				++it;
@@ -401,7 +405,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				else if (it->at(0) == '6')
 					_message._shortWaveRadiationLastHour = parseInt(*it, 1);
 			} else if (s[1] == '5') {
-				std::optional<int> time = parseInt(s, 2);
+				std::experimental::optional<int> time = parseInt(s, 2);
 				if (time)
 					_message._hoursOfSunshineLastDay = *time / 10.; // conversion from tenths of hours to hours
 				++it;
@@ -430,7 +434,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 					static_cast<CloudElevation::ElevationAngle>(s[4])
 				});
 			} else {
-				std::optional<int> eee = parseInt(s, 1, 3);
+				std::experimental::optional<int> eee = parseInt(s, 1, 3);
 				if (eee) {
 					_message._evapoMaybeTranspiRation = EvapoMaybeTranspiRation{
 						static_cast<EvapoMaybeTranspiRation::Instrumentation>(s[4]),
@@ -439,13 +443,13 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				}
 			}
 		} else if (s[0] == '6') {
-			std::optional<PrecipitationAmount> pr = parseRain(s);
+			std::experimental::optional<PrecipitationAmount> pr = parseRain(s);
 
 			if (pr)
 				_message._precipitation.push_back(*pr);
 		} else if (s[0] == '7') {
 			PrecipitationAmount pr;
-			std::optional<int> rrrr = parseInt(s, 1);
+			std::experimental::optional<int> rrrr = parseInt(s, 1);
 			if (rrrr) {
 				if (*rrrr <= 9998) {
 					pr._amount = *rrrr / 10.;
@@ -458,7 +462,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				_message._precipitation.push_back(pr);
 			}
 		} else if (s[0] == '8') {
-			std::optional<int> hshs = parseInt(s, 3);
+			std::experimental::optional<int> hshs = parseInt(s, 3);
 			if (hshs) {
 				Range<int> height;
 				if (*hshs <= 50) {
@@ -498,7 +502,26 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				});
 			}
 		} else if (s[0] == '9') {
-			// don't care
+			if (s[1] == '1' && s[2] == '0') {
+				auto gust = parseInt(s, 3);
+				if (gust)
+					_message._gustObservations.push_back({*gust, 10});
+			} else if (s[1] == '0' && s[2] == '7') {
+				auto duration = parseInt(s, 3);
+				++it;
+				if (duration && *duration <= 60) {
+					if ((*it)[1] == '1' && (*it)[2] == '1') {
+						auto gust = parseInt(*it, 3);
+						std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
+						if (gust)
+							_message._gustObservations.push_back({*gust, *duration * 6});
+					}
+				}
+			} else if (s[1] == '0' && (s[2] == '2' || s[2] == '4')) {
+				// Current group is a duration and is attached to the next group, not handled here
+				++it;
+			}
+			// XXX: small issue here with group 903 which gives the ending time of the _preceding_ 9.... 
 		}
 
 		indicative = s[0];
@@ -530,10 +553,26 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 		auto& s = *it;
 
 		if (s[0] == '6') {
-			std::optional<PrecipitationAmount> pr = parseRain(s);
+			std::experimental::optional<PrecipitationAmount> pr = parseRain(s);
 
 			if (pr)
 				_message._precipitation.push_back(*pr);
+		} else if (s[0] == '9') {
+			if (s[1] == '0' && s[2] == '7') {
+				auto duration = parseInt(s, 3);
+				++it;
+				if (duration && *duration <= 60) {
+					if ((*it)[1] == '1' && (*it)[2] == '1') {
+						auto gust = parseInt(*it, 3);
+						std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
+						if (gust)
+							_message._gustObservations.push_back({*gust, *duration * 6});
+					}
+				}
+			} else if (s[1] == '0' && (s[2] == '2' || s[2] == '4')) {
+				// Current group is a duration and is attached to the next group, not handled here
+				++it;
+			}
 		}
 
 		++it;
@@ -544,10 +583,29 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 
 bool Parser::parse(std::istream& in)
 {
-	_groups.clear();
+	std::string extracted;
+	in >> extracted;
+	// First group has structure IIIii,YYYY,MM,DD,HH,mm,AAXX
+	// IIIii: Identifier (5 characters)
+	// YYYY,MM,DD,HH,mm Date and time (16 characters)
+	// AAXX: Type of message (4 characters)
+	// + 2 commas
+	// = 27 characters
+	if (extracted.size() != 27)
+		return false;
+
+	_groups.emplace_back(extracted.substr(0, 5));
+	_groups.emplace_back(extracted.substr(6, 16));
+	_groups.emplace_back(extracted.substr(23, 4));
+
 	std::istream_iterator<std::string> begin{in},
 					   end;
 	std::copy(begin, end, std::back_inserter(_groups));
+
+	// The last group may be padded with one or more "=" signs, remove those
+	std::string& lastGroup = _groups.back();
+	if (lastGroup.size() > 5)
+		lastGroup.erase(5);
 
 	for (const auto& g : _groups) {
 		std::cout << "Groupe identifié: " << g << "\n";
@@ -566,7 +624,7 @@ bool Parser::parse(std::istream& in)
 	r = parseSection1(it);
 
 	// ### Possibly section 2 ### //
-	if ((*it)[0] == 2 && (*it)[1] == 2 && (*it)[2] == 2) {
+	if (it != _groups.end() && (*it)[0] == 2 && (*it)[1] == 2 && (*it)[2] == 2) {
 		_message._sections[2] = true;
 		r = parseSection2(it);
 	}
@@ -574,7 +632,7 @@ bool Parser::parse(std::istream& in)
 		return r;
 
 	// ### Possibly section 3 ### //
-	if (*it == "333") {
+	if (it != _groups.end() && *it == "333") {
 		_message._sections[3] = true;
 		r = parseSection3(it);
 	}
@@ -582,7 +640,7 @@ bool Parser::parse(std::istream& in)
 		return r;
 
 	// ### Possibly section 4 ### //
-	if (*it == "444") {
+	if (it != _groups.end() && *it == "444") {
 		_message._sections[4] = true;
 		r = parseSection4(it);
 	}
@@ -590,7 +648,7 @@ bool Parser::parse(std::istream& in)
 		return r;
 
 	// ### Possibly section 5 ### //
-	if (*it == "555") {
+	if (it != _groups.end() && *it == "555") {
 		_message._sections[5] = true;
 		r = parseSection5(it);
 	}

@@ -28,6 +28,7 @@
 #include <chrono>
 #include <map>
 #include <sstream>
+#include <iomanip>
 
 #include <cstring>
 #include <cctype>
@@ -43,6 +44,7 @@
 #include "synopdownloader.h"
 #include "dbconnection.h"
 #include "ogimetsynop.h"
+#include "synopdecoder/parser.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -107,7 +109,7 @@ void SynopDownloader::checkDeadline(const sys::error_code& e)
 void SynopDownloader::download()
 {
 	std::cerr << "Now downloading SYNOP messages " << std::endl;
-	auto time = date::sys_seconds() - chrono::hours(1);
+	auto time = chrono::system_clock::now() - chrono::hours(1);
 	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
 	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
@@ -134,7 +136,20 @@ void SynopDownloader::download()
 	// allow us to treat all data up until the EOF as the content.
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
-	requestStream << "GET " << "/cgi-bin/getsynop?begin=" << y << m << d << h << min << "&group=" << GROUP_FR << " HTTP/1.0\r\n";
+	std::cerr << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
+		<< std::setw(4) << y
+		<< std::setw(2) << m
+		<< std::setw(2) << d
+		<< std::setw(2) << h
+		<< std::setw(2) << min
+		<< "&block=" << GROUP_FR << " HTTP/1.0\r\n";
+	requestStream << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
+		<< std::setw(4) << y
+		<< std::setw(2) << m
+		<< std::setw(2) << d
+		<< std::setw(2) << h
+		<< std::setw(2) << min
+		<< "&block=" << GROUP_FR << " HTTP/1.0\r\n";
 	requestStream << "Host: " << HOST << "\r\n";
 	requestStream << "Accept: */*\r\n";
 	requestStream << "Connection: close\r\n\r\n";
@@ -168,29 +183,41 @@ void SynopDownloader::download()
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	asio::read_until(socket, response, "\r\n\r\n");
+	auto size = asio::read_until(socket, response, "\r\n\r\n");
 
 	// Discard the headers
 	// XXX Should we do something about them?
+	response.consume(size);
 
 	// Read the body
-	asio::read_until(socket, response, "\r\n\r\n");
+	sys::error_code ec;
+	do {
+		size = asio::read_until(socket, response, "\n", ec);
+		std::string line;
+		std::getline(responseStream, line);
 
-	// Process the response headers.
-	std::string synop;
-	while (std::getline(responseStream, synop)) {
-		std::istringstream in{synop};
-		if (_parser.parse(in)) {
-			const SynopMessage& m = _parser.getDecodedMessage();
+		// Deal with the annoying case as early as possible
+		if (line.find("NIL") != std::string::npos)
+			continue;
+
+		std::istringstream lineIterator{line};
+
+		Parser parser;
+		if (parser.parse(lineIterator)) {
+			const SynopMessage& m = parser.getDecodedMessage();
 			auto uuidIt = _icaos.find(m._stationIcao);
 			if (uuidIt != _icaos.end()) {
+				char uuidStr[CASS_UUID_STRING_LENGTH];
+				cass_uuid_string(uuidIt->second, uuidStr);
+				std::cerr << "UUID identified: " << uuidStr << std::endl;
 				OgimetSynop synop{m};
 				_db.insertV2DataPoint(uuidIt->second, synop);
+				std::cerr << "Inserted into database" << std::endl;
 			}
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
 		}
-	}
+	} while (!ec);
 }
 
 }

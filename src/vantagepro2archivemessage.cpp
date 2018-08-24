@@ -151,18 +151,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 			)
 		);
 	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
-	 && _data.outsideHum != 255 && _data.solarRad != 32767)
-		cass_statement_bind_float(statement, 60,
-			thsw_index(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
-				_data.outsideHum,
-				from_mph_to_mps(_data.avgWindSpeed),
-				_data.solarRad
-			)
-		);
-	else if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
-	 && _data.outsideHum != 255 && _data.solarRad == 32767)
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 60,
 			thsw_index(
 				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
@@ -281,18 +270,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	if (_data.solarRad != 32767)
 		cass_statement_bind_int32(statement, 30, _data.solarRad);
 	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
-	 && _data.outsideHum != 255 && _data.solarRad != 32767)
-		cass_statement_bind_float(statement, 31,
-			thsw_index(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
-				_data.outsideHum,
-				from_mph_to_mps(_data.avgWindSpeed),
-				_data.solarRad
-			)
-		);
-	else if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255
-	 && _data.outsideHum != 255 && _data.solarRad == 32767)
+	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 31,
 			thsw_index(
 				from_Farenheight_to_Celsius(_data.outsideTemp / 10),

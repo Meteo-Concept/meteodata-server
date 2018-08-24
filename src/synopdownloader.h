@@ -43,7 +43,6 @@
 #include <date/tz.h>
 
 #include "dbconnection.h"
-#include "synopdecoder/parser.h"
 
 
 namespace meteodata {
@@ -69,7 +68,6 @@ private:
 	DbConnection& _db;
 	asio::io_service& _ioService;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
-	Parser _parser;
 	std::map<std::string, CassUuid> _icaos;
 
 	static constexpr char HOST[] = "www.ogimet.com";
