@@ -511,10 +511,18 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				++it;
 				if (duration && *duration <= 60) {
 					if ((*it)[1] == '1' && (*it)[2] == '1') {
-						auto gust = parseInt(*it, 3);
-						std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
-						if (gust)
+						std::experimental::optional<int> gust;
+						if ((*it)[3] == '9' && (*it)[4] == '9') {
+							++it;
+							if ((*it)[0] == '0' && (*it)[1] == '0')
+								gust = parseInt(*it, 2);
+						} else {
+							gust = parseInt(*it, 3);
+						}
+						if (gust) {
+							std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
 							_message._gustObservations.push_back({*gust, *duration * 6});
+						}
 					}
 				}
 			} else if (s[1] == '0' && (s[2] == '2' || s[2] == '4')) {
@@ -563,10 +571,18 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 				++it;
 				if (duration && *duration <= 60) {
 					if ((*it)[1] == '1' && (*it)[2] == '1') {
-						auto gust = parseInt(*it, 3);
-						std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
-						if (gust)
+						std::experimental::optional<int> gust;
+						if ((*it)[3] == '9' && (*it)[4] == '9') {
+							++it;
+							if ((*it)[0] == '0' && (*it)[1] == '0')
+								gust = parseInt(*it, 2);
+						} else {
+							gust = parseInt(*it, 3);
+						}
+						if (gust) {
+							std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
 							_message._gustObservations.push_back({*gust, *duration * 6});
+						}
 					}
 				}
 			} else if (s[1] == '0' && (s[2] == '2' || s[2] == '4')) {
