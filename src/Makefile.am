@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone
 meteodata_SOURCES = \
 		    daemon.cpp\
 		    dbconnection_common.h\
@@ -64,6 +64,31 @@ meteodata_month_minmax_SOURCES = \
 			   dbconnection_month_minmax.cpp\
 			   date/include/date/date.h
 
+meteodata_synop_standalone_SOURCES = \
+				     synop_standalone.h\
+				     synop_standalone.cpp\
+				     dbconnection_common.h\
+				     dbconnection_common.cpp\
+				     dbconnection.cpp\
+				     dbconnection.h\
+				     ogimetsynop.cpp\
+				     ogimetsynop.h\
+				     synopdecoder/cloud_observation.h\
+				     synopdecoder/direction.h\
+				     synopdecoder/evapo_maybe_transpi_ration.h\
+				     synopdecoder/ground_state.h\
+				     synopdecoder/isobaric_surface_potential.h\
+				     synopdecoder/nebulosity.h\
+				     synopdecoder/parser.cpp\
+				     synopdecoder/parser.h\
+				     synopdecoder/phenomenon.h\
+				     synopdecoder/precipitation_amount.h\
+				     synopdecoder/pressure_tendency.h\
+				     synopdecoder/range.h\
+				     synopdecoder/gust_observation.h\
+				     synopdecoder/synop_message.h\
+				     date/include/date/date.h
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic -DUSE_OS_TZDB=1
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
@@ -78,3 +103,8 @@ meteodata_month_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPF
 meteodata_month_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_month_minmax_LDFLAGS = 
 meteodata_month_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+meteodata_synop_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) -I$(srcdir)/date/include
+meteodata_synop_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_synop_standalone_LDFLAGS = 
+meteodata_synop_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
