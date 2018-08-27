@@ -48,11 +48,11 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 			_message._withAnemometer = true;
 			_message._windSpeedUnit = SynopMessage::WindSpeedUnit::METERS_PER_SECOND;
 			break;
-		case '2':
+		case '3':
 			_message._withAnemometer = false;
 			_message._windSpeedUnit = SynopMessage::WindSpeedUnit::KNOTS;
 			break;
-		case '3':
+		case '4':
 			_message._withAnemometer = true;
 			_message._windSpeedUnit = SynopMessage::WindSpeedUnit::KNOTS;
 			break;
