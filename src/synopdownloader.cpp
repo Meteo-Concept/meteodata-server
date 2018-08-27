@@ -109,7 +109,7 @@ void SynopDownloader::checkDeadline(const sys::error_code& e)
 void SynopDownloader::download()
 {
 	std::cerr << "Now downloading SYNOP messages " << std::endl;
-	auto time = chrono::system_clock::now() - chrono::hours(1);
+	auto time = chrono::system_clock::now() - chrono::hours(3);
 	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
 	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
