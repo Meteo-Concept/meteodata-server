@@ -137,7 +137,7 @@ class DbConnectionCommon
 
 	private:
 		static constexpr char SELECT_ALL_STATIONS_STMT[] = "SELECT id FROM meteodata.stations";
-		static constexpr char SELECT_ALL_STATIONS_FR_STMT[] = "SELECT id FROM meteodata.stationsFR";
+		static constexpr char SELECT_ALL_STATIONS_FR_STMT[] = "SELECT id FROM meteodata.stationsFR WHERE type=0";
 		/**
 		 * @brief The first prepared statement for the getAllStations() method
 		 */
