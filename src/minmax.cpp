@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <fstream>
+#include <sstream>
 #include <unistd.h>
 #include <syslog.h>
 #include <cerrno>
@@ -76,17 +77,16 @@ int main(int argc, char** argv)
 	std::string password;
 	std::string address;
 	std::string fileName;
-	date::sys_days selectedDate{date::floor<date::days>(system_clock::now())};
-	int y, m, d;
+	std::string begin;
+	std::string end;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
-		("year,y", po::value<int>(&y), "the date for which the min/max must be computed (defaults to today)")
-		("month,m", po::value<int>(&m), "the date for which the min/max must be computed (defaults to today)")
-		("day,d", po::value<int>(&d), "the date for which the min/max must be computed (defaults to today)")
+		("begin", po::value<std::string>(&begin), "the beginning of the date range for which the min/max must be computed (defaults to today)")
+		("end", po::value<std::string>(&end), "the end of the date range for which the min/max must be computed (defaults to 'begin')")
 	;
 
 	po::options_description config("Configuration");
@@ -121,12 +121,37 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	if (vm.count("year") && vm.count("month") && vm.count("day")) {
-		selectedDate = year_month_day{year{y}/m/d};
-		if (selectedDate > system_clock::now()) {
-			std::cerr << selectedDate << " looks like it's in the future, that's problematic" << std::endl;
+	sys_days beginDate, endDate;
+	if (vm.count("begin")) {
+		std::istringstream in{begin};
+		in >> date::parse("%Y-%m-%d", beginDate);
+		if (!in) {
+			std::cerr << "'" << begin << "' does not look like a valid, that's problematic" << std::endl;
+		}
+		if (beginDate > system_clock::now()) {
+			std::cerr << beginDate << " looks like it's in the future, that's problematic" << std::endl;
 			return EINVAL;
 		}
+	} else {
+		beginDate = sys_days{date::floor<date::days>(system_clock::now())};
+	}
+
+	if (vm.count("end")) {
+		std::istringstream in{end};
+		in >> date::parse("%Y-%m-%d", endDate);
+		if (!in) {
+			std::cerr << "'" << end << "' does not look like a valid, that's problematic" << std::endl;
+		}
+		if (endDate < beginDate) {
+			std::cerr << endDate << " looks like it's before " << beginDate << ", that's problematic" << std::endl;
+			return EINVAL;
+		}
+		if (endDate > system_clock::now()) {
+			std::cerr << endDate << " looks like it's in the future, that's problematic" << std::endl;
+			return EINVAL;
+		}
+	} else {
+		endDate = beginDate;
 	}
 
 
@@ -141,88 +166,91 @@ int main(int argc, char** argv)
 			};
 		cass_log_set_callback(logCallback, NULL);
 
-		std::cerr << "Selected date: " << selectedDate << std::endl;
-
 		std::vector<CassUuid> stations;
 		std::cerr << "Fetching the list of stations" <<std::endl;
 		db.getAllStations(stations);
 		std::cerr << stations.size() << " stations identified\n" <<std::endl;
 
-		for (const CassUuid& station : stations) {
-			std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
-			db.getValues0hTo0h(station, selectedDate, values);
-			std::cerr << "Getting values from 6h to 6h (Tx, rainfall)" << std::endl;
-			db.getValues6hTo6h(station, selectedDate, values);
-			std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
-			db.getValues18hTo18h(station, selectedDate, values);
+		sys_days selectedDate = beginDate;
+		while (selectedDate <= endDate) {
+			std::cerr << "Selected date: " << selectedDate << std::endl;
+			for (const CassUuid& station : stations) {
+				std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
+				db.getValues0hTo0h(station, selectedDate, values);
+				std::cerr << "Getting values from 6h to 6h (Tx, rainfall)" << std::endl;
+				db.getValues6hTo6h(station, selectedDate, values);
+				std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
+				db.getValues18hTo18h(station, selectedDate, values);
 
-			std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
+				std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
 
-			std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
-			std::pair<bool, float>  rainToday,      etToday,
-						rainYesterday,  etYesterday,
-						rainBeginMonth, etBeginMonth;
+				std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
+				std::pair<bool, float>  rainToday,      etToday,
+					rainYesterday,  etYesterday,
+					rainBeginMonth, etBeginMonth;
 
-			auto ymd = date::year_month_day(selectedDate);
-			if (unsigned(ymd.month()) == 1 && unsigned(ymd.day()) == 1) {
-				rainToday = values.rainfall;
-				etToday = values.et;
-			} else {
-				db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
-				compute(rainToday, values.rainfall, rainYesterday, std::plus<float>());
-				compute(etToday, values.et, etYesterday, std::plus<float>());
-			}
-
-			if (unsigned(ymd.month()) == 1) {
-				values.monthRain  = rainToday;
-				values.monthEt    = etToday;
-			} else {
-				date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
-				db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
-				compute(values.monthRain, rainToday, rainBeginMonth, std::minus<float>());
-				compute(values.monthEt, etToday, etBeginMonth, std::minus<float>());
-			}
-
-			values.dayRain  = values.rainfall;
-			values.yearRain = rainToday;
-			values.dayEt    = values.et;
-			values.yearEt   = etToday;
-
-			computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
-			computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
-
-			for (int i=0 ; i<2 ; i++)
-				computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
-			for (int i=0 ; i<4 ; i++)
-				computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
-			for (int i=0 ; i<3 ; i++)
-				computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
-
-			std::vector<std::pair<int,float>> winds;
-			std::cerr << "Getting wind values for day " << selectedDate << std::endl;
-			db.getWindValues(station, selectedDate, winds);
-
-			int count = 0;
-			int dirs[16] = {0};
-			for (auto&& w : winds) {
-				if (w.second / 3.6 >= 2.0) {
-					int rounded = ((w.first % 360) * 100 + 1125) / 2250;
-					dirs[rounded]++;
-					count++;
+				auto ymd = date::year_month_day(selectedDate);
+				if (unsigned(ymd.month()) == 1 && unsigned(ymd.day()) == 1) {
+					rainToday = values.rainfall;
+					etToday = values.et;
+				} else {
+					db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
+					compute(rainToday, values.rainfall, rainYesterday, std::plus<float>());
+					compute(etToday, values.et, etYesterday, std::plus<float>());
 				}
-			}
 
-			values.winddir.second.resize(16);
-			for (int i=0 ; i<16 ; i++) {
-				int v = dirs[i];
-				std::cerr << "v = " << v << " | count = " << count << std::endl;
-				values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
-			}
-			values.winddir.first = true;
+				if (unsigned(ymd.month()) == 1) {
+					values.monthRain  = rainToday;
+					values.monthEt    = etToday;
+				} else {
+					date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
+					db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
+					compute(values.monthRain, rainToday, rainBeginMonth, std::minus<float>());
+					compute(values.monthEt, etToday, etBeginMonth, std::minus<float>());
+				}
 
-			std::cerr << "Inserting into database" << std::endl;
-			db.insertDataPoint(station, selectedDate, values);
-			std::cerr << "-----------------------" << std::endl;
+				values.dayRain  = values.rainfall;
+				values.yearRain = rainToday;
+				values.dayEt    = values.et;
+				values.yearEt   = etToday;
+
+				computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
+				computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
+
+				for (int i=0 ; i<2 ; i++)
+					computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
+				for (int i=0 ; i<4 ; i++)
+					computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
+				for (int i=0 ; i<3 ; i++)
+					computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
+
+				std::vector<std::pair<int,float>> winds;
+				std::cerr << "Getting wind values for day " << selectedDate << std::endl;
+				db.getWindValues(station, selectedDate, winds);
+
+				int count = 0;
+				int dirs[16] = {0};
+				for (auto&& w : winds) {
+					if (w.second / 3.6 >= 2.0) {
+						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
+						dirs[rounded]++;
+						count++;
+					}
+				}
+
+				values.winddir.second.resize(16);
+				for (int i=0 ; i<16 ; i++) {
+					int v = dirs[i];
+					std::cerr << "v = " << v << " | count = " << count << std::endl;
+					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
+				}
+				values.winddir.first = true;
+
+				std::cerr << "Inserting into database" << std::endl;
+				db.insertDataPoint(station, selectedDate, values);
+				std::cerr << "-----------------------" << std::endl;
+			}
+			selectedDate += date::days{1};
 		}
 		std::cerr << "Done" << std::endl;
 	} catch (std::exception& e) {

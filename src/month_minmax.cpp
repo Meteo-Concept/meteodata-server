@@ -75,8 +75,8 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
-	date::sys_days selectedDate{date::floor<date::days>(system_clock::now())};
-	int y, m;
+	std::string begin;
+	std::string end;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -90,8 +90,8 @@ int main(int argc, char** argv)
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
-		("year,y", po::value<int>(&y), "the date for which the min/max must be computed (defaults to today)")
-		("month,m", po::value<int>(&m), "the date for which the min/max must be computed (defaults to today)")
+		("begin", po::value<std::string>(&begin), "the beginning of the date range for which the min/max must be computed (defaults to the current month)")
+		("end", po::value<std::string>(&end), "the end of the date range for which the min/max must be computed (defaults to 'begin')")
 	;
 	desc.add(config);
 
@@ -122,12 +122,39 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	if (vm.count("year") && vm.count("month")) {
-		selectedDate = year_month_day{year{y}/m/1};
-		if (selectedDate > system_clock::now()) {
-			std::cerr << selectedDate << " looks like it's in the future, that's problematic" << std::endl;
+	year_month beginDate, endDate;
+	year_month_day today{date::floor<date::days>(system_clock::now())};
+	year_month currentMonth{today.year(), today.month()};
+	if (vm.count("begin")) {
+		std::istringstream in{begin};
+		in >> date::parse("%Y-%m", beginDate);
+		if (!in) {
+			std::cerr << "'" << begin << "' does not look like a valid, that's problematic" << std::endl;
+		}
+		if (beginDate > currentMonth) {
+			std::cerr << beginDate << " looks like it's in the future, that's problematic" << std::endl;
 			return EINVAL;
 		}
+	} else {
+		beginDate = currentMonth;
+	}
+
+	if (vm.count("end")) {
+		std::istringstream in{end};
+		in >> date::parse("%Y-%m", endDate);
+		if (!in) {
+			std::cerr << "'" << end << "' does not look like a valid, that's problematic" << std::endl;
+		}
+		if (endDate < beginDate) {
+			std::cerr << endDate << " looks like it's before " << beginDate << ", that's problematic" << std::endl;
+			return EINVAL;
+		}
+		if (endDate > currentMonth) {
+			std::cerr << endDate << " looks like it's in the future, that's problematic" << std::endl;
+			return EINVAL;
+		}
+	} else {
+		endDate = beginDate;
 	}
 
 
@@ -142,48 +169,54 @@ int main(int argc, char** argv)
 			};
 		cass_log_set_callback(logCallback, NULL);
 
-		std::cerr << "Selected date: " << selectedDate << std::endl;
 
 		std::vector<CassUuid> stations;
 		std::cerr << "Fetching the list of stations" <<std::endl;
 		db.getAllStations(stations);
 		std::cerr << stations.size() << " stations identified\n" <<std::endl;
 
-		for (const CassUuid& station : stations) {
-			std::cerr << "Getting daily values (all except wind)" << std::endl;
-			db.getDailyValues(station, y, m, values);
+		const auto today = system_clock::now();
+		year_month selectedDate = beginDate;
+		while (selectedDate <= endDate) {
+			for (const CassUuid& station : stations) {
+				std::cerr << "Selected date: " << selectedDate << std::endl;
+				int y = int(selectedDate.year());
+				int m = static_cast<int>(unsigned(selectedDate.month()));
+				std::cerr << "Getting daily values (all except wind)" << std::endl;
+				db.getDailyValues(station, y, m, values);
 
-			auto day = sys_days{year_month_day{year{y}/m/1}};
-			auto end = sys_days{year_month_day{year{y}/m/last}};
-			auto today = system_clock::now();
+				auto day = sys_days{year_month_day{year{y}/m/1}};
+				auto end = sys_days{year_month_day{year{y}/m/last}};
 
-			std::vector<std::pair<int,float>> winds;
-			while (day <= end && day <= today) {
-				std::cerr << "Getting wind values for day " << day << std::endl;
-				db.getWindValues(station, day, winds);
-				day += days{1};
-			}
-
-			int count = 0;
-			int dirs[16] = {0};
-			for (auto&& w : winds) {
-				if (w.second / 3.6 >= 2.0) {
-					int rounded = ((w.first % 360) * 100 + 1125) / 2250;
-					dirs[rounded]++;
-					count++;
+				std::vector<std::pair<int,float>> winds;
+				while (day <= end && day <= today) {
+					std::cerr << "Getting wind values for day " << day << std::endl;
+					db.getWindValues(station, day, winds);
+					day += days{1};
 				}
-			}
-			values.winddir.second.resize(16);
-			for (int i=0 ; i<16 ; i++) {
-				int v = dirs[i];
-				std::cerr << "v = " << v << " | count = " << count << std::endl;
-				values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
-			}
-			values.winddir.first = true;
 
-			std::cerr << "Inserting into database" << std::endl;
-			db.insertDataPoint(station, y, m, values);
-			std::cerr << "-----------------------" << std::endl;
+				int count = 0;
+				int dirs[16] = {0};
+				for (auto&& w : winds) {
+					if (w.second / 3.6 >= 2.0) {
+						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
+						dirs[rounded]++;
+						count++;
+					}
+				}
+				values.winddir.second.resize(16);
+				for (int i=0 ; i<16 ; i++) {
+					int v = dirs[i];
+					std::cerr << "v = " << v << " | count = " << count << std::endl;
+					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
+				}
+				values.winddir.first = true;
+
+				std::cerr << "Inserting into database" << std::endl;
+				db.insertDataPoint(station, y, m, values);
+				std::cerr << "-----------------------" << std::endl;
+			}
+			selectedDate += date::months{1};
 		}
 		std::cerr << "Done" << std::endl;
 	} catch (std::exception& e) {
