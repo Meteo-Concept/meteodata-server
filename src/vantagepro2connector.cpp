@@ -185,7 +185,7 @@ void VantagePro2Connector::handleSetTimeDeadline(const sys::error_code& e)
 		return;
 
 	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
+	if (_setTimeTimer.expires_at() <= chrono::steady_clock::now()) {
 		std::cerr << "Timed out! We have to reset the station clock ASAP" << std::endl;
 		/* This timer does not interrupt the normal handling of events
 		 * but signals with a flag that the time should be set */
