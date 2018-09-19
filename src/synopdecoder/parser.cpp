@@ -126,6 +126,10 @@ std::experimental::optional<PrecipitationAmount> parseRain(const std::string& s)
 
 bool Parser::parseSection1(decltype(_groups)::iterator& it)
 {
+	// No section 1, that's not normal, going on anyway
+	if (it->length() != 5)
+		return false;
+
 	// ## First group, mandatory
 	// Rain indicator, i_R
 	// no-op, not relevant
