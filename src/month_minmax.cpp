@@ -61,6 +61,14 @@ inline std::ostream& operator<<(std::ostream& os, const std::pair<T1,T2>& pair)
 	return os;
 }
 
+inline constexpr bool operator<(CassUuid u1, CassUuid u2)
+{
+	if (u1.time_and_version == u2.time_and_version)
+		return u1.clock_seq_and_node < u2.clock_seq_and_node;
+	else
+		return u1.time_and_version < u2.time_and_version;
+}
+
 /**
  * @brief Entry point
  *
@@ -77,6 +85,7 @@ int main(int argc, char** argv)
 	std::string address;
 	std::string begin;
 	std::string end;
+	std::vector<std::string> namedStations;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -92,6 +101,7 @@ int main(int argc, char** argv)
 		("config-file", po::value<std::string>(), "alternative configuration file")
 		("begin", po::value<std::string>(&begin), "the beginning of the date range for which the min/max must be computed (defaults to the current month)")
 		("end", po::value<std::string>(&end), "the end of the date range for which the min/max must be computed (defaults to 'begin')")
+		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations for which the min/max must be computed (can be given multiple times, defaults to all stations)")
 	;
 	desc.add(config);
 
@@ -157,6 +167,19 @@ int main(int argc, char** argv)
 		endDate = beginDate;
 	}
 
+	std::vector<CassUuid> userSelection;
+	if (vm.count("station")) {
+		for (const auto& st : namedStations) {
+			CassUuid uuid;
+			CassError res = cass_uuid_from_string(st.c_str(), &uuid);
+			if (res != CASS_OK) {
+				std::cerr << "'" << st << "' does not look like a valid UUID, ignoring" << std::endl;
+				continue;
+			}
+			userSelection.push_back(uuid);
+		}
+	}
+
 
 	try {
 		DbConnectionMonthMinmax db(address, user, password);
@@ -170,10 +193,30 @@ int main(int argc, char** argv)
 		cass_log_set_callback(logCallback, NULL);
 
 
-		std::vector<CassUuid> stations;
+		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" <<std::endl;
-		db.getAllStations(stations);
-		std::cerr << stations.size() << " stations identified\n" <<std::endl;
+		db.getAllStations(allStations);
+		std::cerr << allStations.size() << " stations identified\n" <<std::endl;
+
+		std::vector<CassUuid> stations;
+		if (userSelection.empty()) {
+			stations = std::move(allStations);
+		} else {
+			std::sort(allStations.begin(), allStations.end());
+			std::sort(userSelection.begin(), userSelection.end());
+			std::vector<CassUuid> unknown;
+			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(), std::back_inserter(unknown));
+			if (!unknown.empty()) {
+				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
+				for (const auto& st : unknown) {
+ 					char asStr[CASS_UUID_STRING_LENGTH];
+					cass_uuid_string(st, asStr);
+					std::cerr << "\t" << asStr << "\n";
+				}
+				std::cerr << std::endl;
+			}
+			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(), userSelection.cend(), std::back_inserter(stations));
+		}
 
 		const auto today = system_clock::now();
 		year_month selectedDate = beginDate;
