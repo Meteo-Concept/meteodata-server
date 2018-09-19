@@ -142,7 +142,7 @@ class DbConnectionMonthMinmax : public DbConnectionCommon
 	private:
 		static constexpr char SELECT_DAILY_VALUES_STMT[] =
 			"SELECT "
-			"AVG(outsidetemp_avg)		AS outsidetemp, "
+			"meteodata_v2.avg(outsidetemp_avg) AS outsidetemp, "
 			"MAX(outsidetemp_max)		AS outsidetemp_max_max, "
 			"MIN(outsidetemp_max)		AS outsidetemp_max_min, "
 			"MAX(outsidetemp_min)		AS outsidetemp_min_max, "
@@ -152,12 +152,12 @@ class DbConnectionMonthMinmax : public DbConnectionCommon
 			"MAX(rainrate_max)		AS rainrate_max, "
 			"SUM(dayet)			AS etp, "
 			"MIN(barometer_min)		AS barometer_min, "
-			"AVG(barometer_avg)		AS barometer_avg, "
+			"meteodata_v2.avg(barometer_avg) AS barometer_avg, "
 			"MAX(barometer_max)		AS barometer_max, "
 			"MIN(outsidehum_min)		AS outsidehum_min, "
 			"MAX(outsidehum_max)		AS outsidehum_max, "
 			"MAX(solarrad_max)		AS solarrad_max, "
-			"AVG(solarrad_avg)		AS solarrad_avg, "
+			"meteodata_v2.avg(solarrad_avg)	AS solarrad_avg, "
 			"MAX(uv_max)			AS uv_max "
 			" FROM meteodata_v2.minmax WHERE station = ? AND monthyear = ?";
 			//" FROM meteodata.minmax WHERE station = ? AND date >= ? AND date < ?";
