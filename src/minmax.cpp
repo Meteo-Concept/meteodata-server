@@ -25,6 +25,7 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <array>
 
 #include <fstream>
 #include <sstream>
@@ -271,11 +272,11 @@ int main(int argc, char** argv)
 				db.getWindValues(station, selectedDate, winds);
 
 				int count = 0;
-				int dirs[16] = {0};
+				std::array<int, 16> dirs = {0};
 				for (auto&& w : winds) {
 					if (w.second / 3.6 >= 2.0) {
 						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
-						dirs[rounded]++;
+						dirs[rounded % 16]++;
 						count++;
 					}
 				}
