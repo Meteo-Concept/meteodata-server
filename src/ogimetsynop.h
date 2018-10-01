@@ -30,10 +30,9 @@
 #include <experimental/optional>
 
 #include <boost/asio.hpp>
-
 #include <cassandra.h>
+#include <message.h>
 
-#include "message.h"
 #include "synopdecoder/synop_message.h"
 
 namespace meteodata {

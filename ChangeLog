@@ -1,3 +1,11 @@
+2018-09-20	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Implement the Weatherlink.com downloads
+	* Implement the Ogimet SYNOP messages downloads and parsing
+	* Compute daily and monthly climatology
+	* Change the database scheme to prevent unbounded row growth
+	* Make the third release
+
 2017-10-13	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Implement the archives, the timezones and the clock setting

@@ -28,14 +28,13 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
+#include <tuple>
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
-
-#include <tuple>
+#include <dbconnection_observations.h>
 
 #include "config.h"
-#include "dbconnection.h"
 #include "meteo_server.h"
 
 /**

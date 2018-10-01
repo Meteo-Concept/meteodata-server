@@ -43,7 +43,7 @@ namespace meteodata {
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-class DbConnection;
+class DbConnectionObservations;
 
 /**
  * @brief A class able to store an archive page downloaded from a VantagePro2 (R)
@@ -77,7 +77,7 @@ public:
 
 	/**
 	 */
-	bool store(DbConnection& db, const CassUuid& station);
+	bool store(DbConnectionObservations& db, const CassUuid& station);
 
 	/**
 	 * @brief Give the timestamp of the most recent relevant archive entry

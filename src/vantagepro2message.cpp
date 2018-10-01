@@ -28,8 +28,9 @@
 #include <iterator>
 #include <algorithm>
 
+#include <dbconnection_observations.h>
+
 #include "vantagepro2message.h"
-#include "dbconnection.h"
 
 namespace meteodata
 {

@@ -29,9 +29,9 @@
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
+#include <dbconnection_observations.h>
 
 #include "synop_standalone.h"
-#include "dbconnection.h"
 #include "ogimetsynop.h"
 #include "synopdecoder/parser.h"
 #include "config.h"
@@ -43,7 +43,7 @@ namespace po = boost::program_options;
 
 namespace meteodata {
 
-SynopStandalone::SynopStandalone(DbConnection& db) :
+SynopStandalone::SynopStandalone(DbConnectionObservations& db) :
 	_db(db)
 {
 }
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnection db(address, user, password);
+		DbConnectionObservations db(address, user, password);
 
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback =

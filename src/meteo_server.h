@@ -25,10 +25,10 @@
 #define METEO_SERVER_H
 
 #include <boost/asio.hpp>
+#include <dbconnection_observations.h>
 
 #include "meteo_server.h"
 #include "connector.h"
-#include "dbconnection.h"
 
 namespace meteodata {
 /**
@@ -53,6 +53,25 @@ public:
 	MeteoServer(boost::asio::io_service& io, const std::string& address,
 		const std::string& user, const std::string& password);
 	/**
+	 * @brief Launch all operations: start the SYNOP messages
+	 * downloader, the Weatherlink archive downloader and listen
+	 * for incoming stations.
+	 */
+	void start();
+
+private:
+	boost::asio::io_service& _ioService;
+	/**
+	 * @brief The Boost::Asio object that handles the accept()
+	 * operations
+	 */
+	boost::asio::ip::tcp::acceptor _acceptor;
+	/**
+	 * @brief The connection to the database
+	 */
+	DbConnectionObservations _db;
+
+	/**
 	 * @brief Start listening on the port, construct a connector,
 	 * and wait for a station to present itself
 	 *
@@ -68,7 +87,6 @@ public:
 	 * pass it over the socket.
 	 */
 	void startAccepting();
-	void start();
 	/**
 	 * @brief Dispatch a new connector and resume listening on the
 	 * port
@@ -79,18 +97,6 @@ public:
 	 */
 	void runNewConnector(Connector::ptr c,
 		const boost::system::error_code& error);
-
-private:
-	boost::asio::io_service& _ioService;
-	/**
-	 * @brief The Boost::Asio object that handles the accept()
-	 * operations
-	 */
-	boost::asio::ip::tcp::acceptor _acceptor;
-	/**
-	 * @brief The connection to the database
-	 */
-	DbConnection _db;
 };
 }
 

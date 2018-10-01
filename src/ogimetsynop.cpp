@@ -27,10 +27,10 @@
 
 #include <date/date.h>
 #include <date/tz.h>
+#include <message.h>
 
 #include "ogimetsynop.h"
 #include "synopdecoder/synop_message.h"
-#include "message.h"
 #include "vantagepro2message.h"
 
 namespace {

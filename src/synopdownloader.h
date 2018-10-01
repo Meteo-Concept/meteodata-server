@@ -30,19 +30,16 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
-
 #include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
-
-#include "dbconnection.h"
+#include <dbconnection_observations.h>
 
 
 namespace meteodata {
@@ -61,12 +58,12 @@ using namespace meteodata;
 class SynopDownloader : public std::enable_shared_from_this<SynopDownloader>
 {
 public:
-	SynopDownloader(asio::io_service& ioService, DbConnection& db);
+	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	void start();
 
 private:
-	DbConnection& _db;
 	asio::io_service& _ioService;
+	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
 

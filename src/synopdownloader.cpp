@@ -32,17 +32,16 @@
 
 #include <cstring>
 #include <cctype>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
+#include <dbconnection_observations.h>
 
 #include "synopdownloader.h"
-#include "dbconnection.h"
 #include "ogimetsynop.h"
 #include "synopdecoder/parser.h"
 
@@ -60,7 +59,7 @@ using namespace date;
 constexpr char SynopDownloader::HOST[];
 constexpr char SynopDownloader::GROUP_FR[];
 
-SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnection& db) :
+SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
 	_db(db),
 	_ioService(ioService),
 	_timer(_ioService)

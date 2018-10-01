@@ -8,7 +8,7 @@
 #include <sstream>
 #include <experimental/optional>
 
-#include "../date/include/date/date.h"
+#include <date.h>
 
 Parser::Parser()
 {

@@ -29,21 +29,19 @@
 #include <array>
 #include <vector>
 #include <functional>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
-
 #include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
+#include <dbconnection_observations.h>
 
 #include "vantagepro2archivepage.h"
 #include "timeoffseter.h"
-#include "dbconnection.h"
 
 
 namespace meteodata {
@@ -63,13 +61,13 @@ class WeatherlinkDownloader : public std::enable_shared_from_this<WeatherlinkDow
 {
 public:
 	WeatherlinkDownloader(const CassUuid& _station, const std::string& auth,
-		const std::string& apiToken, asio::io_service& ioService, DbConnection& db,
+		const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
 	void start();
 
 private:
-	DbConnection& _db;
 	asio::io_service& _ioService;
+	DbConnectionObservations& _db;
 	std::string _authentication;
 	std::string _apiToken;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;

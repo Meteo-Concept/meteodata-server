@@ -26,11 +26,11 @@
 
 #include <date/date.h>
 #include <date/tz.h>
+#include <dbconnection_observations.h>
 
 #include "vantagepro2archivepage.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivemessage.h"
-#include "dbconnection.h"
 
 #include "timeoffseter.h"
 
@@ -64,7 +64,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 	return false;
 }
 
-bool VantagePro2ArchivePage::store(DbConnection& db, const CassUuid& station)
+bool VantagePro2ArchivePage::store(DbConnectionObservations& db, const CassUuid& station)
 {
 	bool ret = true;
 	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE && ret ; i++) {

@@ -31,8 +31,8 @@
 #include <boost/asio.hpp>
 
 #include <cassandra.h>
+#include <message.h>
 
-#include "message.h"
 #include "timeoffseter.h"
 
 using std::uint8_t;

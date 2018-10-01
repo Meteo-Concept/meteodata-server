@@ -29,17 +29,13 @@
 #include <iterator>
 #include <algorithm>
 #include <chrono>
-
 #include <cstring>
-
-#include <cstring>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
 
 #include <cassandra.h>
 
@@ -71,7 +67,7 @@ constexpr char VantagePro2Connector::_nak[];
 constexpr char VantagePro2Connector::_abort[];
 
 VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
-	DbConnection& db) :
+	DbConnectionObservations& db) :
 	Connector(ioService, db),
 	_timer(ioService),
 	_setTimeTimer(ioService)

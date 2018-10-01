@@ -27,8 +27,7 @@
 #include <memory>
 
 #include <boost/asio.hpp>
-
-#include "dbconnection.h"
+#include <dbconnection_observations.h>
 
 namespace meteodata
 {
@@ -64,7 +63,7 @@ namespace meteodata
 		static
 		typename std::enable_if<std::is_base_of<Connector,T>::value,
 				Connector::ptr>::type
-		create(boost::asio::io_service& ioService, DbConnection& db)
+		create(boost::asio::io_service& ioService, DbConnectionObservations& db)
 		{
 			std::cerr << "new connector" << std::endl;
 			return Connector::ptr(new T(std::ref(ioService), std::ref(db)));
@@ -103,7 +102,7 @@ namespace meteodata
 		 * Boost::Asio asynchronous operations
 		 * @param db The handle to the database
 		 */
-		Connector(boost::asio::io_service& ioService, DbConnection& db);
+		Connector(boost::asio::io_service& ioService, DbConnectionObservations& db);
 		/**
 		 * @brief The TCP socket used to communicate to the meteo
 		 * station
@@ -117,7 +116,7 @@ namespace meteodata
 		/**
 		 * @brief The connection to the database
 		 */
-		DbConnection& _db;
+		DbConnectionObservations& _db;
 	};
 }
 

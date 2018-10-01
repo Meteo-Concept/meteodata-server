@@ -2,16 +2,16 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([Meteodata], [0.10], [contact@meteo-concept.fr])
+AC_INIT([Meteodata], [0.11], [contact@meteo-concept.fr])
 AC_CONFIG_SRCDIR([src/vantagepro2connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
-LT_INIT
+
+AC_LANG_CPLUSPLUS
 
 # Checks for programs.
 AC_PROG_CXX
-AC_PROG_CC
 AC_CHECK_PROGS([DOT], [dot])
 if test -z "$DOT";
 then AC_MSG_WARN([[Graphs will not be available in Doxygen documentation]])
@@ -28,15 +28,23 @@ AM_COND_IF([HAVE_DOT], [AC_SUBST(DOT_IS_AVAILABLE,["YES"])], [AC_SUBST(DOT_IS_AV
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([syslog.h unistd.h cassandra.h])
+AC_CHECK_HEADERS([syslog.h])
+AC_CHECK_HEADERS([unistd.h])
+AC_CHECK_HEADERS([cassandra.h])
+AC_CHECK_HEADERS([message.h])
+AC_CHECK_HEADERS([date.h])
+AC_CHECK_HEADERS([tz.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
 AC_TYPE_SIZE_T
 
 # Checks for library functions.
+LT_INIT
 AX_PTHREAD
 AC_CHECK_LIB([cassandra],[cass_session_new])
+AC_CHECK_LIB([cassobs],[main])
+AC_CHECK_LIB([tz],[main])
 BOOST_REQUIRE([1.52])
 BOOST_SYSTEM
 BOOST_ASIO

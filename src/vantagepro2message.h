@@ -34,8 +34,7 @@
 
 #include <date/date.h>
 #include <cassandra.h>
-
-#include "message.h"
+#include <message.h>
 
 using std::uint8_t;
 using std::uint16_t;

@@ -26,11 +26,11 @@
 
 #include <iostream>
 #include <string>
+#include <map>
 
 #include <cassandra.h>
 #include <date/date.h>
-
-#include "dbconnection.h"
+#include <dbconnection_observations.h>
 
 
 namespace meteodata {
@@ -42,11 +42,11 @@ using namespace meteodata;
 class SynopStandalone
 {
 public:
-	SynopStandalone(DbConnection& db);
+	SynopStandalone(DbConnectionObservations& db);
 	void start(const std::string& file);
 
 private:
-	DbConnection& _db;
+	DbConnectionObservations& _db;
 	std::map<std::string, CassUuid> _icaos;
 
 	static constexpr char HOST[] = "www.ogimet.com";

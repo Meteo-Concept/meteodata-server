@@ -29,14 +29,12 @@
 #include <array>
 #include <vector>
 #include <functional>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
-
 #include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
@@ -71,7 +69,7 @@ public:
 	 * network operations
 	 * @param db The handle to the database
 	 */
-	VantagePro2Connector(boost::asio::io_service& ioService, DbConnection& db);
+	VantagePro2Connector(boost::asio::io_service& ioService, DbConnectionObservations& db);
 
 	//main loop
 	virtual void start() override;

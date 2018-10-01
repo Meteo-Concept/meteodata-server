@@ -28,10 +28,9 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-
 #include <cassandra.h>
+#include <message.h>
 
-#include "message.h"
 #include "vantagepro2message.h"
 #include "weatherlink_api_realtime_message.h"
 

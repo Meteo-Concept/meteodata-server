@@ -39,10 +39,9 @@
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
+#include <dbconnection_minmax.h>
+#include <date/date.h>
 
-#include "date/date.h"
-
-#include "dbconnection_minmax.h"
 #include "config.h"
 
 

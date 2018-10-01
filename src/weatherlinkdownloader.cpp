@@ -27,25 +27,22 @@
 #include <iterator>
 #include <chrono>
 #include <sstream>
-
 #include <cstring>
 #include <cctype>
+#include <syslog.h>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-
-#include <syslog.h>
-#include <unistd.h>
-
 #include <cassandra.h>
+#include <dbconnection_observations.h>
 
 #include "weatherlink_api_realtime_message.h"
 #include "weatherlinkdownloader.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivepage.h"
-#include "dbconnection.h"
 #include "timeoffseter.h"
 
 namespace asio = boost::asio;
@@ -63,10 +60,10 @@ constexpr char WeatherlinkDownloader::HOST[];
 constexpr char WeatherlinkDownloader::APIHOST[];
 
 WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-	const std::string& apiToken, asio::io_service& ioService, DbConnection& db,
+	const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
-	_db(db),
 	_ioService(ioService),
+	_db(db),
 	_authentication(auth),
 	_apiToken(apiToken),
 	_timer(_ioService),

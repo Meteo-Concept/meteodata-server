@@ -1,11 +1,25 @@
+Version 0.11
+============
+
+	Third official release
+
+Meteodata-server now supports getting archives from weatherlink.com for stations
+with a IP dataloogger and getting realtime data if the last archive is too old
+and the Weatherlink v1 API token is available. Meteodata-server also fetches
+SYNOP messages from Ogimet for MétéoFrance stations. The database scheme as
+changed: there are two new tables for respectively the daily and monthly
+climatology, and the primary key of the observation table is now the pair
+(Station UUID, day) in order to avoid unbounded row growth. For now, we use the
+two schemes. When the migration is over, there will be some cleanup to do.
+
 version 0.7
 ===========
 
 	Second official release
 
-	Meteodata-server now supports detecting the station timezone, adjusting the clock
-        and retrieving the station's archives when the station has been disconnected for
-	too long.
+Meteodata-server now supports detecting the station timezone, adjusting the
+clock and retrieving the station's archives when the station has been
+disconnected for too long.
 
 version 0.1
 ===========
