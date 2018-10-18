@@ -60,8 +60,8 @@ constexpr char SynopDownloader::HOST[];
 constexpr char SynopDownloader::GROUP_FR[];
 
 SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
-	_db(db),
 	_ioService(ioService),
+	_db(db),
 	_timer(_ioService)
 {
 }
