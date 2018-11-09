@@ -79,7 +79,10 @@ void SynopDownloader::start()
 void SynopDownloader::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
-	_timer.expires_from_now(chrono::hours(1));
+	auto target = chrono::steady_clock::now();
+	auto daypoint = date::floor<date::days>(target);
+	auto tod = date::make_time(target - daypoint);
+	_timer.expires_from_now(chrono::hours(1) + chrono::minutes(20 - tod.minutes().count()));
 	_timer.async_wait(std::bind(&SynopDownloader::checkDeadline, self, args::_1));
 }
 
