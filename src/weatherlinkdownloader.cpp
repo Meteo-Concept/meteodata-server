@@ -85,7 +85,7 @@ void WeatherlinkDownloader::start()
 void WeatherlinkDownloader::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
-	_timer.expires_from_now(_pollingPeriod <= 10 ? chrono::minutes(10) : chrono::minutes(_pollingPeriod));
+	_timer.expires_from_now(chrono::minutes(10));
 	_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, args::_1));
 }
 
