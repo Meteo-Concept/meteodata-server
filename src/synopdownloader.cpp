@@ -215,6 +215,18 @@ void SynopDownloader::download()
 				OgimetSynop synop{m};
 				_db.insertV2DataPoint(uuidIt->second, synop);
 				std::cerr << "Inserted into database" << std::endl;
+
+				std::pair<bool, float> rainfall24 = {false, 0.f};
+				std::pair<bool, int> insolationTime24 = {false, 0};
+				auto it = std::find_if(m._precipitation.begin(), m._precipitation.end(),
+						[](const auto& p) { return p._duration == 24; });
+				if (it != m._precipitation.end())
+					rainfall24 = {true, it->_amount};
+				if (m._hoursOfSunshineLastDay)
+					insolationTime24 = {true, *(m._hoursOfSunshineLastDay * 60)};
+				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
+				_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+				std::cerr << "Inserted into database" << std::endl;
 			}
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;

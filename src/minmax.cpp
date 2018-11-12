@@ -217,12 +217,12 @@ int main(int argc, char** argv)
 		while (selectedDate <= endDate) {
 			std::cerr << "Selected date: " << selectedDate << std::endl;
 			for (const CassUuid& station : stations) {
-				std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
-				db.getValues0hTo0h(station, selectedDate, values);
 				std::cerr << "Getting values from 6h to 6h (Tx, rainfall)" << std::endl;
 				db.getValues6hTo6h(station, selectedDate, values);
 				std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
 				db.getValues18hTo18h(station, selectedDate, values);
+				std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
+				db.getValues0hTo0h(station, selectedDate, values);
 
 				std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
 
