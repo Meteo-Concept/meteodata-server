@@ -87,7 +87,7 @@ std::experimental::optional<int> parseSInt(const std::string& s, std::string::si
 			return std::experimental::optional<int>();
 		n = (n * 10) + (s[i] - '0');
 	}
-	if (s[pos] == 1)
+	if (s[pos] == '1')
 		n *= -1;
 	return std::experimental::optional<int>(n);
 }
