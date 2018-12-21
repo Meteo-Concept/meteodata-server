@@ -136,7 +136,8 @@ int main(int argc, char** argv)
 		std::istringstream in{begin};
 		in >> date::parse("%Y-%m-%d", beginDate);
 		if (!in) {
-			std::cerr << "'" << begin << "' does not look like a valid, that's problematic" << std::endl;
+			std::cerr << "'" << begin << "' does not look like a valid day, that's problematic" << std::endl;
+			return EINVAL;
 		}
 		if (beginDate > system_clock::now()) {
 			std::cerr << beginDate << " looks like it's in the future, that's problematic" << std::endl;
@@ -150,7 +151,8 @@ int main(int argc, char** argv)
 		std::istringstream in{end};
 		in >> date::parse("%Y-%m-%d", endDate);
 		if (!in) {
-			std::cerr << "'" << end << "' does not look like a valid, that's problematic" << std::endl;
+			std::cerr << "'" << end << "' does not look like a valid day, that's problematic" << std::endl;
+			return EINVAL;
 		}
 		if (endDate < beginDate) {
 			std::cerr << endDate << " looks like it's before " << beginDate << ", that's problematic" << std::endl;
@@ -204,7 +206,7 @@ int main(int argc, char** argv)
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
- 					char asStr[CASS_UUID_STRING_LENGTH];
+					char asStr[CASS_UUID_STRING_LENGTH];
 					cass_uuid_string(st, asStr);
 					std::cerr << "\t" << asStr << "\n";
 				}
