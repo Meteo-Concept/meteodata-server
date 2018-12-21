@@ -192,7 +192,7 @@ struct SynopMessage
 	/**
 	 * Daily hours of sunshine; SSS
 	 */
-	std::experimental::optional<float> _hoursOfSunshineLastDay;
+	std::experimental::optional<int> _minutesOfSunshineLastDay;
 	/**
 	 * Duration of sunshine in the last hour; SS
 	 */

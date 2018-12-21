@@ -222,8 +222,8 @@ void SynopDownloader::download()
 						[](const auto& p) { return p._duration == 24; });
 				if (it != m._precipitation.end())
 					rainfall24 = std::make_pair(true, it->_amount);
-				if (m._hoursOfSunshineLastDay)
-					insolationTime24 = std::make_pair(true, *(m._hoursOfSunshineLastDay) * 60);
+				if (m._minutesOfSunshineLastDay)
+					insolationTime24 = std::make_pair(true, *m._minutesOfSunshineLastDay);
 				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
 				_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
 				using date::operator<<;

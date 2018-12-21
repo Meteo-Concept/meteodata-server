@@ -411,7 +411,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 			} else if (s[1] == '5') {
 				std::experimental::optional<int> time = parseInt(s, 2);
 				if (time)
-					_message._hoursOfSunshineLastDay = *time / 10.; // conversion from tenths of hours to hours
+					_message._minutesOfSunshineLastDay = *time * 6; // conversion from tenths of hours to minutes
 				++it;
 				if (it->at(0) == '0' || it->at(0) == '1')
 					_message._netRadiationLast24Hours = parseSInt(*it, 0);
