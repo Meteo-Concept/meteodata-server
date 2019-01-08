@@ -64,6 +64,18 @@ void WeatherlinkApiRealtimeMessage::parse(std::istream& input)
 	_obs.windGustSpeed = xmlTree.get<float>("current_observation.davis_current_observation.wind_ten_min_gust_mph", INVALID_FLOAT);
 	_obs.solarRad = xmlTree.get<int>("current_observation.davis_current_observation.solar_radiation", INVALID_INT);
 	_obs.uvIndex = xmlTree.get<float>("current_observation.davis_current_observation.uv_index", INVALID_FLOAT);
+	for (int i=0 ; i<2 ; i++)
+		_obs.extraHumidity[i] = xmlTree.get<int>("current_observation.davis_current_observation.relative_humidity_" + std::to_string(i+1), INVALID_INT);
+	for (int i=0 ; i<3 ; i++)
+		_obs.extraTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_extra_" + std::to_string(i+1), INVALID_FLOAT);
+	for (int i=0 ; i<2 ; i++) {
+		_obs.leafTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_leaf_" + std::to_string(i+1), INVALID_FLOAT);
+		_obs.leafWetness[i] = xmlTree.get<int>("current_observation.davis_current_observation.leaf_wetness_" + std::to_string(i+1), INVALID_INT);
+	}
+	for (int i=0 ; i<4 ; i++) {
+		_obs.soilMoisture[i] = xmlTree.get<int>("current_observation.davis_current_observation.soil_moisture_" + std::to_string(i+1), INVALID_INT);
+		_obs.soilTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_soil_" + std::to_string(i+1), INVALID_INT);
+	}
 }
 
 void WeatherlinkApiRealtimeMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
@@ -190,9 +202,13 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 			)
 		);
 	/*************************************************************/
-	// No extra humidities
+	for (int i=0 ; i<2 ; i++)
+		if (!isInvalid(_obs.extraHumidity[i]))
+			cass_statement_bind_int32(statement, 5+i, _obs.extraHumidity[i]);
 	/*************************************************************/
-	// No extra temperatures
+	for (int i=0 ; i<3 ; i++)
+		if (!isInvalid(_obs.extraTemperature[i]))
+			cass_statement_bind_float(statement, 7+i, _obs.extraTemperature[i]);
 	/*************************************************************/
 	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
 		cass_statement_bind_float(statement, 10,
@@ -206,7 +222,12 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	// No inside temperature
 	/*************************************************************/
-	// No leaf temp, no leaf wetnesses
+	for (int i=0 ; i<2 ; i++) {
+		if (!isInvalid(_obs.leafTemperature[i]))
+			cass_statement_bind_float(statement, 13+i, from_Farenheight_to_Celsius(_obs.leafTemperature[i]));
+		if (!isInvalid(_obs.leafWetness[i]))
+			cass_statement_bind_int32(statement, 15+i,_obs.leafWetness[i]);
+	}
 	/*************************************************************/
 	if (!isInvalid(_obs.humidity))
 		cass_statement_bind_int32(statement, 17, _obs.humidity);
@@ -220,9 +241,12 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	// No ETP
 	/*************************************************************/
-	// No soil moisture
-	/*************************************************************/
-	// No soil temperature
+	for (int i=0 ; i<4 ; i++) {
+		if (!isInvalid(_obs.soilMoisture[i]))
+			cass_statement_bind_int32(statement, 22+i, _obs.soilMoisture[i]);
+		if (!isInvalid(_obs.soilTemperature[i]))
+			cass_statement_bind_float(statement, 26+i, from_Farenheight_to_Celsius(_obs.soilTemperature[i]));
+	}
 	/*************************************************************/
 	if (!isInvalid(_obs.solarRad))
 		cass_statement_bind_int32(statement, 30, _obs.solarRad);

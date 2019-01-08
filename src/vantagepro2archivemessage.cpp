@@ -65,16 +65,12 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	/*************************************************************/
 	// No raw barometric sensor reading
 	/*************************************************************/
-	std::cerr << "Inside temperature: " << _data.insideTemp << " " << from_Farenheight_to_Celsius(_data.insideTemp/10.0) << std::endl;
-	if (_data.insideTemp != 32767)
-		cass_statement_bind_float(statement, 6, from_Farenheight_to_Celsius(_data.insideTemp/10.0));
+	// Do not store inside temperature
 	/*************************************************************/
 	if (_data.outsideTemp != 32767)
 		cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(_data.outsideTemp/10.0));
 	/*************************************************************/
-	std::cerr << "Inside humidity: " << (int)_data.insideHum << std::endl;
-	if (_data.insideHum != 255)
-		cass_statement_bind_int32(statement, 8, _data.insideHum);
+	// Do not store inside humidity
 	/*************************************************************/
 	if (_data.outsideHum != 255)
 		cass_statement_bind_int32(statement, 9, _data.outsideHum);
@@ -231,11 +227,9 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 			)
 		);
 	/*************************************************************/
-	if (_data.insideHum != 255)
-		cass_statement_bind_int32(statement, 11, _data.insideHum);
+	// Do not store inside humidity
 	/*************************************************************/
-	if (_data.insideTemp != 32767)
-		cass_statement_bind_float(statement, 12, from_Farenheight_to_Celsius(_data.insideTemp/10.0));
+	// Do not store inside temperature
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
 		if (_data.leafTemp[i] != 255)

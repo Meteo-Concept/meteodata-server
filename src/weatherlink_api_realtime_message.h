@@ -90,6 +90,12 @@ private:
 		float windGustSpeed;
 		int solarRad;
 		float uvIndex;
+		int extraHumidity[2];
+		float extraTemperature[3];
+		float leafTemperature[2];
+		int leafWetness[2];
+		int soilMoisture[4];
+		float soilTemperature[4];
 	};
 	Observation _obs;
 
