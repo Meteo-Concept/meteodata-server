@@ -553,7 +553,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
 					syslog(LOG_INFO, "station %s has been disconnected for too long, retrieving the archives...", _stationName.c_str());
 					std::cerr << "Retrieving archived data for " << _stationName << std::endl;
-					_archivePage.prepare(_lastData, &_timeOffseter);
+					_archivePage.prepare(_lastArchive, &_timeOffseter);
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
@@ -640,7 +640,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				bool ret = _db.insertDataPoint(_station, _message);
 				if (ret) {
 					std::cerr << "Measurement stored for station, now getting the archive file " << _stationName << std::endl;
-					_archivePage.prepare(_lastData, &_timeOffseter);
+					_archivePage.prepare(_lastArchive, &_timeOffseter);
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
