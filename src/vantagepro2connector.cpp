@@ -831,10 +831,16 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cerr << _archiveSize.pagesLeft << " pages left to download" << std::endl;
 				recvData(_archivePage.getBuffer());
 			} else {
-				std::cerr << "Archive data stored\n"
-					  << "Now sleeping until next measurement" << std::endl;
-				_currentState = State::WAITING_NEXT_MEASURE_TICK;
-				waitForNextMeasure();
+				std::cerr << "Archive data stored\n" << std::endl;
+				if (_setTimeRequested) {
+					std::cerr << "Station " << _stationName << "'s clock has to be set" << std::endl;
+					_currentState = State::SENDING_WAKE_UP_SETTIME;
+					sendRequest(_echoRequest, std::strlen(_echoRequest));
+				} else {
+					std::cerr  << "Now sleeping until next measurement" << std::endl;
+					_currentState = State::WAITING_NEXT_MEASURE_TICK;
+					waitForNextMeasure();
+				}
 			}
 		}
 		break;
