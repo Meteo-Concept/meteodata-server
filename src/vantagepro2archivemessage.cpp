@@ -300,7 +300,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 			_timeOffseter->getLongitude(),
 			date::floor<chrono::seconds>(timestamp).time_since_epoch().count()
 		);
-		cass_statement_bind_int32(statement, 37, ins) ? _timeOffseter->getMeasureStep() : 0;
+		cass_statement_bind_int32(statement, 37, ins ? _timeOffseter->getMeasureStep() : 0);
 	}
 	/*************************************************************/
 }
