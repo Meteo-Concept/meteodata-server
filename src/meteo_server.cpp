@@ -23,6 +23,7 @@
 
 #include <syslog.h>
 
+#include <memory>
 #include <tuple>
 #include <functional>
 
@@ -34,6 +35,7 @@
 #include "weatherlinkdownloader.h"
 #include "vantagepro2connector.h"
 #include "synopdownloader.h"
+#include "mqttsubscriber.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -63,6 +65,27 @@ void MeteoServer::start()
 				TimeOffseter::PredefinedTimezone(std::get<3>(station))
 			);
 		wld->start();
+	}
+
+	// Start the MQTT subscribers (one per station)
+	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+	_db.getMqttStations(mqttStations);
+	for (auto&& station : mqttStations) {
+		auto subscriber =
+			std::make_shared<MqttSubscriber>(
+				std::get<0>(station),
+				MqttSubscriber::MqttSubscriptionDetails{
+					std::get<1>(station),
+					std::get<2>(station),
+					std::get<3>(station),
+					std::move(std::get<4>(station)),
+					std::get<5>(station),
+					std::get<6>(station)
+				},
+				_ioService, _db,
+				TimeOffseter::PredefinedTimezone(std::get<7>(station))
+			);
+		subscriber->start();
 	}
 
 	// Start the Synop downloader worker (one for all the SYNOP stations)

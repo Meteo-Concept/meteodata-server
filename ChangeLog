@@ -1,3 +1,7 @@
+2019-01-13	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Handle MQTT stations
+
 2018-09-20	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Implement the Weatherlink.com downloads

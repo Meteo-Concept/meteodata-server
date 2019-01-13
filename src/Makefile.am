@@ -19,6 +19,8 @@ meteodata_SOURCES = \
 		    weatherlinkdownloader.cpp\
 		    weatherlink_api_realtime_message.h\
 		    weatherlink_api_realtime_message.cpp\
+		    mqttsubscriber.h\
+		    mqttsubscriber.cpp\
 		    synopdownloader.h\
 		    synopdownloader.cpp\
 		    ogimetsynop.h\
@@ -64,10 +66,10 @@ meteodata_synop_standalone_SOURCES = \
 				     synopdecoder/gust_observation.h\
 				     synopdecoder/synop_message.h
 
-meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
+meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS)
-meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_PROPERTY_TREE_LIBS)
+meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
+meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(OPENSSL_LIBS)
 
 meteodata_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
 meteodata_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic

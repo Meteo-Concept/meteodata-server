@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([Meteodata], [0.11], [contact@meteo-concept.fr])
+AC_INIT([Meteodata], [0.12], [contact@meteo-concept.fr])
 AC_CONFIG_SRCDIR([src/vantagepro2connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
@@ -45,6 +45,7 @@ AX_PTHREAD
 AC_CHECK_LIB([cassandra],[cass_session_new])
 AC_CHECK_LIB([cassobs],[main])
 AC_CHECK_LIB([tz],[main])
+AX_CHECK_OPENSSL
 BOOST_REQUIRE([1.52])
 BOOST_SYSTEM
 BOOST_ASIO
