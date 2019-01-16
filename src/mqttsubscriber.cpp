@@ -80,6 +80,7 @@ MqttSubscriber::MqttSubscriber(const CassUuid& station, MqttSubscriber::MqttSubs
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
+	_timeOffseter.setMeasureStep(_pollingPeriod);
 	std::cerr << "Discovered MQTT station " << _stationName << std::endl;
 
 }

@@ -73,6 +73,7 @@ WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std:
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
+	_timeOffseter.setMeasureStep(_pollingPeriod);
 	std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
 }
 
