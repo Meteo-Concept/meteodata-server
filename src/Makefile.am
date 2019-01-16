@@ -25,6 +25,10 @@ meteodata_SOURCES = \
 		    synopdownloader.cpp\
 		    ogimetsynop.h\
 		    ogimetsynop.cpp\
+		    shipandbuoydownloader.h\
+		    shipandbuoydownloader.cpp\
+		    meteofranceshipandbuoy.h\
+		    meteofranceshipandbuoy.cpp\
 		    synopdecoder/cloud_observation.h\
 		    synopdecoder/direction.h\
 		    synopdecoder/evapo_maybe_transpi_ration.h\

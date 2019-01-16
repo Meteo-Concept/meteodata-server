@@ -36,6 +36,7 @@
 #include "vantagepro2connector.h"
 #include "synopdownloader.h"
 #include "mqttsubscriber.h"
+#include "shipandbuoydownloader.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -55,7 +56,7 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 void MeteoServer::start()
 {
 	// Start the Weatherlink downloaders workers (one per Weatherlink station)
-	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
+/*	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
 	_db.getAllWeatherlinkStations(weatherlinkStations);
 	for (const auto& station : weatherlinkStations) {
 		auto wld =
@@ -66,9 +67,9 @@ void MeteoServer::start()
 			);
 		wld->start();
 	}
-
+*/
 	// Start the MQTT subscribers (one per station)
-	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+/*	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	_db.getMqttStations(mqttStations);
 	for (auto&& station : mqttStations) {
 		auto subscriber =
@@ -87,11 +88,14 @@ void MeteoServer::start()
 			);
 		subscriber->start();
 	}
-
+*/
 	// Start the Synop downloader worker (one for all the SYNOP stations)
-	auto synopDownloader = std::make_shared<SynopDownloader>(_ioService, _db);
+/*	auto synopDownloader = std::make_shared<SynopDownloader>(_ioService, _db);
 	synopDownloader->start();
+*/
 
+	auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
+	meteofranceDownloader->start();
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();
 }

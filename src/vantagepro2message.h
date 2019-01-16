@@ -410,6 +410,18 @@ inline float from_Farenheight_to_Celsius(float f)
 }
 
 /**
+ * @brief Convert a temperature given in Kelvin to Celsius degrees
+ *
+ * @param f the value to convert
+ *
+ * @return the parameter value converted to Celsius degrees
+ */
+inline float from_Kelvin_to_Celsius(float k)
+{
+	return k - 273.15;
+}
+
+/**
  * @brief Convert a temperature given in Celsius degrees to Farenheight degrees
  *
  * @param f the value to convert
@@ -443,6 +455,18 @@ inline float from_mph_to_mps(int mph)
 inline float from_mph_to_kph(int mph)
 {
 	return mph * 1.609;
+}
+
+/**
+ * @brief Convert a velocity from meters per second to kilometers per hour
+ *
+ * @param mps the value to convert
+ *
+ * @return the parameter value converted to kilometers per hour
+ */
+inline float from_mps_to_kph(int mps)
+{
+	return mps * 3.6;
 }
 
 /**
