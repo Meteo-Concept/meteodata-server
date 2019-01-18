@@ -175,7 +175,7 @@ public:
 	inline void setLongitude(float lon) {
 		_longitude = lon;
 	}
-	inline float getMeasureStep() const { return _measureStep; }
+	inline int getMeasureStep() const { return _measureStep; }
 	inline void setMeasureStep(int step) {
 		_measureStep = step;
 	}
