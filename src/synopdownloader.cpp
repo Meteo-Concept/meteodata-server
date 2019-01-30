@@ -29,6 +29,7 @@
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <exception>
 
 #include <cstring>
 #include <cctype>
@@ -97,7 +98,12 @@ void SynopDownloader::checkDeadline(const sys::error_code& e)
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		std::cerr << "Timed out!" << std::endl;
-		download();
+		try {
+			download();
+		} catch (std::exception& e) {
+			syslog(LOG_ERR, "SYNOP: Getting the SYNOP messages failed (%s), will retry", e.what());
+			// nothing more, just go back to sleep and retry next time
+		}
 		// Going back to sleep
 		waitUntilNextDownload();
 	} else {
