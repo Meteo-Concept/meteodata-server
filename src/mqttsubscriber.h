@@ -96,7 +96,13 @@ private:
 	 */
 	TimeOffseter _timeOffseter;
 
+	/**
+	 * @brief The channel subscription id
+	 */
+	std::uint16_t _pid = 0;
+
 	static constexpr char CLIENT_ID[] = "meteodata";
+	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
 	void processArchive(const std::string& content);
 };
 

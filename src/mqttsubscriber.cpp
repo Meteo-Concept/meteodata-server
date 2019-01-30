@@ -50,6 +50,7 @@ namespace meteodata {
 using namespace date;
 
 constexpr char MqttSubscriber::CLIENT_ID[];
+constexpr char MqttSubscriber::ARCHIVES_TOPIC[];
 
 MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, std::unique_ptr<char[]>&& password, size_t passwordLength, const std::string& topic) :
 	host(host),
@@ -103,7 +104,8 @@ void MqttSubscriber::start()
 			std::cerr << "Connection attempt to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			syslog(ret == mqtt::connect_return_code::accepted ? LOG_NOTICE : LOG_ERR, "Connection attempt to %s for station %s: %s", _details.host.c_str(), _stationName.c_str(), mqtt::connect_return_code_to_str(ret));
 			if (ret == mqtt::connect_return_code::accepted) {
-				_client->subscribe(_details.topic, mqtt::qos::at_least_once);
+				_pid = _client->subscribe(_details.topic, mqtt::qos::at_least_once);
+				_client->subscribe(_details.topic + ARCHIVES_TOPIC, mqtt::qos::at_least_once);
 			}
 			return true;
 		}
@@ -141,6 +143,10 @@ void MqttSubscriber::start()
 					std::cerr << _stationName <<  ": subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
 					stop();
 				}
+			}
+			if (packet_id == _pid) {
+				if (chrono::system_clock::now() - _lastArchive > chrono::minutes(_pollingPeriod))
+					_client->publish_at_least_once(_details.topic, date::format("DMPAFT %Y-%m-%d %H:%M", _lastArchive));
 			}
 			return true;
 		}
