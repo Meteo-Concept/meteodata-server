@@ -29,6 +29,10 @@ meteodata_SOURCES = \
 		    shipandbuoydownloader.cpp\
 		    meteofranceshipandbuoy.h\
 		    meteofranceshipandbuoy.cpp\
+		    statictxtdownloader.h\
+		    statictxtdownloader.cpp\
+		    staticmessage.h\
+		    staticmessage.cpp\
 		    synopdecoder/cloud_observation.h\
 		    synopdecoder/direction.h\
 		    synopdecoder/evapo_maybe_transpi_ration.h\

@@ -36,6 +36,7 @@
 #include "vantagepro2connector.h"
 #include "synopdownloader.h"
 #include "mqttsubscriber.h"
+#include "statictxtdownloader.h"
 #include "shipandbuoydownloader.h"
 
 using namespace boost::asio;
@@ -96,6 +97,20 @@ void MeteoServer::start()
 
 	auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
 	meteofranceDownloader->start();
+
+	// Start the StatIC stations downloaders (one per station)
+	std::vector<std::tuple<CassUuid, std::string, std::string>> statICTxtStations;
+	_db.getStatICTxtStations(statICTxtStations);
+	for (auto&& station : statICTxtStations) {
+		auto subscriber =
+			std::make_shared<StatICTxtDownloader>(
+				_ioService, _db,
+				std::get<0>(station),
+				std::get<1>(station),
+				std::get<2>(station)
+			);
+		subscriber->start();
+	}
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();
