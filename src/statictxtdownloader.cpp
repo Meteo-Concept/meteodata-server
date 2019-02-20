@@ -46,6 +46,7 @@
 
 #include "statictxtdownloader.h"
 #include "staticmessage.h"
+#include "timeoffseter.h"
 
 // we do not expect the files to be big, so it's simpler and more
 // efficient to just slurp them, which means we'd better limit the
@@ -72,6 +73,17 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 	_url(url),
 	_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
 {
+	float latitude;
+	float longitude;
+	int elevation;
+	std::string stationName;
+	int pollingPeriod;
+	db.getStationCoordinates(station, latitude, longitude, elevation, stationName, pollingPeriod);
+
+	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
+	_timeOffseter.setLatitude(latitude);
+	_timeOffseter.setLongitude(longitude);
+	_timeOffseter.setMeasureStep(pollingPeriod);
 }
 
 void StatICTxtDownloader::start()
@@ -189,7 +201,7 @@ void StatICTxtDownloader::download()
 	size = asio::read(socket, response, ec);
 	std::istream fileStream(&response);
 	if (ec == asio::error::eof) {
-		StatICMessage m{fileStream, _previousRainfall};
+		StatICMessage m{fileStream, _previousRainfall, _timeOffseter};
 		if (!m)
 			return;
 

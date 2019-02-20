@@ -33,6 +33,8 @@
 #include <message.h>
 #include <date/date.h>
 
+#include "timeoffseter.h"
+
 namespace meteodata {
 
 namespace asio = boost::asio;
@@ -45,18 +47,18 @@ namespace chrono = std::chrono;
 class StatICMessage : public Message
 {
 public:
-	StatICMessage(std::istream& entry, std::experimental::optional<float> previousRainfall);
+	StatICMessage(std::istream& entry, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 
 	inline operator bool() const {
 		return _valid;
 	}
-	
+
 	inline std::experimental::optional<float> getDailyRainfall() const {
 		return _dailyRainfall;
 	}
-	
+
 	inline date::sys_seconds getDateTime() const {
 		return _datetime;
 	}
@@ -78,6 +80,7 @@ private:
 	std::experimental::optional<float> _computedRainfall;
 	std::experimental::optional<float> _previousRainfall;
 	bool _valid;
+	const TimeOffseter& _timeOffseter;
 };
 
 }

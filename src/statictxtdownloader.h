@@ -41,6 +41,7 @@
 #include <date/tz.h>
 #include <dbconnection_observations.h>
 
+#include "timeoffseter.h"
 
 namespace meteodata {
 
@@ -70,6 +71,7 @@ private:
 	std::string _url;
 	std::experimental::optional<float> _previousRainfall;
 	date::sys_seconds _lastDownloadTime;
+	TimeOffseter _timeOffseter;
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();

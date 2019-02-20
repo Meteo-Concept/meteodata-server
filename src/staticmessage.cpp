@@ -31,12 +31,14 @@
 
 #include "staticmessage.h"
 #include "vantagepro2message.h"
+#include "timeoffseter.h"
 
 namespace meteodata
 {
-StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<float> previousRainfall) :
+StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
 	Message(),
-	_previousRainfall(previousRainfall)
+	_previousRainfall(previousRainfall),
+	_timeOffseter(timeOffseter)
 {
 	using namespace date;
 	std::string st;
@@ -190,7 +192,15 @@ void StatICMessage::populateV2DataPoint(const CassUuid station, CassStatement* c
 	if (_wind)
 		cass_statement_bind_float(statement, 36, *_wind);
 	/*************************************************************/
-	// No insolation
+	if (_solarRad) {
+		bool ins = insolated(
+			*_solarRad,
+			_timeOffseter.getLatitude(),
+			_timeOffseter.getLongitude(),
+			date::floor<chrono::seconds>(_datetime).time_since_epoch().count()
+		);
+		cass_statement_bind_int32(statement, 37, ins ? _timeOffseter.getMeasureStep() : 0);
+	}
 	/*************************************************************/
 }
 
