@@ -35,6 +35,7 @@
 #include "weatherlinkdownloader.h"
 #include "vantagepro2connector.h"
 #include "synopdownloader.h"
+#include "deferredsynopdownloader.h"
 #include "mqttsubscriber.h"
 #include "statictxtdownloader.h"
 #include "shipandbuoydownloader.h"
@@ -94,7 +95,20 @@ void MeteoServer::start()
 	auto synopDownloader = std::make_shared<SynopDownloader>(_ioService, _db);
 	synopDownloader->start();
 
+	// Start the deferred SYNOP downloader worker (one for each deferred SYNOP)
+	std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
+	_db.getDeferredSynops(deferredSynops);
+	for (auto&& synop : deferredSynops) {
+		auto deferredSynopDownloader =
+			std::make_shared<DeferredSynopDownloader>(
+					_ioService, _db,
+					std::get<1>(synop),
+					std::get<0>(synop)
+				);
+		deferredSynopDownloader->start();
+	}
 
+	// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
 	auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
 	meteofranceDownloader->start();
 

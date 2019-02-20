@@ -21,8 +21,12 @@ meteodata_SOURCES = \
 		    weatherlink_api_realtime_message.cpp\
 		    mqttsubscriber.h\
 		    mqttsubscriber.cpp\
+		    abstractsynopdownloader.h\
+		    abstractsynopdownloader.cpp\
 		    synopdownloader.h\
 		    synopdownloader.cpp\
+		    deferredsynopdownloader.h\
+		    deferredsynopdownloader.cpp\
 		    ogimetsynop.h\
 		    ogimetsynop.cpp\
 		    shipandbuoydownloader.h\

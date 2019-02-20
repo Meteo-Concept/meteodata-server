@@ -1,11 +1,11 @@
 /**
- * @file synopdownloader.h
- * @brief Definition of the SynopDownloader class
+ * @file deferredsynopdownloader.h
+ * @brief Definition of the DeferredSynopDownloader class
  * @author Laurent Georget
- * @date 2018-08-20
+ * @date 2019-02-20
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2019  SAS JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYNOPDOWNLOADER_H
-#define SYNOPDOWNLOADER_H
+#ifndef DEFERREDSYNOPDOWNLOADER_H
+#define DEFERREDSYNOPDOWNLOADER_H
 
 #include <iostream>
 #include <memory>
@@ -56,15 +56,14 @@ using namespace meteodata;
 
 /**
  */
-class SynopDownloader : public AbstractSynopDownloader
+class DeferredSynopDownloader : public AbstractSynopDownloader
 {
 public:
-	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
+	DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao, const CassUuid& uuid);
 	virtual void start() override;
 
 private:
-	static constexpr char GROUP_FR[] = "07";
-
+	std::string _icao;
 	virtual chrono::minutes computeWaitDuration() override;
 	virtual void buildDownloadRequest(std::ostream& out) override;
 };

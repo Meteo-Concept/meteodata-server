@@ -1,11 +1,11 @@
 /**
- * @file synopdownloader.h
- * @brief Definition of the SynopDownloader class
+ * @file abstractsynopdownloader.h
+ * @brief Definition of the AbstractSynopDownloader class
  * @author Laurent Georget
- * @date 2018-08-20
+ * @date 2019-02-20
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2019  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYNOPDOWNLOADER_H
-#define SYNOPDOWNLOADER_H
+#ifndef ABSTRACTSYNOPDOWNLOADER_H
+#define ABSTRACTSYNOPDOWNLOADER_H
 
 #include <iostream>
 #include <memory>
@@ -41,7 +41,6 @@
 #include <date/tz.h>
 #include <dbconnection_observations.h>
 
-#include "abstractsynopdownloader.h"
 
 namespace meteodata {
 
@@ -56,17 +55,25 @@ using namespace meteodata;
 
 /**
  */
-class SynopDownloader : public AbstractSynopDownloader
+class AbstractSynopDownloader : public std::enable_shared_from_this<AbstractSynopDownloader>
 {
 public:
-	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
-	virtual void start() override;
+	AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
+	virtual void start() = 0;
 
-private:
-	static constexpr char GROUP_FR[] = "07";
+protected:
+	asio::io_service& _ioService;
+	DbConnectionObservations& _db;
+	asio::basic_waitable_timer<chrono::steady_clock> _timer;
+	std::map<std::string, CassUuid> _icaos;
 
-	virtual chrono::minutes computeWaitDuration() override;
-	virtual void buildDownloadRequest(std::ostream& out) override;
+	static constexpr char HOST[] = "www.ogimet.com";
+
+	void checkDeadline(const sys::error_code& e);
+	virtual chrono::minutes computeWaitDuration() = 0;
+	void waitUntilNextDownload();
+	void download();
+	virtual void buildDownloadRequest(std::ostream& out) = 0;
 };
 
 }

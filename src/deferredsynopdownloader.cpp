@@ -1,11 +1,11 @@
 /**
- * @file synopdownloader.cpp
- * @brief Implementation of the SynopDownloader class
+ * @file deferredsynopdownloader.cpp
+ * @brief Implementation of the DeferredSynopDownloader class
  * @author Laurent Georget
- * @date 2018-08-20
+ * @date 2019-02-20
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2019  SAS JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <dbconnection_observations.h>
 
-#include "synopdownloader.h"
+#include "deferredsynopdownloader.h"
 #include "abstractsynopdownloader.h"
 #include "ogimetsynop.h"
 #include "synopdecoder/parser.h"
@@ -58,33 +58,29 @@ namespace meteodata {
 
 using namespace date;
 
-constexpr char SynopDownloader::GROUP_FR[];
-
-SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
-	AbstractSynopDownloader(ioService, db)
+DeferredSynopDownloader::DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao, const CassUuid& uuid) :
+	AbstractSynopDownloader(ioService, db),
+	_icao(icao)
 {
+	_icaos.emplace(icao, uuid);
 }
 
-void SynopDownloader::start()
+void DeferredSynopDownloader::start()
 {
-	std::vector<std::tuple<CassUuid, std::string>> icaos;
-	_db.getAllIcaos(icaos);
-	for (auto&& icao : icaos)
-		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
 	waitUntilNextDownload();
 }
 
-chrono::minutes SynopDownloader::computeWaitDuration()
+chrono::minutes DeferredSynopDownloader::computeWaitDuration()
 {
 	auto time = chrono::system_clock::now();
 	auto daypoint = date::floor<date::days>(time);
 	auto tod = date::make_time(time - daypoint);
-	return chrono::minutes(20 - tod.minutes().count() % 20);
+	return chrono::hours(6) - tod.minutes();
 }
 
-void SynopDownloader::buildDownloadRequest(std::ostream& out)
+void DeferredSynopDownloader::buildDownloadRequest(std::ostream& out)
 {
-	auto time = chrono::system_clock::now() - chrono::hours(3);
+	auto time = chrono::system_clock::now() - chrono::hours(24);
 	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
 	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
@@ -94,7 +90,7 @@ void SynopDownloader::buildDownloadRequest(std::ostream& out)
 	auto m   = unsigned(ymd.month());
 	auto d   = unsigned(ymd.day());
 	auto h   = tod.hours().count();
-	auto min = 30;
+	auto min = 0;
 
 	std::cerr << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
 		<< std::setw(4) << y
@@ -102,14 +98,14 @@ void SynopDownloader::buildDownloadRequest(std::ostream& out)
 		<< std::setw(2) << d
 		<< std::setw(2) << h
 		<< std::setw(2) << min
-		<< "&block=" << GROUP_FR << " HTTP/1.0\r\n";
+		<< "&block=" << _icao << " HTTP/1.0\r\n";
 	out << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
 		<< std::setw(4) << y
 		<< std::setw(2) << m
 		<< std::setw(2) << d
 		<< std::setw(2) << h
 		<< std::setw(2) << min
-		<< "&block=" << GROUP_FR << " HTTP/1.0\r\n";
+		<< "&block=" << _icao << " HTTP/1.0\r\n";
 	out << "Host: " << HOST << "\r\n";
 	out << "Accept: */*\r\n";
 	out << "Connection: close\r\n\r\n";
