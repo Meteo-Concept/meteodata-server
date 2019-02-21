@@ -218,9 +218,6 @@ void StatICTxtDownloader::download()
 			std::cerr << "Inserted into database" << std::endl;
 		else
 			std::cerr << "Insertion into database failed" << std::endl;
-		_previousRainfall = m.getDailyRainfall();
-		if (_previousRainfall)
-			_db.insertV2EntireDayValues(_station, m.getDateTime().time_since_epoch().count(), std::make_pair(true, *_previousRainfall), std::make_pair(false, 0.f));
 	}
 }
 
