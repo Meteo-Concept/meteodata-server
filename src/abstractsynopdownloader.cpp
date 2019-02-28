@@ -190,6 +190,10 @@ void AbstractSynopDownloader::download()
 					insolationTime24 = std::make_pair(true, *m._minutesOfSunshineLastDay);
 				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
 				_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+				if (m._minTemperature)
+					_db.insertV2Tn(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature);
+				if (m._maxTemperature)
+					_db.insertV2Tx(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature);
 				using date::operator<<;
 				std::cerr << day << ":" << std::endl;
 				if (rainfall24.first)
