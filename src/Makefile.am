@@ -39,6 +39,19 @@ meteodata_SOURCES = \
 		    statictxtdownloader.cpp\
 		    staticmessage.h\
 		    staticmessage.cpp\
+		    mbdatamessages/abstractmbdatamessage.cpp\
+		    mbdatamessages/abstractmbdatamessage.h\
+		    mbdatamessages/mbdatamessagefactory.h\
+		    mbdatamessages/mbdatameteohubmessage.cpp\
+		    mbdatamessages/mbdatameteohubmessage.h\
+		    mbdatamessages/mbdataweathercatmessage.cpp\
+		    mbdatamessages/mbdataweathercatmessage.h\
+		    mbdatamessages/mbdataweatherdisplaymessage.cpp\
+		    mbdatamessages/mbdataweatherdisplaymessage.h\
+		    mbdatamessages/mbdataweatherlinkmessage.cpp\
+		    mbdatamessages/mbdataweatherlinkmessage.h\
+		    mbdatamessages/mbdatawswinmessage.cpp\
+		    mbdatamessages/mbdatawswinmessage.h\
 		    synopdecoder/cloud_observation.h\
 		    synopdecoder/direction.h\
 		    synopdecoder/evapo_maybe_transpi_ration.h\

@@ -1,0 +1,204 @@
+/**
+ * @file mbdataweatherdisplaymessage.cpp
+ * @brief Implementation of the MBDataWeatherDisplayMessage class
+ * @author Laurent Georget
+ * @date 2019-02-26
+ */
+/*
+ * Copyright (C) 2019  JD Environnement <contact@meteo-concept.fr>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <array>
+#include <chrono>
+#include <regex>
+
+#include <message.h>
+#include <date/date.h>
+
+#include "../timeoffseter.h"
+#include "../vantagepro2message.h"
+#include "abstractmbdatamessage.h"
+#include "mbdataweatherdisplaymessage.h"
+
+namespace meteodata {
+
+namespace asio = boost::asio;
+namespace chrono = std::chrono;
+
+MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(std::istream& entry, std::experimental::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter) :
+	AbstractMBDataMessage(entry, timeOffseter),
+	_diffRainfall(rainfallOver50Min)
+{
+	using namespace date;
+
+	const std::regex mandatoryPart{
+		"(\\d{4}-\\d{2}-\\d{2};\\d{2}:\\d{2};)" // date and time
+		"([^|]*)|" // temperature
+		"([^|]*)|" // humidite
+		"([^|]*)|" // dew point
+		"([^|]*)|" // pressure
+		"([^|]*)|" // pressure variable, should be null
+		"([^|]*)|" // rainfall over 1 hour
+		"([^|]*)|" // wind
+		"([^|]*)|" // wind direction
+		"([^|]*)|" // wind gusts
+		"([^|]*)|" // windchill
+		"([^|]*)|" // HEATINDEX
+	};
+
+	const std::regex optionalPart{
+		"([^|]*)|" // Tx since midnight
+		"([^|]*)|" // Tn since midnight
+		"([^|]*)|" // rainrate
+		"([^|]*)|" // solar radiation
+		"([^|]*)|" // hour of Tx
+		"([^|]*)|" // hour of Tn
+	};
+
+	std::smatch baseMatch;
+	if (std::regex_search(_content, baseMatch, mandatoryPart) && baseMatch.size() == 13) {
+		std::istringstream{baseMatch[1]} >> date::parse("yyyy-mm-dd;HH:MM;", _datetime);
+		if (baseMatch[2].length())
+			_airTemp = std::stof(baseMatch[2].str());
+		if (baseMatch[3].length())
+			_humidity = std::stoi(baseMatch[3].str());
+		if (baseMatch[4].length())
+			_dewPoint = std::stof(baseMatch[4].str());
+		if (baseMatch[5].length())
+			_pressure = std::stof(baseMatch[5].str());
+		// skip pressure tendency
+		if (baseMatch[7].length() && _diffRainfall)
+			_computedRainfall = std::stof(baseMatch[7].str()) - *_diffRainfall;
+		if (baseMatch[8].length())
+			_wind = std::stof(baseMatch[8].str());
+		if (baseMatch[9].length())
+			_windDir = std::stoi(baseMatch[9].str());
+		if (baseMatch[10].length())
+			_windDir = std::stof(baseMatch[10].str());
+		// skip heatindex and windchill
+
+		_valid = true;
+	}
+
+	std::smatch supplementaryMatch;
+	if (std::regex_search(baseMatch[0].second, _content.cend(), supplementaryMatch, optionalPart) && supplementaryMatch.size() == 7) {
+		// skip Tx and Tn
+		if (supplementaryMatch[3].length())
+			_rainRate = std::stof(supplementaryMatch[3].str());
+		if (supplementaryMatch[4].length())
+			_solarRad = std::stoi(supplementaryMatch[4].str());
+		// skip hours of Tx and Tn
+	}
+}
+
+void MBDataWeatherDisplayMessage::populateDataPoint(const CassUuid, CassStatement* const) const
+{
+	// Not implemented, no one cares
+}
+
+void MBDataWeatherDisplayMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
+{
+	/*************************************************************/
+	cass_statement_bind_uuid(statement, 0, station);
+	/*************************************************************/
+	cass_statement_bind_uint32(statement, 1,
+		cass_date_from_epoch(
+			date::floor<chrono::seconds>(
+				_datetime
+			).time_since_epoch().count()
+		)
+	);
+	/*************************************************************/
+	cass_statement_bind_int64(statement, 2,
+		date::floor<chrono::milliseconds>(
+			_datetime
+		).time_since_epoch().count()
+	);
+	/*************************************************************/
+	if (_pressure)
+		cass_statement_bind_float(statement, 3, *_pressure);
+	/*************************************************************/
+	if (_dewPoint)
+		cass_statement_bind_float(statement, 4, *_dewPoint);
+	else if (_airTemp && _humidity)
+		cass_statement_bind_float(statement, 4,
+			dew_point(
+				*_airTemp,
+				*_humidity
+			)
+		);
+	/*************************************************************/
+	// No extra humidity
+	/*************************************************************/
+	// No extra temperature
+	/*************************************************************/
+	// Heat index is irrelevant off-shore
+	/*************************************************************/
+	// No inside humidity
+	/*************************************************************/
+	// No inside temperature
+	/*************************************************************/
+	// No leaf measurements
+	/*************************************************************/
+	if (_humidity)
+		cass_statement_bind_int32(statement, 17, *_humidity);
+	/*************************************************************/
+	if (_airTemp)
+		cass_statement_bind_float(statement, 18, *_airTemp);
+	/*************************************************************/
+	if (_rainRate)
+		cass_statement_bind_float(statement, 19, *_rainRate);
+	/*************************************************************/
+	if (_computedRainfall)
+		cass_statement_bind_float(statement, 20, *_computedRainfall);
+	/*************************************************************/
+	// No ETP
+	/*************************************************************/
+	// No soil moistures
+	/*************************************************************/
+	// No soil temperature
+	/*************************************************************/
+	if (_solarRad)
+		cass_statement_bind_int32(statement, 30, *_solarRad);
+	/*************************************************************/
+	// THSW index is irrelevant
+	/*************************************************************/
+	// No UV
+	/*************************************************************/
+	// Wind chill is irrelevant
+	/*************************************************************/
+	if (_windDir)
+		cass_statement_bind_int32(statement, 34, *_windDir);
+	/*************************************************************/
+	if (_gust)
+		cass_statement_bind_float(statement, 35, *_gust);
+	/*************************************************************/
+	if (_wind)
+		cass_statement_bind_float(statement, 36, *_wind);
+	/*************************************************************/
+	if (_solarRad) {
+		bool ins = insolated(
+			*_solarRad,
+			_timeOffseter.getLatitude(),
+			_timeOffseter.getLongitude(),
+			date::floor<chrono::seconds>(_datetime).time_since_epoch().count()
+		);
+		cass_statement_bind_int32(statement, 37, ins ? _timeOffseter.getMeasureStep() : 0);
+	}
+	/*************************************************************/
+}
+
+}
