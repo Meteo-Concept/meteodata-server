@@ -63,7 +63,7 @@ void SynopStandalone::start(const std::string& file)
 		std::getline(input, line);
 
 		// Deal with the annoying case as early as possible
-		if (line.find("NIL") != std::string::npos)
+		if (line.empty() || line.find("NIL") != std::string::npos)
 			continue;
 
 		std::istringstream lineIterator{line};
@@ -88,11 +88,10 @@ void SynopStandalone::start(const std::string& file)
 					insolationTime24 = std::make_pair(true, *(m._minutesOfSunshineLastDay));
 				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
 				_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
-				using date::operator<<;
-				std::cerr << day << ":" << std::endl;
-				if (rainfall24.first)
-					std::cerr << "\tRainfall24:" << rainfall24.second << "mm" << std::endl;
-				std::cerr << "Inserted into database" << std::endl;
+				if (m._minTemperature)
+					_db.insertV2Tn(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
+				if (m._maxTemperature)
+					_db.insertV2Tx(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
 			}
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
