@@ -34,7 +34,6 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
@@ -48,9 +47,7 @@ namespace meteodata {
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
-namespace chrono = std::chrono;
+namespace sys = boost::system;
 
 using namespace std::placeholders;
 using namespace meteodata;
@@ -63,14 +60,14 @@ public:
 	WeatherlinkDownloader(const CassUuid& _station, const std::string& auth,
 		const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void start();
+	void download(ip::tcp::socket& socket);
+	void downloadRealTime(ip::tcp::socket& socket);
 
 private:
 	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
 	std::string _authentication;
 	std::string _apiToken;
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	/**
 	 * @brief The connected station's identifier in the database
 	 */
@@ -93,14 +90,7 @@ private:
 	 */
 	TimeOffseter _timeOffseter;
 
-	static constexpr char HOST[] = "weatherlink.com";
-	static constexpr char APIHOST[] = "api.weatherlink.com";
-
-	void checkDeadline(const sys::error_code& e);
-	void waitUntilNextDownload();
 	static bool compareAsciiCaseInsensitive(const std::string& s1, const std::string& s2);
-	void download();
-	void downloadRealTime();
 };
 
 }

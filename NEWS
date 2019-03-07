@@ -4,7 +4,7 @@ Version 0.11
 	Third official release
 
 Meteodata-server now supports getting archives from weatherlink.com for stations
-with a IP dataloogger and getting realtime data if the last archive is too old
+with a IP datalogger and getting realtime data if the last archive is too old
 and the Weatherlink v1 API token is available. Meteodata-server also fetches
 SYNOP messages from Ogimet for MétéoFrance stations. The database scheme as
 changed: there are two new tables for respectively the daily and monthly

@@ -41,6 +41,7 @@
 
 #include "weatherlink_api_realtime_message.h"
 #include "weatherlinkdownloader.h"
+#include "weatherlinkdownloadscheduler.h"
 #include "vantagepro2message.h"
 #include "vantagepro2archivepage.h"
 #include "timeoffseter.h"
@@ -56,9 +57,6 @@ namespace meteodata {
 
 using namespace date;
 
-constexpr char WeatherlinkDownloader::HOST[];
-constexpr char WeatherlinkDownloader::APIHOST[];
-
 WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
 	const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
@@ -66,7 +64,6 @@ WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std:
 	_db(db),
 	_authentication(auth),
 	_apiToken(apiToken),
-	_timer(_ioService),
 	_station(station)
 {
 	time_t lastArchiveDownloadTime;
@@ -75,41 +72,6 @@ WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std:
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
 	_timeOffseter.setMeasureStep(_pollingPeriod);
 	std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
-}
-
-void WeatherlinkDownloader::start()
-{
-	download();
-	waitUntilNextDownload();
-}
-
-void WeatherlinkDownloader::waitUntilNextDownload()
-{
-	auto self(shared_from_this());
-	_timer.expires_from_now(chrono::minutes(10));
-	_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, args::_1));
-}
-
-void WeatherlinkDownloader::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
-		download();
-		// Going back to sleep
-		waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&WeatherlinkDownloader::checkDeadline, self, args::_1));
-	}
 }
 
 bool WeatherlinkDownloader::compareAsciiCaseInsensitive(const std::string& str1, const std::string& str2)
@@ -125,21 +87,12 @@ bool WeatherlinkDownloader::compareAsciiCaseInsensitive(const std::string& str1,
 	return true;
 }
 
-void WeatherlinkDownloader::downloadRealTime()
+void WeatherlinkDownloader::downloadRealTime(ip::tcp::socket& socket)
 {
 	if (_apiToken.empty())
 		return; // no token, no realtime obs
 
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
-
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(APIHOST, "http");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
-	// Try each endpoint until we successfully establish a connection.
-	ip::tcp::socket socket(_ioService);
-	boost::asio::connect(socket, endpointIterator);
 
 	// Form the request. We specify the "Connection: close" header so that the
 	// server will close the socket after transmitting the response. This will
@@ -148,9 +101,9 @@ void WeatherlinkDownloader::downloadRealTime()
 	std::ostream requestStream(&request);
 	requestStream << "GET " << "/v1/NoaaExt.xml?" << _authentication << "&apiToken=" << _apiToken << " HTTP/1.0\r\n";
 	std::cerr << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.0\r\n";
-	requestStream << "Host: " << APIHOST << "\r\n";
-	requestStream << "Accept: application/xml\r\n";
-	requestStream << "Connection: close\r\n\r\n";
+	requestStream << "Host: " << WeatherlinkDownloadScheduler::APIHOST << "\r\n";
+	requestStream << "Connection: keep-alive\r\n";
+	requestStream << "Accept: application/xml\r\n\r\n";
 
 	// Send the request.
 	asio::write(socket, request);
@@ -169,27 +122,29 @@ void WeatherlinkDownloader::downloadRealTime()
 	responseStream >> statusCode;
 	std::string statusMessage;
 	std::getline(responseStream, statusMessage);
+	std::cerr << "station " << _stationName << " Got an answer from " << WeatherlinkDownloadScheduler::APIHOST << ": " << statusMessage << std::endl;
 	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
 	{
-		syslog(LOG_ERR, "station %s: Bad response from %s", _stationName.c_str(), HOST);
-		std::cerr << "station " << _stationName << " Bad response from " << APIHOST << std::endl;
+		syslog(LOG_ERR, "station %s: Bad response from %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
+		std::cerr << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << std::endl;
 		return;
 	}
 	if (statusCode != 200)
 	{
-		syslog(LOG_ERR, "station %s: Error code from %s: %i", _stationName.c_str(), APIHOST, statusCode);
-		std::cerr << "station " << _stationName << " Error from " << HOST << ": " << statusCode << std::endl;
+		syslog(LOG_ERR, "station %s: Error code from %s: %i", _stationName.c_str(), WeatherlinkDownloadScheduler::APIHOST, statusCode);
+		std::cerr << "station " << _stationName << " Error from " << WeatherlinkDownloadScheduler::HOST << ": " << statusCode << std::endl;
 		return;
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	asio::read_until(socket, response, "\r\n\r\n");
+	std::size_t headersSize = asio::read_until(socket, response, "\r\n\r\n");
 
 	// Process the response headers.
 	std::string header;
 	std::istringstream fromheader;
 	std::string field;
-	int size = -1;
+	std::size_t size = 0;
+	std::string connectionStatus;
 	std::string type;
 	while (std::getline(responseStream, header) && header != "\r") {
 		fromheader.str(header);
@@ -198,14 +153,16 @@ void WeatherlinkDownloader::downloadRealTime()
 		if (compareAsciiCaseInsensitive(field, "content-length:")) {
 			fromheader >> size;
 			if (size == 0 || size >= WeatherlinkApiRealtimeMessage::MAXSIZE) {
-				syslog(LOG_ERR, "station %s: Output from %s is either null or too big", _stationName.c_str(), APIHOST);
+				syslog(LOG_ERR, "station %s: Output from %s is either null or too big", _stationName.c_str(), WeatherlinkDownloadScheduler::APIHOST);
 				std::cerr << "station " << _stationName << ": Output is either null or too big (" << (size / 1000.) << "ko)" << std::endl;
 				return;
 			}
+		} else if (compareAsciiCaseInsensitive(field, "connection:")) {
+			fromheader >> connectionStatus;
 		} else if (compareAsciiCaseInsensitive(field, "content-type:")) {
 			fromheader >> type;
 			if (!compareAsciiCaseInsensitive(type, "application/xml")) { // WAT?!
-				syslog(LOG_ERR, "station %s: Output from %s is not XML", _stationName.c_str(), APIHOST);
+				syslog(LOG_ERR, "station %s: Output from %s is not XML", _stationName.c_str(), WeatherlinkDownloadScheduler::APIHOST);
 				std::cerr << "station " << _stationName << ": Output is not XML" << std::endl;
 				return;
 			}
@@ -214,11 +171,30 @@ void WeatherlinkDownloader::downloadRealTime()
 
 	// Read the response body
 	sys::error_code ec;
-	asio::read(socket, response, ec);
+	std::cerr << "We are expecting " << size << " bytes, the buffer contains " << response.size() << " bytes." << std::endl;
+	if (size == 0) {
+		if (compareAsciiCaseInsensitive(connectionStatus, "close")) {
+			// The server has closed the connection, read until EOF
+			asio::read(socket, response, asio::transfer_all(), ec);
+		} else {
+			// Maybe chunk-encoded output? But we asked for HTTP/1.0 so...
+			syslog(LOG_ERR, "station %s: no real-time available", _stationName.c_str());
+			std::cerr << "station " << _stationName << ": no real-time available" << std::endl;
+			return;
+		}
+	} else if (response.size() < size) {
+		asio::read(socket, response, asio::transfer_at_least(size - response.size()), ec);
+	}
+
 	if (ec && ec != asio::error::eof) {
 		syslog(LOG_ERR, "station %s: download error %s", _stationName.c_str(), ec.message().c_str());
 		std::cerr << "station " << _stationName << ": download error " << ec.message() << std::endl;
 		return;
+	}
+	if (response.size() < size) {
+		syslog(LOG_ERR, "station %s: download error: less content read than advertised", _stationName.c_str());
+		std::cerr << "station " << _stationName << ": download error: less content read than advertised" << ec.message() << std::endl;
+		throw sys::system_error(asio::error::eof);
 	}
 	std::cerr << "Read all the content" << std::endl;
 	WeatherlinkApiRealtimeMessage obs;
@@ -230,7 +206,7 @@ void WeatherlinkDownloader::downloadRealTime()
 	}
 }
 
-void WeatherlinkDownloader::download()
+void WeatherlinkDownloader::download(ip::tcp::socket& socket)
 {
 	std::cerr << "Now downloading for station " << _stationName << std::endl;
 	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
@@ -248,25 +224,15 @@ void WeatherlinkDownloader::download()
 	std::uint32_t timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
 	std::cerr << "Timestamp: " << timestamp << std::endl;
 
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(HOST, "http");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
-	// Try each endpoint until we successfully establish a connection.
-	ip::tcp::socket socket(_ioService);
-	boost::asio::connect(socket, endpointIterator);
-
-	// Form the request. We specify the "Connection: close" header so that the
-	// server will close the socket after transmitting the response. This will
-	// allow us to treat all data up until the EOF as the content.
+	// Form the request
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
+
 	requestStream << "GET " << "/webdl.php?timestamp=" << timestamp << "&" << _authentication << "&action=data" << " HTTP/1.0\r\n";
 	std::cerr << "GET " << "/webdl.php?timestamp=" << timestamp << "&" << _authentication << "&action=data" << " HTTP/1.0\r\n";
-	requestStream << "Host: " << HOST << "\r\n";
-	requestStream << "Accept: */*\r\n";
-	requestStream << "Connection: close\r\n\r\n";
+	requestStream << "Host: " << WeatherlinkDownloadScheduler::HOST << "\r\n";
+	requestStream << "Connection: keep-alive\r\n";
+	requestStream << "Accept: */*\r\n\r\n";
 
 	// Send the request.
 	asio::write(socket, request);
@@ -287,14 +253,14 @@ void WeatherlinkDownloader::download()
 	std::getline(responseStream, statusMessage);
 	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
 	{
-		syslog(LOG_ERR, "station %s: Bad response from %s", _stationName.c_str(), HOST);
-		std::cerr << "station " << _stationName << " Bad response from " << HOST << std::endl;
+		syslog(LOG_ERR, "station %s: Bad response from %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
+		std::cerr << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::HOST << std::endl;
 		return;
 	}
 	if (statusCode != 200)
 	{
-		syslog(LOG_ERR, "station %s: Error code from %s: %i", _stationName.c_str(), HOST, statusCode);
-		std::cerr << "station " << _stationName << " Error from " << HOST << ": " << statusCode << std::endl;
+		syslog(LOG_ERR, "station %s: Error code from %s: %i", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, statusCode);
+		std::cerr << "station " << _stationName << " Error from " << WeatherlinkDownloadScheduler::HOST << ": " << statusCode << std::endl;
 		return;
 	}
 
@@ -312,7 +278,7 @@ void WeatherlinkDownloader::download()
 		if (compareAsciiCaseInsensitive(field, "content-length:")) {
 			fromheader >> pagesLeft;
 			if (pagesLeft % 52 != 0) {
-				syslog(LOG_ERR, "station %s: Output from %s has an invalid size", _stationName.c_str(), HOST);
+				syslog(LOG_ERR, "station %s: Output from %s has an invalid size", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
 				std::cerr << "station " << _stationName << ": Output has an invalid size " << pagesLeft << std::endl;
 				return;
 			}
@@ -321,12 +287,11 @@ void WeatherlinkDownloader::download()
 	}
 
 	if (pagesLeft < 0) {
-		syslog(LOG_ERR, "station %s: No Content-Length: in %s output?!", _stationName.c_str(), HOST);
-		std::cerr << "station " << _stationName << ": No Content-Length: in  " << HOST << " output?!" << std::endl;
+		syslog(LOG_ERR, "station %s: No Content-Length: in %s output?!", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
+		std::cerr << "station " << _stationName << ": No Content-Length: in  " << WeatherlinkDownloadScheduler::HOST << " output?!" << std::endl;
 		return;
 	} else if (pagesLeft == 0) {
-		std::cerr << "No pages to download, downloading a real-time observation instead" << std::endl;
-		downloadRealTime();
+		std::cerr << "No pages to download" << std::endl;
 		return;
 	} else {
 		std::cerr << "We will receive " << pagesLeft << " pages" << std::endl;
@@ -339,8 +304,8 @@ void WeatherlinkDownloader::download()
 		if (response.size() < sizeof(_datapoint)) {
 			asio::read(socket, response, asio::transfer_at_least(sizeof(_datapoint)), error);
 			if (error && error != asio::error::eof) {
-				syslog(LOG_ERR, "station %s: Error when validating output from %s: %s", _stationName.c_str(), HOST, error.message().c_str());
-				std::cerr << "station " << _stationName << " Error when receiving from " << HOST << ": " << error.message() << std::endl;
+				syslog(LOG_ERR, "station %s: Error when validating output from %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.message().c_str());
+				std::cerr << "station " << _stationName << " Error when receiving from " << WeatherlinkDownloadScheduler::HOST << ": " << error.message() << std::endl;
 				return;
 			}
 		}

@@ -15,6 +15,8 @@ meteodata_SOURCES = \
 		    vantagepro2archivemessage.cpp\
 		    timeoffseter.h\
 		    timeoffseter.cpp\
+		    weatherlinkdownloadscheduler.h\
+		    weatherlinkdownloadscheduler.cpp\
 		    weatherlinkdownloader.h\
 		    weatherlinkdownloader.cpp\
 		    weatherlink_api_realtime_message.h\

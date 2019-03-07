@@ -26,12 +26,14 @@
 #include <memory>
 #include <tuple>
 #include <functional>
+#include <vector>
 
 #include <boost/asio.hpp>
 
 #include "meteo_server.h"
 #include "timeoffseter.h"
 #include "connector.h"
+#include "weatherlinkdownloadscheduler.h"
 #include "weatherlinkdownloader.h"
 #include "vantagepro2connector.h"
 #include "synopdownloader.h"
@@ -57,19 +59,6 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 
 void MeteoServer::start()
 {
-	// Start the Weatherlink downloaders workers (one per Weatherlink station)
-	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
-	_db.getAllWeatherlinkStations(weatherlinkStations);
-	for (const auto& station : weatherlinkStations) {
-		auto wld =
-			std::make_shared<WeatherlinkDownloader>(
-				std::get<0>(station), std::get<1>(station), std::get<2>(station),
-				_ioService, _db,
-				TimeOffseter::PredefinedTimezone(std::get<3>(station))
-			);
-		wld->start();
-	}
-
 	// Start the MQTT subscribers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	_db.getMqttStations(mqttStations);
@@ -125,6 +114,18 @@ void MeteoServer::start()
 			);
 		subscriber->start();
 	}
+
+	// Start the Weatherlink downloaders workers (one per Weatherlink station)
+	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db);
+	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
+	_db.getAllWeatherlinkStations(weatherlinkStations);
+	for (const auto& station : weatherlinkStations) {
+		weatherlinkScheduler->add(
+			std::get<0>(station), std::get<1>(station), std::get<2>(station),
+			TimeOffseter::PredefinedTimezone(std::get<3>(station))
+		);
+	}
+	weatherlinkScheduler->start();
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();
