@@ -84,7 +84,8 @@ public:
 	enum class PredefinedTimezone
 	{
 		UTC = 0,
-		FRANCE
+		FRANCE = 1,
+		NEW_CALEDONIA = 2
 	};
 
 	/**

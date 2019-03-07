@@ -122,6 +122,10 @@ namespace meteodata
 				t._byTimezone = true;
 				t._timezoneInfo.timezone = date::locate_zone("Europe/Paris");
 				break;
+			case PredefinedTimezone::NEW_CALEDONIA:
+				t._byTimezone = true;
+				t._timezoneInfo.timezone = date::locate_zone("Pacific/Noumea");
+				break;
 		}
 		return t;
 	}
