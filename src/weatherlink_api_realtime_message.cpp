@@ -62,6 +62,7 @@ void WeatherlinkApiRealtimeMessage::parse(std::istream& input)
 	_obs.windDir = xmlTree.get<int>("current_observation.wind_degrees", INVALID_INT);
 	_obs.windSpeed = xmlTree.get<float>("current_observation.wind_mph", INVALID_FLOAT);
 	_obs.windGustSpeed = xmlTree.get<float>("current_observation.davis_current_observation.wind_ten_min_gust_mph", INVALID_FLOAT);
+	_obs.rainRate = xmlTree.get<float>("current_observation.davis_current_observation.rain_rate_in_per_hr", INVALID_FLOAT);
 	_obs.solarRad = xmlTree.get<int>("current_observation.davis_current_observation.solar_radiation", INVALID_INT);
 	_obs.uvIndex = xmlTree.get<float>("current_observation.davis_current_observation.uv_index", INVALID_FLOAT);
 	for (int i=0 ; i<2 ; i++)
@@ -123,7 +124,8 @@ void WeatherlinkApiRealtimeMessage::populateDataPoint(const CassUuid station, Ca
 	/*************************************************************/
 	// No max wind speed dir
 	/*************************************************************/
-	// No rainrate
+	if (!isInvalid(_obs.rainRate))
+		cass_statement_bind_float(statement, 46, from_in_to_mm(_obs.rainRate));
 	/*************************************************************/
 	// No avg rain rate over hour/day/...
 	/*************************************************************/
@@ -235,7 +237,8 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 	if (!isInvalid(_obs.temperature))
 		cass_statement_bind_float(statement, 18, _obs.temperature);
 	/*************************************************************/
-	// No rain
+	if (!isInvalid(_obs.rainRate))
+		cass_statement_bind_float(statement, 19, from_in_to_mm(_obs.rainRate));
 	/*************************************************************/
 	// No rain
 	/*************************************************************/

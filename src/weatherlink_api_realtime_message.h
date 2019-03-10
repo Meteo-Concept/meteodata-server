@@ -88,6 +88,7 @@ private:
 		int windDir;
 		float windSpeed;
 		float windGustSpeed;
+		float rainRate;
 		int solarRad;
 		float uvIndex;
 		int extraHumidity[2];
