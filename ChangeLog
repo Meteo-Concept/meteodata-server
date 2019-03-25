@@ -1,3 +1,7 @@
+2019-03-25	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Handle MBData stations
+
 2019-01-13	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Handle MQTT stations

@@ -32,29 +32,14 @@ namespace meteodata {
 
 namespace chrono = std::chrono;
 
-AbstractMBDataMessage::AbstractMBDataMessage(std::istream& entry, const TimeOffseter& timeOffseter) :
+constexpr int AbstractMBDataMessage::POLLING_PERIOD;
+
+AbstractMBDataMessage::AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter) :
 	Message(),
+	_datetime(datetime),
+	_content(content),
 	_timeOffseter(timeOffseter)
 {
-	_content = std::string{
-		std::istreambuf_iterator<char>(entry),
-		std::istreambuf_iterator<char>(entry)
-	};
-
-	std::tuple<std::regex, std::string> regexps[] = {
-		{std::regex{"\\&#124;"}, "|"},
-		{std::regex{"\\%[0-9a-zA-Z\\_\\[\\]\\.]+\\%"}, ""},
-		{std::regex{"\\s+"}, ""},
-		{std::regex{","}, "."},
-		{std::regex{"<!--.+?-->"}, ""},
-		{std::regex{"\\+"}, ""},
-		{std::regex{"---"}, ""},
-		{std::regex{"--"}, ""},
-		{std::regex{"-99"}, ""}
-	};
-
-	for (auto&& r : regexps)
-		_content = std::regex_replace(_content, std::get<0>(r), std::get<1>(r));
 }
 
 }

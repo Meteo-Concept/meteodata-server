@@ -52,6 +52,8 @@ meteodata_SOURCES = \
 		    mbdatamessages/mbdataweatherlinkmessage.h\
 		    mbdatamessages/mbdatawswinmessage.cpp\
 		    mbdatamessages/mbdatawswinmessage.h\
+		    mbdatatxtdownloader.h\
+		    mbdatatxtdownloader.cpp\
 		    synopdecoder/cloud_observation.h\
 		    synopdecoder/direction.h\
 		    synopdecoder/evapo_maybe_transpi_ration.h\

@@ -66,6 +66,7 @@ private:
 	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	CassUuid _station;
+	std::string _stationName;
 	std::string _host;
 	std::string _url;
 	bool _https;

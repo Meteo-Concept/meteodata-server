@@ -139,6 +139,12 @@ void StatICTxtDownloader::download()
 
 	// Try each endpoint until we successfully establish a connection.
 	asio::ssl::stream<ip::tcp::socket> socket(_ioService, ctx);
+        // Set SNI Hostname (many hosts need this to handshake successfully)
+        if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
+        {
+            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
+            throw boost::system::system_error{ec};
+        }
 	boost::asio::connect(socket.lowest_layer(), endpointIterator);
 
 	// Verify the remote
@@ -151,8 +157,8 @@ void StatICTxtDownloader::download()
 	// allow us to treat all data up until the EOF as the content.
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
-	std::cerr << "GET " << _url << " HTTP/1.1\r\n";
-	requestStream << "GET " << _url << " HTTP/1.1\r\n";
+	std::cerr << "GET " << _url << " HTTP/1.0\r\n";
+	requestStream << "GET " << _url << " HTTP/1.0\r\n";
 	requestStream << "Host: " << _host << "\r\n";
 	requestStream << "Accept: */*\r\n";
 	requestStream << "Connection: close\r\n\r\n";

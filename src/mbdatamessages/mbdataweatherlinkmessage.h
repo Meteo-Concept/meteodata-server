@@ -48,24 +48,15 @@ namespace chrono = std::chrono;
 class MBDataWeatherlinkMessage : public AbstractMBDataMessage
 {
 public:
-	MBDataWeatherlinkMessage(std::istream& entry, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+	MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-
-	inline operator bool() const {
-		return _valid;
-	}
 
 	inline std::experimental::optional<float> getDailyRainfall() const {
 		return _dailyRainfall;
 	}
 
-	inline date::sys_seconds getDateTime() const {
-		return _datetime;
-	}
-
 private:
-	date::sys_seconds _datetime;
 	std::experimental::optional<float> _airTemp;
 	std::experimental::optional<float> _dewPoint;
 	std::experimental::optional<int> _humidity;
@@ -78,7 +69,6 @@ private:
 	std::experimental::optional<float> _dailyRainfall;
 	std::experimental::optional<float> _computedRainfall;
 	std::experimental::optional<float> _diffRainfall;
-	bool _valid;
 };
 
 }

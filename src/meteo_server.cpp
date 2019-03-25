@@ -41,6 +41,7 @@
 #include "mqttsubscriber.h"
 #include "statictxtdownloader.h"
 #include "shipandbuoydownloader.h"
+#include "mbdatatxtdownloader.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -126,6 +127,18 @@ void MeteoServer::start()
 		);
 	}
 	weatherlinkScheduler->start();
+
+	// Start the MBData txt downloaders workers (one per station)
+	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
+	_db.getMBDataTxtStations(mbDataTxtStations);
+	for (auto&& station : mbDataTxtStations) {
+		auto subscriber =
+			std::make_shared<MBDataTxtDownloader>(
+				_ioService, _db,
+				station
+			);
+		subscriber->start();
+	}
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();

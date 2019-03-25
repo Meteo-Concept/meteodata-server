@@ -41,6 +41,8 @@ namespace meteodata {
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
+class MBDataMessageFactory;
+
 /**
  * @brief A Message able to receive and store one raw data point from a
  * MBData text file
@@ -74,9 +76,9 @@ public:
 	static
 	typename std::enable_if<std::is_base_of<AbstractMBDataMessage,T>::value,
 			AbstractMBDataMessage::ptr>::type
-	create(std::istream& entry, std::experimental::optional<float> rainfall, const TimeOffseter& timeOffseter)
+	create(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> rainfall, const TimeOffseter& timeOffseter)
 	{
-		return AbstractMBDataMessage::ptr(new T(std::ref(entry), rainfall, std::ref(timeOffseter)));
+		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), rainfall, std::ref(timeOffseter)));
 	}
 
 	inline operator bool() const {
@@ -88,12 +90,15 @@ public:
 	}
 
 protected:
-	AbstractMBDataMessage(std::istream& entry, const TimeOffseter& timeOffseter);
+	AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter);
 
 	date::sys_seconds _datetime;
 	std::string _content;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;
+	constexpr static int POLLING_PERIOD = 10;
+
+friend MBDataMessageFactory;
 };
 
 }

@@ -29,6 +29,7 @@
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 #include <fstream>
 
@@ -79,11 +80,10 @@ MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnecti
 	float latitude;
 	float longitude;
 	int elevation;
-	std::string stationName;
 	int pollingPeriod;
-	db.getStationCoordinates(_station, latitude, longitude, elevation, stationName, pollingPeriod);
+	db.getStationCoordinates(_station, latitude, longitude, elevation, _stationName, pollingPeriod);
 
-	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone{std::get<4>(downloadDetails)});
+	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(std::get<4>(downloadDetails)));
 	_timeOffseter.setLatitude(latitude);
 	_timeOffseter.setLongitude(longitude);
 	_timeOffseter.setMeasureStep(pollingPeriod);
@@ -91,7 +91,6 @@ MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnecti
 
 void MBDataTxtDownloader::start()
 {
-	download();
 	waitUntilNextDownload();
 }
 
@@ -174,6 +173,12 @@ bool MBDataTxtDownloader::downloadHttps(boost::asio::streambuf& request, boost::
 
 	// Try each endpoint until we successfully establish a connection.
 	asio::ssl::stream<ip::tcp::socket> socket(_ioService, ctx);
+        // Set SNI Hostname (many hosts need this to handshake successfully)
+        if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
+        {
+            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
+            throw boost::system::system_error{ec};
+        }
 	boost::asio::connect(socket.lowest_layer(), endpointIterator);
 
 	// Verify the remote
@@ -232,15 +237,15 @@ bool MBDataTxtDownloader::downloadHttp(boost::asio::streambuf& request, boost::a
 
 void MBDataTxtDownloader::download()
 {
-	std::cerr << "Now downloading a MBData file " << std::endl;
+	std::cerr << "Now downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
 
 	// Form the request. We specify the "Connection: close" header so that the
 	// server will close the socket after transmitting the response. This will
 	// allow us to treat all data up until the EOF as the content.
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
-	std::cerr << "GET " << _url << " HTTP/1.1\r\n";
-	requestStream << "GET " << _url << " HTTP/1.1\r\n";
+	std::cerr << "GET " << "(" << _host << ")" << _url << " HTTP/1.0\r\n";
+	requestStream << "GET " << _url << " HTTP/1.0\r\n";
 	requestStream << "Host: " << _host << "\r\n";
 	requestStream << "Accept: */*\r\n";
 	requestStream << "Connection: close\r\n\r\n";
@@ -250,31 +255,57 @@ void MBDataTxtDownloader::download()
 	// the streambuf constructor.
 	asio::streambuf response(BUFFER_MAX_SIZE);
 
-	// TODO chose between http and https
 	sys::error_code ec;
-	if (!downloadHttps(request, response, ec))
-		return; // downloading went badly, stop here and retry later
+	if (_https) {
+		if (!downloadHttps(request, response, ec)) {
+			std::cerr << "Download failed" << std::endl;
+			syslog(LOG_ERR, "%s: Download failed", _stationName.c_str());
+			return; // downloading went badly, stop here and retry later
+		}
+	} else  {
+		if (!downloadHttp(request, response, ec)) {
+			std::cerr << "Download failed" << std::endl;
+			syslog(LOG_ERR, "%s: Download failed", _stationName.c_str());
+			return; // same
+		}
+	}
 
 	if (ec == asio::error::eof) {
 		std::istream fileStream(&response);
-		// XXX: Get the appropriate previous rainfall somehow
-		auto m = MBDataMessageFactory::chose(_type, fileStream, _timeOffseter);
-		if (!m)
+		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
+		if (!m || !(*m)) {
+			std::cerr << "Download failed" << std::endl;
+			syslog(LOG_ERR, "%s: Download failed", _stationName.c_str());
 			return;
+		}
 
-		// We are still reading the last file, discard it in order
-		// not to pollute the cumulative rainfall value
-		if (m->getDateTime() == _lastDownloadTime)
+		// We are still reading the last file, discard it
+		if (m->getDateTime() <= _lastDownloadTime) {
+			std::cerr << "File has not been updated" << std::endl;
 			return;
+		}
+		if (m->getDateTime() > chrono::system_clock::now()) {
+			std::cerr << "Station " << _stationName << " has data in the future" << std::endl;
+			syslog(LOG_ERR, "%s: Data from the future detected", _stationName.c_str());
+			return;
+		}
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);
 		std::cerr << "UUID identified: " << uuidStr << std::endl;
 		bool ret = _db.insertV2DataPoint(_station, *m);
-		if (ret)
+		if (ret) {
 			std::cerr << "Inserted into database" << std::endl;
-		else
+		} else {
 			std::cerr << "Insertion into database failed" << std::endl;
+			syslog(LOG_ERR, "%s: Insertion into database failed", _stationName.c_str());
+		}
+		_lastDownloadTime = m->getDateTime();
+		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(_lastDownloadTime));
+		if (!ret) {
+			std::cerr << "Failed to update the last insertion time" << std::endl;
+			syslog(LOG_ERR, "%s: Failed to update the last insertion time", _stationName.c_str());
+		}
 	}
 }
 

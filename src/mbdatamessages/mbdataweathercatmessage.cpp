@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 #include <array>
 #include <chrono>
 #include <regex>
@@ -38,57 +39,101 @@ namespace meteodata {
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeathercatMessage::MBDataWeathercatMessage(std::istream& entry, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
-	AbstractMBDataMessage(entry, timeOffseter),
+MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
+	AbstractMBDataMessage(datetime, content, timeOffseter),
 	_diffRainfall(previousRainfall)
 {
 	using namespace date;
 
 	const std::regex mandatoryPart{
-		"(\\d{4}-\\d{2}-\\d{2};\\d{2}:\\d{2};)" // date and time
-		"([^|]*)|" // temperature
-		"([^|]*)|" // humidite
-		"([^|]*)|" // dew point
-		"([^|]*)|" // pressure
-		"([^|]*)|" // pressure variation, should be null
-		"([^|]*)|" // rainfall since 0h
-		"([^|]*)|" // wind
-		"([^|]*)|" // wind direction
-		"([^|]*)|" // wind gusts
-		"([^|]*)|" // windchill
-		"([^|]*)|" // HEATINDEX
-		"([^|]*)|" // Tx over 24h
-		"([^|]*)|" // Tn over 24h
-		"([^|]*)|" // rainrate
-		"([^|]*)|" // solar radiation
+		"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
+		"([^\\|]*)\\|" // temperature
+		"([^\\|]*)\\|" // humidite
+		"([^\\|]*)\\|" // dew point
+		"([^\\|]*)\\|" // pressure
+		"([^\\|]*)\\|" // pressure variation, should be null
+		"([^\\|]*)\\|" // rainfall since 0h
+		"([^\\|]*)\\|" // wind
+		"([^\\|]*)\\|" // wind direction
+		"([^\\|]*)\\|" // wind gusts
+		"([^\\|]*)\\|" // windchill
+		"([^\\|]*)\\|" // HEATINDEX
+		"([^\\|]*)\\|" // Tx over 24h
+		"([^\\|]*)\\|" // Tn over 24h
+		"([^\\|]*)\\|" // rainrate
+		"([^\\|]*)\\|?" // solar radiation
 	};
 
 	std::smatch baseMatch;
-	if (std::regex_search(_content, baseMatch, mandatoryPart) && baseMatch.size() == 17) {
-		std::istringstream{baseMatch[1]} >> date::parse("yyyy-mm-dd;HH:MM;", _datetime);
-		if (baseMatch[2].length())
-			_airTemp = std::stof(baseMatch[2].str());
-		if (baseMatch[3].length())
-			_humidity = std::stoi(baseMatch[3].str());
-		if (baseMatch[4].length())
-			_dewPoint = std::stof(baseMatch[4].str());
-		if (baseMatch[5].length())
-			_pressure = std::stof(baseMatch[5].str());
+	if (std::regex_search(_content, baseMatch, mandatoryPart) && baseMatch.size() == 16) {
+		for (auto&& match : baseMatch) {
+			std::cerr << "match: " << match.str() << std::endl;
+		}
+		if (baseMatch[1].length()) {
+			try {
+				_airTemp = std::stof(baseMatch[1].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[2].length()) {
+			try {
+				_humidity = std::stoi(baseMatch[2].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[3].length()) {
+			try {
+				_dewPoint = std::stof(baseMatch[3].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[4].length()) {
+			try {
+				_pressure = std::stof(baseMatch[4].str());
+			} catch (std::exception&) {
+			}
+		}
 		// skip pressure tendency
-		if (baseMatch[7].length() && _diffRainfall)
-			_computedRainfall = std::stof(baseMatch[7].str()) - *_diffRainfall;
-		if (baseMatch[8].length())
-			_wind = std::stof(baseMatch[8].str());
-		if (baseMatch[9].length())
-			_windDir = std::stoi(baseMatch[9].str());
-		if (baseMatch[10].length())
-			_windDir = std::stof(baseMatch[10].str());
+		if (baseMatch[6].length() && _diffRainfall) {
+			try {
+				float f = std::stof(baseMatch[6].str()) - *_diffRainfall;
+				if (f >= 0 && f < 100)
+					_computedRainfall = f;
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[7].length()) {
+			try {
+				_wind = std::stof(baseMatch[7].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[8].length()) {
+			try {
+				_windDir = std::stoi(baseMatch[8].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[9].length()) {
+			try {
+				_gust = std::stof(baseMatch[9].str());
+			} catch (std::exception&) {
+			}
+		}
 		// skip heatindex and windchill
 		// skip Tx and Tn
-		if (baseMatch[15].length())
-			_rainRate = std::stof(baseMatch[15].str());
-		if (baseMatch[16].length())
-			_solarRad = std::stoi(baseMatch[16].str());
+		if (baseMatch[14].length()) {
+			try {
+				_rainRate = std::stof(baseMatch[14].str());
+			} catch (std::exception&) {
+			}
+		}
+		if (baseMatch[15].length()) {
+			try {
+				_solarRad = std::stoi(baseMatch[15].str());
+			} catch (std::exception&) {
+			}
+		}
 
 		_valid = true;
 	}
