@@ -89,7 +89,6 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 
 void StatICTxtDownloader::start()
 {
-	download();
 	waitUntilNextDownload();
 }
 
@@ -114,7 +113,12 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		std::cerr << "Timed out!" << std::endl;
-		download();
+		try {
+			download();
+		} catch (std::exception& e) {
+			std::cerr << "StatIC file: Couldn't download from "  << _host << ": " << e.what() << std::endl;
+			syslog(LOG_ERR, "StatIC file: Couldn't download from %s: %s", _host.data(), e.what());
+		}
 		// Going back to sleep
 		waitUntilNextDownload();
 	} else {
