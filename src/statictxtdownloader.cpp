@@ -42,6 +42,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <date/date.h>
 #include <dbconnection_observations.h>
 
 #include "statictxtdownloader.h"
@@ -207,6 +208,15 @@ void StatICTxtDownloader::download()
 	size = asio::read(socket, response, ec);
 	std::istream fileStream(&response);
 	if (ec == asio::error::eof) {
+		date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
+		auto midnight = date::sys_seconds(date::floor<date::days>(now));
+		auto begin = chrono::system_clock::to_time_t(midnight);
+		auto end = chrono::system_clock::to_time_t(now);
+		float f;
+		if (_db.getRainfall(_station, begin, end, f))
+			_previousRainfall = f;
+		else
+			_previousRainfall = std::experimental::optional<float>();
 		StatICMessage m{fileStream, _previousRainfall, _timeOffseter};
 		if (!m)
 			return;
