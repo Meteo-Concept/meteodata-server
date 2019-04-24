@@ -284,7 +284,7 @@ void MBDataTxtDownloader::download()
 			std::cerr << "File has not been updated" << std::endl;
 			return;
 		}
-		if (m->getDateTime() > chrono::system_clock::now()) {
+		if (m->getDateTime() > chrono::system_clock::now() + chrono::minutes(1)) { // Allow for some clock deviation
 			std::cerr << "Station " << _stationName << " has data in the future" << std::endl;
 			syslog(LOG_ERR, "%s: Data from the future detected", _stationName.c_str());
 			return;
