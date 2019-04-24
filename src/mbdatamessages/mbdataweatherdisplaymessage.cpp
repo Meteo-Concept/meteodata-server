@@ -57,7 +57,7 @@ MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(date::sys_seconds datet
 		"([^\\|]*)\\|" // wind direction
 		"([^\\|]*)\\|" // wind gusts
 		"([^\\|]*)\\|" // windchill
-		"([^\\|]*)" // HEATINDEX
+		"([^\\|]*)(?:\\||$)" // HEATINDEX
 	};
 
 	const std::regex optionalPart{
