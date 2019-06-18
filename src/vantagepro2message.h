@@ -470,13 +470,27 @@ inline float from_mps_to_kph(int mps)
 }
 
 /**
- * @brief Convert a distance from inches to millimeters
+ * @brief Convert a distance from inches to millimeters,
+ * when the the value in inches is given as an integer
  *
  * @param in the value to convert
  *
  * @return the parameter value converted to millimeters
  */
 inline float from_in_to_mm(int in)
+{
+	return in * 25.4;
+}
+
+/**
+ * @brief Convert a distance from inches to millimeters,
+ * when the the value in inches is given as a float
+ *
+ * @param in the value to convert
+ *
+ * @return the parameter value converted to millimeters
+ */
+inline float from_in_to_mm(float in)
 {
 	return in * 25.4;
 }
