@@ -86,6 +86,8 @@ StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<flo
 				_dailyRainfall = std::stof(value);
 				if (_previousRainfall) {
 					_computedRainfall = *_dailyRainfall - *_previousRainfall;
+					if (*_computedRainfall < 0)
+						_computedRainfall = *_dailyRainfall;
 				}
 			} else if (var == "radiations_solaires_wlk") {
 				_solarRad = std::stoi(value);
