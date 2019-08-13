@@ -84,23 +84,26 @@ void WeatherlinkDownloadScheduler::connectSocket(ip::tcp::socket& socket, const 
 	asio::connect(socket, endpointIterator);
 }
 
-void WeatherlinkDownloadScheduler::downloadRealTime()
+void WeatherlinkDownloadScheduler::genericDownload(const char host[], std::function<void(decltype(_downloaders)::const_reference, ip::tcp::socket&)> downloadMethod)
 {
 	ip::tcp::socket socket(_ioService);
-	connectSocket(socket, APIHOST);
+	connectSocket(socket, host);
 	int retry = 0;
 
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
+	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
 		try {
-			(*it)->downloadRealTime(socket);
+			downloadMethod(*it, socket);
 			retry = 0;
+			++it;
 		} catch (const sys::system_error& e) {
 			retry++;
 			if (e.code() == asio::error::eof) {
-				connectSocket(socket, APIHOST);
+				std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
+				connectSocket(socket, host);
 				// attempt twice to download and move on to the
 				// next station
 				if (retry >= 2) {
+					std::cerr << "Tried twice already, moving on..." << std::endl;
 					retry =  0;
 					++it;
 				}
@@ -111,21 +114,14 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 	}
 }
 
+void WeatherlinkDownloadScheduler::downloadRealTime()
+{
+	genericDownload(APIHOST, &WeatherlinkDownloader::downloadRealTime);
+}
+
 void WeatherlinkDownloadScheduler::downloadArchives()
 {
-	ip::tcp::socket socket(_ioService);
-	connectSocket(socket, HOST);
-
-	for (auto downloader: _downloaders) {
-		try {
-			downloader->download(socket);
-		} catch (const sys::system_error& e) {
-			if (e.code() == asio::error::eof)
-				connectSocket(socket, HOST);
-			else
-				throw e;
-		}
-	}
+	genericDownload(HOST, &WeatherlinkDownloader::download);
 }
 
 void WeatherlinkDownloadScheduler::waitUntilNextDownload()
