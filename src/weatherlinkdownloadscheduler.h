@@ -70,6 +70,7 @@ public:
 private:
 	void waitUntilNextDownload();
 	void connectSocket(ip::tcp::socket& socket, const char host[]);
+	void genericDownload(const char host[], std::function<void(decltype(_downloaders)::const_reference, ip::tcp::socket&)> downloadMethod);
 	void downloadArchives();
 	void downloadRealTime();
 	void checkDeadline(const sys::error_code& e);

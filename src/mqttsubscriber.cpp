@@ -163,8 +163,8 @@ void MqttSubscriber::start()
 	_client->set_publish_handler(
 		[this,self]([[maybe_unused]] std::uint8_t header,
 			[[maybe_unused]]  boost::optional<std::uint16_t> packet_id,
-			[[maybe_unused]] std::string topic_name,
-			std::string contents) {
+			[[maybe_unused]] mqtt::string_view topic_name,
+			mqtt::string_view contents) {
 			processArchive(contents);
 			return true;
 		}
@@ -179,7 +179,7 @@ void MqttSubscriber::stop()
 	_client->disconnect();
 }
 
-void MqttSubscriber::processArchive(const std::string& content)
+void MqttSubscriber::processArchive(const mqtt::string_view& content)
 {
 	std::cerr << "Now downloading for station " << _stationName << std::endl;
 
@@ -190,7 +190,7 @@ void MqttSubscriber::processArchive(const std::string& content)
 	}
 
 	VantagePro2ArchiveMessage::ArchiveDataPoint data;
-	std::memcpy(&data, content.c_str(), sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
+	std::memcpy(&data, content.data(), sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
 	VantagePro2ArchiveMessage msg{data, &_timeOffseter};
 	int ret = false;
 	if (msg.looksValid()) {

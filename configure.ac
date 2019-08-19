@@ -34,6 +34,7 @@ AC_CHECK_HEADERS([cassandra.h])
 AC_CHECK_HEADERS([message.h])
 AC_CHECK_HEADERS([date.h])
 AC_CHECK_HEADERS([tz.h])
+AC_CHECK_HEADERS([dbconnection_common.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -46,6 +47,7 @@ AC_CHECK_LIB([cassandra],[cass_session_new])
 AC_CHECK_LIB([cassobs],[main])
 AC_CHECK_LIB([tz],[main])
 AX_CHECK_OPENSSL
+LIBCURL_CHECK_CONFIG
 BOOST_REQUIRE([1.52])
 BOOST_SYSTEM
 BOOST_ASIO

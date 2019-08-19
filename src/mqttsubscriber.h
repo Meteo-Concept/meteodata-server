@@ -103,7 +103,7 @@ private:
 
 	static constexpr char CLIENT_ID[] = "meteodata";
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
-	void processArchive(const std::string& content);
+	void processArchive(const mqtt::string_view& content);
 };
 
 }
