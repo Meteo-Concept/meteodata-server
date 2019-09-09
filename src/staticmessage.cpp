@@ -82,12 +82,12 @@ StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<flo
 				_gust = std::stof(value);
 			} else if (var == "pluie_intensite") {
 				_rainRate = std::stof(value);
-			} else if (var == "pluie_cumul") {
-				_dailyRainfall = std::stof(value);
+			} else if (var == "pluie_cumul_1h") {
+				_hourRainfall = std::stof(value);
 				if (_previousRainfall) {
-					_computedRainfall = *_dailyRainfall - *_previousRainfall;
+					_computedRainfall = *_hourRainfall - *_previousRainfall;
 					if (*_computedRainfall < 0)
-						_computedRainfall = *_dailyRainfall;
+						_computedRainfall = *_hourRainfall;
 				}
 			} else if (var == "radiations_solaires_wlk") {
 				_solarRad = std::stoi(value);

@@ -213,9 +213,8 @@ void StatICTxtDownloader::download()
 	std::istream fileStream(&response);
 	if (ec == asio::error::eof) {
 		date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
-		auto midnight = date::sys_seconds(date::floor<date::days>(now));
-		auto begin = chrono::system_clock::to_time_t(midnight);
 		auto end = chrono::system_clock::to_time_t(now);
+		auto begin = chrono::system_clock::to_time_t(now - chrono::hours(1));
 		float f;
 		if (_db.getRainfall(_station, begin, end, f))
 			_previousRainfall = f;

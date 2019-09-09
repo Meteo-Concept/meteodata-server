@@ -55,8 +55,8 @@ public:
 		return _valid;
 	}
 
-	inline std::experimental::optional<float> getDailyRainfall() const {
-		return _dailyRainfall;
+	inline std::experimental::optional<float> getHourRainfall() const {
+		return _hourRainfall;
 	}
 
 	inline date::sys_seconds getDateTime() const {
@@ -76,7 +76,7 @@ private:
 	std::experimental::optional<float> _rainRate;
 	std::experimental::optional<int> _solarRad;
 	std::experimental::optional<int> _uv;
-	std::experimental::optional<float> _dailyRainfall;
+	std::experimental::optional<float> _hourRainfall;
 	std::experimental::optional<float> _computedRainfall;
 	std::experimental::optional<float> _previousRainfall;
 	bool _valid;
