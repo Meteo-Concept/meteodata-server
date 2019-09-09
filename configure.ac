@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([Meteodata], [0.12], [contact@meteo-concept.fr])
-AC_CONFIG_SRCDIR([src/vantagepro2connector.h])
+AC_INIT([Meteodata], [0.13], [contact@meteo-concept.fr])
+AC_CONFIG_SRCDIR([src/davis/vantagepro2_connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])

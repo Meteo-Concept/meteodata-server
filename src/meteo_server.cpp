@@ -30,18 +30,18 @@
 
 #include <boost/asio.hpp>
 
-#include "meteo_server.h"
-#include "timeoffseter.h"
 #include "connector.h"
-#include "weatherlinkdownloadscheduler.h"
-#include "weatherlinkdownloader.h"
-#include "vantagepro2connector.h"
-#include "synopdownloader.h"
-#include "deferredsynopdownloader.h"
-#include "mqttsubscriber.h"
-#include "statictxtdownloader.h"
-#include "shipandbuoydownloader.h"
-#include "mbdatatxtdownloader.h"
+#include "meteo_server.h"
+#include "time_offseter.h"
+#include "davis/vantagepro2_connector.h"
+#include "davis/weatherlink_download_scheduler.h"
+#include "davis/weatherlink_downloader.h"
+#include "mbdata/mbdata_txt_downloader.h"
+#include "mqtt/mqtt_subscriber.h"
+#include "ship_and_buoy/ship_and_buoy_downloader.h"
+#include "static/static_txt_downloader.h"
+#include "synop/deferred_synop_downloader.h"
+#include "synop/synop_downloader.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
