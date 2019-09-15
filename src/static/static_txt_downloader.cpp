@@ -212,22 +212,25 @@ void StatICTxtDownloader::download()
 	size = asio::read(socket, response, ec);
 	std::istream fileStream(&response);
 	if (ec == asio::error::eof) {
-		date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
-		auto end = chrono::system_clock::to_time_t(now);
-		auto begin = chrono::system_clock::to_time_t(now - chrono::hours(1));
-		float f;
-		if (_db.getRainfall(_station, begin, end, f))
-			_previousRainfall = f;
-		else
-			_previousRainfall = std::experimental::optional<float>();
-		StatICMessage m{fileStream, _previousRainfall, _timeOffseter};
+		StatICMessage m{fileStream, _timeOffseter};
 		if (!m)
 			return;
 
-		// We are still reading the last file, discard it in order
-		// not to pollute the cumulative rainfall value
-		if (m.getDateTime() == _lastDownloadTime)
+		if (m.getDateTime() == _lastDownloadTime) {
+			// We are still reading the last file, discard it in order
+			// not to pollute the cumulative rainfall value
 			return;
+		} else {
+			// The rain is given over the last hour but the file may be
+			// fetched more frequently so it's necessary to compute the
+			// difference with the rainfall over an hour ago
+			auto downloadTime = m.getDateTime();
+			auto end = chrono::system_clock::to_time_t(downloadTime);
+			auto begin = chrono::system_clock::to_time_t(downloadTime - chrono::hours(1));
+			float f;
+			if (_db.getRainfall(_station, begin, end, f))
+				m.computeRainfall(f);
+		}
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);

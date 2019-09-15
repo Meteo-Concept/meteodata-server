@@ -35,9 +35,8 @@
 
 namespace meteodata
 {
-StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
+StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffseter) :
 	Message(),
-	_previousRainfall(previousRainfall),
 	_timeOffseter(timeOffseter)
 {
 	using namespace date;
@@ -84,11 +83,6 @@ StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<flo
 				_rainRate = std::stof(value);
 			} else if (var == "pluie_cumul_1h") {
 				_hourRainfall = std::stof(value);
-				if (_previousRainfall) {
-					_computedRainfall = *_hourRainfall - *_previousRainfall;
-					if (*_computedRainfall < 0)
-						_computedRainfall = *_hourRainfall;
-				}
 			} else if (var == "radiations_solaires_wlk") {
 				_solarRad = std::stoi(value);
 			} else if (var == "uv_wlk") {
@@ -103,6 +97,14 @@ StatICMessage::StatICMessage(std::istream& file, std::experimental::optional<flo
 	}
 }
 
+
+void StatICMessage::computeRainfall(float previousRainfall) {
+	if (_hourRainfall) {
+		_computedRainfall = *_hourRainfall - previousRainfall;
+		if (*_computedRainfall < 0)
+			_computedRainfall = *_hourRainfall;
+	}
+}
 
 
 void StatICMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const

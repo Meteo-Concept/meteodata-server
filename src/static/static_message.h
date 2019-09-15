@@ -47,9 +47,10 @@ namespace chrono = std::chrono;
 class StatICMessage : public Message
 {
 public:
-	StatICMessage(std::istream& entry, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+	void computeRainfall(float previousRainfall);
 
 	inline operator bool() const {
 		return _valid;
@@ -78,7 +79,6 @@ private:
 	std::experimental::optional<int> _uv;
 	std::experimental::optional<float> _hourRainfall;
 	std::experimental::optional<float> _computedRainfall;
-	std::experimental::optional<float> _previousRainfall;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;
 };
