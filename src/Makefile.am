@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
@@ -70,30 +70,46 @@ meteodata_SOURCES = \
 		    synop/synop_downloader.h
 
 meteodata_minmax_SOURCES = \
-			   minmax.cpp
+		    minmax.cpp
 
 meteodata_month_minmax_SOURCES = \
-			   month_minmax.cpp
+		    month_minmax.cpp
 
 meteodata_synop_standalone_SOURCES = \
-				     synop/synop_standalone.h\
-				     synop/synop_standalone.cpp\
-				     synop/ogimet_synop.cpp\
-				     synop/ogimet_synop.h\
-				     synop/synop_decoder/cloud_observation.h\
-				     synop/synop_decoder/direction.h\
-				     synop/synop_decoder/evapo_maybe_transpi_ration.h\
-				     synop/synop_decoder/ground_state.h\
-				     synop/synop_decoder/isobaric_surface_potential.h\
-				     synop/synop_decoder/nebulosity.h\
-				     synop/synop_decoder/parser.cpp\
-				     synop/synop_decoder/parser.h\
-				     synop/synop_decoder/phenomenon.h\
-				     synop/synop_decoder/precipitation_amount.h\
-				     synop/synop_decoder/pressure_tendency.h\
-				     synop/synop_decoder/range.h\
-				     synop/synop_decoder/gust_observation.h\
-				     synop/synop_decoder/synop_message.h
+		    synop/synop_standalone.h\
+		    synop/synop_standalone.cpp\
+		    synop/ogimet_synop.cpp\
+		    synop/ogimet_synop.h\
+		    synop/synop_decoder/cloud_observation.h\
+		    synop/synop_decoder/direction.h\
+		    synop/synop_decoder/evapo_maybe_transpi_ration.h\
+		    synop/synop_decoder/ground_state.h\
+		    synop/synop_decoder/isobaric_surface_potential.h\
+		    synop/synop_decoder/nebulosity.h\
+		    synop/synop_decoder/parser.cpp\
+		    synop/synop_decoder/parser.h\
+		    synop/synop_decoder/phenomenon.h\
+		    synop/synop_decoder/precipitation_amount.h\
+		    synop/synop_decoder/pressure_tendency.h\
+		    synop/synop_decoder/range.h\
+		    synop/synop_decoder/gust_observation.h\
+		    synop/synop_decoder/synop_message.h
+
+meteodata_weatherlink_oldxml_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    davis/vantagepro2_archive_message.cpp\
+		    davis/vantagepro2_archive_message.h\
+		    davis/vantagepro2_archive_page.cpp\
+		    davis/vantagepro2_archive_page.h\
+		    davis/vantagepro2_message.cpp\
+		    davis/vantagepro2_message.h\
+		    davis/weatherlink_api_realtime_message.cpp\
+		    davis/weatherlink_api_realtime_message.h\
+		    davis/weatherlink_downloader.cpp\
+		    davis/weatherlink_downloader.h\
+		    davis/weatherlink_downloader_standalone.cpp
 
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
@@ -114,3 +130,8 @@ meteodata_synop_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS)
 meteodata_synop_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_synop_standalone_LDFLAGS = 
 meteodata_synop_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+
+meteodata_weatherlink_oldxml_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
+meteodata_weatherlink_oldxml_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_weatherlink_oldxml_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
+meteodata_weatherlink_oldxml_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
