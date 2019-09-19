@@ -46,7 +46,9 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 	bool hasDate = false;
 	bool hasHour = false;
 	const std::regex normalLine{"\\s*([^#=]+)=(\\S*)"};
-	std::istringstream dateValue;
+	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d\\d\\d\\d)"};
+	const std::regex timeRegex{"(\\d\\d).(\\d\\d)"};
+	int year=0, month=0, day=0, h=0, min=0;
 
 	while (std::getline(file, st)) {
 		std::smatch baseMatch;
@@ -58,13 +60,20 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 				value = "0";
 
 			if (var == "date_releve") {
-				dateValue.clear();
-				dateValue.str(value);
-				dateValue >> parse("%d/%m/%Y", date);
-				hasDate = true;
+				std::smatch dateMatch;
+				if (std::regex_match(value, dateMatch, dateRegex) && dateMatch.size() == 4) {
+					year = std::atoi(dateMatch[3].str().data());
+					month = std::atoi(dateMatch[2].str().data());
+					day = std::atoi(dateMatch[1].str().data());
+					hasDate = true;
+				}
 			} else if (var == "heure_releve_utc" && value.size() == 5) {
-				hour = chrono::hours(std::atoi(value.data())) + chrono::minutes(std::atoi(value.data() + 3));
-				hasHour = true;
+				std::smatch timeMatch;
+				if (std::regex_match(value, timeMatch, timeRegex) && timeMatch.size() == 3) {
+					h = std::atoi(timeMatch[1].str().data());
+					min = std::atoi(timeMatch[2].str().data());
+					hasHour = true;
+				}
 			} else if (var == "temperature") {
 				_airTemp = std::stof(value);
 			} else if (var == "pression") {
@@ -93,7 +102,7 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 
 	if (hasDate && hasHour) {
 		_valid = true;
-		_datetime = date + hour;
+		_datetime = date::floor<chrono::seconds>(_timeOffseter.convertFromLocalTime(day, month, year, h, min));
 	}
 }
 

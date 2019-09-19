@@ -65,7 +65,7 @@ namespace meteodata {
 
 using namespace date;
 
-StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url) :
+StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, int timezone) :
 	_ioService(ioService),
 	_db(db),
 	_timer(_ioService),
@@ -81,7 +81,9 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 	int pollingPeriod;
 	db.getStationCoordinates(station, latitude, longitude, elevation, stationName, pollingPeriod);
 
-	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
+	// Timezone is supposed to always be UTC for StatIC files, but it's better not to rely
+	// on station owners to never misconfigure their station
+	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(timezone));
 	_timeOffseter.setLatitude(latitude);
 	_timeOffseter.setLongitude(longitude);
 	_timeOffseter.setMeasureStep(pollingPeriod);

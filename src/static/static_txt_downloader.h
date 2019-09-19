@@ -59,7 +59,7 @@ using namespace meteodata;
 class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloader>
 {
 public:
-	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url);
+	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, int timezone);
 	void start();
 
 private:
