@@ -50,6 +50,10 @@ using namespace meteodata;
 namespace po = boost::program_options;
 
 
+constexpr char meteodata::WeatherlinkDownloadScheduler::HOST[];
+constexpr char meteodata::WeatherlinkDownloadScheduler::APIHOST[];
+constexpr int meteodata::WeatherlinkDownloadScheduler::POLLING_PERIOD;
+
 void connectSocket(asio::io_service& ioService, ip::tcp::socket& socket)
 {
 	// Get a list of endpoints corresponding to the server name.
