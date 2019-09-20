@@ -50,10 +50,13 @@ namespace meteodata
 {
 
 MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& address,
-		const std::string& user, const std::string& password) :
+		const std::string& user, const std::string& password,
+		const std::string& weatherlinkAPIv2Key, const std::string& weatherlinkAPIv2Secret) :
 	_ioService(ioService),
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
-	_db(address, user, password)
+	_db(address, user, password),
+	_weatherlinkAPIv2Key(weatherlinkAPIv2Key),
+	_weatherlinkAPIv2Secret(weatherlinkAPIv2Secret)
 {
 	syslog(LOG_NOTICE, "Meteodata has started succesfully");
 }
@@ -118,13 +121,22 @@ void MeteoServer::start()
 	}
 
 	// Start the Weatherlink downloaders workers (one per Weatherlink station)
-	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db);
+	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
+
 	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
 	_db.getAllWeatherlinkStations(weatherlinkStations);
 	for (const auto& station : weatherlinkStations) {
 		weatherlinkScheduler->add(
 			std::get<0>(station), std::get<1>(station), std::get<2>(station),
 			TimeOffseter::PredefinedTimezone(std::get<3>(station))
+		);
+	}
+	std::vector<std::tuple<CassUuid, bool, std::string>> weatherlinkAPIv2Stations;
+	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
+	for (const auto& station : weatherlinkAPIv2Stations) {
+		weatherlinkScheduler->addAPIv2(
+			std::get<0>(station), std::get<1>(station), std::get<2>(station),
+			TimeOffseter::PredefinedTimezone(0)
 		);
 	}
 	weatherlinkScheduler->start();

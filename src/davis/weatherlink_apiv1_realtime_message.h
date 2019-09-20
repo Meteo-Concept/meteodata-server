@@ -1,6 +1,6 @@
 /**
- * @file weatherlink_api_realtime_message.h
- * @brief Definition of the WeatherlinkApiRealtimeMessage class
+ * @file weatherlink_apiv1_realtime_message.h
+ * @brief Definition of the WeatherlinkApiv1RealtimeMessage class
  * @author Laurent Georget
  * @date 2018-07-23
  */
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WEATHERLINK_API_REALTIME_MESSAGE_H
-#define WEATHERLINK_API_REALTIME_MESSAGE_H
+#ifndef WEATHERLINK_APIV1_REALTIME_MESSAGE_H
+#define WEATHERLINK_APIV1_REALTIME_MESSAGE_H
 
 #include <cmath>
 #include <cstdint>
@@ -36,6 +36,8 @@
 #include <cassandra.h>
 #include <date/date.h>
 #include <message.h>
+
+#include "abstract_weatherlink_api_message.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -57,52 +59,13 @@ namespace pt = boost::property_tree;
  * @brief A Message able to receive and store a XML file resulting from a call to
  * https://api.weatherlink.com/NoaaExt.xml?...
  */
-class WeatherlinkApiRealtimeMessage : public Message
+class WeatherlinkApiv1RealtimeMessage : public AbstractWeatherlinkApiMessage
 {
 public:
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-	WeatherlinkApiRealtimeMessage();
-
-	void parse(std::istream& input);
-	constexpr static int MAXSIZE = (2 << 20);
-
-private:
-	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
-	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();
-
-	constexpr static bool isInvalid(float v) {
-		return std::isnan(v); // /!\ NaN never compares equal to itself
-	}
-
-	constexpr static bool isInvalid(int v) {
-		return v == INVALID_INT;
-	}
-
-	struct Observation {
-		date::sys_time<chrono::milliseconds> time;
-		float pressure;
-		int humidity;
-		float temperature;
-		float temperatureF;
-		int windDir;
-		float windSpeed;
-		float windGustSpeed;
-		float rainRate;
-		int solarRad;
-		float uvIndex;
-		int extraHumidity[2];
-		float extraTemperature[3];
-		float leafTemperature[2];
-		int leafWetness[2];
-		int soilMoisture[4];
-		float soilTemperature[4];
-	};
-	Observation _obs;
-
-
+	WeatherlinkApiv1RealtimeMessage();
+	virtual void parse(std::istream& input);
 };
 
 }
 
-#endif /* WEATHERLINK_API_REALTIME_MESSAGE_H */
+#endif /* WEATHERLINK_APIV1_REALTIME_MESSAGE_H */

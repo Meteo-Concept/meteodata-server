@@ -39,8 +39,9 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
+#include "../http_utils.h"
 #include "../time_offseter.h"
-#include "weatherlink_api_realtime_message.h"
+#include "weatherlink_apiv1_realtime_message.h"
 #include "weatherlink_downloader.h"
 #include "weatherlink_download_scheduler.h"
 #include "vantagepro2_message.h"
@@ -60,43 +61,20 @@ using namespace date;
 WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
 	const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
-	_ioService(ioService),
-	_db(db),
-	_authentication(auth),
-	_apiToken(apiToken),
-	_station(station)
-{
-	time_t lastArchiveDownloadTime;
-	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
-	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-	_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
-	_timeOffseter.setMeasureStep(_pollingPeriod);
-	std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
-}
+	AbstractWeatherlinkDownloader(station, ioService, db, tz),
+	_authentication{auth},
+	_apiToken{apiToken}
+{}
 
-bool WeatherlinkDownloader::compareAsciiCaseInsensitive(const std::string& str1, const std::string& str2)
-{
-	if (str1.size() != str2.size()) {
-		return false;
-	}
-	for (std::string::const_iterator c1 = str1.begin(), c2 = str2.begin(); c1 != str1.end(); ++c1, ++c2) {
-		if (::tolower(*c1) != ::tolower(*c2)) {
-			return false;
-		}
-	}
-	return true;
-}
-
-void WeatherlinkDownloader::downloadRealTime(ip::tcp::socket& socket)
+void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>& socket)
 {
 	if (_apiToken.empty())
 		return; // no token, no realtime obs
 
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
 
-	// Form the request. We specify the "Connection: close" header so that the
-	// server will close the socket after transmitting the response. This will
-	// allow us to treat all data up until the EOF as the content.
+	// Form the request. We specify the "Connection: keep-alive" header so that the
+	// will be usable by other downloaders.
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
 	requestStream << "GET " << "/v1/NoaaExt.xml?" << _authentication << "&apiToken=" << _apiToken << " HTTP/1.0\r\n";
@@ -111,7 +89,7 @@ void WeatherlinkDownloader::downloadRealTime(ip::tcp::socket& socket)
 	// Read the response status line. The response streambuf will automatically
 	// grow to accommodate the entire line. The growth may be limited by passing
 	// a maximum size to the streambuf constructor.
-	asio::streambuf response(WeatherlinkApiRealtimeMessage::MAXSIZE);
+	asio::streambuf response(WeatherlinkApiv1RealtimeMessage::MAXSIZE);
 	asio::read_until(socket, response, "\r\n");
 
 	// Check that response is OK.
@@ -152,7 +130,7 @@ void WeatherlinkDownloader::downloadRealTime(ip::tcp::socket& socket)
 		std::cerr << "Header: " << field << std::endl;
 		if (compareAsciiCaseInsensitive(field, "content-length:")) {
 			fromheader >> size;
-			if (size == 0 || size >= WeatherlinkApiRealtimeMessage::MAXSIZE) {
+			if (size == 0 || size >= WeatherlinkApiv1RealtimeMessage::MAXSIZE) {
 				syslog(LOG_ERR, "station %s: Output from %s is either null or too big", _stationName.c_str(), WeatherlinkDownloadScheduler::APIHOST);
 				std::cerr << "station " << _stationName << ": Output is either null or too big (" << (size / 1000.) << "ko)" << std::endl;
 				return;
@@ -197,7 +175,7 @@ void WeatherlinkDownloader::downloadRealTime(ip::tcp::socket& socket)
 		throw sys::system_error(asio::error::eof);
 	}
 	std::cerr << "Read all the content" << std::endl;
-	WeatherlinkApiRealtimeMessage obs;
+	WeatherlinkApiv1RealtimeMessage obs;
 	obs.parse(responseStream);
 	int ret = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
 	if (!ret) {

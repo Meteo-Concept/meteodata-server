@@ -31,6 +31,7 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/asio/ssl.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <date/date.h>
 #include <cassandra.h>
@@ -55,11 +56,16 @@ constexpr int WeatherlinkDownloadScheduler::POLLING_PERIOD;
 
 using namespace date;
 
-WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db) :
-	_ioService(ioService),
-	_db(db),
-	_timer(ioService)
+WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
+		const std::string& apiId, const std::string& apiSecret) :
+	_ioService{ioService},
+	_db{db},
+	_apiId{apiId},
+	_apiSecret{apiSecret},
+	_timer{ioService},
+	_sslContext{asio::ssl::context::sslv23}
 {
+	_sslContext.set_default_verify_paths();
 }
 
 void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::string& auth,
@@ -68,60 +74,94 @@ void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::strin
 	_downloaders.emplace_back(std::make_shared<WeatherlinkDownloader>(station, auth, apiToken, _ioService, _db, tz));
 }
 
+void WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, const std::string& weatherlinkId,
+		TimeOffseter::PredefinedTimezone tz)
+{
+	_downloadersAPIv2.emplace_back(archived, std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId,
+		_apiId, _apiSecret, _ioService, _db, tz));
+}
+
 void WeatherlinkDownloadScheduler::start()
 {
 	waitUntilNextDownload();
 }
 
-void WeatherlinkDownloadScheduler::connectSocket(ip::tcp::socket& socket, const char host[])
+void WeatherlinkDownloadScheduler::connectSocket(std::unique_ptr<ip::tcp::socket>& socket, const char host[])
 {
-	// Get a list of endpoints corresponding to the server name.
+	socket.reset(new ip::tcp::socket(_ioService));
 	ip::tcp::resolver resolver(_ioService);
 	ip::tcp::resolver::query query(host, "http");
 	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
 
-	// Try each endpoint until we successfully establish a connection.
-	asio::connect(socket, endpointIterator);
+	boost::asio::connect(*socket, endpointIterator);
 }
 
-void WeatherlinkDownloadScheduler::genericDownload(const char host[], std::function<void(decltype(_downloaders)::const_reference, ip::tcp::socket&)> downloadMethod)
+void WeatherlinkDownloadScheduler::connectSocket(std::unique_ptr<asio::ssl::stream<ip::tcp::socket>>& socket, const char host[])
 {
-	ip::tcp::socket socket(_ioService);
-	connectSocket(socket, host);
-	int retry = 0;
+	socket.reset(new asio::ssl::stream<ip::tcp::socket>(_ioService, _sslContext));
+	ip::tcp::resolver resolver(_ioService);
+	ip::tcp::resolver::query query(host, "https");
+	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
 
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
-		try {
-			downloadMethod(*it, socket);
-			retry = 0;
-			++it;
-		} catch (const sys::system_error& e) {
-			retry++;
-			if (e.code() == asio::error::eof) {
-				std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-				connectSocket(socket, host);
-				// attempt twice to download and move on to the
-				// next station
-				if (retry >= 2) {
-					std::cerr << "Tried twice already, moving on..." << std::endl;
-					retry =  0;
-					++it;
-				}
-			} else {
-				throw e;
-			}
-		}
-	}
+        if(!SSL_set_tlsext_host_name(socket->native_handle(), host))
+        {
+            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
+            throw boost::system::system_error{ec};
+        }
+	boost::asio::connect(socket->lowest_layer(), endpointIterator);
+
+	socket->set_verify_mode(asio::ssl::verify_peer);
+	socket->set_verify_callback(asio::ssl::rfc2818_verification(host));
+	socket->handshake(asio::ssl::stream<ip::tcp::socket>::client);
 }
 
 void WeatherlinkDownloadScheduler::downloadRealTime()
 {
-	genericDownload(APIHOST, &WeatherlinkDownloader::downloadRealTime);
+	std::unique_ptr<asio::ssl::stream<ip::tcp::socket>> socket;
+
+	connectSocket(socket, APIHOST);
+	int retry = 0;
+	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
+		genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (*it)->downloadRealTime(activeSocket); }, retry);
+		if (!retry)
+			++it;
+	}
+
+	retry = 0;
+	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ) {
+		genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (it->second)->downloadRealTime(activeSocket); }, retry);
+		if (!retry)
+			++it;
+	}
 }
 
 void WeatherlinkDownloadScheduler::downloadArchives()
 {
-	genericDownload(HOST, &WeatherlinkDownloader::download);
+	{ // scope of the socket
+		std::unique_ptr<ip::tcp::socket> socket;
+		connectSocket(socket, HOST);
+		int retry = 0;
+
+		for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
+			genericDownload(socket, HOST, [it](ip::tcp::socket& activeSocket) { (*it)->download(activeSocket); }, retry);
+			if (!retry)
+				++it;
+		}
+	}
+
+	std::unique_ptr<asio::ssl::stream<ip::tcp::socket>> sslSocket;
+
+	connectSocket(sslSocket, APIHOST);
+	int retry = 0;
+	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ) {
+		if (it->first) { // only download archives from archived stations
+			genericDownload(sslSocket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (it->second)->download(activeSocket); }, retry);
+			if (!retry)
+				++it;
+		} else {
+			++it;
+		}
+	}
 }
 
 void WeatherlinkDownloadScheduler::waitUntilNextDownload()

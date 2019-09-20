@@ -49,9 +49,13 @@ public:
 	 * network operations done by the MeteoServer
 	 * @param user the username to use with the database
 	 * @param password the password corresponding to the username
+	 * @param weatherlinkApiV2Key the WeatherLink API v2 key
+	 * @param weatherlinkApiV2Secret the WeatherLink API v2 secret
 	 */
 	MeteoServer(boost::asio::io_service& io, const std::string& address,
-		const std::string& user, const std::string& password);
+		const std::string& user, const std::string& password,
+		const std::string& weatherlinkApiV2Key, const std::string& weatherlinkApiV2Secret
+	);
 	/**
 	 * @brief Launch all operations: start the SYNOP messages
 	 * downloader, the Weatherlink archive downloader and listen
@@ -70,6 +74,14 @@ private:
 	 * @brief The connection to the database
 	 */
 	DbConnectionObservations _db;
+	/**
+	 * @brief The WeatherLink APIv2 key
+	 */
+	std::string _weatherlinkAPIv2Key;
+	/**
+	 * @brief The WeatherLink APIv2 secret
+	 */
+	std::string _weatherlinkAPIv2Secret;
 
 	/**
 	 * @brief Start listening on the port, construct a connector,

@@ -1,11 +1,11 @@
 /**
- * @file weatherlink_api_realtime_message.cpp
- * @brief Implementation of the WeatherlinkApiRealtimeMessage class
+ * @file abstract_weatherlink_api_message.cpp
+ * @brief Implementation of the AbstractWeatherlinkApiMessage class
  * @author Laurent Georget
- * @date 2018-07-23
+ * @date 2019-09-09
  */
 /*
- * Copyright (C) 2017  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2019  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,54 +32,22 @@
 #include <message.h>
 
 #include "vantagepro2_message.h"
-#include "weatherlink_api_realtime_message.h"
+#include "abstract_weatherlink_api_message.h"
 
 namespace meteodata {
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-constexpr int   WeatherlinkApiRealtimeMessage::MAXSIZE;
-constexpr int   WeatherlinkApiRealtimeMessage::INVALID_INT;
-constexpr float WeatherlinkApiRealtimeMessage::INVALID_FLOAT;
+constexpr size_t AbstractWeatherlinkApiMessage::MAXSIZE;
+constexpr int    AbstractWeatherlinkApiMessage::INVALID_INT;
+constexpr float  AbstractWeatherlinkApiMessage::INVALID_FLOAT;
 
-WeatherlinkApiRealtimeMessage::WeatherlinkApiRealtimeMessage() :
+AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage() :
 	Message()
 {}
 
-void WeatherlinkApiRealtimeMessage::parse(std::istream& input)
-{
-	pt::ptree xmlTree;
-	pt::read_xml(input, xmlTree, pt::xml_parser::no_comments | pt::xml_parser::trim_whitespace);
-
-	std::string time = xmlTree.get<std::string>("current_observation.observation_time_rfc822");
-	std::istringstream in{time};
-	in >> date::parse("%a, %d %b %Y %T %z", _obs.time);
-	_obs.pressure = xmlTree.get<float>("current_observation.pressure_mb", INVALID_FLOAT);
-	_obs.humidity = xmlTree.get<int>("current_observation.relative_humidity", INVALID_INT);
-	_obs.temperature = xmlTree.get<float>("current_observation.temp_c", INVALID_FLOAT);
-	_obs.temperatureF = xmlTree.get<float>("current_observation.temp_f", INVALID_FLOAT);
-	_obs.windDir = xmlTree.get<int>("current_observation.wind_degrees", INVALID_INT);
-	_obs.windSpeed = xmlTree.get<float>("current_observation.wind_mph", INVALID_FLOAT);
-	_obs.windGustSpeed = xmlTree.get<float>("current_observation.davis_current_observation.wind_ten_min_gust_mph", INVALID_FLOAT);
-	_obs.rainRate = xmlTree.get<float>("current_observation.davis_current_observation.rain_rate_in_per_hr", INVALID_FLOAT);
-	_obs.solarRad = xmlTree.get<int>("current_observation.davis_current_observation.solar_radiation", INVALID_INT);
-	_obs.uvIndex = xmlTree.get<float>("current_observation.davis_current_observation.uv_index", INVALID_FLOAT);
-	for (int i=0 ; i<2 ; i++)
-		_obs.extraHumidity[i] = xmlTree.get<int>("current_observation.davis_current_observation.relative_humidity_" + std::to_string(i+1), INVALID_INT);
-	for (int i=0 ; i<3 ; i++)
-		_obs.extraTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_extra_" + std::to_string(i+1), INVALID_FLOAT);
-	for (int i=0 ; i<2 ; i++) {
-		_obs.leafTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_leaf_" + std::to_string(i+1), INVALID_FLOAT);
-		_obs.leafWetness[i] = xmlTree.get<int>("current_observation.davis_current_observation.leaf_wetness_" + std::to_string(i+1), INVALID_INT);
-	}
-	for (int i=0 ; i<4 ; i++) {
-		_obs.soilMoisture[i] = xmlTree.get<int>("current_observation.davis_current_observation.soil_moisture_" + std::to_string(i+1), INVALID_INT);
-		_obs.soilTemperature[i] = xmlTree.get<float>("current_observation.davis_current_observation.temp_soil_" + std::to_string(i+1), INVALID_INT);
-	}
-}
-
-void WeatherlinkApiRealtimeMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
+void AbstractWeatherlinkApiMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
 	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
 	/*************************************************************/
@@ -176,7 +144,7 @@ void WeatherlinkApiRealtimeMessage::populateDataPoint(const CassUuid station, Ca
 	// No rain nor ET
 }
 
-void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
+void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
 {
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
@@ -240,7 +208,8 @@ void WeatherlinkApiRealtimeMessage::populateV2DataPoint(const CassUuid station, 
 	if (!isInvalid(_obs.rainRate))
 		cass_statement_bind_float(statement, 19, from_in_to_mm(_obs.rainRate));
 	/*************************************************************/
-	// No rain
+	if (!isInvalid(_obs.rainFall))
+		cass_statement_bind_float(statement, 20, from_rainrate_to_mm(_obs.rainFall));
 	/*************************************************************/
 	// No ETP
 	/*************************************************************/

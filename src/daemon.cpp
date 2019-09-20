@@ -59,12 +59,16 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string weatherlinkApiV2Key;
+	std::string weatherlinkApiV2Secret;
 
 	po::options_description config("Configuration");
 	config.add_options()
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("weatherlink-apiv2-key,k", po::value<std::string>(&weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
+		("weatherlink-apiv2-secret,s", po::value<std::string>(&weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
 	;
 
 	po::options_description desc("Allowed options");
@@ -90,7 +94,7 @@ int main(int argc, char** argv)
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
+		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password -k weatherlink-apiv2-key -s weatherlink-apiv2-secret]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
 			"password or none of them." << std::endl;
@@ -130,7 +134,7 @@ int main(int argc, char** argv)
 
 	try {
 		boost::asio::io_service ioService;
-		MeteoServer server(ioService, address, user, password);
+		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret);
 		server.start();
 		ioService.run();
 	} catch (std::exception& e) {

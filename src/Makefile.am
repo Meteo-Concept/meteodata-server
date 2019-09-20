@@ -1,12 +1,16 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
 		    daemon.cpp\
+		    http_utils.h\
 		    meteo_server.cpp\
 		    meteo_server.h\
 		    time_offseter.cpp\
 		    time_offseter.h\
+		    davis/abstract_weatherlink_api_message.cpp\
+		    davis/abstract_weatherlink_api_message.h\
+		    davis/abstract_weatherlink_downloader.h\
 		    davis/vantagepro2_archive_message.cpp\
 		    davis/vantagepro2_archive_message.h\
 		    davis/vantagepro2_archive_page.cpp\
@@ -15,8 +19,16 @@ meteodata_SOURCES = \
 		    davis/vantagepro2_connector.h\
 		    davis/vantagepro2_message.cpp\
 		    davis/vantagepro2_message.h\
-		    davis/weatherlink_api_realtime_message.cpp\
-		    davis/weatherlink_api_realtime_message.h\
+		    davis/weatherlink_apiv1_realtime_message.cpp\
+		    davis/weatherlink_apiv1_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_message.cpp\
+		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_archive_message.cpp\
+		    davis/weatherlink_apiv2_archive_message.h\
+		    davis/weatherlink_apiv2_archive_page.cpp\
+		    davis/weatherlink_apiv2_archive_page.h\
+		    davis/weatherlink_apiv2_downloader.cpp\
+		    davis/weatherlink_apiv2_downloader.h\
 		    davis/weatherlink_download_scheduler.cpp\
 		    davis/weatherlink_download_scheduler.h\
 		    davis/weatherlink_downloader.cpp\
@@ -99,17 +111,53 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
 		    cassandra_utils.h\
+		    http_utils.h\
+		    davis/abstract_weatherlink_api_message.cpp\
+		    davis/abstract_weatherlink_api_message.h\
+		    davis/abstract_weatherlink_downloader.h\
 		    davis/vantagepro2_archive_message.cpp\
 		    davis/vantagepro2_archive_message.h\
 		    davis/vantagepro2_archive_page.cpp\
 		    davis/vantagepro2_archive_page.h\
 		    davis/vantagepro2_message.cpp\
 		    davis/vantagepro2_message.h\
-		    davis/weatherlink_api_realtime_message.cpp\
-		    davis/weatherlink_api_realtime_message.h\
+		    davis/weatherlink_apiv1_realtime_message.cpp\
+		    davis/weatherlink_apiv1_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_message.cpp\
+		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_archive_message.cpp\
+		    davis/weatherlink_apiv2_archive_message.h\
+		    davis/weatherlink_apiv2_archive_page.cpp\
+		    davis/weatherlink_apiv2_archive_page.h\
 		    davis/weatherlink_downloader.cpp\
 		    davis/weatherlink_downloader.h\
 		    davis/weatherlink_downloader_standalone.cpp
+
+meteodata_weatherlink_apiv2_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    davis/abstract_weatherlink_api_message.cpp\
+		    davis/abstract_weatherlink_api_message.h\
+		    davis/abstract_weatherlink_downloader.h\
+		    davis/vantagepro2_archive_message.cpp\
+		    davis/vantagepro2_archive_message.h\
+		    davis/vantagepro2_archive_page.cpp\
+		    davis/vantagepro2_archive_page.h\
+		    davis/vantagepro2_message.cpp\
+		    davis/vantagepro2_message.h\
+		    davis/weatherlink_apiv1_realtime_message.cpp\
+		    davis/weatherlink_apiv1_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_message.cpp\
+		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_archive_message.cpp\
+		    davis/weatherlink_apiv2_archive_message.h\
+		    davis/weatherlink_apiv2_archive_page.cpp\
+		    davis/weatherlink_apiv2_archive_page.h\
+		    davis/weatherlink_apiv2_downloader.cpp\
+		    davis/weatherlink_apiv2_downloader.h\
+		    davis/weatherlink_apiv2_downloader_standalone.cpp
 
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
@@ -135,3 +183,8 @@ meteodata_weatherlink_oldxml_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASI
 meteodata_weatherlink_oldxml_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_weatherlink_oldxml_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
 meteodata_weatherlink_oldxml_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+
+meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
+meteodata_weatherlink_apiv2_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_weatherlink_apiv2_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
+meteodata_weatherlink_apiv2_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
