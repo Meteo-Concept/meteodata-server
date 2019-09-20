@@ -92,6 +92,8 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("weatherlink-apiv2-key,k", po::value<std::string>(), "Ignored")
+		("weatherlink-apiv2-secret,s", po::value<std::string>(), "Ignored")
 	;
 
 	po::options_description desc("Allowed options");
