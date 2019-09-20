@@ -65,7 +65,9 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 {
 	if (sensorType == SensorType::VANTAGE_PRO2_ISS || dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
-		_obs.humidity = data.get<int>("hum_last", INVALID_INT);
+		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;
+		if (!isInvalid(hum))
+			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
 			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
