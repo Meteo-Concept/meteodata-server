@@ -386,15 +386,17 @@ inline int64_t from_hourmin_to_CassandraTime(int h, int m)
 }
 
 /**
- * @brief Convert a pression given in inches of mercury to bar
+ * @brief Convert a pression given in inches of mercury to bar (or, perhaps
+ * more commonly, milli-inches of mercury to millibars)
  *
  * @param inHg the value to convert
  *
  * @return the parameter value converted to bar
  */
-inline float from_inHg_to_bar(int inHg)
+template<typename T>
+inline float from_inHg_to_bar(T inHg)
 {
-	return inHg * 0.03386;
+	return static_cast<float>(inHg * 0.03386);
 }
 
 /**
