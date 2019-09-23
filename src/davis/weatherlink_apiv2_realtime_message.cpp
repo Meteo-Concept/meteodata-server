@@ -68,7 +68,7 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 			continue;
 		auto data = allData.front().second; // we expect exactly one element, the current condition
 
-		if (sensorType == SensorType::WEATHERLINK_LIVE_ISS || dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+		if (sensorType == SensorType::WEATHERLINK_LIVE_ISS && dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			float hum = data.get<float>("hum", INVALID_FLOAT) ;
 			if (!isInvalid(hum))
@@ -85,7 +85,7 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 			_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
 		}
 
-		if (sensorType == SensorType::BAROMETER || dataStructureType == DataStructureType::BAROMETER_CURRENT_READING) {
+		if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::BAROMETER_CURRENT_READING) {
 			_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 			if (!isInvalid(_obs.pressure))
 				_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
