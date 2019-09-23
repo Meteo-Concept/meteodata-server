@@ -68,9 +68,7 @@ bool VantagePro2ArchivePage::store(DbConnectionObservations& db, const CassUuid&
 {
 	bool ret = true;
 	for (int i=0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE && ret ; i++) {
-		if (isRelevant(_page.points[i], false))
-			ret = db.insertDataPoint(station, VantagePro2ArchiveMessage(_page.points[i], _timeOffseter));
-		if (ret && isRelevant(_page.points[i], true))
+		if (isRelevant(_page.points[i], true))
 			ret = db.insertV2DataPoint(station, VantagePro2ArchiveMessage(_page.points[i], _timeOffseter));
 	}
 	return ret;

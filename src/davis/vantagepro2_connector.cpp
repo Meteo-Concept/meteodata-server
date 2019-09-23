@@ -393,7 +393,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 
 	case State::WAITING_NEXT_MEASURE_TICK:
 		if (e == sys::errc::timed_out) {
-			_currentState = State::SENDING_WAKE_UP_MEASURE;
+			_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 			std::cerr << "Time to wake up! We need a new measurement" << std::endl;
 			sendRequest(_echoRequest, std::strlen(_echoRequest));
 		} else {
@@ -565,93 +565,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 		}
 		break;
 
-	case State::SENDING_WAKE_UP_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ECHO_MEASURE;
-			std::cerr << "Waking up station for next request" << std::endl;
-			recvWakeUp();
-		}
-		break;
-
-	case State::WAITING_ECHO_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_REQ_MEASURE;
-			std::cerr << "Station is woken up, ready to send a measurement" << std::endl;
-			sendRequest(_getMeasureRequest, std::strlen(_getMeasureRequest));
-		}
-		break;
-
-	case State::SENDING_REQ_MEASURE:
-		handleGenericErrors(e, State::SENDING_REQ_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_getMeasureRequest, std::strlen(_getMeasureRequest)));
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_MEASURE;
-			std::cerr << "Sent measurement request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				syslog(LOG_ERR, "station %s : Was waiting for acknowledgement, got %i, retrying", _stationName.c_str(), _ackBuffer);
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
-						std::bind(&VantagePro2Connector::sendRequest, this,
-							_echoRequest, std::strlen(_echoRequest)));
-				} else {
-					syslog(LOG_ERR, "station %s : Cannot get the station to acknowledge the measurement request", _stationName.c_str());
-					stop();
-				}
-			} else {
-				_currentState = State::WAITING_DATA_MEASURE;
-				std::cerr << "Station has acked measurement request" << std::endl;
-				recvData(_message.getBuffer());
-			}
-		}
-		break;
-
-	case State::WAITING_DATA_MEASURE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_MEASURE,
-			std::bind(&VantagePro2Connector::sendRequest, this,
-				_echoRequest, std::strlen(_echoRequest)));
-		if (e == sys::errc::success) {
-			if (!_message.isValid()) {
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_WAKE_UP_MEASURE,
-						std::bind(&VantagePro2Connector::sendRequest, this,
-							_echoRequest, std::strlen(_echoRequest)));
-				} else {
-					syslog(LOG_ERR, "station %s: Too many transmissions errors in measurement CRC, aborting", _stationName.c_str());
-					stop();
-				}
-			} else {
-				std::cerr << "Got measurement, storing it" << std::endl;
-				bool ret = _db.insertDataPoint(_station, _message);
-				if (ret) {
-					std::cerr << "Measurement stored for station, now getting the archive file " << _stationName << std::endl;
-					_archivePage.prepare(_lastArchive, &_timeOffseter);
-					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
-					sendRequest(_echoRequest, std::strlen(_echoRequest));
-				} else {
-					std::cerr << "Failed to store measurement! Aborting" << std::endl;
-					syslog(LOG_ERR, "station %s: Couldn't store measurement", _stationName.c_str());
-					stop();
-				}
-			}
-		}
-		break;
-
 	case State::SENDING_WAKE_UP_ARCHIVE:
 		handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE,
 			std::bind(&VantagePro2Connector::sendRequest, this,
@@ -740,7 +653,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			}
 		}
 		break;
-	
+
 	case State::WAITING_ARCHIVE_NB_PAGES:
 		// We cannot retry anything here, we are in the middle of a request, just bail out
 		if (e != sys::errc::success) {

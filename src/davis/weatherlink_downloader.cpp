@@ -318,7 +318,7 @@ void WeatherlinkDownloader::download(ip::tcp::socket& socket)
 			}
 
 			start = end;
-			ret = _db.insertDataPoint(_station, *it) && _db.insertV2DataPoint(_station, *it);
+			ret = _db.insertV2DataPoint(_station, *it);
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
 		}

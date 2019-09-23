@@ -89,11 +89,6 @@ private:
 		SENDING_REQ_TIMEZONE,           /*!< Waiting for the timezone information request to be sent            */
 		WAITING_ACK_TIMEZONE,           /*!< Waiting for the station to acknowledge the timezone information request */
 		WAITING_DATA_TIMEZONE,          /*!< Waiting for the station to answer the timezone information request */
-		SENDING_WAKE_UP_MEASURE,        /*!< Waiting for the wake up request to be sent (before measurement)    */
-		WAITING_ECHO_MEASURE,           /*!< Waiting for the station to answer the wake up request              */
-		SENDING_REQ_MEASURE,            /*!< Waiting for a measurement request to be sent                       */
-		WAITING_ACK_MEASURE,            /*!< Waiting for the station to acknowledge the measurement request     */
-		WAITING_DATA_MEASURE,           /*!< Waiting for the station to answer the measurement request          */
 		SENDING_WAKE_UP_ARCHIVE,        /*!< Waiting for the wake up order to be sent to download archive       */
 		WAITING_ECHO_ARCHIVE,           /*!< Waiting for the station to answer the wake up request to start downloading archive */
 		SENDING_REQ_ARCHIVE,            /*!< Waiting for the archive request to be sent                         */
