@@ -7,6 +7,8 @@ Meteodata-server now supports getting realtime data and archives from the
 (yet-to-be-officially-released) WeatherLink API v2. WeatherLink Live stations
 are only available through this API. Binaries have been added to bulk download
 data from weatherlink.com, either via the old API or the v2 one.
+The old Cassandra database is no longer getting new data. Only the new schema
+is now used.
 
 Version 0.11
 ============
