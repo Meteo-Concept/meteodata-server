@@ -111,7 +111,7 @@ void StatICMessage::computeRainfall(float previousRainfall) {
 	if (_hourRainfall) {
 		_computedRainfall = *_hourRainfall - previousRainfall;
 		if (*_computedRainfall < 0)
-			_computedRainfall = *_hourRainfall;
+			_computedRainfall = 0;
 	}
 }
 
