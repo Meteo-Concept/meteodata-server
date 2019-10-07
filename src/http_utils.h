@@ -46,7 +46,7 @@ namespace sys = boost::system;
 namespace {
 
 /**
- * Test whether to ASCII strings are equal, disregarding the case
+ * Test whether two ASCII strings are equal, disregarding the case
  *
  * This is useful to compare HTML headers.
  * @param str1 The first string, assumed to be a ASCII string
@@ -67,7 +67,14 @@ inline bool compareAsciiCaseInsensitive(const std::string& str1, const std::stri
 	return true;
 }
 
-
+/**
+ * Compute the SHA256-based HMAC of a string and return the result as a
+ * hexadecimal string
+ *
+ * @param str The string to compute the HMAC for
+ * @param key The secret needed to compute the HMAC
+ * @return The SHA256-based HMAC of the string, as an hexadecimal string
+ */
 inline std::string computeHMACWithSHA256(const std::string& str, const std::string& key)
 {
 	const EVP_MD* sha256 = EVP_sha256();
@@ -89,6 +96,23 @@ inline std::string computeHMACWithSHA256(const std::string& str, const std::stri
 
 }
 
+/**
+ * Get the response for a HTTP 1.0 query made over a ASIO socket (ip::tcp::socket or ssl::stream)
+ *
+ * The idea is to receive the response into the buffer in parameter, to validate the status of the
+ * query (which should be 200/OK) and the value of the headers. After this function terminates, the
+ * response is in the response buffer and the response stream iterator is at the beginning of the
+ * body content.
+ *
+ * @template Socket The type of the ASIO socket
+ * @param socket The socket on which the request was made, and from which the response is expected
+ * @param response The buffer into which the response will be received
+ * @param responseStream The input iterator on the response
+ * @param maxSize The maximum size of the response buffer
+ * @param expectedMimeType The type of the response, to validate against the Content-Type: header
+ *
+ * @return True if, and only if, the "Connection: close" header was sent by the other header
+ */
 template<typename Socket>
 bool getReponseFromHTTP10Query(Socket& socket, boost::asio::streambuf& response, std::istream& responseStream, std::size_t maxSize, const std::string& expectedMimeType)
 {
