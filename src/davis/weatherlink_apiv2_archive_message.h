@@ -55,16 +55,6 @@ public:
 	WeatherlinkApiv2ArchiveMessage();
 	virtual void parse(std::istream& input);
 
-	enum class SensorType {
-		VANTAGE_PRO2_ISS = 43,
-		BAROMETER = 242
-	};
-
-	enum class DataStructureType {
-		WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD = 11,
-		BAROMETER_ARCHIVE_RECORD = 13
-	};
-
 private:
 	void ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType);
 

@@ -43,9 +43,6 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2ArchiveMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2ArchiveMessage::DataStructureType;
 
-WeatherlinkApiv2ArchivePage::WeatherlinkApiv2ArchivePage()
-{}
-
 void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 {
 	pt::ptree jsonTree;
@@ -58,9 +55,10 @@ void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 			WeatherlinkApiv2ArchiveMessage message;
 			message.ingest(data.second, sensorType, dataStructureType);
 
-			if (message._obs.time > _time)
+			if (message._obs.time > _time) {
 				_time = date::floor<chrono::seconds>(message._obs.time);
-			_messages.emplace_back(std::move(message));
+				_messages.emplace_back(std::move(message));
+			}
 		}
 
 	}

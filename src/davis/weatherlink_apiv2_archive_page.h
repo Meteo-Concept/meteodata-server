@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <date.h>
+#include <chrono>
 
 #include "weatherlink_apiv2_archive_message.h"
 
@@ -41,7 +42,10 @@ namespace meteodata {
 class WeatherlinkApiv2ArchivePage
 {
 public:
-	WeatherlinkApiv2ArchivePage();
+	template<typename T>
+	WeatherlinkApiv2ArchivePage(date::sys_time<T> lastArchive):
+		_time{date::floor<chrono::seconds>(lastArchive)}
+	{}
 	void parse(std::istream& input);
 
 private:

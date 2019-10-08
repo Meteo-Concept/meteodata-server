@@ -59,6 +59,21 @@ public:
 	virtual void parse(std::istream& input) = 0;
 	constexpr static size_t MAXSIZE = (2 << 20);
 
+	enum class SensorType {
+		VANTAGE_PRO_2_ISS = 43,
+		VANTAGE_PRO_2_PLUS_ISS = 45,
+		SENSOR_SUITE = 55,
+		VANTAGE_VUE_ISS = 37,
+		BAROMETER = 242
+	};
+
+	enum class DataStructureType {
+		WEATHERLINK_LIVE_CURRENT_READING = 10,
+		BAROMETER_CURRENT_READING = 12,
+		WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD = 11,
+		BAROMETER_ARCHIVE_RECORD = 13
+	};
+
 protected:
 	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
 	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();

@@ -186,7 +186,7 @@ void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& so
 		try {
 			stillOpen = getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 			std::cerr << "Read all the content" << std::endl;
-			WeatherlinkApiv2ArchivePage page;
+			WeatherlinkApiv2ArchivePage page(_lastArchive);
 			page.parse(responseStream);
 			bool insertionOk = true;
 

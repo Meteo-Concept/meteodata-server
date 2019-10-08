@@ -34,18 +34,6 @@
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
 
-namespace {
-	enum class SensorType {
-		WEATHERLINK_LIVE_ISS = 43,
-		BAROMETER = 242
-	};
-
-	enum class DataStructureType {
-		WEATHERLINK_LIVE_CURRENT_READING = 10,
-		BAROMETER_CURRENT_READING = 12
-	};
-}
-
 namespace meteodata {
 
 namespace chrono = std::chrono;
@@ -68,7 +56,8 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 			continue;
 		auto data = allData.front().second; // we expect exactly one element, the current condition
 
-		if (sensorType == SensorType::WEATHERLINK_LIVE_ISS && dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+		if ((sensorType == SensorType::VANTAGE_PRO_2_ISS || sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||sensorType == SensorType::VANTAGE_VUE_ISS) &&
+		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			float hum = data.get<float>("hum", INVALID_FLOAT) ;
 			if (!isInvalid(hum))
@@ -83,6 +72,14 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 			_obs.rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 			_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
+		}
+
+		// Deal only with the moved anemometer TODO: deal with all the other sensors
+		if (sensorType == SensorType::SENSOR_SUITE &&
+		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+			_obs.windDir = data.get<int>("wind_dir_scalar_avg_last_10_min", INVALID_INT);
+			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
+			_obs.windGustSpeed = data.get<float>("wind_speed_hi_last_10_min", INVALID_FLOAT);
 		}
 
 		if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::BAROMETER_CURRENT_READING) {

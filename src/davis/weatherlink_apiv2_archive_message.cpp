@@ -63,8 +63,9 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType)
 {
-	if (sensorType == SensorType::VANTAGE_PRO2_ISS && dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
-		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+	if ((sensorType == SensorType::VANTAGE_PRO_2_ISS || sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||sensorType == SensorType::VANTAGE_VUE_ISS) &&
+	    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;
 		if (!isInvalid(hum))
 			_obs.humidity = static_cast<int>(hum);
@@ -79,7 +80,7 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::BAROMETER_ARCHIVE_RECORD) {
-		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
 			_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
