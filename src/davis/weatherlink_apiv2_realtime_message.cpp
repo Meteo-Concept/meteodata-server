@@ -56,7 +56,8 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 			continue;
 		auto data = allData.front().second; // we expect exactly one element, the current condition
 
-		if ((sensorType == SensorType::VANTAGE_PRO_2_ISS || sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||sensorType == SensorType::VANTAGE_VUE_ISS) &&
+		int catalogType = static_cast<int>(sensorType);
+		if (catalogType >= 43 && catalogType <= 52 &&
 		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			float hum = data.get<float>("hum", INVALID_FLOAT) ;

@@ -63,7 +63,8 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType)
 {
-	if ((sensorType == SensorType::VANTAGE_PRO_2_ISS || sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||sensorType == SensorType::VANTAGE_VUE_ISS) &&
+	int catalogType = static_cast<int>(sensorType);
+	if (((catalogType >= 43 && catalogType <= 52) || sensorType == SensorType::VANTAGE_VUE_ISS) &&
 	    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;

@@ -54,11 +54,9 @@ void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 		for (std::pair<const std::string, pt::ptree>& data : reading.second.get_child("data")) {
 			WeatherlinkApiv2ArchiveMessage message;
 			message.ingest(data.second, sensorType, dataStructureType);
-
-			if (message._obs.time > _time) {
+			_messages.emplace_back(std::move(message));
+			if (message._obs.time > _time)
 				_time = date::floor<chrono::seconds>(message._obs.time);
-				_messages.emplace_back(std::move(message));
-			}
 		}
 
 	}

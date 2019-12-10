@@ -60,8 +60,15 @@ public:
 	constexpr static size_t MAXSIZE = (2 << 20);
 
 	enum class SensorType {
-		VANTAGE_PRO_2_ISS = 43,
-		VANTAGE_PRO_2_PLUS_ISS = 45,
+		VANTAGE_PRO_2 = 43,
+		VANTAGE_PRO_2_FAN = 44,
+		VANTAGE_PRO_2_PLUS = 45,
+		VANTAGE_PRO_2_PLUS_FAN = 46,
+		VANTAGE_PRO_2_ISS = 48,
+		VANTAGE_PRO_2_FAN_ISS = 49,
+		VANTAGE_PRO_2_PLUS_ISS = 50,
+		VANTAGE_PRO_2_PLUS_FAN_ISS = 51,
+		VANTAGE_PRO_2_DAYTIME_FAN_ISS = 52,
 		SENSOR_SUITE = 55,
 		VANTAGE_VUE_ISS = 37,
 		BAROMETER = 242
@@ -99,12 +106,12 @@ protected:
 		int rainFall = INVALID_INT;
 		int solarRad = INVALID_INT;
 		float uvIndex = INVALID_FLOAT;
-		int extraHumidity[2] = { INVALID_INT };
-		float extraTemperature[3] = { INVALID_FLOAT };
-		float leafTemperature[2] = { INVALID_FLOAT };
-		int leafWetness[2] = { INVALID_INT };
-		int soilMoisture[4] = { INVALID_INT };
-		float soilTemperature[4] = { INVALID_FLOAT };
+		int extraHumidity[2] = { INVALID_INT, INVALID_INT };
+		float extraTemperature[3] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
+		float leafTemperature[2] = { INVALID_FLOAT, INVALID_FLOAT };
+		int leafWetness[2] = { INVALID_INT, INVALID_INT };
+		int soilMoisture[4] = { INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT };
+		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
 	};
 	Observation _obs;
 
