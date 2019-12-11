@@ -57,7 +57,6 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 		// Only parse the last (most recent) element of the collection of data
 		auto data = reading.second.get_child("data").back().second;
 		ingest(data, sensorType, dataStructureType);
-
 	}
 }
 
@@ -80,7 +79,24 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
-	} else if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::BAROMETER_ARCHIVE_RECORD) {
+	} else if (sensorType == SensorType::SENSOR_SUITE &&
+		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+		// This data package must be ingested after the ISS data
+		float hum = data.get<float>("hum", INVALID_FLOAT) ;
+		if (!isInvalid(hum))
+			_obs.humidity = static_cast<int>(hum);
+		_obs.temperatureF = data.get<float>("temp", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureF))
+			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+		_obs.windDir = data.get<int>("wind_dir_scalar_avg_last_10_min", INVALID_INT);
+		_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
+		_obs.windGustSpeed = data.get<float>("wind_speed_hi_last_10_min", INVALID_FLOAT);
+		_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
+		_obs.rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
+		_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
+		_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
+	} else if (sensorType == SensorType::BAROMETER &&
+		   dataStructureType == DataStructureType::BAROMETER_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))

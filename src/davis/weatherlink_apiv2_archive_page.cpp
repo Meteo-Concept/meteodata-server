@@ -25,6 +25,8 @@
 #include <sstream>
 #include <string>
 #include <limits>
+#include <algorithm>
+#include <functional>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -43,10 +45,29 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2ArchiveMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2ArchiveMessage::DataStructureType;
 
+namespace {
+	constexpr bool compareMessages(
+		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry1,
+		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry2
+	) {
+		SensorType sensorType2 = std::get<0>(entry2);
+		int catalogType2 = static_cast<int>(sensorType2);
+		// Inject first the aux. sensor suites and then the ISS to have the possibility to
+		// override the aux. sensor suites data with the ISS data.
+		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
+		    ((catalogType2 >= 43 && catalogType2 <= 52) || sensorType2 == SensorType::VANTAGE_VUE_ISS))
+			return true;
+
+		return false;
+	}
+}
+
 void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 {
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
+
+	std::vector<std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>> entries;
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
@@ -54,12 +75,20 @@ void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 		for (std::pair<const std::string, pt::ptree>& data : reading.second.get_child("data")) {
 			WeatherlinkApiv2ArchiveMessage message;
 			message.ingest(data.second, sensorType, dataStructureType);
-			_messages.emplace_back(std::move(message));
 			if (message._obs.time > _time)
 				_time = date::floor<chrono::seconds>(message._obs.time);
+			entries.push_back(std::make_tuple(sensorType, dataStructureType, std::move(message)));
 		}
-
 	}
+	std::sort(entries.begin(), entries.end(), &compareMessages);
+	std::transform(
+		std::make_move_iterator(entries.begin()),
+		std::make_move_iterator(entries.end()),
+		std::back_inserter(_messages),
+		[](auto&& entry) {
+			return std::move(std::get<2>(entry));
+		}
+	);
 }
 
 }

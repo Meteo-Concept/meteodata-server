@@ -31,6 +31,7 @@
 #include <limits>
 #include <iostream>
 
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <date/date.h>
 #include <message.h>
@@ -44,6 +45,7 @@ using std::size_t;
 namespace meteodata {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 /**
  * @brief A Message able to receive and store a file resulting from a call to
@@ -114,8 +116,6 @@ protected:
 		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
 	};
 	Observation _obs;
-
-
 };
 
 }
