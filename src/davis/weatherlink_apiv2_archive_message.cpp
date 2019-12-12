@@ -33,6 +33,7 @@
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_archive_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
@@ -42,8 +43,8 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2ArchiveMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2ArchiveMessage::DataStructureType;
 
-WeatherlinkApiv2ArchiveMessage::WeatherlinkApiv2ArchiveMessage() :
-	AbstractWeatherlinkApiMessage()
+WeatherlinkApiv2ArchiveMessage::WeatherlinkApiv2ArchiveMessage(const TimeOffseter* timeOffseter) :
+	AbstractWeatherlinkApiMessage(timeOffseter)
 {}
 
 void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)

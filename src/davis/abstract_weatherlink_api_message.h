@@ -36,6 +36,8 @@
 #include <date/date.h>
 #include <message.h>
 
+#include "../time_offseter.h"
+
 using std::uint8_t;
 using std::uint16_t;
 using std::uint32_t;
@@ -56,7 +58,7 @@ class AbstractWeatherlinkApiMessage : public Message
 public:
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-	AbstractWeatherlinkApiMessage();
+	AbstractWeatherlinkApiMessage(const TimeOffseter* _timeOffseter);
 
 	virtual void parse(std::istream& input) = 0;
 	constexpr static size_t MAXSIZE = (2 << 20);
@@ -116,6 +118,12 @@ protected:
 		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
 	};
 	Observation _obs;
+
+	/**
+	 * @brief The \a TimeOffseter able to convert the archive entries' timestamps to
+	 * POSIX time
+	 */
+	const TimeOffseter* _timeOffseter;
 };
 
 }

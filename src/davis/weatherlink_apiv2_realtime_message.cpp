@@ -35,6 +35,7 @@
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
@@ -62,8 +63,8 @@ namespace {
 	}
 }
 
-WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage() :
-	AbstractWeatherlinkApiMessage()
+WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter) :
+	AbstractWeatherlinkApiMessage(timeOffseter)
 {}
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)

@@ -91,6 +91,7 @@ MqttSubscriber::MqttSubscriber(const CassUuid& station, MqttSubscriber::MqttSubs
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
 	_timeOffseter.setLatitude(latitude);
 	_timeOffseter.setLongitude(longitude);
+	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(_pollingPeriod);
 	std::cerr << "Discovered MQTT station " << _stationName << std::endl;
 }

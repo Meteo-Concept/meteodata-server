@@ -176,6 +176,10 @@ public:
 	inline void setLongitude(float lon) {
 		_longitude = lon;
 	}
+	inline int getElevation() const { return _elevation; }
+	inline void setElevation(int elevation) {
+		_elevation = elevation;
+	}
 	inline int getMeasureStep() const { return _measureStep; }
 	inline void setMeasureStep(int step) {
 		_measureStep = step;
@@ -199,6 +203,7 @@ private:
 
 	float _latitude;
 	float _longitude;
+	int _elevation;
 	int _measureStep;
 };
 

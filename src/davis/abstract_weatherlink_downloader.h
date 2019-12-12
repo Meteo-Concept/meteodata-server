@@ -58,8 +58,14 @@ public:
 	{
 		time_t lastArchiveDownloadTime;
 		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
+		float latitude, longitude;
+		int elevation;
+		db.getStationLocation(station, latitude, longitude, elevation);
 		_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 		_timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
+		_timeOffseter.setLatitude(latitude);
+		_timeOffseter.setLongitude(longitude);
+		_timeOffseter.setElevation(elevation);
 		_timeOffseter.setMeasureStep(_pollingPeriod);
 		std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
 	}

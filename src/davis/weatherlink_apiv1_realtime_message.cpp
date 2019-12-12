@@ -33,14 +33,15 @@
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv1_realtime_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-WeatherlinkApiv1RealtimeMessage::WeatherlinkApiv1RealtimeMessage() :
-	AbstractWeatherlinkApiMessage()
+WeatherlinkApiv1RealtimeMessage::WeatherlinkApiv1RealtimeMessage(const TimeOffseter* timeOffseter) :
+	AbstractWeatherlinkApiMessage(timeOffseter)
 {}
 
 void WeatherlinkApiv1RealtimeMessage::parse(std::istream& input)

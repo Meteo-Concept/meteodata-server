@@ -86,6 +86,7 @@ MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnecti
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(std::get<4>(downloadDetails)));
 	_timeOffseter.setLatitude(latitude);
 	_timeOffseter.setLongitude(longitude);
+	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(pollingPeriod);
 }
 

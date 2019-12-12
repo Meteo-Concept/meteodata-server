@@ -115,7 +115,7 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	std::size_t headersSize = asio::read_until(socket, response, "\r\n\r\n");
+	asio::read_until(socket, response, "\r\n\r\n");
 
 	// Process the response headers.
 	std::string header;
@@ -175,7 +175,7 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 		throw sys::system_error(asio::error::eof);
 	}
 	std::cerr << "Read all the content" << std::endl;
-	WeatherlinkApiv1RealtimeMessage obs;
+	WeatherlinkApiv1RealtimeMessage obs(&_timeOffseter);
 	obs.parse(responseStream);
 	int ret = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
 	if (!ret) {

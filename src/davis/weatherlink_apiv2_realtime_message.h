@@ -38,6 +38,7 @@
 #include <message.h>
 
 #include "abstract_weatherlink_api_message.h"
+#include "../time_offseter.h"
 
 using std::uint8_t;
 using std::uint16_t;
@@ -56,7 +57,7 @@ namespace pt = boost::property_tree;
 class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage
 {
 public:
-	WeatherlinkApiv2RealtimeMessage();
+	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter);
 	virtual void parse(std::istream& input);
 };
 

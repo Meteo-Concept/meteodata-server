@@ -120,7 +120,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::soc
 	try {
 		getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 		std::cerr << "Read all the content" << std::endl;
-		WeatherlinkApiv2RealtimeMessage obs;
+		WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter);
 		obs.parse(responseStream);
 		int ret = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
 		if (!ret) {
@@ -186,7 +186,7 @@ void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& so
 		try {
 			stillOpen = getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 			std::cerr << "Read all the content" << std::endl;
-			WeatherlinkApiv2ArchivePage page(_lastArchive);
+			WeatherlinkApiv2ArchivePage page(_lastArchive, &_timeOffseter);
 			page.parse(responseStream);
 			bool insertionOk = true;
 

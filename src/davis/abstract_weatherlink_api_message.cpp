@@ -33,6 +33,7 @@
 
 #include "vantagepro2_message.h"
 #include "abstract_weatherlink_api_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
@@ -43,8 +44,9 @@ constexpr size_t AbstractWeatherlinkApiMessage::MAXSIZE;
 constexpr int    AbstractWeatherlinkApiMessage::INVALID_INT;
 constexpr float  AbstractWeatherlinkApiMessage::INVALID_FLOAT;
 
-AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage() :
-	Message()
+AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage(const TimeOffseter* timeOffseter) :
+	Message(),
+	_timeOffseter{timeOffseter}
 {}
 
 void AbstractWeatherlinkApiMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
@@ -211,7 +213,21 @@ void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, 
 	if (!isInvalid(_obs.rainFall))
 		cass_statement_bind_float(statement, 20, from_rainrate_to_mm(_obs.rainFall));
 	/*************************************************************/
-	// No ETP
+	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
+	 && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad))
+		cass_statement_bind_float(statement, 21,
+			evapotranspiration(
+				_obs.temperature,
+				_obs.humidity,
+				from_mph_to_mps(_obs.windSpeed),
+				_obs.solarRad,
+				_timeOffseter->getLatitude(),
+				_timeOffseter->getLongitude(),
+				_timeOffseter->getElevation(),
+				chrono::system_clock::to_time_t(_obs.time),
+				_timeOffseter->getMeasureStep()
+			)
+		);
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
 		if (!isInvalid(_obs.soilMoisture[i]))

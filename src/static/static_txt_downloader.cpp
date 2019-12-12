@@ -86,6 +86,7 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 	_timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(timezone));
 	_timeOffseter.setLatitude(latitude);
 	_timeOffseter.setLongitude(longitude);
+	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(pollingPeriod);
 }
 

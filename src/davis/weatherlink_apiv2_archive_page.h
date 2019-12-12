@@ -31,6 +31,7 @@
 #include <chrono>
 
 #include "weatherlink_apiv2_archive_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
@@ -43,14 +44,16 @@ class WeatherlinkApiv2ArchivePage
 {
 public:
 	template<typename T>
-	WeatherlinkApiv2ArchivePage(date::sys_time<T> lastArchive):
-		_time{date::floor<chrono::seconds>(lastArchive)}
+	WeatherlinkApiv2ArchivePage(date::sys_time<T> lastArchive, const TimeOffseter* timeOffseter):
+		_time{date::floor<chrono::seconds>(lastArchive)},
+		_timeOffseter{timeOffseter}
 	{}
 	void parse(std::istream& input);
 
 private:
 	std::vector<WeatherlinkApiv2ArchiveMessage> _messages;
 	date::sys_seconds _time;
+	const TimeOffseter* _timeOffseter;
 
 public:
 	inline decltype(_messages)::const_iterator begin() const { return _messages.cbegin(); }

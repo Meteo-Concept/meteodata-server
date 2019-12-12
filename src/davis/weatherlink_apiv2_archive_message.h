@@ -38,6 +38,7 @@
 #include <message.h>
 
 #include "abstract_weatherlink_api_message.h"
+#include "../time_offseter.h"
 
 namespace meteodata {
 
@@ -52,7 +53,7 @@ class WeatherlinkApiv2ArchivePage;
 class WeatherlinkApiv2ArchiveMessage : public AbstractWeatherlinkApiMessage
 {
 public:
-	WeatherlinkApiv2ArchiveMessage();
+	WeatherlinkApiv2ArchiveMessage(const TimeOffseter* timeOffseter);
 	virtual void parse(std::istream& input);
 
 private:
