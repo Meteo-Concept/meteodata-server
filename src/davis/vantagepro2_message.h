@@ -675,9 +675,9 @@ inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float s
 	// sunset hour angle
 	//double omega_s = std::acos(-std::tan(latitude) * std::tan(delta));
 	// true solar angle at half the polling period
-	double omega = (t - (polling_period / 60.) / 2  + S_c) * PI / 12 - longitude - PI;
-	double omega_2 = omega + PI * (polling_period / 60.) / 12;
-	double omega_1 = omega - PI * (polling_period / 60.) / 12;
+	double omega = (t - (polling_period / 120)  + S_c) * PI / 12 - longitude - PI;
+	double omega_2 = omega + (PI / 12) * (polling_period / 120.);
+	double omega_1 = omega - (PI / 12) * (polling_period / 120.);
 	//bool daytime = omega > - omega_s && omega < omega_s;
 
 	// Extraterrestrial radiation
@@ -687,7 +687,7 @@ inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float s
 		R_a = 0;
 
 	// solar radiation over the measurement period
-	double R = solar_radiation * 60 * polling_period * 10e-6; // conversion from W.m^2 to MJ.m^2.min^-1
+	double R = solar_radiation * 60e-6; // conversion from W.m^2 to MJ.m^2.min^-1
 	// Clear-sky solar radiation (Angstrom formula with no calibrated parameters)
 	double R_so = (0.75 + 2e-5 * elevation) * R_a;
 	// Net shortwave radiation
