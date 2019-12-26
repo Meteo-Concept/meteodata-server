@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-records meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
@@ -87,6 +87,9 @@ meteodata_minmax_SOURCES = \
 meteodata_month_minmax_SOURCES = \
 		    month_minmax.cpp
 
+meteodata_records_SOURCES = \
+		    records.cpp
+
 meteodata_synop_standalone_SOURCES = \
 		    synop/synop_standalone.h\
 		    synop/synop_standalone.cpp\
@@ -173,6 +176,11 @@ meteodata_month_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPF
 meteodata_month_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_month_minmax_LDFLAGS = 
 meteodata_month_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+
+meteodata_records_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
+meteodata_records_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_records_LDFLAGS = 
+meteodata_records_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
 
 meteodata_synop_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
 meteodata_synop_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
