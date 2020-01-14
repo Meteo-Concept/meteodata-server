@@ -1,0 +1,16 @@
+[Unit]
+Description = Connection to Meteodata
+After = network.target network-online.target openvpn.service
+Wants = network-online.target
+Requires =
+
+[Service]
+User = pi
+Group = dialout
+Type = exec
+ExecStart = /usr/local/bin/vantage
+Restart = always
+RestartSec=5min
+
+[Install]
+WantedBy = multi-user.target
