@@ -100,7 +100,8 @@ private:
 					retry =  0;
 				}
 			} else {
-				throw e;
+				std::cerr << "Impossible to download, moving on..." << std::endl;
+				retry =  0;
 			}
 		}
 	}
