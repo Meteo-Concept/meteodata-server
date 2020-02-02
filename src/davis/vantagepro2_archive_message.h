@@ -63,8 +63,8 @@ public:
 		unsigned int year  : 7;     /*!< The year this entry has been written                           */
 		uint16_t time;              /*!< The hour, minutes, and seconds this entry has been written     */
 		uint16_t outsideTemp;       /*!< The average outside temperature over the duration of the entry */
-		uint16_t maxOutsideTemp;    /*!< The maximal outside temperature over the duration of the entry */
-		uint16_t minOutsideTemp;    /*!< The minimal outside temperature over the duration of the entry */
+		int16_t maxOutsideTemp;    /*!< The maximal outside temperature over the duration of the entry */
+		int16_t minOutsideTemp;    /*!< The minimal outside temperature over the duration of the entry */
 		uint16_t rainfall;          /*!< The quantity of rain over the duration of the entry            */
 		uint16_t maxRainRate;       /*!< The maximal rain rate over the duration of the entry           */
 		uint16_t barometer;         /*!< The average barometric pressure over the duration of the entry */

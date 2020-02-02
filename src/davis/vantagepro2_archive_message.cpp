@@ -303,6 +303,13 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 		cass_statement_bind_int32(statement, 37, ins ? _timeOffseter->getMeasureStep() : 0);
 	}
 	/*************************************************************/
+	if (_data.minOutsideTemp != 32767) {
+		cass_statement_bind_float(statement, 38, from_Farenheight_to_Celsius(_data.minOutsideTemp/10.0));
+	}
+	/*************************************************************/
+	if (_data.maxOutsideTemp != -32768) {
+		cass_statement_bind_float(statement, 39, from_Farenheight_to_Celsius(_data.maxOutsideTemp/10.0));
+	}
 }
 
 }
