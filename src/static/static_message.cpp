@@ -37,6 +37,7 @@ namespace meteodata
 {
 StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffseter) :
 	Message(),
+	_valid(false),
 	_timeOffseter(timeOffseter)
 {
 	using namespace date;
@@ -45,12 +46,13 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 	chrono::seconds hour;
 	bool hasDate = false;
 	bool hasHour = false;
-	const std::regex normalLine{"\\s*([^#=]+)=(\\S*)"};
-	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d\\d\\d\\d)"};
-	const std::regex timeRegex{"(\\d\\d).(\\d\\d)"};
+	const std::regex normalLine{"\\s*([^#=]+)=(\\S*)\\s*"};
+	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d\\d\\d\\d).*"};
+	const std::regex timeRegex{"(\\d\\d).(\\d\\d).*"};
 	int year=0, month=0, day=0, h=0, min=0;
 
 	while (std::getline(file, st)) {
+		std::cerr << "Read: " << st << std::endl;
 		std::smatch baseMatch;
 		if (std::regex_match(st, baseMatch, normalLine) && baseMatch.size() == 3) {
 			std::string var = baseMatch[1].str();
@@ -61,15 +63,17 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 
 			if (var == "date_releve") {
 				std::smatch dateMatch;
+				std::cerr << "date: " << value << std::endl;
 				if (std::regex_match(value, dateMatch, dateRegex) && dateMatch.size() == 4) {
 					year = std::atoi(dateMatch[3].str().data());
 					month = std::atoi(dateMatch[2].str().data());
 					day = std::atoi(dateMatch[1].str().data());
 					hasDate = true;
 				}
-			} else if (var == "heure_releve_utc" && value.size() == 5) {
+			} else if (var == "heure_releve_utc" && value.size() >= 5) {
 				std::smatch timeMatch;
-				if (std::regex_match(value, timeMatch, timeRegex) && timeMatch.size() == 3) {
+				std::cerr << "hour: " << value << std::endl;
+				if (std::regex_match(value, timeMatch, timeRegex) && timeMatch.size() >= 3) {
 					h = std::atoi(timeMatch[1].str().data());
 					min = std::atoi(timeMatch[2].str().data());
 					hasHour = true;

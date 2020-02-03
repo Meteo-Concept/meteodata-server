@@ -196,8 +196,8 @@ void StatICTxtDownloader::download()
 	}
 	if (statusCode != 200)
 	{
-		std::cerr << "StatIC file: Bad response from: " << statusCode << std::endl;
-		syslog(LOG_ERR, "StatIC file: Bad response from: %i", statusCode);
+		std::cerr << "StatIC file: Bad response from: " << _host << " (" << statusCode << ")" << std::endl;
+		syslog(LOG_ERR, "StatIC file: Bad response from: %s (%i)", _host.data(), statusCode);
 		return;
 	}
 
@@ -216,12 +216,16 @@ void StatICTxtDownloader::download()
 	std::istream fileStream(&response);
 	if (ec == asio::error::eof) {
 		StatICMessage m{fileStream, _timeOffseter};
-		if (!m)
+		if (!m) {
+			std::cerr << "Impossible to parse the message" << std::endl;
+			syslog(LOG_ERR, "StatIC file: Cannot parse response from: %s", _host.data());
 			return;
+		}
 
 		if (m.getDateTime() == _lastDownloadTime) {
 			// We are still reading the last file, discard it in order
 			// not to pollute the cumulative rainfall value
+			std::cerr << "Previous message has the same date: " << m.getDateTime() << "!" << std::endl;
 			return;
 		} else {
 			// The rain is given over the last hour but the file may be
@@ -243,6 +247,10 @@ void StatICTxtDownloader::download()
 			std::cerr << "Inserted into database" << std::endl;
 		else
 			std::cerr << "Insertion into database failed" << std::endl;
+	} else {
+		std::cerr << "Impossible to read the message" << std::endl;
+		syslog(LOG_ERR, "StatIC file: Cannot read response from: %s", _host.data());
+		return;
 	}
 }
 
