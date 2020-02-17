@@ -103,6 +103,9 @@ private:
 				std::cerr << "Impossible to download, moving on..." << std::endl;
 				retry =  0;
 			}
+		} catch (const std::runtime_error& e) {
+			std::cerr << "Impossible to download, moving on..." << std::endl;
+			retry =  0;
 		}
 	}
 	void downloadArchives();
