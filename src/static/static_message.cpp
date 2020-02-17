@@ -94,7 +94,7 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 				_gust = std::stof(value);
 			} else if (var == "pluie_intensite") {
 				_rainRate = std::stof(value);
-			} else if (var == "pluie_cumul_1h") {
+			} else if (var == "pluie_cumul_1h" || var == "pluie_actu") {
 				_hourRainfall = std::stof(value);
 			} else if (var == "radiations_solaires_wlk") {
 				_solarRad = std::stoi(value);
