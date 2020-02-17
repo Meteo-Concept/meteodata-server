@@ -53,12 +53,11 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 
 	std::cerr << "Year: " << point.year << " | month: " << point.month << " | day: " << point.day << " | time: " << point.time << std::endl;
 
-	date::sys_seconds time = date::floor<chrono::seconds>(_timeOffseter->convertFromLocalTime(
-			point.day, point.month, point.year + 2000, point.time / 100, point.time % 100));
-	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	auto time = _timeOffseter->convertFromLocalTime(point.day, point.month, point.year + 2000, point.time / 100, point.time % 100);
+	auto now = chrono::system_clock::now();
 	if ((time > _beginning || v2) && time <= now) {
 		if (time > _mostRecent)
-			_mostRecent = time;
+			_mostRecent = date::floor<chrono::seconds>(time);
 		return true;
 	}
 	return false;

@@ -705,7 +705,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				if (ret) {
 					std::cerr << "Archive data page stored, updating the archive download time" << std::endl;
 
-					time_t lastArchiveDownloadTime = date::floor<chrono::seconds>(_archivePage.lastArchiveRecordDateTime().time_since_epoch()).count();
+					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(_archivePage.lastArchiveRecordDateTime());
 					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 					if (!ret)
 						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
