@@ -96,6 +96,9 @@ protected:
 	 * station's time and POSIX time
 	 */
 	TimeOffseter _timeOffseter;
+
+public:
+	inline int getPollingPeriod() { return _pollingPeriod; };
 };
 
 }

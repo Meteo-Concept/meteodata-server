@@ -52,6 +52,7 @@ namespace meteodata {
 constexpr char WeatherlinkDownloadScheduler::HOST[];
 constexpr char WeatherlinkDownloadScheduler::APIHOST[];
 constexpr int WeatherlinkDownloadScheduler::POLLING_PERIOD;
+constexpr int WeatherlinkDownloadScheduler::UNPRIVILEGED_POLLING_PERIOD;
 
 
 using namespace date;
@@ -119,17 +120,21 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 {
 	std::unique_ptr<asio::ssl::stream<ip::tcp::socket>> socket;
 
+	auto now = date::floor<chrono::minutes>(chrono::system_clock::now()).time_since_epoch().count();
+
 	connectSocket(socket, APIHOST);
 	int retry = 0;
 	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
-		genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (*it)->downloadRealTime(activeSocket); }, retry);
+		if ((*it)->getPollingPeriod() <= POLLING_PERIOD || now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
+			genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (*it)->downloadRealTime(activeSocket); }, retry);
 		if (!retry)
 			++it;
 	}
 
 	retry = 0;
 	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ) {
-		genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (it->second)->downloadRealTime(activeSocket); }, retry);
+		if (now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
+			genericDownload(socket, APIHOST, [it](asio::ssl::stream<ip::tcp::socket>& activeSocket) { (it->second)->downloadRealTime(activeSocket); }, retry);
 		if (!retry)
 			++it;
 	}
