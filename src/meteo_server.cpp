@@ -131,11 +131,11 @@ void MeteoServer::start()
 			TimeOffseter::PredefinedTimezone(std::get<3>(station))
 		);
 	}
-	std::vector<std::tuple<CassUuid, bool, std::string>> weatherlinkAPIv2Stations;
+	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkAPIv2Stations;
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
 	for (const auto& station : weatherlinkAPIv2Stations) {
 		weatherlinkScheduler->addAPIv2(
-			std::get<0>(station), std::get<1>(station), std::get<2>(station),
+			std::get<0>(station), std::get<1>(station), std::get<2>(station), std::get<3>(station),
 			TimeOffseter::PredefinedTimezone(0)
 		);
 	}

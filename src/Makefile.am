@@ -29,6 +29,7 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv2_archive_page.h\
 		    davis/weatherlink_apiv2_downloader.cpp\
 		    davis/weatherlink_apiv2_downloader.h\
+		    davis/weatherlink_apiv2_parser_trait.h\
 		    davis/weatherlink_download_scheduler.cpp\
 		    davis/weatherlink_download_scheduler.h\
 		    davis/weatherlink_downloader.cpp\

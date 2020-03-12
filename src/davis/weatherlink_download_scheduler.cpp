@@ -75,11 +75,13 @@ void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::strin
 	_downloaders.emplace_back(std::make_shared<WeatherlinkDownloader>(station, auth, apiToken, _ioService, _db, tz));
 }
 
-void WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, const std::string& weatherlinkId,
+void WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived,
+		const std::map<int, CassUuid>& mapping,
+		const std::string& weatherlinkId,
 		TimeOffseter::PredefinedTimezone tz)
 {
 	_downloadersAPIv2.emplace_back(archived, std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId,
-		_apiId, _apiSecret, _ioService, _db, tz));
+		mapping, _apiId, _apiSecret, _ioService, _db, tz));
 }
 
 void WeatherlinkDownloadScheduler::start()

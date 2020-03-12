@@ -38,12 +38,8 @@
 #include <message.h>
 
 #include "abstract_weatherlink_api_message.h"
+#include "weatherlink_apiv2_parser_trait.h"
 #include "../time_offseter.h"
-
-using std::uint8_t;
-using std::uint16_t;
-using std::uint32_t;
-using std::uint64_t;
 
 namespace meteodata {
 
@@ -54,11 +50,15 @@ namespace pt = boost::property_tree;
  * @brief A Message able to receive and store a JSON file resulting from a call to
  * https://api.weatherlink.com/v2/current/...
  */
-class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage
+class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, public WeatherlinkApiv2ParserTrait
 {
 public:
 	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter);
-	virtual void parse(std::istream& input);
+	virtual void parse(std::istream& input) override;
+	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
+
+private:
+	void doParse(std::istream& input, const Acceptor& acceptable);
 };
 
 }

@@ -1,3 +1,8 @@
+2020-03-11	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Deal with Weatherlink stations mapped to several Meteodata
+	  stations
+
 2019-09-20	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Handle WeatherLink APIv2 (WeatherLink Live among others) stations

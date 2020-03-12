@@ -64,12 +64,26 @@ namespace {
 
 void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 {
+	doParse(input, std::bind(&WeatherlinkApiv2ArchivePage::acceptEntry, this, std::placeholders::_1));
+}
+
+void WeatherlinkApiv2ArchivePage::parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+{
+	doParse(input, std::bind(&WeatherlinkApiv2ArchivePage::acceptEntryWithSubstations, this, std::placeholders::_1, substations, station));
+}
+
+
+void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& acceptable)
+{
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
 	std::vector<std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>> entries;
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
+		if (!acceptable(reading))
+			continue;
+
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
 		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 		for (std::pair<const std::string, pt::ptree>& data : reading.second.get_child("data")) {

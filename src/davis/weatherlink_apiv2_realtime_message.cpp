@@ -27,6 +27,7 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -35,7 +36,9 @@
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
+#include "weatherlink_apiv2_parser_trait.h"
 #include "../time_offseter.h"
+#include "../cassandra_utils.h"
 
 namespace meteodata {
 
@@ -64,10 +67,21 @@ namespace {
 }
 
 WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter) :
-	AbstractWeatherlinkApiMessage(timeOffseter)
+	AbstractWeatherlinkApiMessage(timeOffseter),
+	WeatherlinkApiv2ParserTrait()
 {}
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
+{
+	doParse(input, std::bind(&WeatherlinkApiv2RealtimeMessage::acceptEntry, this, std::placeholders::_1));
+}
+
+void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+{
+	doParse(input, std::bind(&WeatherlinkApiv2RealtimeMessage::acceptEntryWithSubstations, this, std::placeholders::_1, substations, station));
+}
+
+void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Acceptor& acceptable)
 {
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
@@ -75,14 +89,16 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 	std::vector<std::tuple<SensorType, DataStructureType, pt::ptree>> entries;
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
+		if (!acceptable(reading))
+			continue;
+
+		// we expect exactly one element, the current condition
+		auto data = reading.second.get_child("data").front().second;
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
 		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
-		auto allData = reading.second.get_child("data");
-		if (allData.empty())
-			continue;
-		auto data = allData.front().second; // we expect exactly one element, the current condition
 		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));
 	}
+
 	std::sort(entries.begin(), entries.end(), &compareDataPackages);
 
 	for (const auto& entry : entries) {

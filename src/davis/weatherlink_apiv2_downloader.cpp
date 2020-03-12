@@ -43,6 +43,7 @@
 
 #include "../time_offseter.h"
 #include "../http_utils.h"
+#include "../cassandra_utils.h"
 #include "weatherlink_apiv2_realtime_message.h"
 #include "weatherlink_apiv2_archive_page.h"
 #include "weatherlink_apiv2_archive_message.h"
@@ -60,14 +61,20 @@ using namespace date;
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(
 	const CassUuid& station, const std::string& weatherlinkId,
+	const std::map<int, CassUuid>& mapping,
 	const std::string& apiKey, const std::string& apiSecret,
 	asio::io_service& ioService, DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
 	AbstractWeatherlinkDownloader(station, ioService, db, tz),
 	_apiKey(apiKey),
 	_apiSecret(apiSecret),
-	_weatherlinkId(weatherlinkId)
-{}
+	_weatherlinkId(weatherlinkId),
+	_substations(mapping)
+{
+	for (const auto& s : _substations)
+		_uuids.insert(s.second);
+	_uuids.insert(station);
+}
 
 std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params)
 {
@@ -120,12 +127,25 @@ void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::soc
 	try {
 		getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 		std::cerr << "Read all the content" << std::endl;
-		WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter);
-		obs.parse(responseStream);
-		int ret = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
-		if (!ret) {
-			syslog(LOG_ERR, "station %s: Failed to insert real-time observation", _stationName.c_str());
-			std::cerr << "station " << _stationName << ": Failed to insert real-time observation" << std::endl;
+
+		// Store the content because if we must read it several times
+		std::string content;
+		std::copy(std::istream_iterator<char>(responseStream), std::istream_iterator<char>(), std::back_inserter(content));
+
+		for (const auto& u : _uuids) {
+			std::istringstream contentStream(content); // rewind
+
+			// If there are no substations, there's a unique UUID equal to _station in the set
+			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter);
+			if (_substations.empty())
+				obs.parse(contentStream);
+			else
+				obs.parse(contentStream, _substations, u);
+			int ret = _db.insertV2DataPoint(u, obs); // Don't bother inserting V1
+			if (!ret) {
+				syslog(LOG_ERR, "station %s: Failed to insert real-time observation for one of the substations", _stationName.c_str());
+				std::cerr << "station " << _stationName << ": Failed to insert real-time observation for substation " << u << std::endl;
+			}
 		}
 	} catch (std::runtime_error& error) {
 		syslog(LOG_ERR, "station %s: Bad response for %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
@@ -186,38 +206,58 @@ void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& so
 		try {
 			stillOpen = getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 			std::cerr << "Read all the content" << std::endl;
-			WeatherlinkApiv2ArchivePage page(_lastArchive, &_timeOffseter);
-			page.parse(responseStream);
+
 			bool insertionOk = true;
+			auto updatedTimestamp = _lastArchive;
 
-			auto newestTimestamp = page.getNewestMessageTime();
-			auto archiveDay = date::floor<date::days>(_lastArchive);
-			auto lastDay = date::floor<date::days>(end);
-			while (archiveDay <= lastDay) {
-				int ret = _db.deleteDataPoints(_station, archiveDay, _lastArchive, newestTimestamp);
+			// Store the content because if we must read it several times
+			std::string content;
+			std::copy(std::istream_iterator<char>(responseStream), std::istream_iterator<char>(), std::back_inserter(content));
 
-				if (!ret)
-					syslog(LOG_ERR, "station %s: Couldn't delete temporary realtime observations", _stationName.c_str());
-				archiveDay += date::days(1);
-			}
-			for (const WeatherlinkApiv2ArchiveMessage& m : page) {
-				int ret = _db.insertV2DataPoint(_station, m); // Don't bother inserting V1
-				if (!ret) {
-					syslog(LOG_ERR, "station %s: Failed to insert archive observation", _stationName.c_str());
-					std::cerr << "station " << _stationName << ": Failed to insert archive observation" << std::endl;
-					insertionOk = false;
+			for (const auto& u : _uuids) {
+				std::istringstream contentStream(content); // rewind
+
+				std::cerr << "Parsing output for substation " << u << std::endl;
+				WeatherlinkApiv2ArchivePage page(_lastArchive, &_timeOffseter);
+				if (_substations.empty())
+					page.parse(contentStream);
+				else
+					page.parse(contentStream, _substations, u);
+
+				std::cerr << "\tParsed output for substation " << u << std::endl;
+
+				auto newestTimestamp = page.getNewestMessageTime();
+				auto archiveDay = date::floor<date::days>(_lastArchive);
+				auto lastDay = date::floor<date::days>(end);
+				while (archiveDay <= lastDay) {
+					int ret = _db.deleteDataPoints(u, archiveDay, _lastArchive, newestTimestamp);
+
+					if (!ret)
+						syslog(LOG_ERR, "station %s: Couldn't delete temporary realtime observations", _stationName.c_str());
+					archiveDay += date::days(1);
+				}
+				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
+					int ret = _db.insertV2DataPoint(u, m); // Don't bother inserting V1
+					if (!ret) {
+						syslog(LOG_ERR, "station %s: Failed to insert archive observation for one of the substations", _stationName.c_str());
+						std::cerr << "station " << _stationName << ": Failed to insert archive observation for (sub)station " << u << std::endl;
+						insertionOk = false;
+					}
+				}
+				if (insertionOk) {
+					std::cerr << "Archive data stored\n" << std::endl;
+					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
+						std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
+					insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+					if (!insertionOk) {
+						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+					} else {
+						updatedTimestamp = newestTimestamp;
+					}
 				}
 			}
-			if (insertionOk) {
-				std::cerr << "Archive data stored\n" << std::endl;
-				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-				int ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-				if (!ret)
-					syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
-				else
-					_lastArchive = newestTimestamp;
-			}
-
+			if (insertionOk)
+				_lastArchive = updatedTimestamp;
 		} catch (const sys::system_error& error) {
 			if (error.code() == asio::error::eof) {
 				syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.what());

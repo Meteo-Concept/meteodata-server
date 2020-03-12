@@ -27,6 +27,8 @@
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <map>
+#include <set>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
@@ -53,6 +55,7 @@ class WeatherlinkApiv2Downloader : public AbstractWeatherlinkDownloader
 public:
 	WeatherlinkApiv2Downloader(const CassUuid& station,
 		const std::string& weatherlinkId,
+		const std::map<int, CassUuid>& mapping,
 		const std::string& apiKey, const std::string& apiSecret,
 		asio::io_service& ioService, DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
@@ -69,6 +72,20 @@ private:
 	 * @brief The Weatherlink station id
 	 */
 	std::string _weatherlinkId;
+
+	/**
+	 * @brief The list of Meteodata stations to put in
+	 * correspondance with the sensors in the Weatherlink
+	 * answers
+	 */
+	const std::map<int, CassUuid> _substations;
+
+	/**
+	 * @brief The list of Meteodata stations that from the
+	 * point of view of Weatherlink are all substations
+	 * of one station
+	 */
+	std::set<CassUuid> _uuids;
 
 	std::string computeApiSignature(const Params& params);
 };

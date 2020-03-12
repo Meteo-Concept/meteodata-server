@@ -32,6 +32,7 @@
 
 #include "weatherlink_apiv2_archive_message.h"
 #include "../time_offseter.h"
+#include "weatherlink_apiv2_parser_trait.h"
 
 namespace meteodata {
 
@@ -40,7 +41,7 @@ namespace meteodata {
  * https://api.weatherlink.com/v2/historic/... and instantiate a
  * WeatherlinkApiv2ArchiveMessage for each data point
  */
-class WeatherlinkApiv2ArchivePage
+class WeatherlinkApiv2ArchivePage : public WeatherlinkApiv2ParserTrait
 {
 public:
 	template<typename T>
@@ -48,12 +49,14 @@ public:
 		_time{date::floor<chrono::seconds>(lastArchive)},
 		_timeOffseter{timeOffseter}
 	{}
-	void parse(std::istream& input);
+	virtual void parse(std::istream& input) override;
+	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
 
 private:
 	std::vector<WeatherlinkApiv2ArchiveMessage> _messages;
 	date::sys_seconds _time;
 	const TimeOffseter* _timeOffseter;
+	void doParse(std::istream& input, const Acceptor& acceptable);
 
 public:
 	inline decltype(_messages)::const_iterator begin() const { return _messages.cbegin(); }

@@ -28,6 +28,7 @@
 #include <vector>
 #include <string>
 #include <chrono>
+#include <map>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ssl.hpp>
@@ -58,7 +59,9 @@ public:
 	void start();
 	void add(const CassUuid& station, const std::string& auth,
 		const std::string& apiToken, TimeOffseter::PredefinedTimezone tz);
-	void addAPIv2(const CassUuid& station, bool archived, const std::string& weatherlinkId,
+	void addAPIv2(const CassUuid& station, bool archived,
+		const std::map<int, CassUuid>& substations,
+		const std::string& weatherlinkId,
 		TimeOffseter::PredefinedTimezone tz);
 
 private:
