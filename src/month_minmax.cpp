@@ -40,6 +40,7 @@
 #include <cassandra.h>
 #include <date/date.h>
 #include <dbconnection_month_minmax.h>
+#include <dbconnection_normals.h>
 
 #include "config.h"
 
@@ -69,6 +70,34 @@ inline constexpr bool operator<(CassUuid u1, CassUuid u2)
 		return u1.time_and_version < u2.time_and_version;
 }
 
+void compareMinmaxWithNormals(DbConnectionMonthMinmax::Values& values, const DbConnectionNormals::Values& normals)
+{
+	if (values.outsideTemp_avg.first && normals.tm.first)
+		values.diff_outsideTemp_avg = { true, values.outsideTemp_avg.second - normals.tm.second };
+	else
+		values.diff_outsideTemp_avg = { false, .0f };
+
+	if (values.outsideTemp_min_min.first && normals.tn.first)
+		values.diff_outsideTemp_min_min = { true, values.outsideTemp_min_min.second - normals.tn.second };
+	else
+		values.diff_outsideTemp_min_min = { false, .0f };
+
+	if (values.outsideTemp_max_max.first && normals.tx.first)
+		values.diff_outsideTemp_max_max = { true, values.outsideTemp_max_max.second - normals.tx.second };
+	else
+		values.diff_outsideTemp_max_max = { false, .0f };
+
+	if (values.rainfall.first && normals.rainfall.first)
+		values.diff_rainfall = { true, values.rainfall.second - normals.rainfall.second };
+	else
+		values.diff_rainfall = { false, .0f };
+
+	if (values.insolationTime.first && normals.insolationTime.first)
+		values.diff_insolationTime = { true, values.insolationTime.second - normals.insolationTime.second };
+	else
+		values.diff_insolationTime = { false, .0f };
+}
+
 /**
  * @brief Entry point
  *
@@ -80,18 +109,26 @@ inline constexpr bool operator<(CassUuid u1, CassUuid u2)
  */
 int main(int argc, char** argv)
 {
-	std::string user;
-	std::string password;
-	std::string address;
+	std::string dataUser;
+	std::string dataPassword;
+	std::string dataAddress;
+	std::string stationsUser;
+	std::string stationsPassword;
+	std::string stationsAddress;
+	std::string stationsDatabase;
 	std::string begin;
 	std::string end;
 	std::vector<std::string> namedStations;
 
 	po::options_description config("Configuration");
 	config.add_options()
-		("user,u", po::value<std::string>(&user), "database username")
-		("password,p", po::value<std::string>(&password), "database password")
-		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("user,u", po::value<std::string>(&dataUser), "data database username")
+		("password,p", po::value<std::string>(&dataPassword), "database password")
+		("host,h", po::value<std::string>(&dataAddress), "database IP address or domain name")
+		("stations_user", po::value<std::string>(&stationsUser), "normals database username")
+		("stations_password", po::value<std::string>(&stationsPassword), "normals database password")
+		("stations_host", po::value<std::string>(&stationsAddress), "normals database IP address or domain name")
+		("stations_database", po::value<std::string>(&stationsDatabase), "normals database IP address or domain name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(), "Ignored")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(), "Ignored")
 	;
@@ -121,7 +158,9 @@ int main(int argc, char** argv)
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " [-u user -p password]\n";
+		std::cout << "Usage: " << argv[0]
+			<< " [--stations_host=sql_host --stations_user=sql_user --stations_password=sql_password --stations_database=sql_database]"
+			<< " [--data_host=cassandra_host --data_user=cassandra_user --data_password=cassandra_password ]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
 			"password or none of them." << std::endl;
@@ -184,8 +223,10 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnectionMonthMinmax db(address, user, password);
+		DbConnectionMonthMinmax db(dataAddress, dataUser, dataPassword);
 		DbConnectionMonthMinmax::Values values;
+		DbConnectionNormals dbNormals(stationsAddress, stationsUser, stationsPassword, stationsDatabase);
+		DbConnectionNormals::Values normals;
 
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback =
@@ -211,7 +252,7 @@ int main(int argc, char** argv)
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
- 					char asStr[CASS_UUID_STRING_LENGTH];
+					char asStr[CASS_UUID_STRING_LENGTH];
 					cass_uuid_string(st, asStr);
 					std::cerr << "\t" << asStr << "\n";
 				}
@@ -256,6 +297,12 @@ int main(int argc, char** argv)
 					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
 				}
 				values.winddir.first = true;
+
+				auto stationsWithNormals = dbNormals.getStationsWithNormalsNearby(station);
+				if (!stationsWithNormals.empty()) {
+					dbNormals.getMonthNormals(stationsWithNormals[0].id, normals, selectedDate.month());
+					compareMinmaxWithNormals(values, normals);
+				}
 
 				std::cerr << "Inserting into database" << std::endl;
 				db.insertDataPoint(station, y, m, values);
