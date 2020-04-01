@@ -25,6 +25,7 @@
 #include <chrono>
 #include <algorithm>
 #include <regex>
+#include <stdexcept>
 
 #include <date/date.h>
 #include <message.h>
@@ -46,9 +47,9 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 	chrono::seconds hour;
 	bool hasDate = false;
 	bool hasHour = false;
-	const std::regex normalLine{"\\s*([^#=]+)=(\\S*)\\s*"};
-	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d\\d\\d\\d).*"};
-	const std::regex timeRegex{"(\\d\\d).(\\d\\d).*"};
+	const std::regex normalLine{"\\s*([^#=]+)=(\\s?\\S*)\\s*"};
+	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d?\\d?\\d\\d).*"};
+	const std::regex timeRegex{"([0-9 ]\\d).(\\d\\d).*"};
 	int year=0, month=0, day=0, h=0, min=0;
 
 	while (std::getline(file, st)) {
@@ -58,48 +59,55 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 			std::string var = baseMatch[1].str();
 			std::string value = baseMatch[2].str();
 			// empty values are equal to zero, but it can be zero int or zero float so we leave the conversion for later
-			if (value == "")
+			if (value == "" || value == "Néant")
 				value = "0";
 
-			if (var == "date_releve") {
-				std::smatch dateMatch;
-				std::cerr << "date: " << value << std::endl;
-				if (std::regex_match(value, dateMatch, dateRegex) && dateMatch.size() == 4) {
-					year = std::atoi(dateMatch[3].str().data());
-					month = std::atoi(dateMatch[2].str().data());
-					day = std::atoi(dateMatch[1].str().data());
-					hasDate = true;
+			try {
+				if (var == "date_releve") {
+					std::smatch dateMatch;
+					std::cerr << "date: " << value << std::endl;
+					if (std::regex_match(value, dateMatch, dateRegex) && dateMatch.size() == 4) {
+						year = std::atoi(dateMatch[3].str().data());
+						if (year < 100)
+							year += 2000; // I hope this code will not survive year 2100...
+						month = std::atoi(dateMatch[2].str().data());
+						day = std::atoi(dateMatch[1].str().data());
+						hasDate = true;
+					}
+				} else if (var == "heure_releve_utc" && value.size() >= 5) {
+					std::smatch timeMatch;
+					std::cerr << "hour: " << value << std::endl;
+					if (std::regex_match(value, timeMatch, timeRegex) && timeMatch.size() >= 3) {
+						h = std::atoi(timeMatch[1].str().data());
+						min = std::atoi(timeMatch[2].str().data());
+						hasHour = true;
+					}
+				} else if (var == "temperature") {
+					_airTemp = std::stof(value);
+				} else if (var == "pression") {
+					_pressure = std::stof(value);
+				} else if (var == "humidite") {
+					_humidity = std::stoi(value);
+				} else if (var == "point_de_rosee") {
+					_dewPoint = std::stof(value);
+				} else if (var == "vent_dir_moy") {
+					_windDir = std::stoi(value);
+				} else if (var == "vent_moyen") {
+					_wind = std::stof(value);
+				} else if (var == "vent_rafales") {
+					_gust = std::stof(value);
+				} else if (var == "pluie_intensite") {
+					_rainRate = std::stof(value);
+				} else if (var == "pluie_cumul" || var == "pluie_cumul_1h" || var == "pluie_actu") {
+					// may erase a previous value but 'pluie_cumul' normally comes last
+					// and this is the one we prefer
+					_hourRainfall = std::stof(value);
+				} else if (var == "radiations_solaires_wlk") {
+					_solarRad = std::stoi(value);
+				} else if (var == "uv_wlk") {
+					_uv = std::stoi(value);
 				}
-			} else if (var == "heure_releve_utc" && value.size() >= 5) {
-				std::smatch timeMatch;
-				std::cerr << "hour: " << value << std::endl;
-				if (std::regex_match(value, timeMatch, timeRegex) && timeMatch.size() >= 3) {
-					h = std::atoi(timeMatch[1].str().data());
-					min = std::atoi(timeMatch[2].str().data());
-					hasHour = true;
-				}
-			} else if (var == "temperature") {
-				_airTemp = std::stof(value);
-			} else if (var == "pression") {
-				_pressure = std::stof(value);
-			} else if (var == "humidite") {
-				_humidity = std::stoi(value);
-			} else if (var == "point_de_rosee") {
-				_dewPoint = std::stof(value);
-			} else if (var == "vent_dir_moy") {
-				_windDir = std::stoi(value);
-			} else if (var == "vent_moyen") {
-				_wind = std::stof(value);
-			} else if (var == "vent_rafales") {
-				_gust = std::stof(value);
-			} else if (var == "pluie_intensite") {
-				_rainRate = std::stof(value);
-			} else if (var == "pluie_cumul_1h" || var == "pluie_actu") {
-				_hourRainfall = std::stof(value);
-			} else if (var == "radiations_solaires_wlk") {
-				_solarRad = std::stoi(value);
-			} else if (var == "uv_wlk") {
-				_uv = std::stoi(value);
+			} catch (const std::invalid_argument&) { // let invalid conversions fail silently
 			}
 		}
 	}

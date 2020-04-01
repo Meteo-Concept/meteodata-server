@@ -1,4 +1,4 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-records meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone
+bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-records meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone meteodata-static-standalone
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
@@ -163,6 +163,12 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    davis/weatherlink_apiv2_downloader.h\
 		    davis/weatherlink_apiv2_downloader_standalone.cpp
 
+meteodata_static_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    static/static_message.cpp\
+		    static/static_standalone.cpp
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
@@ -197,3 +203,8 @@ meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO
 meteodata_weatherlink_apiv2_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_weatherlink_apiv2_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
 meteodata_weatherlink_apiv2_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+
+meteodata_static_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
+meteodata_static_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_static_standalone_LDFLAGS = 
+meteodata_static_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
