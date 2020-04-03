@@ -161,7 +161,7 @@ int main(int argc, char** argv)
 		std::cout << PACKAGE_STRING"\n";
 		std::cout << "Usage: " << argv[0]
 			<< " [--stations_host=sql_host --stations_user=sql_user --stations_password=sql_password --stations_database=sql_database]"
-			<< " [--data_host=cassandra_host --data_user=cassandra_user --data_password=cassandra_password ]\n";
+			<< " [--host=cassandra_host --user=cassandra_user --password=cassandra_password ]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
 			"password or none of them." << std::endl;
