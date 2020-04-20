@@ -50,7 +50,7 @@ public:
 	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-	void computeRainfall(float previousRainfall);
+	void computeRainfall(float rainfall1h, float rainfallDay);
 
 	inline operator bool() const {
 		return _valid;
@@ -58,6 +58,10 @@ public:
 
 	inline std::experimental::optional<float> getHourRainfall() const {
 		return _hourRainfall;
+	}
+
+	inline std::experimental::optional<float> getDayRainfall() const {
+		return _dayRainfall;
 	}
 
 	inline date::sys_seconds getDateTime() const {
@@ -78,6 +82,7 @@ private:
 	std::experimental::optional<int> _solarRad;
 	std::experimental::optional<int> _uv;
 	std::experimental::optional<float> _hourRainfall;
+	std::experimental::optional<float> _dayRainfall;
 	std::experimental::optional<float> _computedRainfall;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;

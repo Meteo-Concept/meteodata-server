@@ -44,7 +44,7 @@ int main(int argc, char** argv)
 	desc.add_options()
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
-		("input-file", po::value<std::string>(&inputFile), "input CSV file containing the SYNOP messages (in the OGIMET getsynop format)")
+		("input-file", po::value<std::string>(&inputFile), "input StatIC file")
 	;
 
 	po::positional_options_description pd;

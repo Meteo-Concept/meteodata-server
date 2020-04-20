@@ -233,10 +233,11 @@ void StatICTxtDownloader::download()
 			// difference with the rainfall over an hour ago
 			auto downloadTime = m.getDateTime();
 			auto end = chrono::system_clock::to_time_t(downloadTime);
-			auto begin = chrono::system_clock::to_time_t(downloadTime - chrono::hours(1));
-			float f;
-			if (_db.getRainfall(_station, begin, end, f))
-				m.computeRainfall(f);
+			auto begin1h = chrono::system_clock::to_time_t(downloadTime - chrono::hours(1));
+			auto beginDay = chrono::system_clock::to_time_t(date::floor<date::days>(downloadTime));
+			float f1h, fDay;
+			if (_db.getRainfall(_station, begin1h, end, f1h) && _db.getRainfall(_station, beginDay, end, fDay))
+				m.computeRainfall(f1h, fDay);
 		}
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
