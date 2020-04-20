@@ -599,26 +599,26 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 	longitude *= raddeg;
 
 	auto time = sys_seconds{seconds{timestamp}};
-	double fDays = duration<double, days::period>(time - sys_days{year{2000}/1/1} + 12h).count();
+	double fDays = duration<double, days::period>(time - sys_days{year{2000}/1/1} - 12h).count();
 	int secondsSinceMidnight = floor<seconds>(time - floor<days>(time)).count();
 
 	// Mean longitude of the sun
-	double l = 280.46646 + 0.98564736 * fDays;
+	double l = (280.46646 + 0.98564736 * fDays) * raddeg;
 	// Mean anomaly of the sun
-	double m = 357.52911 + 0.985600281 * fDays;
-	// Difference between the mean and true anomalies of the sun
-	double c = (1.914602 - 0.00000013188 * fDays) * std::sin(m * raddeg) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m * raddeg);
+	double m = (357.52911 + 0.985600281 * fDays) * raddeg;
+	// Difference between the mean and true longitude of the sun
+	double c = ((1.914602 - 0.00000013188 * fDays) * std::sin(m) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m)) * raddeg;
 	// Obliquity of the Earth (approximation correct for the next century)
-	double epsilon = 23.43929;
-	// Sine of the solar declination angle
-	double sin_delta = std::sin((l + c) * raddeg) * std::sin(epsilon * raddeg);
+	double epsilon = 23.43929 * raddeg;
+	// Sine of tqe solar declination angle
+	double sin_delta = std::sin(l + c) * std::sin(epsilon);
 
 	// y -- no particular meaning but facilitates the expression of the equation of time
-	double y = std::pow(std::tan(epsilon * raddeg / 2.), 2.);
+	double y = std::pow(std::tan(epsilon / 2.), 2.);
 	// Excentricity of the Earth's orbit
 	double e = 0.016708634 - 0.0000000011509 * fDays;
 	// Equation of the time -- angular difference between apparent solar time and mean time
-	double eq = y * std::sin(2 * l * raddeg) - 2 * e * std::sin(m * raddeg) + 4 * e * y * std::sin(m * raddeg) * std::cos(2 * l * raddeg);
+	double eq = y * std::sin(2 * l) - 2 * e * std::sin(m) + 4 * e * y * std::sin(m) * std::cos(2 * l);
 
 	// True solar time of the UTC timestamp in parameter
 	// pi / (12. * 3600.) is the coefficient to convert a timestamp in seconds to a value in radians
@@ -632,7 +632,7 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 		if (alpha < 3. * raddeg)
 			return false;
 
-		double threshold = (0.73 + 0.06 * std::cos(360 * fDays/365 * raddeg)) * 1080 * std::pow(sin_alpha, 1.25);
+		double threshold = (0.73 + 0.06 * std::cos(2 * PI * fDays/365)) * 1080 * std::pow(sin_alpha, 1.25);
 		return solarRad > threshold;
 	}
 	return false;
