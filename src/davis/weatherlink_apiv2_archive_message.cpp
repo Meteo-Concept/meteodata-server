@@ -98,11 +98,32 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
-		   dataStructureType == DataStructureType::BAROMETER_ARCHIVE_RECORD) {
+		   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
 			_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
+	} else if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
+		   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
+		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
+		// The first two temperatures are put in both leaf and soil temperatures fields
+		// because we cannot know from the API where the user installed the sensors
+		// It's necessary to enable/disable the corresponding sensors from the administration
+		// page in the Meteodata website.
+
+		// The temperature conversions are done in the message insertion methods
+		_obs.leafTemperature[0] = data.get<float>("temp_last_1", INVALID_FLOAT);
+		_obs.leafTemperature[1] = data.get<float>("temp_last_2", INVALID_FLOAT);
+		_obs.soilTemperature[0] = data.get<float>("temp_last_1", INVALID_FLOAT);
+		_obs.soilTemperature[1] = data.get<float>("temp_last_2", INVALID_FLOAT);
+		_obs.soilTemperature[2] = data.get<float>("temp_last_3", INVALID_FLOAT);
+		_obs.soilTemperature[3] = data.get<float>("temp_last_4", INVALID_FLOAT);
+		_obs.leafWetness[0] = data.get<int>("wet_leaf_last_1", INVALID_INT);
+		_obs.leafWetness[1] = data.get<int>("wet_leaf_last_2", INVALID_INT);
+		_obs.soilMoisture[0] = data.get<int>("moist_soil_last_1", INVALID_INT);
+		_obs.soilMoisture[1] = data.get<int>("moist_soil_last_2", INVALID_INT);
+		_obs.soilMoisture[2] = data.get<int>("moist_soil_last_3", INVALID_INT);
+		_obs.soilMoisture[3] = data.get<int>("moist_soil_last_4", INVALID_INT);
 	}
 }
 
