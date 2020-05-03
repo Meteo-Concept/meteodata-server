@@ -122,13 +122,13 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 
 
 void StatICMessage::computeRainfall(float previousHourRainfall, float previousDayRainfall) {
-	if (_dayRainfall && !_computedRainfall) {
-		_computedRainfall = *_dayRainfall - previousDayRainfall;
+	if (_hourRainfall && !_computedRainfall) {
+		_computedRainfall = *_hourRainfall - previousHourRainfall;
 		if (*_computedRainfall < 0)
 			_computedRainfall = 0;
 	}
-	if (_hourRainfall && !_computedRainfall) {
-		_computedRainfall = *_hourRainfall - previousHourRainfall;
+	if (_dayRainfall && !_computedRainfall) {
+		_computedRainfall = *_dayRainfall - previousDayRainfall;
 		if (*_computedRainfall < 0)
 			_computedRainfall = 0;
 	}
