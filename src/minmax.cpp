@@ -141,7 +141,9 @@ int main(int argc, char** argv)
 			std::cerr << "'" << begin << "' does not look like a valid day, that's problematic" << std::endl;
 			return EINVAL;
 		}
-		if (beginDate > system_clock::now()) {
+		if (beginDate > system_clock::now() + days(1)) {
+			// Allow computing the climatology for the next day since to account for timezones offset
+			// (and also because you can at least have the minimal temperature starting from 18Z)
 			std::cerr << beginDate << " looks like it's in the future, that's problematic" << std::endl;
 			return EINVAL;
 		}
@@ -160,7 +162,7 @@ int main(int argc, char** argv)
 			std::cerr << endDate << " looks like it's before " << beginDate << ", that's problematic" << std::endl;
 			return EINVAL;
 		}
-		if (endDate > system_clock::now()) {
+		if (endDate > system_clock::now() + days(1)) {
 			std::cerr << endDate << " looks like it's in the future, that's problematic" << std::endl;
 			return EINVAL;
 		}
