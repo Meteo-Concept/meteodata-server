@@ -93,8 +93,7 @@ void compareMinmaxWithNormals(DbConnectionMonthMinmax::Values& values, const DbC
 		values.diff_rainfall = { false, .0f };
 
 	if (values.insolationTime.first && normals.insolationTime.first)
-		// Insolation time is stored as hours in the normals tables but as minutes in the other tables
-		values.diff_insolationTime = { true, values.insolationTime.second - normals.insolationTime.second * 60 };
+		values.diff_insolationTime = { true, values.insolationTime.second - normals.insolationTime.second };
 	else
 		values.diff_insolationTime = { false, .0f };
 }
