@@ -28,6 +28,7 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <cmath>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -180,12 +181,13 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.soilTemperature[1] = data.get<float>("temp_2", INVALID_FLOAT);
 			_obs.soilTemperature[2] = data.get<float>("temp_3", INVALID_FLOAT);
 			_obs.soilTemperature[3] = data.get<float>("temp_4", INVALID_FLOAT);
-			_obs.leafWetness[0] = data.get<int>("wet_leaf_1", INVALID_INT);
-			_obs.leafWetness[1] = data.get<int>("wet_leaf_2", INVALID_INT);
-			_obs.soilMoisture[0] = data.get<int>("moist_soil_1", INVALID_INT);
-			_obs.soilMoisture[1] = data.get<int>("moist_soil_2", INVALID_INT);
-			_obs.soilMoisture[2] = data.get<int>("moist_soil_3", INVALID_INT);
-			_obs.soilMoisture[3] = data.get<int>("moist_soil_4", INVALID_INT);
+			// The APIv2 returns a float for leaf wetness and soil moisture but we store an int
+			_obs.leafWetness[0] = std::lround(data.get<float>("wet_leaf_1", INVALID_FLOAT));
+			_obs.leafWetness[1] = std::lround(data.get<float>("wet_leaf_2", INVALID_FLOAT));
+			_obs.soilMoisture[0] = std::lround(data.get<float>("moist_soil_1", INVALID_FLOAT));
+			_obs.soilMoisture[1] = std::lround(data.get<float>("moist_soil_2", INVALID_FLOAT));
+			_obs.soilMoisture[2] = std::lround(data.get<float>("moist_soil_3", INVALID_FLOAT));
+			_obs.soilMoisture[3] = std::lround(data.get<float>("moist_soil_4", INVALID_FLOAT));
 		}
 	}
 }
