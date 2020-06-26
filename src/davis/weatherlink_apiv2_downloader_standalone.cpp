@@ -116,7 +116,7 @@ int main(int argc, char** argv)
 		DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
-		po::store(po::parse_config_file(configFile, config), vm);
+		po::store(po::parse_config_file(configFile, config, true), vm);
 		configFile.close();
 	}
 	po::notify(vm);

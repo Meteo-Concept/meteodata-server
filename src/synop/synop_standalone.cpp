@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 	po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
 	std::ifstream configFile(vm.count("config-file") ? fileName : DEFAULT_CONFIG_FILE);
 	if (configFile) {
-		po::store(po::parse_config_file(configFile, config), vm);
+		po::store(po::parse_config_file(configFile, config, true), vm);
 		configFile.close();
 	}
 	po::notify(vm);

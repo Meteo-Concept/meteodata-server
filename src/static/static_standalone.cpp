@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 	pd.add("input-file", 1);
 
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
+	po::store(po::command_line_parser(argc, argv).options(desc).allow_unregistered().positional(pd).run(), vm);
 	po::notify(vm);
 
 	if (vm.count("help")) {
