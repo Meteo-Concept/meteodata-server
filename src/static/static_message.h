@@ -68,6 +68,8 @@ public:
 		return _datetime;
 	}
 
+	constexpr static unsigned int MAXSIZE = 4 * 1024 * 1024; // 4 KiB, more than necessary
+
 private:
 	std::string _identifier; //numer_sta
 	date::sys_seconds _datetime;

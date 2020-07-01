@@ -151,7 +151,7 @@ bool getReponseFromHTTP10Query(Socket& socket, boost::asio::streambuf& response,
 				throw std::runtime_error("No content in response or too long");
 		} else if (compareAsciiCaseInsensitive(field, "connection:")) {
 			fromheader >> connectionStatus;
-		} else if (compareAsciiCaseInsensitive(field, "content-type:")) {
+		} else if (compareAsciiCaseInsensitive(field, "content-type:") && !expectedMimeType.empty()) {
 			fromheader >> type;
 			if (!compareAsciiCaseInsensitive(type, expectedMimeType))
 				throw std::runtime_error("Not the expected type in answer");

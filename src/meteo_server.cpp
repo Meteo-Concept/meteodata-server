@@ -106,7 +106,7 @@ void MeteoServer::start()
 	meteofranceDownloader->start();
 
 	// Start the StatIC stations downloaders (one per station)
-	std::vector<std::tuple<CassUuid, std::string, std::string, int>> statICTxtStations;
+	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int>> statICTxtStations;
 	_db.getStatICTxtStations(statICTxtStations);
 	for (auto&& station : statICTxtStations) {
 		auto subscriber =
@@ -115,7 +115,8 @@ void MeteoServer::start()
 				std::get<0>(station),
 				std::get<1>(station),
 				std::get<2>(station),
-				std::get<3>(station)
+				std::get<3>(station),
+				std::get<4>(station)
 			);
 		subscriber->start();
 	}

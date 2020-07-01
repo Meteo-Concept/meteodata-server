@@ -46,6 +46,7 @@
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
+#include "../http_utils.h"
 #include "static_txt_downloader.h"
 #include "static_message.h"
 
@@ -65,13 +66,14 @@ namespace meteodata {
 
 using namespace date;
 
-StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, int timezone) :
+StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, bool https, int timezone) :
 	_ioService(ioService),
 	_db(db),
 	_timer(_ioService),
 	_station(station),
 	_host(host),
 	_url(url),
+	_https(https),
 	_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
 {
 	float latitude;
@@ -134,88 +136,28 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void StatICTxtDownloader::download()
 {
-	std::cerr << "Now downloading a StatIC file " << std::endl;
+	try {
+		// Form the request. We specify the "Connection: close" header so that the
+		// server will close the socket after transmitting the response. This will
+		// allow us to treat all data up until the EOF as the content.
+		boost::asio::streambuf request;
+		std::ostream requestStream(&request);
+		std::cerr << "GET " << _url << " HTTP/1.0\r\n";
+		requestStream << "GET " << _url << " HTTP/1.0\r\n";
+		requestStream << "Host: " << _host << "\r\n";
+		requestStream << "Accept: */*\r\n";
+		requestStream << "Connection: close\r\n\r\n";
 
-	// Make a SSL context
-	asio::ssl::context ctx(asio::ssl::context::sslv23);
-	ctx.set_default_verify_paths();
+		asio::streambuf response{StatICMessage::MAXSIZE};
+		std::istream responseStream{&response};
 
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(_host, "https");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
+		if (_https) {
+			sendRequestHttps(request, response, responseStream);
+		} else {
+			sendRequestHttp(request, response, responseStream);
+		}
 
-	// Try each endpoint until we successfully establish a connection.
-	asio::ssl::stream<ip::tcp::socket> socket(_ioService, ctx);
-        // Set SNI Hostname (many hosts need this to handshake successfully)
-        if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
-        {
-            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-            throw boost::system::system_error{ec};
-        }
-	boost::asio::connect(socket.lowest_layer(), endpointIterator);
-
-	// Verify the remote
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(_host));
-	socket.handshake(decltype(socket)::client);
-
-	// Form the request. We specify the "Connection: close" header so that the
-	// server will close the socket after transmitting the response. This will
-	// allow us to treat all data up until the EOF as the content.
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
-	std::cerr << "GET " << _url << " HTTP/1.0\r\n";
-	requestStream << "GET " << _url << " HTTP/1.0\r\n";
-	requestStream << "Host: " << _host << "\r\n";
-	requestStream << "Accept: */*\r\n";
-	requestStream << "Connection: close\r\n\r\n";
-
-	// Send the request.
-	asio::write(socket, request);
-
-	// Read the response status line. The response streambuf will automatically
-	// grow to accommodate the entire line. The growth may be limited by passing
-	// a maximum size to the streambuf constructor.
-	asio::streambuf response(BUFFER_MAX_SIZE);
-	asio::read_until(socket, response, "\r\n");
-
-	// Check that response is OK.
-	std::istream responseStream(&response);
-	std::string httpVersion;
-	responseStream >> httpVersion;
-	unsigned int statusCode;
-	responseStream >> statusCode;
-	std::string statusMessage;
-	std::getline(responseStream, statusMessage);
-	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
-	{
-		std::cerr << "StatIC file: Bad response from "  << _host << std::endl;
-		syslog(LOG_ERR, "StatIC file: Bad response from %s", _host.data());
-		return;
-	}
-	if (statusCode != 200)
-	{
-		std::cerr << "StatIC file: Bad response from: " << _host << " (" << statusCode << ")" << std::endl;
-		syslog(LOG_ERR, "StatIC file: Bad response from: %s (%i)", _host.data(), statusCode);
-		return;
-	}
-
-	// Read the response headers, which are terminated by a blank line.
-	auto size = asio::read_until(socket, response, "\r\n\r\n");
-
-	// Discard the headers
-	// XXX Do we need them?
-	response.consume(size);
-	// Read the body
-	sys::error_code ec;
-
-
-	// slurp the file (in the answer body)
-	size = asio::read(socket, response, ec);
-	std::istream fileStream(&response);
-	if (ec == asio::error::eof) {
-		StatICMessage m{fileStream, _timeOffseter};
+		StatICMessage m{responseStream, _timeOffseter};
 		if (!m) {
 			std::cerr << "Impossible to parse the message" << std::endl;
 			syslog(LOG_ERR, "StatIC file: Cannot parse response from: %s", _host.data());
@@ -248,11 +190,79 @@ void StatICTxtDownloader::download()
 			std::cerr << "Inserted into database" << std::endl;
 		else
 			std::cerr << "Insertion into database failed" << std::endl;
-	} else {
-		std::cerr << "Impossible to read the message" << std::endl;
-		syslog(LOG_ERR, "StatIC file: Cannot read response from: %s", _host.data());
+	} catch (const sys::system_error& error) {
+		if (error.code() == asio::error::eof) {
+			syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _url.c_str(), _host.c_str(), error.what());
+			std::cerr << "station " << _url << " Socket looks closed " << _host << ": " << error.what() << std::endl;
+			return;
+		} else {
+			syslog(LOG_ERR, "station %s: Bad response for %s: %s", _url.c_str(), _host.c_str(), error.what());
+			std::cerr << "station " << _url << " Bad response from " << _host << ": " << error.what() << std::endl;
+			return;
+		}
+
+	} catch (std::runtime_error& error) {
+		syslog(LOG_ERR, "station %s: Bad response for %s: %s", _url.c_str(), _host.c_str(), error.what());
+		std::cerr << "station " << _url << " Bad response from " << _host << ": " << error.what() << std::endl;
 		return;
 	}
+}
+
+void StatICTxtDownloader::sendRequestHttps(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream)
+{
+	std::cerr << "Now downloading a StatIC file over HTTPS " << std::endl;
+
+	// Make a SSL context
+	asio::ssl::context ctx(asio::ssl::context::sslv23);
+	ctx.set_default_verify_paths();
+
+	// Get a list of endpoints corresponding to the server name.
+	ip::tcp::resolver resolver(_ioService);
+	ip::tcp::resolver::query query(_host, "https");
+	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
+
+	// Try each endpoint until we successfully establish a connection.
+	asio::ssl::stream<ip::tcp::socket> socket(_ioService, ctx);
+        // Set SNI Hostname (many hosts need this to handshake successfully)
+        if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
+        {
+            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
+	    throw sys::system_error(ec);
+        }
+	boost::asio::connect(socket.lowest_layer(), endpointIterator);
+
+	// Verify the remote
+	socket.set_verify_mode(asio::ssl::verify_peer);
+	socket.set_verify_callback(asio::ssl::rfc2818_verification(_host));
+	socket.handshake(decltype(socket)::client);
+
+	// Send the request.
+	asio::write(socket, request);
+
+	// Get the response into the response stream and check the status and headers
+	// this places the response stream iterator at the beginning of the body
+	getReponseFromHTTP10Query(socket, response, responseStream, StatICMessage::MAXSIZE, "");
+}
+
+void StatICTxtDownloader::sendRequestHttp(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream)
+{
+	std::cerr << "Now downloading a StatIC file over HTTP " << std::endl;
+
+	// Get a list of endpoints corresponding to the server name.
+	ip::tcp::resolver resolver(_ioService);
+	ip::tcp::resolver::query query(_host, "http");
+	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
+
+	// Try each endpoint until we successfully establish a connection.
+	ip::tcp::socket socket(_ioService);
+	boost::asio::connect(socket, endpointIterator);
+
+	// Send the request.
+	asio::write(socket, request);
+
+	// Get the response into the response stream and check the status and headers
+	// this places the response stream iterator at the beginning of the body
+	getReponseFromHTTP10Query(socket, response, responseStream, StatICMessage::MAXSIZE, "");
 }
 
 }

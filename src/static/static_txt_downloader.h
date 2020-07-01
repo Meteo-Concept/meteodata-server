@@ -59,7 +59,7 @@ using namespace meteodata;
 class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloader>
 {
 public:
-	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, int timezone);
+	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, bool _https, int timezone);
 	void start();
 
 private:
@@ -69,6 +69,7 @@ private:
 	CassUuid _station;
 	std::string _host;
 	std::string _url;
+	bool _https;
 	std::experimental::optional<float> _previousRainfall;
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
@@ -76,6 +77,8 @@ private:
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
 	void download();
+	void sendRequestHttps(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream);
+	void sendRequestHttp(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream);
 };
 
 }
