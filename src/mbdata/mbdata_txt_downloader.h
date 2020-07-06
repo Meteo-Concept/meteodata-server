@@ -76,10 +76,8 @@ private:
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
-	bool checkStatusLine(boost::asio::streambuf& response);
-	bool handleHttpHeaders(boost::asio::streambuf& response, size_t size);
-	bool downloadHttps(boost::asio::streambuf& request, boost::asio::streambuf& response, sys::error_code& ec);
-	bool downloadHttp(boost::asio::streambuf& request, boost::asio::streambuf& response, sys::error_code& ec);
+	void downloadHttps(boost::asio::streambuf& request, boost::asio::streambuf& response, std::istream& responseStream);
+	void downloadHttp(boost::asio::streambuf& request, boost::asio::streambuf& response, std::istream& responseStream);
 	void download();
 };
 

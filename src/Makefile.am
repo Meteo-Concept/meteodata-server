@@ -4,6 +4,7 @@ meteodata_SOURCES = \
 		    connector.h\
 		    daemon.cpp\
 		    http_utils.h\
+		    blocking_tcp_client.h\
 		    meteo_server.cpp\
 		    meteo_server.h\
 		    time_offseter.cpp\
@@ -116,6 +117,7 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    time_offseter.h\
 		    cassandra_utils.h\
 		    http_utils.h\
+		    blocking_tcp_client.h\
 		    davis/abstract_weatherlink_api_message.cpp\
 		    davis/abstract_weatherlink_api_message.h\
 		    davis/abstract_weatherlink_downloader.h\
@@ -142,6 +144,7 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    time_offseter.h\
 		    cassandra_utils.h\
 		    http_utils.h\
+		    blocking_tcp_client.h\
 		    davis/abstract_weatherlink_api_message.cpp\
 		    davis/abstract_weatherlink_api_message.h\
 		    davis/abstract_weatherlink_downloader.h\

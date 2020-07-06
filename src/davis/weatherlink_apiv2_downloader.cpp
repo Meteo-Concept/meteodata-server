@@ -63,9 +63,9 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(
 	const CassUuid& station, const std::string& weatherlinkId,
 	const std::map<int, CassUuid>& mapping,
 	const std::string& apiKey, const std::string& apiSecret,
-	asio::io_service& ioService, DbConnectionObservations& db,
+	DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
-	AbstractWeatherlinkDownloader(station, ioService, db, tz),
+	AbstractWeatherlinkDownloader(station, db, tz),
 	_apiKey(apiKey),
 	_apiSecret(apiSecret),
 	_weatherlinkId(weatherlinkId),
@@ -86,7 +86,7 @@ std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params
 	return computeHMACWithSHA256(allParamsButApiSignature, _apiSecret);
 }
 
-void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>& socket)
+void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
 	//
@@ -114,8 +114,8 @@ void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::soc
 	requestStream << "Accept: application/json\r\n\r\n";
 
 	// Send the request.
-	std::cerr << "Socket: " << &socket << std::endl;
-	asio::write(socket, request);
+	std::size_t bytesWrote;
+	client.write(request, bytesWrote);
 	std::cerr << "Query sent" << std::endl;
 
 	// Read the response status line. The response streambuf will automatically
@@ -125,7 +125,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::soc
 	std::istream responseStream{&response};
 
 	try {
-		getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
+		getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 		std::cerr << "Read all the content" << std::endl;
 
 		// Store the content because if we must read it several times
@@ -154,7 +154,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(asio::ssl::stream<ip::tcp::soc
 	}
 }
 
-void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& socket)
+void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
 	//
@@ -194,7 +194,8 @@ void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& so
 		requestStream << "Accept: application/json\r\n\r\n";
 
 		// Send the request.
-		asio::write(socket, request);
+		std::size_t bytesWritten;
+		client.write(request, bytesWritten);
 
 		// Read the response status line. The response streambuf will automatically
 		// grow to accommodate the entire line. The growth may be limited by passing
@@ -204,7 +205,7 @@ void WeatherlinkApiv2Downloader::download(asio::ssl::stream<ip::tcp::socket>& so
 
 		bool stillOpen = true;
 		try {
-			stillOpen = getReponseFromHTTP10Query(socket, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
+			stillOpen = getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
 			std::cerr << "Read all the content" << std::endl;
 
 			bool insertionOk = true;

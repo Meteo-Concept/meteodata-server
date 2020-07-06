@@ -55,24 +55,6 @@ constexpr char meteodata::WeatherlinkDownloadScheduler::HOST[];
 constexpr char meteodata::WeatherlinkDownloadScheduler::APIHOST[];
 constexpr int meteodata::WeatherlinkDownloadScheduler::POLLING_PERIOD;
 
-void connectSocket(asio::io_service& ioService, asio::ssl::stream<ip::tcp::socket>& socket)
-{
-	ip::tcp::resolver resolver(ioService);
-	ip::tcp::resolver::query query(WeatherlinkDownloadScheduler::APIHOST, "https");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
-        if(!SSL_set_tlsext_host_name(socket.native_handle(), WeatherlinkDownloadScheduler::APIHOST))
-        {
-            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-            throw boost::system::system_error{ec};
-        }
-	boost::asio::connect(socket.lowest_layer(), endpointIterator);
-
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(WeatherlinkDownloadScheduler::APIHOST));
-	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-}
-
 /**
  * @brief Entry point
  *
@@ -149,13 +131,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	boost::asio::io_service ioService;
-	boost::asio::io_service::work work(ioService);
-	std::thread ioServiceRunner{[&ioService] {
-		ioService.run();
-		std::cerr << "All downloaders have finished executing" << std::endl;
-	}};
-
 	try {
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback =
@@ -180,8 +155,8 @@ int main(int argc, char** argv)
 		// Open the TLS stream
 		asio::ssl::context ctx(asio::ssl::context::sslv23);
 		ctx.set_default_verify_paths();
-		std::unique_ptr<asio::ssl::stream<ip::tcp::socket>> socket{new asio::ssl::stream<ip::tcp::socket>(ioService, ctx)};
-		connectSocket(ioService, *socket);
+		BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
+		client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
 
 		int retry = 0;
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
@@ -198,8 +173,7 @@ int main(int argc, char** argv)
 			WeatherlinkApiv2Downloader downloader{
 				std::get<0>(station), std::get<3>(station), std::get<2>(station),
 				weatherlinkApiV2Key, weatherlinkApiV2Secret,
-				ioService, db,
-				TimeOffseter::PredefinedTimezone(0)
+				db, TimeOffseter::PredefinedTimezone(0)
 			};
 			try {
 				if (!std::get<1>(station)) {
@@ -208,21 +182,25 @@ int main(int argc, char** argv)
 					++it;
 					continue;
 				}
-				downloader.download(*socket);
+				downloader.download(client);
 				retry = 0;
 				++it;
 			} catch (const sys::system_error& e) {
 				retry++;
 				if (e.code() == asio::error::in_progress) {
 					std::cerr << "Lost connection to server while attempting to download, but some progress was made, keeping up the work." << std::endl;
-					socket.reset(new asio::ssl::stream<ip::tcp::socket>(ioService, ctx));
-					connectSocket(ioService, *socket);
+					ctx = asio::ssl::context(asio::ssl::context::sslv23);
+					ctx.set_default_verify_paths();
+					client.reset(std::move(ctx));
+					client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
 
 					retry = 0;
 				} else if (e.code() == asio::error::eof) {
 					std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-					socket.reset(new asio::ssl::stream<ip::tcp::socket>(ioService, ctx));
-					connectSocket(ioService, *socket);
+					ctx = asio::ssl::context(asio::ssl::context::sslv23);
+					ctx.set_default_verify_paths();
+					client.reset(std::move(ctx));
+					client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
 
 					if (retry >= 2) {
 						std::cerr << "Tried twice already, moving on..." << std::endl;
@@ -234,13 +212,9 @@ int main(int argc, char** argv)
 				}
 			}
 		}
-
-		ioService.stop();
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
 		return 255;
 	}
-
-	ioServiceRunner.join();
 }

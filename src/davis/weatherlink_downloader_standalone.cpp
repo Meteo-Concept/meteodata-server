@@ -54,17 +54,6 @@ constexpr char meteodata::WeatherlinkDownloadScheduler::HOST[];
 constexpr char meteodata::WeatherlinkDownloadScheduler::APIHOST[];
 constexpr int meteodata::WeatherlinkDownloadScheduler::POLLING_PERIOD;
 
-void connectSocket(asio::io_service& ioService, ip::tcp::socket& socket)
-{
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(ioService);
-	ip::tcp::resolver::query query(WeatherlinkDownloadScheduler::HOST, "http");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
-	// Try each endpoint until we successfully establish a connection.
-	asio::connect(socket, endpointIterator);
-}
-
 /**
  * @brief Entry point
  *
@@ -139,13 +128,6 @@ int main(int argc, char** argv)
 		}
 	}
 
-	boost::asio::io_service ioService;
-	boost::asio::io_service::work work(ioService);
-	std::thread ioServiceRunner{[&ioService] {
-		ioService.run();
-		std::cerr << "All downloaders have finished executing" << std::endl;
-	}};
-
 	try {
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback =
@@ -167,8 +149,8 @@ int main(int argc, char** argv)
 		db.getAllWeatherlinkStations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
-		ip::tcp::socket socket(ioService);
-		connectSocket(ioService, socket);
+		BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
+		client.connect(WeatherlinkDownloadScheduler::HOST, "http");
 
 		int retry = 0;
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
@@ -183,18 +165,18 @@ int main(int argc, char** argv)
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
 			WeatherlinkDownloader downloader{
 				std::get<0>(station), std::get<1>(station), std::get<2>(station),
-				ioService, db,
-				TimeOffseter::PredefinedTimezone(std::get<3>(station))
+				db, TimeOffseter::PredefinedTimezone(std::get<3>(station))
 			};
 			try {
-				downloader.download(socket);
+				downloader.download(client);
 				retry = 0;
 				++it;
 			} catch (const sys::system_error& e) {
 				retry++;
 				if (e.code() == asio::error::eof) {
 					std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-					connectSocket(ioService, socket);
+					client.reset();
+					client.connect(WeatherlinkDownloadScheduler::HOST, "http");
 					if (retry >= 2) {
 						std::cerr << "Tried twice already, moving on..." << std::endl;
 						retry =  0;
@@ -205,13 +187,9 @@ int main(int argc, char** argv)
 				}
 			}
 		}
-
-		ioService.stop();
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
 		return 255;
 	}
-
-	ioServiceRunner.join();
 }

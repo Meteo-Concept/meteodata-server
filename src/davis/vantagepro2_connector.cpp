@@ -235,7 +235,7 @@ void VantagePro2Connector::sendBuffer(const std::shared_ptr<T>& buffer, int reqs
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_timer.expires_from_now(chrono::seconds(6));
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
-	
+
 	// passing buffer to the lambda keeps the buffer alive
 	async_write(_sock, asio::buffer(buffer.get(), reqsize),
 		[this,self,buffer](const sys::error_code& ec, std::size_t) {

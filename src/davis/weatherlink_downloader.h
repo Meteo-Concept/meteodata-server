@@ -43,7 +43,7 @@
 #include "abstract_weatherlink_downloader.h"
 #include "vantagepro2_archive_page.h"
 #include "../time_offseter.h"
-
+#include "../blocking_tcp_client.h"
 
 namespace meteodata {
 
@@ -60,10 +60,10 @@ class WeatherlinkDownloader : public AbstractWeatherlinkDownloader
 {
 public:
 	WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-		const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
+		const std::string& apiToken, DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void download(ip::tcp::socket& socket);
-	void downloadRealTime(asio::ssl::stream<ip::tcp::socket>& socket);
+	void download(BlockingTcpClient<ip::tcp::socket>& client);
+	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
 
 private:
 	std::string _authentication;

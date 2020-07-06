@@ -45,6 +45,8 @@
 #include "synop_downloader.h"
 #include "ogimet_synop.h"
 #include "synop_decoder/parser.h"
+#include "../http_utils.h"
+#include "../blocking_tcp_client.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -104,14 +106,9 @@ void AbstractSynopDownloader::download()
 {
 	std::cerr << "Now downloading SYNOP messages " << std::endl;
 
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(HOST, "http");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
 	// Try each endpoint until we successfully establish a connection.
-	ip::tcp::socket socket(_ioService);
-	boost::asio::connect(socket, endpointIterator);
+	BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
+	client.connect(HOST, "http");
 
 	// Form the request. We specify the "Connection: close" header so that the
 	// server will close the socket after transmitting the response. This will
@@ -121,13 +118,15 @@ void AbstractSynopDownloader::download()
 	buildDownloadRequest(requestStream);
 
 	// Send the request.
-	asio::write(socket, request);
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
 
 	// Read the response status line. The response streambuf will automatically
 	// grow to accommodate the entire line. The growth may be limited by passing
 	// a maximum size to the streambuf constructor.
 	asio::streambuf response;
-	asio::read_until(socket, response, "\r\n");
+	std::size_t bytesReadInFirstLine;
+	client.read_until(response, "\r\n", bytesReadInFirstLine, true);
 
 	// Check that response is OK.
 	std::istream responseStream(&response);
@@ -149,7 +148,8 @@ void AbstractSynopDownloader::download()
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	auto size = asio::read_until(socket, response, "\r\n\r\n");
+	std::size_t size;
+	client.read_until(response, "\r\n\r\n", size, true);
 
 	// Discard the headers
 	// XXX Should we do something about them?
@@ -158,7 +158,7 @@ void AbstractSynopDownloader::download()
 	// Read the body
 	sys::error_code ec;
 	do {
-		size = asio::read_until(socket, response, "\n", ec);
+		ec = client.read_until(response, "\n", size, false);
 		std::string line;
 		std::getline(responseStream, line);
 

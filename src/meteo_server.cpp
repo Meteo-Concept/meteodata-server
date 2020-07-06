@@ -123,23 +123,6 @@ void MeteoServer::start()
 
 	// Start the Weatherlink downloaders workers (one per Weatherlink station)
 	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
-
-	std::vector<std::tuple<CassUuid, std::string, std::string, int>> weatherlinkStations;
-	_db.getAllWeatherlinkStations(weatherlinkStations);
-	for (const auto& station : weatherlinkStations) {
-		weatherlinkScheduler->add(
-			std::get<0>(station), std::get<1>(station), std::get<2>(station),
-			TimeOffseter::PredefinedTimezone(std::get<3>(station))
-		);
-	}
-	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkAPIv2Stations;
-	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
-	for (const auto& station : weatherlinkAPIv2Stations) {
-		weatherlinkScheduler->addAPIv2(
-			std::get<0>(station), std::get<1>(station), std::get<2>(station), std::get<3>(station),
-			TimeOffseter::PredefinedTimezone(0)
-		);
-	}
 	weatherlinkScheduler->start();
 
 	// Start the MBData txt downloaders workers (one per station)

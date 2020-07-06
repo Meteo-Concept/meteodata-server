@@ -38,6 +38,8 @@
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 
+#include "blocking_tcp_client.h"
+
 using std::size_t;
 
 namespace asio = boost::asio;
@@ -132,7 +134,8 @@ bool getReponseFromHTTP10Query(Socket& socket, boost::asio::streambuf& response,
 		throw std::runtime_error("Status code is " + std::to_string(statusCode));
 
 	// Read the response headers, which are terminated by a blank line.
-	std::size_t headersSize = asio::read_until(socket, response, "\r\n\r\n");
+	// TODO validate the size?
+	[[ maybe_unused ]] std::size_t headersSize = asio::read_until(socket, response, "\r\n\r\n");
 
 	// Process the response headers.
 	std::string header;
@@ -170,6 +173,77 @@ bool getReponseFromHTTP10Query(Socket& socket, boost::asio::streambuf& response,
 		}
 	} else if (response.size() < size) {
 		asio::read(socket, response, asio::transfer_at_least(size - response.size()), ec);
+	}
+
+	if (ec && ec != asio::error::eof)
+		throw std::runtime_error("Not enough content in response");
+	if (response.size() < size)
+		throw std::runtime_error("Not enough content in response");
+
+	return connectionStatus != "close";
+}
+
+template<typename Socket>
+bool getReponseFromHTTP10QueryFromClient(meteodata::BlockingTcpClient<Socket>& client, boost::asio::streambuf& response, std::istream& responseStream, std::size_t maxSize, const std::string& expectedMimeType)
+{
+	std::size_t bytesReadInFirstLine;
+	client.read_until(response, "\r\n", bytesReadInFirstLine);
+
+	std::string httpVersion;
+	responseStream >> httpVersion;
+	unsigned int statusCode;
+	responseStream >> statusCode;
+	std::string statusMessage;
+	std::getline(responseStream, statusMessage);
+
+	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
+		throw std::runtime_error("Not a HTTP answer (was there anything left in the buffer?)");
+
+	if (statusCode != 200)
+		throw std::runtime_error("Status code is " + std::to_string(statusCode));
+
+	// Read the response headers, which are terminated by a blank line.
+	// TODO validate the size?
+	std::size_t bytesReadInHeader;
+	client.read_until(response, "\r\n\r\n", bytesReadInHeader);
+
+	// Process the response headers.
+	std::string header;
+	std::istringstream fromheader;
+	std::string field;
+	std::size_t size = 0;
+	std::string connectionStatus;
+	std::string type;
+	while (std::getline(responseStream, header) && header != "\r") {
+		fromheader.str(header);
+		fromheader >> field;
+		std::cerr << "Header: " << field << std::endl;
+		if (compareAsciiCaseInsensitive(field, "content-length:")) {
+			fromheader >> size;
+			if (size == 0 || size >= maxSize)
+				throw std::runtime_error("No content in response or too long");
+		} else if (compareAsciiCaseInsensitive(field, "connection:")) {
+			fromheader >> connectionStatus;
+		} else if (compareAsciiCaseInsensitive(field, "content-type:") && !expectedMimeType.empty()) {
+			fromheader >> type;
+			if (!compareAsciiCaseInsensitive(type, expectedMimeType))
+				throw std::runtime_error("Not the expected type in answer");
+		}
+	}
+
+	// Read the response body
+	sys::error_code ec;
+	std::cerr << "We are expecting " << size << " bytes, the buffer contains " << response.size() << " bytes." << std::endl;
+	std::size_t bytesReadInBody = 0; // not very relevant since we can check the response size directly
+	if (size == 0) {
+		if (compareAsciiCaseInsensitive(connectionStatus, "close")) {
+			// The server has closed the connection, read until EOF
+			client.read_all(response, bytesReadInBody, ec);
+		} else {
+			throw std::runtime_error("No content in response or too long");
+		}
+	} else if (response.size() < size) {
+		client.read_at_least(response, size - response.size(), bytesReadInHeader, ec);
 	}
 
 	if (ec && ec != asio::error::eof)

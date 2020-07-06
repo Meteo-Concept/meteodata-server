@@ -39,7 +39,7 @@
 #include "abstract_weatherlink_downloader.h"
 #include "weatherlink_apiv2_archive_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
-
+#include "../blocking_tcp_client.h"
 
 namespace meteodata {
 
@@ -57,10 +57,10 @@ public:
 		const std::string& weatherlinkId,
 		const std::map<int, CassUuid>& mapping,
 		const std::string& apiKey, const std::string& apiSecret,
-		asio::io_service& ioService, DbConnectionObservations& db,
+		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void download(asio::ssl::stream<ip::tcp::socket>& socket);
-	void downloadRealTime(asio::ssl::stream<ip::tcp::socket>& socket);
+	void download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
 
 private:
 	std::string _apiKey;

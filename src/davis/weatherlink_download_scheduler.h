@@ -40,6 +40,7 @@
 #include "weatherlink_downloader.h"
 #include "weatherlink_apiv2_downloader.h"
 #include "../time_offseter.h"
+#include "../blocking_tcp_client.h"
 
 namespace meteodata {
 
@@ -72,7 +73,6 @@ private:
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
 	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
-	asio::ssl::context _sslContext;
 
 public:
 	using DownloaderIterator =  decltype(_downloaders)::const_iterator;
@@ -80,22 +80,23 @@ public:
 	static constexpr char APIHOST[] = "api.weatherlink.com";
 
 private:
+	void reloadStations();
 	void waitUntilNextDownload();
-	void connectSocket(std::unique_ptr<ip::tcp::socket>& socket, const char host[]);
-	void connectSocket(std::unique_ptr<asio::ssl::stream<ip::tcp::socket>>& socket, const char host[]);
+	void connectClient(BlockingTcpClient<ip::tcp::socket>& client, const char host[]);
+	void connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client, const char host[]);
 	template<typename Socket, typename Downloader>
-	void genericDownload(std::unique_ptr<Socket>& socket, const char host[], const Downloader& downloadMethod, int& retry) {
+	void genericDownload(BlockingTcpClient<Socket>& client, const char host[], const Downloader& downloadMethod, int& retry) {
 		try {
-			downloadMethod(*socket);
+			downloadMethod(client);
 			retry = 0;
 		} catch (const sys::system_error& e) {
 			retry++;
 			if (e.code() == asio::error::in_progress) {
 				std::cerr << "Lost connection to server while attempting to download, but some progress was made, keeping up the work." << std::endl;
-				connectSocket(socket, host);
-			} else if (e.code() == asio::error::eof) {
+				connectClient(client, host);
+			} else if (e.code() == asio::error::eof || e.code() == asio::error::operation_aborted) {
 				std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-				connectSocket(socket, host);
+				connectClient(client, host);
 				// attempt twice to download and move on to the
 				// next station
 				if (retry >= 2) {
@@ -103,17 +104,19 @@ private:
 					retry =  0;
 				}
 			} else {
-				std::cerr << "Impossible to download, moving on..." << std::endl;
+				std::cerr << "Impossible to download " << e.code() << ", moving on..." << std::endl;
 				retry =  0;
 			}
 		} catch (const std::runtime_error& e) {
-			std::cerr << "Impossible to download, moving on..." << std::endl;
+			std::cerr << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 			retry =  0;
 		}
 	}
 	void downloadArchives();
 	void downloadRealTime();
 	void checkDeadline(const sys::error_code& e);
+	boost::asio::ssl::context createSslContext();
+
 	/**
 	 * The polling period that apply to all stations, in minutes
 	 */

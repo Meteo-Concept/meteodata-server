@@ -47,6 +47,7 @@
 
 #include "../time_offseter.h"
 #include "../http_utils.h"
+#include "../blocking_tcp_client.h"
 #include "static_txt_downloader.h"
 #include "static_message.h"
 
@@ -103,7 +104,7 @@ void StatICTxtDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(chrono::minutes(10 - tod.minutes().count() % 10 + 2)- chrono::seconds(tod.seconds().count()));
+	_timer.expires_from_now(chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
 	_timer.async_wait(std::bind(&StatICTxtDownloader::checkDeadline, self, args::_1));
 }
 
@@ -216,53 +217,48 @@ void StatICTxtDownloader::sendRequestHttps(asio::streambuf& request, asio::strea
 	asio::ssl::context ctx(asio::ssl::context::sslv23);
 	ctx.set_default_verify_paths();
 
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(_host, "https");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
 	// Try each endpoint until we successfully establish a connection.
-	asio::ssl::stream<ip::tcp::socket> socket(_ioService, ctx);
+	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
+	auto& socket = client.socket();
+
         // Set SNI Hostname (many hosts need this to handshake successfully)
-        if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
+        if (!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
         {
             sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
 	    throw sys::system_error(ec);
         }
-	boost::asio::connect(socket.lowest_layer(), endpointIterator);
+	client.connect(_host, "https");
 
 	// Verify the remote
 	socket.set_verify_mode(asio::ssl::verify_peer);
 	socket.set_verify_callback(asio::ssl::rfc2818_verification(_host));
-	socket.handshake(decltype(socket)::client);
+	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
 
 	// Send the request.
-	asio::write(socket, request);
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
 
 	// Get the response into the response stream and check the status and headers
 	// this places the response stream iterator at the beginning of the body
-	getReponseFromHTTP10Query(socket, response, responseStream, StatICMessage::MAXSIZE, "");
+	getReponseFromHTTP10QueryFromClient(client, response, responseStream, StatICMessage::MAXSIZE, "");
 }
 
 void StatICTxtDownloader::sendRequestHttp(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream)
 {
 	std::cerr << "Now downloading a StatIC file over HTTP " << std::endl;
 
-	// Get a list of endpoints corresponding to the server name.
-	ip::tcp::resolver resolver(_ioService);
-	ip::tcp::resolver::query query(_host, "http");
-	ip::tcp::resolver::iterator endpointIterator = resolver.resolve(query);
-
 	// Try each endpoint until we successfully establish a connection.
-	ip::tcp::socket socket(_ioService);
-	boost::asio::connect(socket, endpointIterator);
+	BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
+
+	client.connect(_host, "http");
 
 	// Send the request.
-	asio::write(socket, request);
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
 
 	// Get the response into the response stream and check the status and headers
 	// this places the response stream iterator at the beginning of the body
-	getReponseFromHTTP10Query(socket, response, responseStream, StatICMessage::MAXSIZE, "");
+	getReponseFromHTTP10QueryFromClient(client, response, responseStream, StatICMessage::MAXSIZE, "");
 }
 
 }

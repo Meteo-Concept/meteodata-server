@@ -50,9 +50,8 @@ class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<Abstra
 {
 public:
 	AbstractWeatherlinkDownloader(const CassUuid& station,
-		asio::io_service& ioService, DbConnectionObservations& db,
+		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz) :
-		_ioService(ioService),
 		_db(db),
 		_station(station)
 	{
@@ -71,7 +70,6 @@ public:
 	}
 
 protected:
-	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
 
 	/**

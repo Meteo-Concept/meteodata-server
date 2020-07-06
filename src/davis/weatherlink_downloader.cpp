@@ -46,6 +46,7 @@
 #include "weatherlink_download_scheduler.h"
 #include "vantagepro2_message.h"
 #include "vantagepro2_archive_page.h"
+#include "../blocking_tcp_client.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -59,14 +60,14 @@ namespace meteodata {
 using namespace date;
 
 WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-	const std::string& apiToken, asio::io_service& ioService, DbConnectionObservations& db,
+	const std::string& apiToken, DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
-	AbstractWeatherlinkDownloader(station, ioService, db, tz),
+	AbstractWeatherlinkDownloader(station, db, tz),
 	_authentication{auth},
 	_apiToken{apiToken}
 {}
 
-void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>& socket)
+void WeatherlinkDownloader::downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	if (_apiToken.empty())
 		return; // no token, no realtime obs
@@ -84,13 +85,15 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 	requestStream << "Accept: application/xml\r\n\r\n";
 
 	// Send the request.
-	asio::write(socket, request);
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
 
 	// Read the response status line. The response streambuf will automatically
 	// grow to accommodate the entire line. The growth may be limited by passing
 	// a maximum size to the streambuf constructor.
 	asio::streambuf response(WeatherlinkApiv1RealtimeMessage::MAXSIZE);
-	asio::read_until(socket, response, "\r\n");
+	std::size_t bytesReadInFirstLine;
+	client.read_until(response, "\r\n", bytesReadInFirstLine, true);
 
 	// Check that response is OK.
 	std::istream responseStream(&response);
@@ -115,7 +118,8 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	asio::read_until(socket, response, "\r\n\r\n");
+	std::size_t bytesReadInHeader;
+	client.read_until(response, "\r\n\r\n", bytesReadInHeader, true);
 
 	// Process the response headers.
 	std::string header;
@@ -149,11 +153,12 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 
 	// Read the response body
 	sys::error_code ec;
+	std::size_t bytesReadInBody;
 	std::cerr << "We are expecting " << size << " bytes, the buffer contains " << response.size() << " bytes." << std::endl;
 	if (size == 0) {
 		if (compareAsciiCaseInsensitive(connectionStatus, "close")) {
 			// The server has closed the connection, read until EOF
-			asio::read(socket, response, asio::transfer_all(), ec);
+			client.read_all(response, bytesReadInBody, ec);
 		} else {
 			// Maybe chunk-encoded output? But we asked for HTTP/1.0 so...
 			syslog(LOG_ERR, "station %s: no real-time available", _stationName.c_str());
@@ -161,7 +166,7 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 			return;
 		}
 	} else if (response.size() < size) {
-		asio::read(socket, response, asio::transfer_at_least(size - response.size()), ec);
+		client.read_at_least(response, size - response.size(), bytesReadInBody, ec);
 	}
 
 	if (ec && ec != asio::error::eof) {
@@ -184,7 +189,7 @@ void WeatherlinkDownloader::downloadRealTime(asio::ssl::stream<ip::tcp::socket>&
 	}
 }
 
-void WeatherlinkDownloader::download(ip::tcp::socket& socket)
+void WeatherlinkDownloader::download(BlockingTcpClient<ip::tcp::socket>& client)
 {
 	std::cerr << "Now downloading for station " << _stationName << std::endl;
 	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
@@ -213,13 +218,15 @@ void WeatherlinkDownloader::download(ip::tcp::socket& socket)
 	requestStream << "Accept: */*\r\n\r\n";
 
 	// Send the request.
-	asio::write(socket, request);
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
 
 	// Read the response status line. The response streambuf will automatically
 	// grow to accommodate the entire line. The growth may be limited by passing
 	// a maximum size to the streambuf constructor.
 	asio::streambuf response;
-	asio::read_until(socket, response, "\r\n");
+	std::size_t bytesReadInFirstLine;
+	client.read_until(response, "\r\n", bytesReadInFirstLine, true);
 
 	// Check that response is OK.
 	std::istream responseStream(&response);
@@ -243,7 +250,8 @@ void WeatherlinkDownloader::download(ip::tcp::socket& socket)
 	}
 
 	// Read the response headers, which are terminated by a blank line.
-	asio::read_until(socket, response, "\r\n\r\n");
+	std::size_t bytesReadInHeader;
+	client.read_until(response, "\r\n\r\n", bytesReadInHeader, true);
 
 	// Process the response headers.
 	std::string header;
@@ -279,8 +287,9 @@ void WeatherlinkDownloader::download(ip::tcp::socket& socket)
 	while (pagesLeft) {
 		VantagePro2ArchiveMessage::ArchiveDataPoint _datapoint;
 		sys::error_code error;
+		std::size_t bytesReadInBody;
 		if (response.size() < sizeof(_datapoint)) {
-			asio::read(socket, response, asio::transfer_at_least(sizeof(_datapoint)), error);
+			client.read_at_least(response, sizeof(_datapoint), bytesReadInBody, error);
 			if (error && error != asio::error::eof) {
 				syslog(LOG_ERR, "station %s: Error when validating output from %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.message().c_str());
 				std::cerr << "station " << _stationName << " Error when receiving from " << WeatherlinkDownloadScheduler::HOST << ": " << error.message() << std::endl;
