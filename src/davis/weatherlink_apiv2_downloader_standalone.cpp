@@ -55,6 +55,21 @@ constexpr char meteodata::WeatherlinkDownloadScheduler::HOST[];
 constexpr char meteodata::WeatherlinkDownloadScheduler::APIHOST[];
 constexpr int meteodata::WeatherlinkDownloadScheduler::POLLING_PERIOD;
 
+namespace {
+	void connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client) {
+		auto& socket = client.socket();
+		if(!SSL_set_tlsext_host_name(socket.native_handle(), WeatherlinkDownloadScheduler::APIHOST))
+		{
+			sys::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
+			throw sys::system_error{ec};
+		}
+		client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
+		socket.set_verify_mode(asio::ssl::verify_peer);
+		socket.set_verify_callback(asio::ssl::rfc2818_verification(WeatherlinkDownloadScheduler::APIHOST));
+		socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
+	}
+}
+
 /**
  * @brief Entry point
  *
@@ -156,7 +171,7 @@ int main(int argc, char** argv)
 		asio::ssl::context ctx(asio::ssl::context::sslv23);
 		ctx.set_default_verify_paths();
 		BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
-		client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
+		connectClient(client);
 
 		int retry = 0;
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
@@ -192,7 +207,7 @@ int main(int argc, char** argv)
 					ctx = asio::ssl::context(asio::ssl::context::sslv23);
 					ctx.set_default_verify_paths();
 					client.reset(std::move(ctx));
-					client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
+					connectClient(client);
 
 					retry = 0;
 				} else if (e.code() == asio::error::eof) {
@@ -200,7 +215,7 @@ int main(int argc, char** argv)
 					ctx = asio::ssl::context(asio::ssl::context::sslv23);
 					ctx.set_default_verify_paths();
 					client.reset(std::move(ctx));
-					client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
+					connectClient(client);
 
 					if (retry >= 2) {
 						std::cerr << "Tried twice already, moving on..." << std::endl;

@@ -40,10 +40,6 @@ namespace meteodata {
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-constexpr size_t AbstractWeatherlinkApiMessage::MAXSIZE;
-constexpr int    AbstractWeatherlinkApiMessage::INVALID_INT;
-constexpr float  AbstractWeatherlinkApiMessage::INVALID_FLOAT;
-
 AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage(const TimeOffseter* timeOffseter) :
 	Message(),
 	_timeOffseter{timeOffseter}

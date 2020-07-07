@@ -196,6 +196,9 @@ bool getReponseFromHTTP10QueryFromClient(meteodata::BlockingTcpClient<Socket>& c
 	std::string statusMessage;
 	std::getline(responseStream, statusMessage);
 
+	if (bytesReadInFirstLine == 0)
+		throw sys::system_error(asio::error::eof);
+
 	if (!responseStream || httpVersion.substr(0, 5) != "HTTP/")
 		throw std::runtime_error("Not a HTTP answer (was there anything left in the buffer?)");
 

@@ -89,7 +89,7 @@ std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params
 void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
-	//
+
 	// Form the request. We specify the "Connection: keep-alive" header so that the
 	// will be usable by other downloaders.
 	boost::asio::streambuf request;
@@ -116,7 +116,6 @@ void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::s
 	// Send the request.
 	std::size_t bytesWrote;
 	client.write(request, bytesWrote);
-	std::cerr << "Query sent" << std::endl;
 
 	// Read the response status line. The response streambuf will automatically
 	// grow to accommodate the entire line. The growth may be limited by passing
@@ -125,7 +124,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::s
 	std::istream responseStream{&response};
 
 	try {
-		getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
+		getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2ArchiveMessage::MAXSIZE, "application/json");
 		std::cerr << "Read all the content" << std::endl;
 
 		// Store the content because if we must read it several times
@@ -157,7 +156,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::s
 void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
-	//
+
 	// Form the request. We specify the "Connection: keep-alive" header so that the
 	// will be usable by other downloaders.
 	boost::asio::streambuf request;
@@ -197,10 +196,8 @@ void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip
 		std::size_t bytesWritten;
 		client.write(request, bytesWritten);
 
-		// Read the response status line. The response streambuf will automatically
-		// grow to accommodate the entire line. The growth may be limited by passing
-		// a maximum size to the streambuf constructor.
-		asio::streambuf response(WeatherlinkApiv2RealtimeMessage::MAXSIZE);
+		// Prepare the buffer and the stream on the buffer to receive the response.
+		asio::streambuf response{WeatherlinkApiv2ArchiveMessage::MAXSIZE};
 		std::istream responseStream{&response};
 
 		bool stillOpen = true;
