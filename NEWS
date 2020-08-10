@@ -1,3 +1,14 @@
+Version 0.16
+============
+
+	Fifth official release
+
+Now that Davis makes data from Weatherlink IP (and Vantage Connect, etc.)
+available via their API v2, we can get the data from there. Progressively,
+it will be feasible to phase out API v1 but since the pricing is very different
+many customers will likely prefer to keep the archive for free (which the
+API v1 allows).
+
 Version 0.14
 ============
 
