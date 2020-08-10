@@ -59,6 +59,7 @@ class AbstractSynopDownloader : public std::enable_shared_from_this<AbstractSyno
 {
 public:
 	AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
+	virtual ~AbstractSynopDownloader() = default;
 	virtual void start() = 0;
 
 protected:
