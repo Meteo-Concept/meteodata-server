@@ -59,6 +59,10 @@ public:
 
 private:
 	void doParse(std::istream& input, const Acceptor& acceptable);
+	constexpr bool compareDataPackages(
+		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
+		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2
+	);
 };
 
 }

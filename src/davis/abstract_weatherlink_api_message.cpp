@@ -91,7 +91,7 @@ void AbstractWeatherlinkApiMessage::populateDataPoint(const CassUuid station, Ca
 	// No max wind speed dir
 	/*************************************************************/
 	if (!isInvalid(_obs.rainRate))
-		cass_statement_bind_float(statement, 46, from_in_to_mm(_obs.rainRate));
+		cass_statement_bind_float(statement, 46, _obs.rainRate);
 	/*************************************************************/
 	// No avg rain rate over hour/day/...
 	/*************************************************************/
@@ -204,10 +204,10 @@ void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, 
 		cass_statement_bind_float(statement, 18, _obs.temperature);
 	/*************************************************************/
 	if (!isInvalid(_obs.rainRate))
-		cass_statement_bind_float(statement, 19, from_in_to_mm(_obs.rainRate));
+		cass_statement_bind_float(statement, 19, _obs.rainRate);
 	/*************************************************************/
 	if (!isInvalid(_obs.rainFall))
-		cass_statement_bind_float(statement, 20, from_rainrate_to_mm(_obs.rainFall));
+		cass_statement_bind_float(statement, 20, _obs.rainFall);
 	/*************************************************************/
 	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
 	 && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad))

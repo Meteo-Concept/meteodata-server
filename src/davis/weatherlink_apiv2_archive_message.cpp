@@ -64,8 +64,7 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType)
 {
-	int catalogType = static_cast<int>(sensorType);
-	if (((catalogType >= 43 && catalogType <= 52) || sensorType == SensorType::VANTAGE_VUE_ISS) &&
+	if (isMainStationType(sensorType) &&
 	    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;
@@ -77,10 +76,47 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
-		_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
-		_obs.rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		if (!isInvalid(rainRate))
+			_obs.rainRate = from_rainrate_to_mm(rainRate);
+		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+		if (!isInvalid(rainFall))
+			_obs.rainFall = from_rainrate_to_mm(rainFall);
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
+	} else if (isMainStationType(sensorType) &&
+	    dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B) {
+		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
+		float hum = data.get<float>("hum_out", INVALID_FLOAT) ;
+		if (!isInvalid(hum))
+			_obs.humidity = static_cast<int>(hum);
+		_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureF))
+			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
+		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
+		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
+		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		if (!isInvalid(rainRate))
+			_obs.rainRate = from_rainrate_to_mm(rainRate);
+		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+		if (!isInvalid(rainFall))
+			_obs.rainFall = from_rainrate_to_mm(rainFall);
+		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
+		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
+		_obs.extraHumidity[0] = data.get<int>("hum_extra_1", INVALID_INT);
+		_obs.extraHumidity[1] = data.get<int>("hum_extra_2", INVALID_INT);
+		_obs.extraTemperature[0] = data.get<float>("temp_extra_1", INVALID_FLOAT);
+		_obs.extraTemperature[1] = data.get<float>("temp_extra_2", INVALID_FLOAT);
+		_obs.extraTemperature[2] = data.get<float>("temp_extra_3", INVALID_FLOAT);
+		_obs.leafTemperature[0] = data.get<float>("temp_leaf_1", INVALID_FLOAT);
+		_obs.leafTemperature[1] = data.get<float>("temp_leaf_2", INVALID_FLOAT);
+		_obs.leafWetness[0] = data.get<int>("wet_leaf_1", INVALID_INT);
+		_obs.leafWetness[1] = data.get<int>("wet_leaf_2", INVALID_INT);
+		_obs.soilTemperature[0] = data.get<float>("moist_soil_1", INVALID_FLOAT);
+		_obs.soilTemperature[1] = data.get<float>("moist_soil_2", INVALID_FLOAT);
+		_obs.soilTemperature[2] = data.get<float>("moist_soil_3", INVALID_FLOAT);
+		_obs.soilTemperature[3] = data.get<float>("moist_soil_4", INVALID_FLOAT);
 	} else if (sensorType == SensorType::SENSOR_SUITE &&
 		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
@@ -96,6 +132,8 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
 		_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
 		_obs.rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+		if (_obs.rainFall != INVALID_INT)
+			_obs.rainFall = from_rainrate_to_mm(_obs.rainFall);
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&

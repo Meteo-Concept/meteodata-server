@@ -49,22 +49,18 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2RealtimeMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2RealtimeMessage::DataStructureType;
 
-namespace {
-	constexpr bool compareDataPackages(
-		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2
-	) {
-		SensorType sensorType2 = std::get<0>(entry2);
-		int catalogType2 = static_cast<int>(sensorType2);
-		// Ingest first the ISS so that when reading the data from the aux. sensor suites,
-		// we can check for the missing data
-		// The ordering of the rest is irrelevant.
-		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
-		    ((catalogType2 >= 43 && catalogType2 <= 52) || sensorType2 == SensorType::VANTAGE_VUE_ISS))
-			return false;
+constexpr bool WeatherlinkApiv2RealtimeMessage::compareDataPackages(
+	const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
+	const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2
+) {
+	// Ingest first the ISS so that when reading the data from the aux. sensor suites,
+	// we can check for the missing data
+	// The ordering of the rest is irrelevant.
+	if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
+	    isMainStationType(std::get<0>(entry2)))
+		return false;
 
-		return true;
-	}
+	return true;
 }
 
 WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter) :
@@ -100,7 +96,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));
 	}
 
-	std::sort(entries.begin(), entries.end(), &compareDataPackages);
+	std::sort(entries.begin(), entries.end(), std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1, std::placeholders::_2));
 
 	for (const auto& entry : entries) {
 		SensorType sensorType;
@@ -108,8 +104,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		pt::ptree data;
 		std::tie(sensorType, dataStructureType, data) = entry;
 
-		int catalogType = static_cast<int>(sensorType);
-		if (((catalogType >= 43 && catalogType <= 52) || sensorType == SensorType::VANTAGE_VUE_ISS) &&
+		if (isMainStationType(sensorType) &&
 		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			float hum = data.get<float>("hum", INVALID_FLOAT) ;
@@ -121,10 +116,50 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.windDir = data.get<int>("wind_dir_scalar_avg_last_10_min", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed_hi_last_10_min", INVALID_FLOAT);
-			_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
-			_obs.rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
+			auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+			if (!isInvalid(rainRate))
+				_obs.rainRate = from_rainrate_to_mm(rainRate);
+			auto rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
+			if (!isInvalid(rainFall))
+				_obs.rainFall = from_rainrate_to_mm(rainFall);
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 			_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
+		}
+
+		if (isMainStationType(sensorType) &&
+		    dataStructureType == DataStructureType::WEATHERLINK_IP_CURRENT_READING_REVISION_B) {
+			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+			_obs.pressure = data.get<float>("bar", INVALID_FLOAT);
+			if (!isInvalid(_obs.pressure))
+				_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
+			float hum = data.get<float>("hum_out", INVALID_FLOAT) ;
+			if (!isInvalid(hum))
+				_obs.humidity = static_cast<int>(hum);
+			_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
+			if (!isInvalid(_obs.temperatureF))
+				_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+			_obs.windDir = data.get<int>("wind_dir", INVALID_INT);
+			_obs.windSpeed = data.get<float>("wind_speed_10_min_avg", INVALID_FLOAT);
+			_obs.windGustSpeed = data.get<float>("wind_speed", INVALID_FLOAT);
+			auto rainRate = data.get<float>("rain_rate_clicks", INVALID_INT);
+			if (!isInvalid(rainRate))
+				_obs.rainRate = from_rainrate_to_mm(rainRate);
+			_obs.rainFall = INVALID_INT;
+			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
+			_obs.uvIndex = data.get<float>("uv", INVALID_FLOAT);
+			_obs.extraHumidity[0] = data.get<int>("hum_extra_1", INVALID_INT);
+			_obs.extraHumidity[1] = data.get<int>("hum_extra_2", INVALID_INT);
+			_obs.extraTemperature[0] = data.get<float>("temp_extra_1", INVALID_FLOAT);
+			_obs.extraTemperature[1] = data.get<float>("temp_extra_2", INVALID_FLOAT);
+			_obs.extraTemperature[2] = data.get<float>("temp_extra_3", INVALID_FLOAT);
+			_obs.leafTemperature[0] = data.get<float>("temp_leaf_1", INVALID_FLOAT);
+			_obs.leafTemperature[1] = data.get<float>("temp_leaf_2", INVALID_FLOAT);
+			_obs.leafWetness[0] = data.get<int>("wet_leaf_1", INVALID_INT);
+			_obs.leafWetness[1] = data.get<int>("wet_leaf_2", INVALID_INT);
+			_obs.soilTemperature[0] = data.get<float>("moist_soil_1", INVALID_FLOAT);
+			_obs.soilTemperature[1] = data.get<float>("moist_soil_2", INVALID_FLOAT);
+			_obs.soilTemperature[2] = data.get<float>("moist_soil_3", INVALID_FLOAT);
+			_obs.soilTemperature[3] = data.get<float>("moist_soil_4", INVALID_FLOAT);
 		}
 
 		if (sensorType == SensorType::SENSOR_SUITE &&
@@ -153,6 +188,8 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			}
 			if (isInvalid(_obs.rainFall)) {
 				_obs.rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
+				if (_obs.rainFall != INVALID_INT)
+					_obs.rainFall = from_rainrate_to_mm(_obs.rainFall);
 			}
 			if (isInvalid(_obs.solarRad)) {
 				_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
@@ -182,12 +219,12 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.soilTemperature[2] = data.get<float>("temp_3", INVALID_FLOAT);
 			_obs.soilTemperature[3] = data.get<float>("temp_4", INVALID_FLOAT);
 			// The APIv2 returns a float for leaf wetness and soil moisture but we store an int
-			_obs.leafWetness[0] = std::lround(data.get<float>("wet_leaf_1", INVALID_FLOAT));
-			_obs.leafWetness[1] = std::lround(data.get<float>("wet_leaf_2", INVALID_FLOAT));
-			_obs.soilMoisture[0] = std::lround(data.get<float>("moist_soil_1", INVALID_FLOAT));
-			_obs.soilMoisture[1] = std::lround(data.get<float>("moist_soil_2", INVALID_FLOAT));
-			_obs.soilMoisture[2] = std::lround(data.get<float>("moist_soil_3", INVALID_FLOAT));
-			_obs.soilMoisture[3] = std::lround(data.get<float>("moist_soil_4", INVALID_FLOAT));
+			_obs.leafWetness[0] = data.count("wet_leaf_1") > 0 ? std::lround(data.get<float>("wet_leaf_1")) : INVALID_INT;
+			_obs.leafWetness[1] = data.count("wet_leaf_2") > 0 ? std::lround(data.get<float>("wet_leaf_2")) : INVALID_INT;
+			_obs.soilMoisture[0] = data.count("moist_soil_1") > 0 ? std::lround(data.get<float>("moist_soil_1")) : INVALID_INT;
+			_obs.soilMoisture[1] = data.count("moist_soil_2") > 0 ? std::lround(data.get<float>("moist_soil_2")) : INVALID_INT;
+			_obs.soilMoisture[2] = data.count("moist_soil_3") > 0 ? std::lround(data.get<float>("moist_soil_3")) : INVALID_INT;
+			_obs.soilMoisture[3] = data.count("moist_soil_4") > 0 ? std::lround(data.get<float>("moist_soil_4")) : INVALID_INT;
 		}
 	}
 }

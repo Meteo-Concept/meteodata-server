@@ -64,6 +64,14 @@ public:
 	constexpr static size_t MAXSIZE = (2 << 20);
 
 	enum class SensorType {
+		GRO_WEATHER_FAN_CABLED = 2,
+		VANTAGE_PRO_2_CABLED = 23,
+		VANTAGE_PRO_2_PLUS_CABLED = 24,
+		GRO_WEATHER_FAN_CABLED_METRIC = 26,
+		VANTAGE_PRO_2_CABLED_METRIC = 27,
+		VANTAGE_PRO_2_PLUS_CABLED_METRIC = 28,
+		GRO_WEATHER_CABLED_METRIC = 30,
+		GRO_WEATHER_PLUS_CABLED_METRIC = 31,
 		VANTAGE_PRO_2 = 43,
 		VANTAGE_PRO_2_FAN = 44,
 		VANTAGE_PRO_2_PLUS = 45,
@@ -80,6 +88,8 @@ public:
 	};
 
 	enum class DataStructureType {
+		WEATHERLINK_IP_CURRENT_READING_REVISION_B = 2,
+		WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B = 4,
 		WEATHERLINK_LIVE_CURRENT_READING = 10,
 		WEATHERLINK_LIVE_NON_ISS_CURRENT_READING = 12,
 		WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD = 11,
@@ -97,6 +107,30 @@ protected:
 	constexpr static bool isInvalid(int v) {
 		return v == INVALID_INT;
 	}
+
+	constexpr bool isMainStationType(SensorType sensorType)
+	{
+		return
+			sensorType == SensorType::GRO_WEATHER_FAN_CABLED ||
+			sensorType == SensorType::VANTAGE_PRO_2_CABLED ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED ||
+			sensorType == SensorType::GRO_WEATHER_FAN_CABLED_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_CABLED_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED_METRIC ||
+			sensorType == SensorType::GRO_WEATHER_CABLED_METRIC ||
+			sensorType == SensorType::GRO_WEATHER_PLUS_CABLED_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2 ||
+			sensorType == SensorType::VANTAGE_PRO_2_FAN ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN ||
+			sensorType == SensorType::VANTAGE_PRO_2_ISS ||
+			sensorType == SensorType::VANTAGE_PRO_2_FAN_ISS ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_ISS ||
+			sensorType == SensorType::VANTAGE_PRO_2_DAYTIME_FAN_ISS ||
+			sensorType == SensorType::VANTAGE_VUE_ISS;
+	}
+
 
 	struct Observation {
 		date::sys_time<chrono::milliseconds> time;
