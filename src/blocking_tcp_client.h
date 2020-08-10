@@ -201,7 +201,7 @@ namespace meteodata
 
 		sys::error_code connect(const std::string& name, const std::string& scheme, const chrono::milliseconds& delay)
 		{
-			return connect(name, scheme, _default);
+			return connect(name, scheme, delay);
 		}
 
 
@@ -350,7 +350,7 @@ namespace meteodata
 			const chrono::milliseconds& delay, std::size_t& read, bool throwOnEof = false)
 		{
 			sys::error_code ec;
-			read_at_least(response, length, delay, ec);
+			read_at_least(response, length, read, delay, ec);
 			if (ec && (throwOnEof || ec != asio::error::eof))
 				throw sys::system_error{ec};
 			return ec;
