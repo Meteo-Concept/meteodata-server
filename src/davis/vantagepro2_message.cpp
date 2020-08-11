@@ -320,7 +320,7 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	for (int i=0 ; i<4 ; i++) {
 		if (_l1.soilMoistures[i] != 255)
 			cass_statement_bind_int32(statement, 32+i, _l1.soilMoistures[i]);
-		if (_l1.leafWetnesses[i] >= 0 && _l1.leafWetnesses[i] <= 15)
+		if (_l1.leafWetnesses[i] <= 15)
 			cass_statement_bind_int32(statement, 36+i, _l1.leafWetnesses[i]);
 	}
 	/*************************************************************/
@@ -457,7 +457,7 @@ void VantagePro2Message::populateV2DataPoint(const CassUuid stationId, CassState
 	for (int i=0 ; i<2 ; i++) {
 		if (_l1.leafTemp[i] != 255)
 			cass_statement_bind_float(statement, 13+i, from_Farenheight_to_Celsius(_l1.leafTemp[i] - 90));
-		if (_l1.leafWetnesses[i] >= 0 && _l1.leafWetnesses[i] <= 15)
+		if (_l1.leafWetnesses[i] <= 15)
 			cass_statement_bind_int32(statement, 15+i, _l1.leafWetnesses[i]);
 	}
 	/*************************************************************/

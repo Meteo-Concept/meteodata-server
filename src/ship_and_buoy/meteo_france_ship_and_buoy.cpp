@@ -114,7 +114,7 @@ MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::v
 
 
 
-void MeteoFranceShipAndBuoy::populateDataPoint(const CassUuid station, CassStatement* const statement) const
+void MeteoFranceShipAndBuoy::populateDataPoint(const CassUuid, CassStatement* const) const
 {
 	// Let's not bother with deprecated stuff
 }
