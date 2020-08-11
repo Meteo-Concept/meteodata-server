@@ -86,6 +86,8 @@ private:
 		SENDING_REQ_STATION,            /*!< Waiting for the identification request to be sent                  */
 		WAITING_ACK_STATION,            /*!< Waiting for the identification request to be acknowledgement       */
 		WAITING_DATA_STATION,           /*!< Waiting for the station to answer the identification               */
+		SENDING_REQ_MAIN_MODE,          /*!< Waiting for the RXTEST command (switch to main mode) to be sent    */
+		WAITING_ACK_MAIN_MODE,          /*!< Waiting for the station to acknowledge the RXTEST command          */
 		SENDING_REQ_TIMEZONE,           /*!< Waiting for the timezone information request to be sent            */
 		WAITING_ACK_TIMEZONE,           /*!< Waiting for the station to acknowledge the timezone information request */
 		WAITING_DATA_TIMEZONE,          /*!< Waiting for the station to answer the timezone information request */
@@ -242,6 +244,11 @@ private:
 	 * @brief Wait for the station to acknowledge last request
 	 */
 	void recvAck();
+	/**
+	 * @brief Wait for the station to acknowledge last request (in a
+	 * human-readable form, i.e. by sending "OK")
+	 */
+	void recvOk();
 	/**
 	 * @brief Send an acknowledgement (ACK) to the station
 	 */
@@ -467,6 +474,10 @@ private:
 	 * @brief A timezone information request
 	 */
 	static constexpr char _getTimezoneRequest[] = "EEBRD 11 06\n";
+	/**
+	 * @brief A switch to main mode (as opposed to setup mode) request
+	 */
+	static constexpr char _mainModeRequest[] = "RXTEST\n";
 	/**
 	 * @brief An acknowledgement
 	 */

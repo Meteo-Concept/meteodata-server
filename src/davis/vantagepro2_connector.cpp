@@ -62,6 +62,7 @@ constexpr char VantagePro2Connector::_getMeasureRequest[];
 constexpr char VantagePro2Connector::_getArchiveRequest[];
 constexpr char VantagePro2Connector::_getTimezoneRequest[];
 constexpr char VantagePro2Connector::_settimeRequest[];
+constexpr char VantagePro2Connector::_mainModeRequest[];
 constexpr char VantagePro2Connector::_ack[];
 constexpr char VantagePro2Connector::_nak[];
 constexpr char VantagePro2Connector::_abort[];
@@ -253,6 +254,22 @@ void VantagePro2Connector::recvWakeUp()
 	_timer.expires_from_now(chrono::seconds(2));
 	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
 	async_read_until(_sock, _discardBuffer, "\n\r",
+		[this,self](const sys::error_code& ec, std::size_t n) {
+			if (ec == sys::errc::operation_canceled)
+				return;
+			_timer.cancel();
+			_discardBuffer.consume(n);
+			handleEvent(ec);
+		}
+	);
+}
+
+void VantagePro2Connector::recvOk()
+{
+	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+	_timer.expires_from_now(chrono::seconds(6));
+	_timer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
+	async_read_until(_sock, _discardBuffer, "OK\n\r",
 		[this,self](const sys::error_code& ec, std::size_t n) {
 			if (ec == sys::errc::operation_canceled)
 				return;
@@ -486,15 +503,43 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				if (found) {
 					std::cerr << "Received correct identification from station " << _stationName << std::endl;
 					syslog(LOG_INFO, "station %s is connected", _stationName.c_str());
-					std::cerr << "Now fetching timezone information for station " << _stationName << std::endl;
-					_currentState = State::SENDING_REQ_TIMEZONE;
-					sendRequest(_getTimezoneRequest, std::strlen(_getTimezoneRequest));
+					std::cerr << "Now making sure station " << _stationName << " is not stuck in setup mode" << std::endl;
+					_currentState = State::SENDING_REQ_MAIN_MODE;
+					sendRequest(_mainModeRequest, std::strlen(_mainModeRequest));
 				} else {
 					std::cerr << "Unknown station (" << _coords[0] << ", " << _coords[1] << ", " << _coords[2] << ") ! Aborting" << std::endl;
 					syslog(LOG_ERR, "An unknown station has attempted a connection");
 					stop();
 				}
 			}
+		}
+		break;
+
+	case State::SENDING_REQ_MAIN_MODE:
+		handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_mainModeRequest, std::strlen(_mainModeRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::WAITING_ACK_MAIN_MODE;
+			std::cerr << "Sent switch to main mode request" << std::endl;
+			recvOk();
+		}
+		break;
+
+	case State::WAITING_ACK_MAIN_MODE:
+		handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE,
+			std::bind(&VantagePro2Connector::sendRequest, this,
+				_mainModeRequest, std::strlen(_mainModeRequest)));
+		if (e == sys::errc::success) {
+			_currentState = State::SENDING_REQ_TIMEZONE;
+			std::cerr << "Now fetching timezone information for station " << _stationName << std::endl;
+			sendRequest(_getTimezoneRequest, std::strlen(_getTimezoneRequest));
+		} else {
+			std::cerr << "Cannot get the station " << _stationName
+			          << " to acknowledge the switch to main mode command ! Aborting" << std::endl;
+			syslog(LOG_ERR, "Station %s did not acknowledge the "
+					"switch to main mode command\n", _stationName.c_str());
+			stop();
 		}
 		break;
 
