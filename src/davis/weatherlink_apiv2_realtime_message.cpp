@@ -141,7 +141,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.windDir = data.get<int>("wind_dir", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_10_min_avg", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed", INVALID_FLOAT);
-			auto rainRate = data.get<float>("rain_rate_clicks", INVALID_INT);
+			auto rainRate = data.get<int>("rain_rate_clicks", INVALID_INT);
 			if (!isInvalid(rainRate))
 				_obs.rainRate = from_rainrate_to_mm(rainRate);
 			auto rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
@@ -186,12 +186,14 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 				_obs.windGustSpeed = data.get<float>("wind_speed_hi_last_10_min", INVALID_FLOAT);
 			}
 			if (isInvalid(_obs.rainRate)) {
-				_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
+				auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+				if (!isInvalid(rainRate))
+					_obs.rainRate = from_rainrate_to_mm(rainRate);
 			}
 			if (isInvalid(_obs.rainFall)) {
-				_obs.rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
-				if (_obs.rainFall != INVALID_INT)
-					_obs.rainFall = from_rainrate_to_mm(_obs.rainFall);
+				auto rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
+				if (!isInvalid(rainFall))
+					_obs.rainFall = from_rainrate_to_mm(rainFall);
 			}
 			if (isInvalid(_obs.solarRad)) {
 				_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);

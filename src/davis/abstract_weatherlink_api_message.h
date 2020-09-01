@@ -142,7 +142,7 @@ protected:
 		float windSpeed = INVALID_FLOAT;
 		float windGustSpeed = INVALID_FLOAT;
 		float rainRate = INVALID_FLOAT;
-		int rainFall = INVALID_INT;
+		float rainFall = INVALID_FLOAT;
 		int solarRad = INVALID_INT;
 		float uvIndex = INVALID_FLOAT;
 		int extraHumidity[2] = { INVALID_INT, INVALID_INT };

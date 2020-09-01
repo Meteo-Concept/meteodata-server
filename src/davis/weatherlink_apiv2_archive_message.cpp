@@ -93,7 +93,9 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
 			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
-		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
+		int windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
+		if (!isInvalid(windDir))
+			_obs.windDir = static_cast<int>(windDir * 22.5);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
 		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
@@ -130,10 +132,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
-		_obs.rainRate = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
-		_obs.rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
-		if (_obs.rainFall != INVALID_INT)
-			_obs.rainFall = from_rainrate_to_mm(_obs.rainFall);
+		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		if (!isInvalid(rainRate))
+			_obs.rainRate = from_rainrate_to_mm(rainRate);
+		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+		if (isInvalid(rainFall))
+			_obs.rainFall = from_rainrate_to_mm(rainFall);
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
