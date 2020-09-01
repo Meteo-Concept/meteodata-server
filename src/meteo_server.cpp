@@ -42,6 +42,7 @@
 #include "static/static_txt_downloader.h"
 #include "synop/deferred_synop_downloader.h"
 #include "synop/synop_downloader.h"
+#include "pessl/fieldclimate_api_download_scheduler.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -51,12 +52,15 @@ namespace meteodata
 
 MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& address,
 		const std::string& user, const std::string& password,
-		const std::string& weatherlinkAPIv2Key, const std::string& weatherlinkAPIv2Secret) :
+		const std::string& weatherlinkAPIv2Key, const std::string& weatherlinkAPIv2Secret,
+		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret) :
 	_ioService(ioService),
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
 	_db(address, user, password),
 	_weatherlinkAPIv2Key(weatherlinkAPIv2Key),
-	_weatherlinkAPIv2Secret(weatherlinkAPIv2Secret)
+	_weatherlinkAPIv2Secret(weatherlinkAPIv2Secret),
+	_fieldClimateApiKey(fieldClimateApiKey),
+	_fieldClimateApiSecret(fieldClimateApiSecret)
 {
 	syslog(LOG_NOTICE, "Meteodata has started succesfully");
 }
@@ -126,6 +130,10 @@ void MeteoServer::start()
 	// Start the Weatherlink downloaders workers (one per Weatherlink station)
 	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
 	weatherlinkScheduler->start();
+
+	// Start the FieldClimate downloaders workers (one per Pessl station)
+	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
+	fieldClimateScheduler->start();
 
 	// Start the MBData txt downloaders workers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;

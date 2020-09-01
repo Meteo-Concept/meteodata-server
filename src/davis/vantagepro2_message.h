@@ -460,6 +460,19 @@ inline float from_mph_to_kph(int mph)
 }
 
 /**
+ * @brief Convert a velocity from kilometers per hour to meters per second
+ *
+ * @param kph the value to convert. Contrarily to other similar functions, this
+ * one takes a float.
+ *
+ * @return the parameter value converted to meters per second
+ */
+inline float from_kph_to_mps(float kph)
+{
+	return kph / 3.6;
+}
+
+/**
  * @brief Convert a velocity from meters per second to kilometers per hour
  *
  * @param mps the value to convert

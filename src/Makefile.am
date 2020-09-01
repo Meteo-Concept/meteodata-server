@@ -1,4 +1,13 @@
-bin_PROGRAMS = meteodata meteodata-minmax meteodata-month-minmax meteodata-records meteodata-synop-standalone meteodata-weatherlink-oldxml-standalone meteodata-weatherlink-apiv2-standalone meteodata-static-standalone
+bin_PROGRAMS = \
+	       meteodata meteodata-minmax \
+	       meteodata-month-minmax \
+	       meteodata-records \
+	       meteodata-synop-standalone \
+	       meteodata-weatherlink-oldxml-standalone \
+	       meteodata-weatherlink-apiv2-standalone \
+	       meteodata-static-standalone \
+	       meteodata-fieldclimate-api-standalone
+
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
@@ -81,7 +90,15 @@ meteodata_SOURCES = \
 		    synop/synop_decoder/range.h\
 		    synop/synop_decoder/synop_message.h\
 		    synop/synop_downloader.cpp\
-		    synop/synop_downloader.h
+		    synop/synop_downloader.h\
+		    pessl/fieldclimate_api_downloader.cpp\
+		    pessl/fieldclimate_api_downloader.h\
+		    pessl/fieldclimate_api_download_scheduler.cpp\
+		    pessl/fieldclimate_api_download_scheduler.h\
+		    pessl/fieldclimate_archive_message_collection.cpp\
+		    pessl/fieldclimate_archive_message_collection.h\
+		    pessl/fieldclimate_archive_message.cpp\
+		    pessl/fieldclimate_archive_message.h
 
 meteodata_minmax_SOURCES = \
 		    minmax.cpp
@@ -172,6 +189,22 @@ meteodata_static_standalone_SOURCES = \
 		    static/static_message.cpp\
 		    static/static_standalone.cpp
 
+meteodata_fieldclimate_api_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    blocking_tcp_client.h\
+		    pessl/fieldclimate_api_downloader_standalone.cpp \
+		    pessl/fieldclimate_api_downloader.cpp\
+		    pessl/fieldclimate_api_downloader.h\
+		    pessl/fieldclimate_api_download_scheduler.cpp\
+		    pessl/fieldclimate_api_download_scheduler.h\
+		    pessl/fieldclimate_archive_message_collection.cpp\
+		    pessl/fieldclimate_archive_message_collection.h\
+		    pessl/fieldclimate_archive_message.cpp\
+		    pessl/fieldclimate_archive_message.h
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
@@ -211,3 +244,8 @@ meteodata_static_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS
 meteodata_static_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_static_standalone_LDFLAGS = 
 meteodata_static_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+meteodata_fieldclimate_api_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
+meteodata_fieldclimate_api_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_fieldclimate_api_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
+meteodata_fieldclimate_api_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs

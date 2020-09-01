@@ -51,10 +51,13 @@ public:
 	 * @param password the password corresponding to the username
 	 * @param weatherlinkApiV2Key the WeatherLink API v2 key
 	 * @param weatherlinkApiV2Secret the WeatherLink API v2 secret
+	 * @param fieldClimateApiKey the FieldClimate API key
+	 * @param fieldClimateApiSecret the FieldClimate API secret
 	 */
 	MeteoServer(boost::asio::io_service& io, const std::string& address,
 		const std::string& user, const std::string& password,
-		const std::string& weatherlinkApiV2Key, const std::string& weatherlinkApiV2Secret
+		const std::string& weatherlinkApiV2Key, const std::string& weatherlinkApiV2Secret,
+		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret
 	);
 	/**
 	 * @brief Launch all operations: start the SYNOP messages
@@ -82,6 +85,14 @@ private:
 	 * @brief The WeatherLink APIv2 secret
 	 */
 	std::string _weatherlinkAPIv2Secret;
+	/**
+	 * @brief The FieldClimate API key
+	 */
+	std::string _fieldClimateApiKey;
+	/**
+	 * @brief The FieldClimate API secret
+	 */
+	std::string _fieldClimateApiSecret;
 
 	/**
 	 * @brief Start listening on the port, construct a connector,

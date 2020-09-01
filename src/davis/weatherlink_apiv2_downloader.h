@@ -63,8 +63,9 @@ public:
 	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
 
 private:
-	std::string _apiKey;
-	std::string _apiSecret;
+	const std::string& _apiKey;
+
+	const std::string& _apiSecret;
 
 	using Params = std::map<std::string, std::string>; // a map sorted by its keys in asciibetical order
 
