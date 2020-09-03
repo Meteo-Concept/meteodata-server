@@ -400,13 +400,13 @@ inline float from_inHg_to_bar(T inHg)
 }
 
 /**
- * @brief Convert a temperature given in Farenheight degrees to Celsius degrees
+ * @brief Convert a temperature given in Farenheit degrees to Celsius degrees
  *
  * @param f the value to convert
  *
  * @return the parameter value converted to Celsius degrees
  */
-inline float from_Farenheight_to_Celsius(float f)
+inline float from_Farenheit_to_Celsius(float f)
 {
 	return (f - 32.0) / 1.80;
 }
@@ -424,13 +424,13 @@ inline float from_Kelvin_to_Celsius(float k)
 }
 
 /**
- * @brief Convert a temperature given in Celsius degrees to Farenheight degrees
+ * @brief Convert a temperature given in Celsius degrees to Farenheit degrees
  *
  * @param f the value to convert
  *
- * @return the parameter value converted to Farenheight degrees
+ * @return the parameter value converted to Farenheit degrees
  */
-inline float from_Celsius_to_Farenheight(float c)
+inline float from_Celsius_to_Farenheit(float c)
 {
 	return (c * 1.80) + 32.0;
 }
@@ -549,7 +549,7 @@ inline float heat_index(float t_farenheight, int hum)
 				((hum - 85) / 10.0) *
 					((87.0 - hi_farenheight) / 5.0);
 	}
-	return from_Farenheight_to_Celsius(hi_farenheight);
+	return from_Farenheit_to_Celsius(hi_farenheight);
 }
 
 // Formula from Davis Instruments
@@ -563,7 +563,7 @@ inline float wind_chill(float t_farenheight, float wind_mph)
 			 - 35.75 * std::pow(wind_mph, 0.16)
 			 + 0.4275 * t_farenheight * std::pow(wind_mph, 0.16);
 
-	return from_Farenheight_to_Celsius(std::min(rc, t_farenheight));
+	return from_Farenheit_to_Celsius(std::min(rc, t_farenheight));
 }
 
 // Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))

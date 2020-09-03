@@ -68,7 +68,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	// Do not store inside temperature
 	/*************************************************************/
 	if (_data.outsideTemp != 32767)
-		cass_statement_bind_float(statement, 7, from_Farenheight_to_Celsius(_data.outsideTemp/10.0));
+		cass_statement_bind_float(statement, 7, from_Farenheit_to_Celsius(_data.outsideTemp/10.0));
 	/*************************************************************/
 	// Do not store inside humidity
 	/*************************************************************/
@@ -77,14 +77,14 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	/*************************************************************/
 	for (int i=0 ; i<3 ; i++) {
 		if (_data.extraTemp[1] != 255)
-			cass_statement_bind_float(statement, 10+i, from_Farenheight_to_Celsius(_data.extraTemp[i] - 90));
+			cass_statement_bind_float(statement, 10+i, from_Farenheit_to_Celsius(_data.extraTemp[i] - 90));
 	}
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
 		if (_data.soilTemp[i] != 255)
-			cass_statement_bind_float(statement, 17+i, from_Farenheight_to_Celsius(_data.soilTemp[i] - 90));
+			cass_statement_bind_float(statement, 17+i, from_Farenheit_to_Celsius(_data.soilTemp[i] - 90));
 		if (_data.leafTemp[i] != 255)
-			cass_statement_bind_float(statement, 21+i, from_Farenheight_to_Celsius(_data.leafTemp[i] - 90));
+			cass_statement_bind_float(statement, 21+i, from_Farenheit_to_Celsius(_data.leafTemp[i] - 90));
 		if (_data.extraHum[i] != 255)
 			cass_statement_bind_int32(statement, 25+i, _data.extraHum[i]);
 		if (_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15)
@@ -126,7 +126,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 57,
 			dew_point(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
 				_data.outsideHum
 			)
 		);
@@ -150,7 +150,7 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 60,
 			thsw_index(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
 				_data.outsideHum,
 				from_mph_to_mps(_data.avgWindSpeed)
 			)
@@ -205,7 +205,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 4,
 			dew_point(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
 				_data.outsideHum
 			)
 		);
@@ -216,7 +216,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	/*************************************************************/
 	for (int i=0 ; i<3 ; i++) {
 		if (_data.extraTemp[1] != 255)
-			cass_statement_bind_float(statement, 7+i, from_Farenheight_to_Celsius(_data.extraTemp[i] - 90));
+			cass_statement_bind_float(statement, 7+i, from_Farenheit_to_Celsius(_data.extraTemp[i] - 90));
 	}
 	/*************************************************************/
 	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
@@ -233,7 +233,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
 		if (_data.leafTemp[i] != 255)
-			cass_statement_bind_float(statement, 13+i, from_Farenheight_to_Celsius(_data.leafTemp[i] - 90));
+			cass_statement_bind_float(statement, 13+i, from_Farenheit_to_Celsius(_data.leafTemp[i] - 90));
 		if (_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15)
 			cass_statement_bind_int32(statement, 15+i, _data.leafWetness[i]);
 	}
@@ -242,7 +242,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 		cass_statement_bind_int32(statement, 17, _data.outsideHum);
 	/*************************************************************/
 	if (_data.outsideTemp != 32767)
-		cass_statement_bind_float(statement, 18, from_Farenheight_to_Celsius(_data.outsideTemp/10.0));
+		cass_statement_bind_float(statement, 18, from_Farenheit_to_Celsius(_data.outsideTemp/10.0));
 	/*************************************************************/
 	if (_data.maxRainRate != 65535)
 		cass_statement_bind_float(statement, 19, from_rainrate_to_mm(_data.maxRainRate));
@@ -258,7 +258,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	/*************************************************************/
 	for (int i=0 ; i<4 ; i++) {
 		if (_data.soilTemp[i] != 255)
-			cass_statement_bind_float(statement, 26+i, from_Farenheight_to_Celsius(_data.soilTemp[i] - 90));
+			cass_statement_bind_float(statement, 26+i, from_Farenheit_to_Celsius(_data.soilTemp[i] - 90));
 	}
 	/*************************************************************/
 	if (_data.solarRad != 32767)
@@ -267,7 +267,7 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255)
 		cass_statement_bind_float(statement, 31,
 			thsw_index(
-				from_Farenheight_to_Celsius(_data.outsideTemp / 10),
+				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
 				_data.outsideHum,
 				from_mph_to_mps(_data.avgWindSpeed)
 			)
@@ -304,11 +304,11 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 	}
 	/*************************************************************/
 	if (_data.minOutsideTemp != 32767) {
-		cass_statement_bind_float(statement, 38, from_Farenheight_to_Celsius(_data.minOutsideTemp/10.0));
+		cass_statement_bind_float(statement, 38, from_Farenheit_to_Celsius(_data.minOutsideTemp/10.0));
 	}
 	/*************************************************************/
 	if (_data.maxOutsideTemp != -32768) {
-		cass_statement_bind_float(statement, 39, from_Farenheight_to_Celsius(_data.maxOutsideTemp/10.0));
+		cass_statement_bind_float(statement, 39, from_Farenheit_to_Celsius(_data.maxOutsideTemp/10.0));
 	}
 }
 

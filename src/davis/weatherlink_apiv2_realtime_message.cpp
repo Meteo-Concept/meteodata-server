@@ -112,7 +112,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 				_obs.humidity = static_cast<int>(hum);
 			_obs.temperatureF = data.get<float>("temp", INVALID_FLOAT);
 			if (!isInvalid(_obs.temperatureF))
-				_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+				_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 			_obs.windDir = data.get<int>("wind_dir_scalar_avg_last_10_min", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed_hi_last_10_min", INVALID_FLOAT);
@@ -137,7 +137,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 				_obs.humidity = static_cast<int>(hum);
 			_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
 			if (!isInvalid(_obs.temperatureF))
-				_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+				_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 			_obs.windDir = data.get<int>("wind_dir", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_10_min_avg", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed", INVALID_FLOAT);
@@ -174,7 +174,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			if (isInvalid(_obs.temperature)) {
 				_obs.temperatureF = data.get<float>("temp", INVALID_FLOAT);
 				if (!isInvalid(_obs.temperatureF))
-					_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+					_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 			}
 			if (isInvalid(_obs.windDir)) {
 				_obs.windDir = data.get<int>("wind_dir_scalar_avg_last_10_min", INVALID_INT);

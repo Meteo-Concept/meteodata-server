@@ -153,7 +153,7 @@ void OgimetSynop::populateDataPoint(const CassUuid station, CassStatement* const
 	if (_data._meanTemperature && _humidity)
 		cass_statement_bind_float(statement, 58,
 			heat_index(
-				from_Celsius_to_Farenheight(*_data._meanTemperature / 10.),
+				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_humidity
 			)
 		);
@@ -161,7 +161,7 @@ void OgimetSynop::populateDataPoint(const CassUuid station, CassStatement* const
 	if (_data._meanTemperature && _wind_mps)
 		cass_statement_bind_float(statement, 59,
 			wind_chill(
-				from_Celsius_to_Farenheight(*_data._meanTemperature / 10.),
+				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_wind_mps * 3.6
 			)
 		);
@@ -238,7 +238,7 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 	if (_data._meanTemperature && _humidity)
 		cass_statement_bind_float(statement, 10,
 			heat_index(
-				from_Celsius_to_Farenheight(*_data._meanTemperature / 10.),
+				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_humidity
 			)
 		);
@@ -294,7 +294,7 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 	if (_data._meanTemperature && _wind_mps)
 		cass_statement_bind_float(statement, 33,
 			wind_chill(
-				from_Celsius_to_Farenheight(*_data._meanTemperature / 10.),
+				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_wind_mps * 3.6
 			)
 		);

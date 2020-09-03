@@ -72,7 +72,7 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
-			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
@@ -92,7 +92,7 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
-			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 		int windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		if (!isInvalid(windDir))
 			_obs.windDir = static_cast<int>(windDir * 22.5);
@@ -128,7 +128,7 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
-			_obs.temperature = from_Farenheight_to_Celsius(_obs.temperatureF);
+			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);

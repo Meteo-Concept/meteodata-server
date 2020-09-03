@@ -192,7 +192,7 @@ void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
 		if (!isInvalid(_obs.leafTemperature[i]))
-			cass_statement_bind_float(statement, 13+i, from_Farenheight_to_Celsius(_obs.leafTemperature[i]));
+			cass_statement_bind_float(statement, 13+i, from_Farenheit_to_Celsius(_obs.leafTemperature[i]));
 		if (!isInvalid(_obs.leafWetness[i]))
 			cass_statement_bind_int32(statement, 15+i,_obs.leafWetness[i]);
 	}
@@ -229,7 +229,7 @@ void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, 
 		if (!isInvalid(_obs.soilMoisture[i]))
 			cass_statement_bind_int32(statement, 22+i, _obs.soilMoisture[i]);
 		if (!isInvalid(_obs.soilTemperature[i]))
-			cass_statement_bind_float(statement, 26+i, from_Farenheight_to_Celsius(_obs.soilTemperature[i]));
+			cass_statement_bind_float(statement, 26+i, from_Farenheit_to_Celsius(_obs.soilTemperature[i]));
 	}
 	/*************************************************************/
 	if (!isInvalid(_obs.solarRad))
