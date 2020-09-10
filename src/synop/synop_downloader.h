@@ -55,18 +55,45 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 /**
+ * A downloader for recent (last three or so hours) SYNOP data from Ogimet
  */
 class SynopDownloader : public AbstractSynopDownloader
 {
 public:
-	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
+	/**
+	 * Construct the downloader
+	 *
+	 * @param ioService The Boost service to handle asynchronous events and
+	 * callbacks
+	 * @param db The connection to the observations database
+	 * @param group The prefix of the SYNOP stations to be downloaded (can
+	 * be an entire SYNOP to download just one station, or a country prefix
+	 * like 07 for France)
+	 */
+	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& group);
 	virtual void start() override;
 
-private:
+	/**
+	 * The SYNOP country prefix for France
+	 */
 	static constexpr char GROUP_FR[] = "07";
+	/**
+	 * The SYNOP country prefix for Luxemburg
+	 */
+	static constexpr char GROUP_LU[] = "06";
 
+private:
 	virtual chrono::minutes computeWaitDuration() override;
 	virtual void buildDownloadRequest(std::ostream& out) override;
+
+	/**
+	 * The prefix of the SYNOP stations to download
+	 *
+	 * It can be one of the static prefixes in this class like GROUP_FR, or
+	 * a complete SYNOP identifier, or anything that is a valid prefix for
+	 * SYNOP stations.
+	 */
+	const std::string _group;
 };
 
 }

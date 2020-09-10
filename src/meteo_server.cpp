@@ -85,8 +85,10 @@ void MeteoServer::start()
 	}
 
 	// Start the Synop downloader worker (one for all the SYNOP stations)
-	auto synopDownloader = std::make_shared<SynopDownloader>(_ioService, _db);
-	synopDownloader->start();
+	auto synopDownloaderFr = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_FR);
+	synopDownloaderFr->start();
+	auto synopDownloaderLu = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_LU);
+	synopDownloaderLu->start();
 
 	// Start the deferred SYNOP downloader worker (one for each deferred SYNOP)
 	std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
