@@ -61,6 +61,7 @@ int main(int argc, char** argv)
 	std::string address;
 	std::string weatherlinkApiV2Key;
 	std::string weatherlinkApiV2Secret;
+	unsigned long threads = 5;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -69,6 +70,7 @@ int main(int argc, char** argv)
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(&weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(&weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
+		("threads", po::value<unsigned long>(&threads), "number of threads to start to listen to ASIO events, defaults to 5")
 	;
 
 	po::options_description desc("Allowed options");
@@ -136,7 +138,16 @@ int main(int argc, char** argv)
 		boost::asio::io_service ioService;
 		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret);
 		server.start();
-		ioService.run();
+
+		std::vector<std::thread> workers;
+		// start all of the workers
+		for (unsigned long i=0 ; i<threads ; i++) {
+			workers.emplace_back([&]() { ioService.run(); });
+		}
+		// and wait for them to die
+		for (unsigned long i=0 ; i<threads ; i++) {
+			workers[i].join();
+		}
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
