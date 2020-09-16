@@ -227,6 +227,11 @@ void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip
 				auto newestTimestamp = page.getNewestMessageTime();
 				auto archiveDay = date::floor<date::days>(_lastArchive);
 				auto lastDay = date::floor<date::days>(end);
+				if (newestTimestamp <= _lastArchive) {
+					syslog(LOG_WARNING, "station %s: No new archive observation for one of the substations", _stationName.c_str());
+					std::cerr << "station " << _stationName << ": No new archive observation for (sub)station " << u << std::endl;
+					continue;
+				}
 				while (archiveDay <= lastDay) {
 					int ret = _db.deleteDataPoints(u, archiveDay, _lastArchive, newestTimestamp);
 
@@ -257,7 +262,7 @@ void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip
 			if (insertionOk)
 				_lastArchive = updatedTimestamp;
 		} catch (const sys::system_error& error) {
-			if (error.code() == asio::error::eof) {
+			if (error.code() == asio::error::eof && _lastArchive >= date) { // ensure we have got new data, otherwise, no point in retrying
 				syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.what());
 				std::cerr << "station " << _stationName << " Socket looks closed " << WeatherlinkDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
 				throw sys::system_error{asio::error::in_progress}; // The socket is closed but we made some progress so we use a different code to indicate that we're not stuck in an endless failure cycle
