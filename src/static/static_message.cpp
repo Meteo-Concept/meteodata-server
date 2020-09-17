@@ -100,8 +100,6 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 					_rainRate = std::stof(value);
 				} else if (var == "pluie_cumul_1h") {
 					_hourRainfall = std::stof(value);
-				} else if (var == "pluie_cumul") {
-					_dayRainfall = std::stof(value);
 				} else if (var == "pluie_actu") {
 					_computedRainfall = std::stof(value);
 				} else if (var == "radiations_solaires_wlk") {
@@ -122,13 +120,13 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 
 
 void StatICMessage::computeRainfall(float previousHourRainfall, float previousDayRainfall) {
-	if (_hourRainfall && !_computedRainfall) {
-		_computedRainfall = *_hourRainfall - previousHourRainfall;
+	if (_dayRainfall && !_computedRainfall) {
+		_computedRainfall = *_dayRainfall - previousDayRainfall;
 		if (*_computedRainfall < 0)
 			_computedRainfall = 0;
 	}
-	if (_dayRainfall && !_computedRainfall) {
-		_computedRainfall = *_dayRainfall - previousDayRainfall;
+	if (_hourRainfall && !_computedRainfall) {
+		_computedRainfall = *_hourRainfall - previousHourRainfall;
 		if (*_computedRainfall < 0)
 			_computedRainfall = 0;
 	}
