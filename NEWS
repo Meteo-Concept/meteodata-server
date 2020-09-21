@@ -1,3 +1,11 @@
+Version 0.17
+============
+
+	Sixth official release
+
+Metodata can now download data for stations registered through the FieldClimate
+API v2 (https://api.fieldclimate.com/v2/docs/) by Pessl®.
+
 Version 0.16
 ============
 

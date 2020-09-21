@@ -1,3 +1,7 @@
+2020-09-21	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Handle FieldClimate API (by Pessl®) stations
+
 2020-08-10	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Deal with Weatherkink IP archive data packets received
