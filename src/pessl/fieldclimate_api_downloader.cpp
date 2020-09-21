@@ -27,6 +27,8 @@
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <dbconnection_observations.h>
 #include <syslog.h>
 
@@ -73,6 +75,58 @@ FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station,
 	std::cerr << "Discovered Pessl station " << _stationName << std::endl;
 }
 
+date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+{
+	std::cerr << "Checking if new data is available for station " << _stationName << std::endl;
+
+	boost::asio::streambuf request;
+	std::ostream requestStream(&request);
+
+	using namespace date;
+
+	std::string route = "/data/" + _fieldclimateId;
+	std::string authorization;
+	std::string headerDate;
+	std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
+
+	requestStream << "GET " << "/v2" << route << " HTTP/1.0\r\n";
+	std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n";
+	requestStream << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
+		<< "Connection: keep-alive\r\n"
+		<< "Date: " << headerDate << "\r\n"
+		<< "Authorization: " << authorization << "\r\n"
+		<< "Accept: application/json\r\n\r\n";
+	std::cerr << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
+		<< "Connection: keep-alive\r\n"
+		<< "Date: " << headerDate << "\r\n"
+		<< "Authorization: " << authorization << "\r\n"
+		<< "Accept: application/json\r\n\r\n";
+
+	// Send the request.
+	std::size_t bytesWritten;
+	client.write(request, bytesWritten);
+
+	// Prepare the buffer and the stream on the buffer to receive the response.
+	asio::streambuf response{FieldClimateApiDownloader::MAXSIZE};
+	std::istream responseStream{&response};
+
+	getReponseFromHTTP10QueryFromClient(client, response, responseStream, FieldClimateApiDownloader::MAXSIZE, "application/json");
+	std::cerr << "Read all the content" << std::endl;
+
+	pt::ptree jsonTree;
+	pt::read_json(responseStream, jsonTree);
+	const std::string& maxDate = jsonTree.get<std::string>("max_date");
+	std::istringstream dateStream{maxDate};
+	date::local_seconds date;
+	dateStream >> date::parse("%Y-%m-%d %H:%M:%S", date);
+	date::sys_seconds dateInUTC = _timeOffseter.convertFromLocalTime(date);
+
+	return dateInUTC;
+
+	// this method might throw or leave the socket closed, it's the caller's
+	// responsability to check what state the socket is left in
+}
+
 void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
 {
 	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
@@ -82,13 +136,19 @@ void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip:
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
 
-	auto end = chrono::system_clock::now();
 	auto date = _lastArchive;
 
+	// may throw
+	date::sys_seconds lastAvailable = getLastDatetimeAvailable(client);
+	if (lastAvailable <= _lastArchive) {
+		std::cerr << "No new data available for station " << _stationName << ", bailing off" << std::endl;
+		return;
+	}
+
 	using namespace date;
-	std::cerr << "Last archive dates back from " << _lastArchive << "; now is " << end << std::endl;
-	std::cerr << "(approximately " << date::floor<date::days>(end - date) << " days)" << std::endl;
-	while (date < end) {
+	std::cerr << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << std::endl;
+	std::cerr << "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
+	while (date < lastAvailable) {
 		auto datePlus24Hours = date + chrono::hours{24};
 		std::ostringstream routeBuilder;
 		routeBuilder << "/data/"
@@ -134,39 +194,37 @@ void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip:
 			FieldClimateApiArchiveMessageCollection collection{&_timeOffseter, &_sensors};
 			collection.parse(responseStream);
 
-			if (collection.begin() == collection.end()) {
-				// No data that day, can happen if the station
+			if (collection.begin() != collection.end()) {
+				// Not having data can happen if the station
 				// malfunctioned
-				continue;
-			}
+				auto newestTimestamp = collection.getNewestMessageTime();
+				auto archiveDay = date::floor<date::days>(_lastArchive);
+				auto lastDay = date::floor<date::days>(lastAvailable);
+				while (archiveDay <= lastDay) {
+					int ret = _db.deleteDataPoints(_station, archiveDay, _lastArchive, newestTimestamp);
 
-			auto newestTimestamp = collection.getNewestMessageTime();
-			auto archiveDay = date::floor<date::days>(_lastArchive);
-			auto lastDay = date::floor<date::days>(end);
-			while (archiveDay <= lastDay) {
-				int ret = _db.deleteDataPoints(_station, archiveDay, _lastArchive, newestTimestamp);
-
-				if (!ret)
-					syslog(LOG_ERR, "station %s: Couldn't delete replaced observations", _stationName.c_str());
-				archiveDay += date::days(1);
-			}
-			for (const FieldClimateApiArchiveMessage& m : collection) {
-				int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
-				if (!ret) {
-					syslog(LOG_ERR, "station %s: Failed to insert archive observation for station", _stationName.c_str());
-					std::cerr << "station " << _stationName << ": Failed to insert archive observation for station " << _stationName << std::endl;
-					insertionOk = false;
+					if (!ret)
+						syslog(LOG_ERR, "station %s: Couldn't delete replaced observations", _stationName.c_str());
+					archiveDay += date::days(1);
 				}
-			}
-			if (insertionOk) {
-				std::cerr << "Archive data stored\n" << std::endl;
-				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-					std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
-				insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-				if (!insertionOk) {
-					syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
-				} else {
-					_lastArchive = newestTimestamp;
+				for (const FieldClimateApiArchiveMessage& m : collection) {
+					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+					if (!ret) {
+						syslog(LOG_ERR, "station %s: Failed to insert archive observation for station", _stationName.c_str());
+						std::cerr << "station " << _stationName << ": Failed to insert archive observation for station " << _stationName << std::endl;
+						insertionOk = false;
+					}
+				}
+				if (insertionOk) {
+					std::cerr << "Archive data stored\n" << std::endl;
+					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
+						std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
+					insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+					if (!insertionOk) {
+						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+					} else {
+						_lastArchive = newestTimestamp;
+					}
 				}
 			}
 
@@ -188,7 +246,7 @@ void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip:
 		}
 
 		date += chrono::hours{24};
-		if (date < end && !stillOpen)
+		if (date < lastAvailable && !stillOpen)
 			throw sys::system_error{asio::error::in_progress};
 	}
 }

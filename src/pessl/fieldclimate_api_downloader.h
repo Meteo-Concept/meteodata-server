@@ -180,6 +180,20 @@ private:
 	std::tuple<std::string, std::string> computeAuthorizationAndDateFields(
 		const std::string& method, const std::string& route
 	);
+
+	/**
+	 * @brief Get the datetime of the last datapoint available from the
+	 * FieldClimate API
+	 *
+	 * This method may throw or leave the socket closed, it's the caller's
+	 * responsability to check what state the socket is in.
+	 *
+	 * @param client the client used to download data, already connected and
+	 * ready to read/write
+	 *
+	 * @return the timestamp of the last data available from the API
+	 */
+	date::sys_seconds getLastDatetimeAvailable(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
 };
 
 }
