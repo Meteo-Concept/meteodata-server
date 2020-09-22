@@ -100,8 +100,8 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 					_rainRate = std::stof(value);
 				} else if (var == "pluie_cumul_1h") {
 					_hourRainfall = std::stof(value);
-				} else if (var == "pluie_actu") {
-					_computedRainfall = std::stof(value);
+				} else if (var == "pluie_cumul") {
+					_dayRainfall = std::stof(value);
 				} else if (var == "radiations_solaires_wlk") {
 					_solarRad = std::stoi(value);
 				} else if (var == "uv_wlk") {
