@@ -129,4 +129,13 @@ namespace meteodata
 		}
 		return t;
 	}
+
+	TimeOffseter TimeOffseter::getTimeOffseterFor(const std::string& tz)
+	{
+		TimeOffseter t;
+		t._byTimezone = true;
+		// may throw if tz is not a valid timezone
+		t._timezoneInfo.timezone = date::locate_zone(tz);
+		return t;
+	}
 }

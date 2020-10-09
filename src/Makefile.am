@@ -6,7 +6,8 @@ bin_PROGRAMS = \
 	       meteodata-weatherlink-oldxml-standalone \
 	       meteodata-weatherlink-apiv2-standalone \
 	       meteodata-static-standalone \
-	       meteodata-fieldclimate-api-standalone
+	       meteodata-fieldclimate-api-standalone\
+	       meteodata-wlk-standalone
 
 meteodata_SOURCES = \
 		    connector.cpp\
@@ -209,6 +210,15 @@ meteodata_fieldclimate_api_standalone_SOURCES = \
 		    pessl/fieldclimate_archive_message.cpp\
 		    pessl/fieldclimate_archive_message.h
 
+meteodata_wlk_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    davis/wlk_importer.cpp\
+		    davis/wlk_importer.h\
+		    davis/wlk_message.cpp\
+		    davis/wlk_message.h\
+		    davis/wlk_import_standalone.cpp
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
@@ -253,3 +263,8 @@ meteodata_fieldclimate_api_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_
 meteodata_fieldclimate_api_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_fieldclimate_api_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
 meteodata_fieldclimate_api_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+
+meteodata_wlk_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
+meteodata_wlk_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_wlk_standalone_LDFLAGS = 
+meteodata_wlk_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)

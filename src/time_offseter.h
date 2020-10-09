@@ -99,6 +99,7 @@ public:
 	void prepare(const VantagePro2TimezoneBuffer& buffer);
 
 	static TimeOffseter getTimeOffseterFor(PredefinedTimezone tz);
+	static TimeOffseter getTimeOffseterFor(const std::string& tz);
 
 	/**
 	 * @brief Convert a timestamp given as fields and expressed as station
