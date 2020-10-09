@@ -25,33 +25,25 @@
 #define STATICTXTDOWNLOADER_H
 
 #include <iostream>
-#include <memory>
-#include <array>
-#include <vector>
-#include <functional>
 #include <experimental/optional>
+#include <string>
+
 #include <syslog.h>
 #include <unistd.h>
 
-#include <boost/system/error_code.hpp>
-#include <boost/asio.hpp>
+#include <boost/asio/io_service.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date/date.h>
-#include <date/tz.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
 
 namespace meteodata {
 
-namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
-namespace chrono = std::chrono;
+namespace sys = boost::system;
 
-using namespace std::placeholders;
 using namespace meteodata;
 
 /**
@@ -67,6 +59,7 @@ private:
 	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	CassUuid _station;
+	std::string _stationName;
 	std::string _host;
 	std::string _url;
 	bool _https;
@@ -77,8 +70,6 @@ private:
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
 	void download();
-	void sendRequestHttps(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream);
-	void sendRequestHttp(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream);
 };
 
 }

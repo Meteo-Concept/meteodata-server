@@ -32,6 +32,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
+#include <curl/curl.h>
 #include <dbconnection_observations.h>
 
 #include "config.h"
@@ -139,6 +140,7 @@ int main(int argc, char** argv)
 	cass_log_set_callback(logCallback, NULL);
 
 	try {
+		curl_global_init(CURL_GLOBAL_SSL);
 		boost::asio::io_service ioService;
 		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret, fieldClimateKey, fieldClimateSecret);
 		server.start();
@@ -155,11 +157,13 @@ int main(int argc, char** argv)
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
+		curl_global_cleanup();
 		syslog(LOG_ERR, "%s", e.what());
 		closelog();
 		return 255;
 	}
 
 	// clean exit, not reached in daemon mode
+	curl_global_cleanup();
 	closelog();
 }

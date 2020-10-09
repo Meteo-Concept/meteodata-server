@@ -29,18 +29,13 @@
 #include <tuple>
 
 #include <boost/system/error_code.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include <dbconnection_observations.h>
 #include <cassandra.h>
 
 #include "../time_offseter.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata {
-
-namespace ip = boost::asio::ip;
-namespace asio = boost::asio;
 
 using namespace meteodata;
 
@@ -80,7 +75,7 @@ public:
 	 * @param client the client used to download data, already connected and
 	 * ready to read/write
 	 */
-	void download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	void download(CurlWrapper& client);
 
 	/**
 	 * @brief Download the last data packet available in FieldClimate
@@ -88,7 +83,14 @@ public:
 	 * @param client the client used to download data, already connected and
 	 * ready to read/write
 	 */
-	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	void downloadRealTime(CurlWrapper& client);
+
+	/**
+	 * @brief The host name of the FieldClimate API server
+	 */
+	static constexpr char APIHOST[] = "api.fieldclimate.com";
+
+	static const std::string BASE_URL;
 
 private:
 	/**
@@ -193,7 +195,7 @@ private:
 	 *
 	 * @return the timestamp of the last data available from the API
 	 */
-	date::sys_seconds getLastDatetimeAvailable(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	date::sys_seconds getLastDatetimeAvailable(CurlWrapper& client);
 };
 
 }

@@ -26,6 +26,7 @@
 #include <functional>
 #include <iterator>
 #include <chrono>
+#include <thread>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -41,7 +42,6 @@
 #include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
 #include "../http_utils.h"
-#include "../blocking_tcp_client.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -51,7 +51,6 @@ namespace args = std::placeholders;
 
 namespace meteodata {
 
-constexpr char FieldClimateApiDownloadScheduler::APIHOST[];
 constexpr int FieldClimateApiDownloadScheduler::POLLING_PERIOD;
 
 
@@ -69,13 +68,6 @@ FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(
 {
 }
 
-asio::ssl::context FieldClimateApiDownloadScheduler::createSslContext()
-{
-	asio::ssl::context sslContext{asio::ssl::context::sslv23};
-	sslContext.set_default_verify_paths();
-	return sslContext;
-}
-
 void FieldClimateApiDownloadScheduler::add(
 	const CassUuid& station, const std::string& fieldClimateId,
 	TimeOffseter::PredefinedTimezone tz,
@@ -90,36 +82,17 @@ void FieldClimateApiDownloadScheduler::start()
 	waitUntilNextDownload();
 }
 
-void FieldClimateApiDownloadScheduler::connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
-{
-	std::cerr << "Resetting" << std::endl;
-	client.reset(createSslContext());
-	std::cerr << "Reset" << std::endl;
-	auto& socket = client.socket();
-	if(!SSL_set_tlsext_host_name(socket.native_handle(), APIHOST))
-	{
-		sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-		throw boost::system::system_error{ec};
-	}
-	std::cerr << "Connecting" << std::endl;
-	client.connect(APIHOST, "https");
-	std::cerr << "Connected" << std::endl;
-
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(APIHOST));
-	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-	std::cerr << "Handshaked" << std::endl;
-}
-
 void FieldClimateApiDownloadScheduler::downloadArchives()
 {
-	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> sslClient(chrono::seconds(5), createSslContext());
-	connectClient(sslClient);
-	int retry = 0;
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
-		genericDownload(sslClient, [it](auto& client) { (*it)->download(client); }, retry);
-		if (!retry)
-			++it;
+	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
+		try {
+			(*it)->download(_client);
+			// Wait for 100ms to limit the number of requests is
+			// capped at 10 per second
+			std::this_thread::sleep_for(chrono::milliseconds(100));
+		} catch (const std::runtime_error& e) {
+			std::cerr << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+		}
 	}
 }
 

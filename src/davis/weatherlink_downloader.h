@@ -43,7 +43,7 @@
 #include "abstract_weatherlink_downloader.h"
 #include "vantagepro2_archive_page.h"
 #include "../time_offseter.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata {
 
@@ -62,12 +62,16 @@ public:
 	WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
 		const std::string& apiToken, DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void download(BlockingTcpClient<ip::tcp::socket>& client);
-	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	void download(CurlWrapper& client);
+	void downloadRealTime(CurlWrapper& client);
 
 private:
 	std::string _authentication;
 	std::string _apiToken;
+	static const std::string REALTIME_BASE_URL;
+	static const std::string ARCHIVE_BASE_URL;
+
+	void logAndThrowCurlError(CurlWrapper& client, const std::string& host);
 };
 
 }

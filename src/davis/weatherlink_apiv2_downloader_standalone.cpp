@@ -41,6 +41,7 @@
 #include "../cassandra_utils.h"
 #include "weatherlink_apiv2_downloader.h"
 #include "weatherlink_download_scheduler.h"
+#include "../curl_wrapper.h"
 
 /**
  * @brief The configuration file default path
@@ -54,21 +55,6 @@ namespace po = boost::program_options;
 constexpr char meteodata::WeatherlinkDownloadScheduler::HOST[];
 constexpr char meteodata::WeatherlinkDownloadScheduler::APIHOST[];
 constexpr int meteodata::WeatherlinkDownloadScheduler::POLLING_PERIOD;
-
-namespace {
-	void connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client) {
-		auto& socket = client.socket();
-		if(!SSL_set_tlsext_host_name(socket.native_handle(), WeatherlinkDownloadScheduler::APIHOST))
-		{
-			sys::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
-			throw sys::system_error{ec};
-		}
-		client.connect(WeatherlinkDownloadScheduler::APIHOST, "https");
-		socket.set_verify_mode(asio::ssl::verify_peer);
-		socket.set_verify_callback(asio::ssl::rfc2818_verification(WeatherlinkDownloadScheduler::APIHOST));
-		socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-	}
-}
 
 /**
  * @brief Entry point
@@ -167,18 +153,12 @@ int main(int argc, char** argv)
 		db.getAllWeatherlinkAPIv2Stations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
-		// Open the TLS stream
-		asio::ssl::context ctx(asio::ssl::context::sslv23);
-		ctx.set_default_verify_paths();
-		BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
-		connectClient(client);
+		CurlWrapper client;
 
-		int retry = 0;
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
 			const auto& station = *it;
 			if (!userSelection.empty()) {
 				if (userSelection.find(std::get<0>(station)) == userSelection.cend()) {
-					retry = 0;
 					++it;
 					continue;
 				}
@@ -190,42 +170,18 @@ int main(int argc, char** argv)
 				weatherlinkApiV2Key, weatherlinkApiV2Secret,
 				db, TimeOffseter::PredefinedTimezone(0)
 			};
-			try {
-				if (!std::get<1>(station)) {
-					std::cerr << "No access to archives for station " << std::get<0>(station) << std::endl;
-					retry = 0;
-					++it;
-					continue;
-				}
-				downloader.download(client);
-				retry = 0;
+			if (!std::get<1>(station)) {
+				std::cerr << "No access to archives for station " << std::get<0>(station) << std::endl;
 				++it;
-			} catch (const sys::system_error& e) {
-				retry++;
-				if (e.code() == asio::error::in_progress) {
-					std::cerr << "Lost connection to server while attempting to download, but some progress was made, keeping up the work." << std::endl;
-					ctx = asio::ssl::context(asio::ssl::context::sslv23);
-					ctx.set_default_verify_paths();
-					client.reset(std::move(ctx));
-					connectClient(client);
-
-					retry = 0;
-				} else if (e.code() == asio::error::eof) {
-					std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-					ctx = asio::ssl::context(asio::ssl::context::sslv23);
-					ctx.set_default_verify_paths();
-					client.reset(std::move(ctx));
-					connectClient(client);
-
-					if (retry >= 2) {
-						std::cerr << "Tried twice already, moving on..." << std::endl;
-						retry =  0;
-						++it;
-					}
-				} else {
-					throw e;
-				}
+				continue;
 			}
+			try {
+				downloader.download(client);
+			} catch (std::runtime_error& e) {
+				std::cerr << "Getting the archive data failed: " << e.what() << std::endl;
+			}
+
+			++it;
 		}
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon

@@ -30,6 +30,7 @@
 #include <chrono>
 #include <limits>
 #include <iostream>
+#include <optional>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -53,11 +54,12 @@ namespace pt = boost::property_tree;
 class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, public WeatherlinkApiv2ParserTrait
 {
 public:
-	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter);
+	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain);
 	virtual void parse(std::istream& input) override;
 	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
 
 private:
+    std::optional<float> _dayRain;
 	void doParse(std::istream& input, const Acceptor& acceptable);
 	constexpr bool compareDataPackages(
 		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,

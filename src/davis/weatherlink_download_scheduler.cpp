@@ -41,7 +41,7 @@
 #include "weatherlink_download_scheduler.h"
 #include "weatherlink_downloader.h"
 #include "../http_utils.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -69,13 +69,6 @@ WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioS
 {
 }
 
-asio::ssl::context WeatherlinkDownloadScheduler::createSslContext()
-{
-	asio::ssl::context sslContext{asio::ssl::context::sslv23};
-	sslContext.set_default_verify_paths();
-	return sslContext;
-}
-
 void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::string& auth,
 	const std::string& apiToken, TimeOffseter::PredefinedTimezone tz)
 {
@@ -97,81 +90,30 @@ void WeatherlinkDownloadScheduler::start()
 	waitUntilNextDownload();
 }
 
-void WeatherlinkDownloadScheduler::connectClient(BlockingTcpClient<ip::tcp::socket>& client, const char host[])
-{
-	client.reset();
-	client.connect(host, "http");
-}
-
-void WeatherlinkDownloadScheduler::connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client, const char host[])
-{
-	std::cerr << "Resetting" << std::endl;
-	client.reset(createSslContext());
-	std::cerr << "Reset" << std::endl;
-	auto& socket = client.socket();
-	if(!SSL_set_tlsext_host_name(socket.native_handle(), host))
-	{
-		sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-		throw boost::system::system_error{ec};
-	}
-	std::cerr << "Connecting" << std::endl;
-	client.connect(host, "https");
-	std::cerr << "Connected" << std::endl;
-
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(host));
-	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-	std::cerr << "Handshaked" << std::endl;
-}
-
 void WeatherlinkDownloadScheduler::downloadRealTime()
 {
-	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), createSslContext());
-
 	auto now = date::floor<chrono::minutes>(chrono::system_clock::now()).time_since_epoch().count();
 
-	connectClient(client, APIHOST);
-	int retry = 0;
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
+	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
 		if ((*it)->getPollingPeriod() <= POLLING_PERIOD || now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
-			genericDownload(client, APIHOST, [it](auto& client) { (*it)->downloadRealTime(client); }, retry);
-		if (!retry)
-			++it;
+			genericDownload([it](auto& client) { (*it)->downloadRealTime(client); });
 	}
 
-	retry = 0;
-	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ) {
+	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
 		if (now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
-			genericDownload(client, APIHOST, [it](auto& client) { (it->second)->downloadRealTime(client); }, retry);
-		if (!retry)
-			++it;
+			genericDownload([it](auto& client) { (it->second)->downloadRealTime(client); });
 	}
 }
 
 void WeatherlinkDownloadScheduler::downloadArchives()
 {
-	{ // scope of the socket
-		BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
-		connectClient(client, HOST);
-		int retry = 0;
-
-		for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ) {
-			genericDownload(client, HOST, [it](auto& client) { (*it)->download(client); }, retry);
-			if (!retry)
-				++it;
-		}
+	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
+		genericDownload([it](auto& client) { (*it)->download(client); });
 	}
 
-	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> sslClient(chrono::seconds(5), createSslContext());
-	connectClient(sslClient, APIHOST);
-	int retry = 0;
-	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ) {
+	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
 		if (it->first) { // only download archives from archived stations
-			genericDownload(sslClient, APIHOST, [it](auto& client) { (it->second)->download(client); }, retry);
-			if (!retry)
-				++it;
-		} else {
-			++it;
+			genericDownload([it](auto& client) { (it->second)->download(client); });
 		}
 	}
 }

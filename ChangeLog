@@ -1,3 +1,7 @@
+2020-10-02	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Make all HTTP(S) queries using libcurl
+
 2020-09-21	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Handle FieldClimate API (by Pessl®) stations

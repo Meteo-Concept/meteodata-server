@@ -38,6 +38,7 @@
 
 #include "config.h"
 #include "../cassandra_utils.h"
+#include "../curl_wrapper.h"
 #include "weatherlink_downloader.h"
 #include "weatherlink_download_scheduler.h"
 
@@ -149,8 +150,7 @@ int main(int argc, char** argv)
 		db.getAllWeatherlinkStations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
-		BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
-		client.connect(WeatherlinkDownloadScheduler::HOST, "http");
+		CurlWrapper client;
 
 		int retry = 0;
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
@@ -171,17 +171,13 @@ int main(int argc, char** argv)
 				downloader.download(client);
 				retry = 0;
 				++it;
-			} catch (const sys::system_error& e) {
+				std::this_thread::sleep_for(chrono::milliseconds(100));
+			} catch (const std::runtime_error& e) {
 				retry++;
-				if (e.code() == asio::error::eof) {
-					std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-					client.reset();
-					client.connect(WeatherlinkDownloadScheduler::HOST, "http");
-					if (retry >= 2) {
-						std::cerr << "Tried twice already, moving on..." << std::endl;
-						retry =  0;
-						++it;
-					}
+				if (retry >= 2) {
+					std::cerr << "Tried twice already, moving on..." << std::endl;
+					retry =  0;
+					++it;
 				} else {
 					throw e;
 				}

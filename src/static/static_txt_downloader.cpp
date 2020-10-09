@@ -22,32 +22,20 @@
  */
 
 #include <iostream>
-#include <memory>
 #include <functional>
-#include <iterator>
 #include <chrono>
-#include <map>
-#include <sstream>
-#include <iomanip>
 
-#include <fstream>
-
-#include <cstring>
-#include <cctype>
 #include <syslog.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/asio/io_service.hpp>
 #include <date/date.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
-#include "../http_utils.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 #include "static_txt_downloader.h"
 #include "static_message.h"
 
@@ -57,9 +45,7 @@
 #define BUFFER_MAX_SIZE 4096
 
 namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
@@ -80,9 +66,8 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 	float latitude;
 	float longitude;
 	int elevation;
-	std::string stationName;
 	int pollingPeriod;
-	db.getStationCoordinates(station, latitude, longitude, elevation, stationName, pollingPeriod);
+	db.getStationCoordinates(station, latitude, longitude, elevation, _stationName, pollingPeriod);
 
 	// Timezone is supposed to always be UTC for StatIC files, but it's better not to rely
 	// on station owners to never misconfigure their station
@@ -137,26 +122,17 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void StatICTxtDownloader::download()
 {
-	try {
-		// Form the request. We specify the "Connection: close" header so that the
-		// server will close the socket after transmitting the response. This will
-		// allow us to treat all data up until the EOF as the content.
-		boost::asio::streambuf request;
-		std::ostream requestStream(&request);
-		std::cerr << "GET " << _url << " HTTP/1.0\r\n";
-		requestStream << "GET " << _url << " HTTP/1.0\r\n";
-		requestStream << "Host: " << _host << "\r\n";
-		requestStream << "Accept: */*\r\n";
-		requestStream << "Connection: close\r\n\r\n";
+	std::cerr << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
 
-		asio::streambuf response{StatICMessage::MAXSIZE};
-		std::istream responseStream{&response};
+	std::ostringstream query;
+	query << (_https ? "https://" : "http://")
+	      << _host
+	      << _url;
 
-		if (_https) {
-			sendRequestHttps(request, response, responseStream);
-		} else {
-			sendRequestHttp(request, response, responseStream);
-		}
+	CurlWrapper client;
+
+	CURLcode ret = client.download(query.str(), [&](const std::string& body) {
+		std::istringstream responseStream{body};
 
 		StatICMessage m{responseStream, _timeOffseter};
 		if (!m) {
@@ -177,7 +153,10 @@ void StatICTxtDownloader::download()
 			auto downloadTime = m.getDateTime();
 			auto end = chrono::system_clock::to_time_t(downloadTime);
 			auto begin1h = chrono::system_clock::to_time_t(downloadTime - chrono::hours(1));
-			auto beginDay = chrono::system_clock::to_time_t(date::floor<date::days>(downloadTime));
+
+			date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(downloadTime));
+			date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
+			auto beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
 			float f1h, fDay;
 			if (_db.getRainfall(_station, begin1h, end, f1h) && _db.getRainfall(_station, beginDay, end, fDay))
 				m.computeRainfall(f1h, fDay);
@@ -191,74 +170,15 @@ void StatICTxtDownloader::download()
 			std::cerr << "Inserted into database" << std::endl;
 		else
 			std::cerr << "Insertion into database failed" << std::endl;
-	} catch (const sys::system_error& error) {
-		if (error.code() == asio::error::eof) {
-			syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _url.c_str(), _host.c_str(), error.what());
-			std::cerr << "station " << _url << " Socket looks closed " << _host << ": " << error.what() << std::endl;
-			return;
-		} else {
-			syslog(LOG_ERR, "station %s: Bad response for %s: %s", _url.c_str(), _host.c_str(), error.what());
-			std::cerr << "station " << _url << " Bad response from " << _host << ": " << error.what() << std::endl;
-			return;
-		}
+	});
 
-	} catch (std::runtime_error& error) {
-		syslog(LOG_ERR, "station %s: Bad response for %s: %s", _url.c_str(), _host.c_str(), error.what());
-		std::cerr << "station " << _url << " Bad response from " << _host << ": " << error.what() << std::endl;
-		return;
+	if (ret != CURLE_OK) {
+		std::string_view error = client.getLastError();
+		std::ostringstream errorStream;
+		errorStream << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error;
+		std::string errorMsg = errorStream.str();
+		syslog(LOG_ERR, "%s", errorMsg.data());
 	}
-}
-
-void StatICTxtDownloader::sendRequestHttps(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream)
-{
-	std::cerr << "Now downloading a StatIC file over HTTPS " << std::endl;
-
-	// Make a SSL context
-	asio::ssl::context ctx(asio::ssl::context::sslv23);
-	ctx.set_default_verify_paths();
-
-	// Try each endpoint until we successfully establish a connection.
-	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
-	auto& socket = client.socket();
-
-        // Set SNI Hostname (many hosts need this to handshake successfully)
-        if (!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
-        {
-            sys::error_code ec{static_cast<int>(::ERR_get_error()), boost::asio::error::get_ssl_category()};
-	    throw sys::system_error(ec);
-        }
-	client.connect(_host, "https");
-
-	// Verify the remote
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(_host));
-	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
-
-	// Get the response into the response stream and check the status and headers
-	// this places the response stream iterator at the beginning of the body
-	getReponseFromHTTP10QueryFromClient(client, response, responseStream, StatICMessage::MAXSIZE, "");
-}
-
-void StatICTxtDownloader::sendRequestHttp(asio::streambuf& request, asio::streambuf& response, std::istream& responseStream)
-{
-	std::cerr << "Now downloading a StatIC file over HTTP " << std::endl;
-
-	// Try each endpoint until we successfully establish a connection.
-	BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
-
-	client.connect(_host, "http");
-
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
-
-	// Get the response into the response stream and check the status and headers
-	// this places the response stream iterator at the beginning of the body
-	getReponseFromHTTP10QueryFromClient(client, response, responseStream, StatICMessage::MAXSIZE, "");
 }
 
 }

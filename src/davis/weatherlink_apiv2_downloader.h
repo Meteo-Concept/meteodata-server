@@ -39,7 +39,7 @@
 #include "abstract_weatherlink_downloader.h"
 #include "weatherlink_apiv2_archive_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata {
 
@@ -59,8 +59,8 @@ public:
 		const std::string& apiKey, const std::string& apiSecret,
 		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
-	void downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
+	void download(CurlWrapper& client);
+	void downloadRealTime(CurlWrapper& client);
 
 private:
 	const std::string& _apiKey;
@@ -89,6 +89,10 @@ private:
 	std::set<CassUuid> _uuids;
 
 	std::string computeApiSignature(const Params& params);
+
+	void logAndThrowCurlError(CurlWrapper& client);
+
+	static const std::string BASE_URL;
 };
 
 }

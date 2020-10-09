@@ -23,26 +23,30 @@
 
 #include <string>
 #include <tuple>
+#include <map>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <dbconnection_observations.h>
+#include <date.h>
 #include <syslog.h>
+#include <cassandra.h>
 
 #include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
 #include "fieldclimate_archive_message_collection.h"
 #include "fieldclimate_archive_message.h"
 #include "../time_offseter.h"
-#include "../blocking_tcp_client.h"
 #include "../http_utils.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata {
 
-namespace ip = boost::asio::ip;
+constexpr char FieldClimateApiDownloader::APIHOST[];
+const std::string FieldClimateApiDownloader::BASE_URL = std::string{"https://"} + FieldClimateApiDownloader::APIHOST + "/v2";
+
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
@@ -75,12 +79,9 @@ FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station,
 	std::cerr << "Discovered Pessl station " << _stationName << std::endl;
 }
 
-date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrapper& client)
 {
 	std::cerr << "Checking if new data is available for station " << _stationName << std::endl;
-
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
 
 	using namespace date;
 
@@ -89,45 +90,30 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(BlockingTc
 	std::string headerDate;
 	std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
 
-	requestStream << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-	std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-	requestStream << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
-		<< "Connection: keep-alive\r\n"
+	std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n"
 		<< "Date: " << headerDate << "\r\n"
 		<< "Authorization: " << authorization << "\r\n"
 		<< "Accept: application/json\r\n\r\n";
-	std::cerr << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
-		<< "Connection: keep-alive\r\n"
-		<< "Date: " << headerDate << "\r\n"
-		<< "Authorization: " << authorization << "\r\n"
-		<< "Accept: application/json\r\n\r\n";
+	client.setHeader("Authorization", authorization);
+	client.setHeader("Date", headerDate);
+	client.setHeader("Accept", "application/json");
 
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
+	date::sys_seconds dateInUTC;
 
-	// Prepare the buffer and the stream on the buffer to receive the response.
-	asio::streambuf response{FieldClimateApiDownloader::MAXSIZE};
-	std::istream responseStream{&response};
-
-	getReponseFromHTTP10QueryFromClient(client, response, responseStream, FieldClimateApiDownloader::MAXSIZE, "application/json");
-	std::cerr << "Read all the content" << std::endl;
-
-	pt::ptree jsonTree;
-	pt::read_json(responseStream, jsonTree);
-	const std::string& maxDate = jsonTree.get<std::string>("max_date");
-	std::istringstream dateStream{maxDate};
-	date::local_seconds date;
-	dateStream >> date::parse("%Y-%m-%d %H:%M:%S", date);
-	date::sys_seconds dateInUTC = _timeOffseter.convertFromLocalTime(date);
+	client.download(BASE_URL + route, [&](const std::string& body) {
+		pt::ptree jsonTree;
+		pt::read_json(body, jsonTree);
+		const std::string& maxDate = jsonTree.get<std::string>("max_date");
+		std::istringstream dateStream{maxDate};
+		date::local_seconds date;
+		dateStream >> date::parse("%Y-%m-%d %H:%M:%S", date);
+		dateInUTC = _timeOffseter.convertFromLocalTime(date);
+	});
 
 	return dateInUTC;
-
-	// this method might throw or leave the socket closed, it's the caller's
-	// responsability to check what state the socket is left in
 }
 
-void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+void FieldClimateApiDownloader::download(CurlWrapper& client)
 {
 	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
 
@@ -162,32 +148,20 @@ void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip:
 		std::string headerDate;
 		std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
 
-		requestStream << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-		std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-		requestStream << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
-			<< "Connection: keep-alive\r\n"
+		client.setHeader("Authorization", authorization);
+		client.setHeader("Date", headerDate);
+		client.setHeader("Accept", "application/json");
+
+		std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
+			<< "Host: " << APIHOST << "\r\n"
 			<< "Date: " << headerDate << "\r\n"
 			<< "Authorization: " << authorization << "\r\n"
 			<< "Accept: application/json\r\n\r\n";
-		std::cerr << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
-			<< "Connection: keep-alive\r\n"
-			<< "Date: " << headerDate << "\r\n"
-			<< "Authorization: " << authorization << "\r\n"
-			<< "Accept: application/json\r\n\r\n";
 
 
-		// Send the request.
-		std::size_t bytesWritten;
-		client.write(request, bytesWritten);
-
-		// Prepare the buffer and the stream on the buffer to receive the response.
-		asio::streambuf response{FieldClimateApiDownloader::MAXSIZE};
-		std::istream responseStream{&response};
-
-		bool stillOpen = true;
-		try {
-			stillOpen = getReponseFromHTTP10QueryFromClient(client, response, responseStream, FieldClimateApiDownloader::MAXSIZE, "application/json");
+		CURLcode ret = client.download(BASE_URL + route, [&](const std::string& body) {
 			std::cerr << "Read all the content" << std::endl;
+			std::istringstream responseStream(body);
 
 			bool insertionOk = true;
 
@@ -227,38 +201,27 @@ void FieldClimateApiDownloader::download(BlockingTcpClient<asio::ssl::stream<ip:
 					}
 				}
 			}
+		});
 
-		} catch (const sys::system_error& error) {
-			if (error.code() == asio::error::eof) {
-				syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _stationName.c_str(), FieldClimateApiDownloadScheduler::APIHOST, error.what());
-				std::cerr << "station " << _stationName << " Socket looks closed " << FieldClimateApiDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-				throw sys::system_error{asio::error::in_progress}; // The socket is closed but we made some progress so we use a different code to indicate that we're not stuck in an endless failure cycle
-			} else {
-				syslog(LOG_ERR, "station %s: Bad response for %s: %s", _stationName.c_str(), FieldClimateApiDownloadScheduler::APIHOST, error.what());
-				std::cerr << "station " << _stationName << " Bad response from " << FieldClimateApiDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-				throw error;
-			}
-
-		} catch (std::runtime_error& error) {
-			syslog(LOG_ERR, "station %s: Bad response for %s: %s", _stationName.c_str(), FieldClimateApiDownloadScheduler::APIHOST, error.what());
-			std::cerr << "station " << _stationName << " Bad response from " << FieldClimateApiDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-			throw error;
+		if (ret != CURLE_OK) {
+			std::string_view error = client.getLastError();
+			std::ostringstream errorStream;
+			errorStream << "station " << _stationName << " Bad response from " << APIHOST << ": " << error;
+			std::string errorMsg = errorStream.str();
+			syslog(LOG_ERR, "%s", errorMsg.data());
+			std::cerr << errorMsg << std::endl;
+			throw std::runtime_error(errorMsg);
 		}
 
 		date += chrono::hours{24};
-		if (date < lastAvailable && !stillOpen)
+		if (date < lastAvailable)
 			throw sys::system_error{asio::error::in_progress};
 	}
 }
 
-void FieldClimateApiDownloader::downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 {
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
-
-	// Form the request. We specify the "Connection: keep-alive" header so that the
-	// will be usable by other downloaders.
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
 
 	std::ostringstream routeBuilder;
 	routeBuilder << "/data/"
@@ -269,29 +232,21 @@ void FieldClimateApiDownloader::downloadRealTime(BlockingTcpClient<asio::ssl::st
 	std::string headerDate;
 	std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
 
-	requestStream << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-	std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n";
-	requestStream << "Host: " << FieldClimateApiDownloadScheduler::APIHOST << "\r\n"
-		<< "Connection: keep-alive\r\n"
+	client.setHeader("Authorization", authorization);
+	client.setHeader("Date", headerDate);
+	client.setHeader("Accept", "application/json");
+
+	std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
+		<< "Host: " << APIHOST << "\r\n"
 		<< "Date: " << headerDate << "\r\n"
 		<< "Authorization: " << authorization << "\r\n"
 		<< "Accept: application/json\r\n\r\n";
 
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
 
-	// Prepare the buffer and the stream on the buffer to receive the response.
-	asio::streambuf response{FieldClimateApiDownloader::MAXSIZE};
-	std::istream responseStream{&response};
+	CURLcode ret = client.download(BASE_URL + route, [&,this](const std::string& body) {
+		std::istringstream responseStream{body};
 
-	try {
-		getReponseFromHTTP10QueryFromClient(client, response, responseStream, FieldClimateApiDownloader::MAXSIZE, "application/json");
 		std::cerr << "Read all the content" << std::endl;
-
-		// Store the content because if we must read it several times
-		std::string content;
-		std::copy(std::istream_iterator<char>(responseStream), std::istream_iterator<char>(), std::back_inserter(content));
 
 		FieldClimateApiArchiveMessageCollection collection{&_timeOffseter, &_sensors};
 		collection.parse(responseStream);
@@ -315,10 +270,16 @@ void FieldClimateApiDownloader::downloadRealTime(BlockingTcpClient<asio::ssl::st
 		if (insertionOk) {
 			std::cerr << "Realtime data stored\n" << std::endl;
 		}
-	} catch (std::runtime_error& error) {
-		syslog(LOG_ERR, "station %s: Bad response for %s: %s", _stationName.c_str(), FieldClimateApiDownloadScheduler::APIHOST, error.what());
-		std::cerr << "station " << _stationName << " Bad response from " << FieldClimateApiDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-		throw error;
+	});
+
+	if (ret != CURLE_OK) {
+		std::string_view error = client.getLastError();
+		std::ostringstream errorStream;
+		errorStream << "station " << _stationName << " Bad response from " << APIHOST << ": " << error;
+		std::string errorMsg = errorStream.str();
+		syslog(LOG_ERR, "%s", errorMsg.data());
+		std::cerr << errorMsg << std::endl;
+		throw std::runtime_error(errorMsg);
 	}
 }
 

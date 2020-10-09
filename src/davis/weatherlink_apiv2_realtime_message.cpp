@@ -63,9 +63,10 @@ constexpr bool WeatherlinkApiv2RealtimeMessage::compareDataPackages(
 	return true;
 }
 
-WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter) :
+WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain) :
 	AbstractWeatherlinkApiMessage(timeOffseter),
-	WeatherlinkApiv2ParserTrait()
+	WeatherlinkApiv2ParserTrait(),
+	_dayRain(dayRain)
 {}
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
@@ -144,9 +145,9 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			auto rainRate = data.get<int>("rain_rate_clicks", INVALID_INT);
 			if (!isInvalid(rainRate))
 				_obs.rainRate = from_rainrate_to_mm(rainRate);
-			auto rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
-			if (!isInvalid(rainFall))
-				_obs.rainFall = from_rainrate_to_mm(rainFall);
+			auto rainFall = data.get<float>("rain_day_mm", INVALID_FLOAT);
+			if (!isInvalid(rainFall) && _dayRain)
+				_obs.rainFall = rainFall - *_dayRain;
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 			_obs.uvIndex = data.get<float>("uv", INVALID_FLOAT);
 			_obs.extraHumidity[0] = data.get<int>("hum_extra_1", INVALID_INT);

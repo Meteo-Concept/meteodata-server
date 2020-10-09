@@ -97,23 +97,20 @@ void SynopDownloader::buildDownloadRequest(std::ostream& out)
 	auto h   = tod.hours().count();
 	auto min = 30;
 
-	std::cerr << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
+	std::cerr << "/cgi-bin/getsynop?begin=" << std::setfill('0')
 		<< std::setw(4) << y
 		<< std::setw(2) << m
 		<< std::setw(2) << d
 		<< std::setw(2) << h
 		<< std::setw(2) << min
-		<< "&block=" << _group << " HTTP/1.0\r\n";
-	out << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
+		<< "&block=" << _group;
+	out << "/cgi-bin/getsynop?begin=" << std::setfill('0')
 		<< std::setw(4) << y
 		<< std::setw(2) << m
 		<< std::setw(2) << d
 		<< std::setw(2) << h
 		<< std::setw(2) << min
-		<< "&block=" << _group << " HTTP/1.0\r\n";
-	out << "Host: " << HOST << "\r\n";
-	out << "Accept: */*\r\n";
-	out << "Connection: close\r\n\r\n";
+		<< "&block=" << _group;
 }
 
 }

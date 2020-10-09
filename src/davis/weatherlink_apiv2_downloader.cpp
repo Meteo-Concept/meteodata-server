@@ -44,6 +44,7 @@
 #include "../time_offseter.h"
 #include "../http_utils.h"
 #include "../cassandra_utils.h"
+#include "../curl_wrapper.h"
 #include "weatherlink_apiv2_realtime_message.h"
 #include "weatherlink_apiv2_archive_page.h"
 #include "weatherlink_apiv2_archive_message.h"
@@ -58,6 +59,8 @@ namespace sys = boost::system;
 namespace meteodata {
 
 using namespace date;
+
+const std::string WeatherlinkApiv2Downloader::BASE_URL = std::string{"https://"} + WeatherlinkDownloadScheduler::APIHOST;
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(
 	const CassUuid& station, const std::string& weatherlinkId,
@@ -86,14 +89,9 @@ std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params
 	return computeHMACWithSHA256(allParamsButApiSignature, _apiSecret);
 }
 
-void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 {
 	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
-
-	// Form the request. We specify the "Connection: keep-alive" header so that the
-	// will be usable by other downloaders.
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
 
 	WeatherlinkApiv2Downloader::Params params = {
 		{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
@@ -107,35 +105,30 @@ void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::s
 	      << "api-key=" << params["api-key"] << "&"
 	      << "api-signature=" << params["api-signature"] << "&"
 	      << "t=" << params["t"];
-	requestStream << "GET " << query.str() << " HTTP/1.0\r\n";
-	std::cerr << "GET " << query.str() << " HTTP/1.0\r\n";
-	requestStream << "Host: " << WeatherlinkDownloadScheduler::APIHOST << "\r\n";
-	requestStream << "Connection: keep-alive\r\n";
-	requestStream << "Accept: application/json\r\n\r\n";
+	std::string queryStr = query.str();
+	std::cerr << "GET " << queryStr << " HTTP/1.1\r\n"
+	          << "Host: " << WeatherlinkDownloadScheduler::APIHOST << "\r\n"
+	          << "Accept: application/json\r\n\r\n";
 
-	// Send the request.
-	std::size_t bytesWrote;
-	client.write(request, bytesWrote);
+	client.setHeader("Accept", "application/json");
 
-	// Read the response status line. The response streambuf will automatically
-	// grow to accommodate the entire line. The growth may be limited by passing
-	// a maximum size to the streambuf constructor.
-	asio::streambuf response(WeatherlinkApiv2RealtimeMessage::MAXSIZE);
-	std::istream responseStream{&response};
-
-	try {
-		getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2ArchiveMessage::MAXSIZE, "application/json");
+	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 		std::cerr << "Read all the content" << std::endl;
-
-		// Store the content because if we must read it several times
-		std::string content;
-		std::copy(std::istream_iterator<char>(responseStream), std::istream_iterator<char>(), std::back_inserter(content));
 
 		for (const auto& u : _uuids) {
 			std::istringstream contentStream(content); // rewind
 
 			// If there are no substations, there's a unique UUID equal to _station in the set
-			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter);
+			float rainfall;
+			std::optional<float> maybeRainfall;
+			auto now = chrono::system_clock::now();
+			date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
+			date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
+			std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
+			if (!_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
+				maybeRainfall = rainfall;
+
+			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, maybeRainfall);
 			if (_substations.empty())
 				obs.parse(contentStream);
 			else
@@ -146,21 +139,16 @@ void WeatherlinkApiv2Downloader::downloadRealTime(BlockingTcpClient<asio::ssl::s
 				std::cerr << "station " << _stationName << ": Failed to insert real-time observation for substation " << u << std::endl;
 			}
 		}
-	} catch (std::runtime_error& error) {
-		syslog(LOG_ERR, "station %s: Bad response for %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST);
-		std::cerr << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << std::endl;
-		throw error;
+	});
+
+	if (ret != CURLE_OK) {
+		logAndThrowCurlError(client);
 	}
 }
 
-void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client)
+void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 {
 	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
-
-	// Form the request. We specify the "Connection: keep-alive" header so that the
-	// will be usable by other downloaders.
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
 
 	auto end = chrono::system_clock::now();
 	auto date = _lastArchive;
@@ -186,31 +174,18 @@ void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip
 		      << "t=" << params["t"] << "&"
 		      << "start-timestamp=" << params["start-timestamp"] << "&"
 		      << "end-timestamp=" << params["end-timestamp"];
-		requestStream << "GET " << query.str() << " HTTP/1.0\r\n";
-		std::cerr << "GET " << query.str() << " HTTP/1.0\r\n";
-		requestStream << "Host: " << WeatherlinkDownloadScheduler::APIHOST << "\r\n";
-		requestStream << "Connection: keep-alive\r\n";
-		requestStream << "Accept: application/json\r\n\r\n";
+		std::string queryStr = query.str();
+		std::cerr << "GET " << queryStr << " HTTP/1.1\r\n"
+		          << "Host: " << WeatherlinkDownloadScheduler::APIHOST << "\r\n"
+		          << "Accept: application/json\r\n\r\n";
 
-		// Send the request.
-		std::size_t bytesWritten;
-		client.write(request, bytesWritten);
+		client.setHeader("Accept", "application/json");
 
-		// Prepare the buffer and the stream on the buffer to receive the response.
-		asio::streambuf response{WeatherlinkApiv2ArchiveMessage::MAXSIZE};
-		std::istream responseStream{&response};
-
-		bool stillOpen = true;
-		try {
-			stillOpen = getReponseFromHTTP10QueryFromClient(client, response, responseStream, WeatherlinkApiv2RealtimeMessage::MAXSIZE, "application/json");
+		CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 			std::cerr << "Read all the content" << std::endl;
+			std::cerr << content << std::endl;
 
 			bool insertionOk = true;
-			auto updatedTimestamp = _lastArchive;
-
-			// Store the content because if we must read it several times
-			std::string content;
-			std::copy(std::istream_iterator<char>(responseStream), std::istream_iterator<char>(), std::back_inserter(content));
 
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
@@ -255,33 +230,28 @@ void WeatherlinkApiv2Downloader::download(BlockingTcpClient<asio::ssl::stream<ip
 					if (!insertionOk) {
 						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
 					} else {
-						updatedTimestamp = newestTimestamp;
+						_lastArchive = newestTimestamp;
 					}
 				}
 			}
-			if (insertionOk)
-				_lastArchive = updatedTimestamp;
-		} catch (const sys::system_error& error) {
-			if (error.code() == asio::error::eof && _lastArchive >= date) { // ensure we have got new data, otherwise, no point in retrying
-				syslog(LOG_ERR, "station %s: Socket looks closed for %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.what());
-				std::cerr << "station " << _stationName << " Socket looks closed " << WeatherlinkDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-				throw sys::system_error{asio::error::in_progress}; // The socket is closed but we made some progress so we use a different code to indicate that we're not stuck in an endless failure cycle
-			} else {
-				syslog(LOG_ERR, "station %s: Bad response for %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.what());
-				std::cerr << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-				throw error;
-			}
+		});
 
-		} catch (std::runtime_error& error) {
-			syslog(LOG_ERR, "station %s: Bad response for %s: %s", _stationName.c_str(), WeatherlinkDownloadScheduler::HOST, error.what());
-			std::cerr << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << ": " << error.what() << std::endl;
-			throw error;
-		}
+		if (ret != CURLE_OK)
+			logAndThrowCurlError(client);
 
 		date += chrono::hours{24};
-		if (date < end && !stillOpen)
-			throw sys::system_error{asio::error::in_progress};
 	}
+}
+
+void WeatherlinkApiv2Downloader::logAndThrowCurlError(CurlWrapper& client)
+{
+	std::string_view error = client.getLastError();
+	std::ostringstream errorStream;
+	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << ": " << error;
+	std::string errorMsg = errorStream.str();
+	syslog(LOG_ERR, "%s", errorMsg.data());
+	std::cerr << errorMsg << std::endl;
+	throw std::runtime_error(errorMsg);
 }
 
 }

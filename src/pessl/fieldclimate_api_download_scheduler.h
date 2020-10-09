@@ -39,7 +39,7 @@
 
 #include "fieldclimate_api_downloader.h"
 #include "../time_offseter.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata {
 
@@ -127,16 +127,13 @@ private:
 	 */
 	std::vector<std::shared_ptr<FieldClimateApiDownloader>> _downloaders;
 
+	CurlWrapper _client;
+
 public:
 	/**
 	 * @brief The type of the const iterators through the downloaders
 	 */
 	using DownloaderIterator =  decltype(_downloaders)::const_iterator;
-
-	/**
-	 * @brief The host name of the FieldClimate API server
-	 */
-	static constexpr char APIHOST[] = "api.fieldclimate.com";
 
 private:
 	/**
@@ -149,54 +146,6 @@ private:
 	 * @brief Wait for the periodic download timer to tick again
 	 */
 	void waitUntilNextDownload();
-
-	/**
-	 * @brief Reconnect the HTTP client
-	 */
-	void connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client);
-
-
-	/**
-	 * @brief Attempt to download data for one station
-	 *
-	 * @tparam Downloader The type of the callable usable to download data
-	 * using the HTTP client
-	 * @param client A HTTP client
-	 * @param downloadMethod Something that will be called to download data
-	 * using the HTTP client (a method from an instance of
-	 * FieldClimateApiDownloader)
-	 * @param retry A counter to reset to 0 if the download succeeds and to
-	 * increment if it doesnt. What to do when the counter reaches a given
-	 * threshold is for this method's caller to figure out.
-	 */
-	template<typename Downloader>
-	void genericDownload(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client, const Downloader& downloadMethod, int& retry) {
-		try {
-			downloadMethod(client);
-			retry = 0;
-		} catch (const sys::system_error& e) {
-			retry++;
-			if (e.code() == asio::error::in_progress) {
-				std::cerr << "Lost connection to server while attempting to download, but some progress was made, keeping up the work." << std::endl;
-				connectClient(client);
-			} else if (e.code() == asio::error::eof || e.code() == asio::error::operation_aborted) {
-				std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-				connectClient(client);
-				// attempt twice to download and move on to the
-				// next station
-				if (retry >= 2) {
-					std::cerr << "Tried twice already, moving on..." << std::endl;
-					retry =  0;
-				}
-			} else {
-				std::cerr << "Impossible to download " << e.code() << ", moving on..." << std::endl;
-				retry =  0;
-			}
-		} catch (const std::runtime_error& e) {
-			std::cerr << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
-			retry =  0;
-		}
-	}
 
 	/**
 	 * @brief Download archive data for all stations
@@ -216,13 +165,6 @@ private:
 	 * @param e The error/return code of the timer event
 	 */
 	void checkDeadline(const sys::error_code& e);
-
-	/**
-	 * @brief Create a SSL context to construct the HTTP client
-	 *
-	 * @return A Boost ASIO SSL context
-	 */
-	boost::asio::ssl::context createSslContext();
 
 	/**
 	 * @brief The fixed polling period, for stations authorized to get

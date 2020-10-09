@@ -23,34 +23,23 @@
 
 #include <iostream>
 #include <memory>
-#include <functional>
-#include <iterator>
 #include <chrono>
-#include <map>
-#include <sstream>
-#include <iomanip>
-#include <algorithm>
+#include <tuple>
+#include <string>
+#include <functional>
 
-#include <fstream>
-
-#include <cstring>
-#include <cctype>
 #include <syslog.h>
 #include <unistd.h>
 
-#include <boost/system/error_code.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/asio/io_service.hpp>
 #include <date/date.h>
 #include <dbconnection_observations.h>
 
 #include "mbdata_txt_downloader.h"
 #include "mbdata_messages/mbdata_message_factory.h"
 #include "../time_offseter.h"
-#include "../http_utils.h"
-#include "../blocking_tcp_client.h"
+#include "../curl_wrapper.h"
 
 // we do not expect the files to be big, so it's simpler and more
 // efficient to just slurp them, which means we'd better limit the
@@ -58,17 +47,17 @@
 #define BUFFER_MAX_SIZE 4096
 
 namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
-namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
 namespace meteodata {
 
 using namespace date;
 
-MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails) :
+MBDataTxtDownloader::MBDataTxtDownloader(
+		asio::io_service& ioService,
+		DbConnectionObservations& db,
+		const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails
+	) :
 	_ioService(ioService),
 	_db(db),
 	_timer(_ioService),
@@ -134,83 +123,19 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 	}
 }
 
-void MBDataTxtDownloader::downloadHttps(boost::asio::streambuf& request, boost::asio::streambuf& response, std::istream& responseStream)
-{
-	// Make a SSL context
-	asio::ssl::context ctx(asio::ssl::context::sslv23);
-	ctx.set_default_verify_paths();
-
-	// Create a blocking TCP client to handle the download
-	// Set a high enough timeout because servers can be a bit
-	// unresponsive sometimes.
-	BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
-
-	// We need the socket itself to do the TLS handshake successfully
-	auto& socket = client.socket();
-	if(!SSL_set_tlsext_host_name(socket.native_handle(), _host.c_str()))
-	{
-		sys::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
-		throw sys::system_error{ec};
-	}
-
-	// Connect the client
-	client.connect(_host, "https");
-
-	// Verify the remote
-	socket.set_verify_mode(asio::ssl::verify_peer);
-	socket.set_verify_callback(asio::ssl::rfc2818_verification(_host));
-	socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
-
-	// Read the response and its headers
-	getReponseFromHTTP10QueryFromClient(client, response, responseStream, BUFFER_MAX_SIZE, "");
-}
-
-void MBDataTxtDownloader::downloadHttp(boost::asio::streambuf& request, boost::asio::streambuf& response, std::istream& responseStream)
-{
-	// Create a blocking TCP client and connect it
-	BlockingTcpClient<ip::tcp::socket> client(chrono::seconds(5));
-	client.connect(_host, "http");
-
-	// Send the request.
-	std::size_t bytesWritten;
-	client.write(request, bytesWritten);
-
-	// Read the response and its headers
-	getReponseFromHTTP10QueryFromClient(client, response, responseStream, BUFFER_MAX_SIZE, "");
-}
-
 void MBDataTxtDownloader::download()
 {
 	std::cerr << "Now downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
 
-	// Form the request. We specify the "Connection: close" header so that the
-	// server will close the socket after transmitting the response. This will
-	// allow us to treat all data up until the EOF as the content.
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
-	std::cerr << "GET " << "(" << _host << ")" << _url << " HTTP/1.0\r\n";
-	requestStream << "GET " << _url << " HTTP/1.0\r\n";
-	requestStream << "Host: " << _host << "\r\n";
-	requestStream << "Accept: */*\r\n";
-	requestStream << "Connection: close\r\n\r\n";
+	std::ostringstream query;
+	query << (_https ? "https://" : "http://")
+	      << _host
+	      << _url;
 
-	// The response streambuf will automatically grow to accommodate the
-	// entire line. The growth may be limited by passing a maximum size to
-	// the streambuf constructor.
-	asio::streambuf response(BUFFER_MAX_SIZE);
-	std::istream fileStream(&response);
+	CurlWrapper client;
 
-	sys::error_code ec;
-	try {
-		if (_https) {
-			downloadHttps(request, response, fileStream);
-		} else  {
-			downloadHttp(request, response, fileStream);
-		}
+	CURLcode ret = client.download(query.str(), [&](const std::string& body) {
+		std::istringstream fileStream{body};
 
 		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
 		if (!m || !(*m)) {
@@ -248,9 +173,14 @@ void MBDataTxtDownloader::download()
 			syslog(LOG_ERR, "%s: Failed to update the last insertion time", _stationName.c_str());
 			return;
 		}
-	} catch (std::runtime_error& error) {
-		std::cerr << "Download failed: " << error.what() << std::endl;
-		syslog(LOG_ERR, "%s: Download failed: %s", _stationName.c_str(), error.what());
+	});
+
+	if (ret != CURLE_OK) {
+		std::string_view error = client.getLastError();
+		std::ostringstream errorStream;
+		errorStream << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error;
+		std::string errorMsg = errorStream.str();
+		syslog(LOG_ERR, "%s", errorMsg.data());
 	}
 }
 

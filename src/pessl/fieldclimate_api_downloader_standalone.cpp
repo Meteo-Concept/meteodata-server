@@ -40,6 +40,7 @@
 #include "../cassandra_utils.h"
 #include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
+#include "../curl_wrapper.h"
 
 /**
  * @brief The configuration file default path
@@ -48,25 +49,6 @@
 
 using namespace meteodata;
 namespace po = boost::program_options;
-
-
-constexpr char meteodata::FieldClimateApiDownloadScheduler::APIHOST[];
-
-namespace {
-	void connectClient(BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>>& client) {
-		auto& socket = client.socket();
-		if(!SSL_set_tlsext_host_name(socket.native_handle(), FieldClimateApiDownloadScheduler::APIHOST))
-		{
-			sys::error_code ec{static_cast<int>(::ERR_get_error()), asio::error::get_ssl_category()};
-			throw sys::system_error{ec};
-		}
-		client.connect(FieldClimateApiDownloadScheduler::APIHOST, "https");
-		socket.set_verify_mode(asio::ssl::verify_peer);
-		socket.set_verify_callback(asio::ssl::rfc2818_verification(FieldClimateApiDownloadScheduler::APIHOST));
-		socket.handshake(asio::ssl::stream<ip::tcp::socket>::client);
-		std::cerr << "Client connected" << std::endl;
-	}
-}
 
 /**
  * @brief Entry point
@@ -165,10 +147,7 @@ int main(int argc, char** argv)
 		db.getAllFieldClimateApiStations(fieldClimateStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
-		asio::ssl::context ctx(asio::ssl::context::sslv23);
-		ctx.set_default_verify_paths();
-		BlockingTcpClient<asio::ssl::stream<ip::tcp::socket>> client(chrono::seconds(5), std::move(ctx));
-		connectClient(client);
+		CurlWrapper client;
 
 		int retry = 0;
 		for (auto it = fieldClimateStations.cbegin() ; it != fieldClimateStations.cend() ;) {
@@ -190,26 +169,19 @@ int main(int argc, char** argv)
 				downloader.download(client);
 				retry = 0;
 				++it;
-			} catch (const sys::system_error& e) {
+				std::this_thread::sleep_for(chrono::milliseconds(100));
+			} catch (const std::runtime_error& e) {
 				retry++;
-				if (e.code() == asio::error::eof) {
-					std::cerr << "Lost connection to server while attempting to download, retrying." << std::endl;
-					ctx = asio::ssl::context(asio::ssl::context::sslv23);
-					ctx.set_default_verify_paths();
-					client.reset(std::move(ctx));
-					connectClient(client);
-					if (retry >= 2) {
-						std::cerr << "Tried twice already, moving on..." << std::endl;
-						retry =  0;
-						++it;
-					}
+				if (retry >= 2) {
+					std::cerr << "Tried twice already, moving on..." << std::endl;
+					retry =  0;
+					++it;
 				} else {
 					throw e;
 				}
 			}
 		}
 	} catch (std::exception& e) {
-		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
 		return 255;
 	}
