@@ -120,12 +120,12 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 
 			// If there are no substations, there's a unique UUID equal to _station in the set
 			float rainfall;
-			std::optional<float> maybeRainfall;
+			std::optional<float> maybeRainfall{0.f}; // force rainfall to 0 to store all the rain for the day at the moment of the observation in the worst case
 			auto now = chrono::system_clock::now();
 			date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
 			date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
 			std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-			if (!_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
+			if (_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
 				maybeRainfall = rainfall;
 
 			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, maybeRainfall);
