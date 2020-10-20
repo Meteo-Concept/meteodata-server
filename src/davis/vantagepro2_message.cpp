@@ -293,12 +293,9 @@ void VantagePro2Message::populateDataPoint(const CassUuid stationId, CassStateme
 	if (_l1.outsideTemperature != 32767)
 		cass_statement_bind_float(statement, 7, from_Farenheit_to_Celsius(_l1.outsideTemperature/10.0));
 	/*************************************************************/
-	std::cerr << "Inside insideHumidity: " << (int)_l1.insideHumidity << std::endl;
-	if (_l1.insideHumidity != 255)
-		cass_statement_bind_int32(statement, 8, _l1.insideHumidity);
+	// Do not record inside hum
 	/*************************************************************/
-	if (_l1.outsideHumidity != 255)
-		cass_statement_bind_int32(statement, 9, _l1.outsideHumidity);
+	// Do not record inside temp
 	/*************************************************************/
 	for (int i=0 ; i<7 ; i++) {
 		if (_l1.extraTemp[1] != 255)
@@ -446,13 +443,9 @@ void VantagePro2Message::populateV2DataPoint(const CassUuid stationId, CassState
 	if (_l2.heatIndex != 255)
 		cass_statement_bind_float(statement, 10, from_Farenheit_to_Celsius(_l2.heatIndex));
 	/*************************************************************/
-	std::cerr << "Inside insideHumidity: " << (int)_l1.insideHumidity << std::endl;
-	if (_l1.insideHumidity != 255)
-		cass_statement_bind_int32(statement, 11, _l1.insideHumidity);
+	// Do not record inside hum
 	/*************************************************************/
-	std::cerr << "Inside temperature: " << _l1.insideTemperature << " " << from_Farenheit_to_Celsius(_l1.insideTemperature/10.0) << std::endl;
-	if (_l1.insideTemperature != 32767)
-		cass_statement_bind_float(statement, 12, from_Farenheit_to_Celsius(_l1.insideTemperature/10.0));
+	// Do not record inside temp
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++) {
 		if (_l1.leafTemp[i] != 255)
