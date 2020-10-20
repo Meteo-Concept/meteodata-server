@@ -73,6 +73,7 @@ public:
 		GRO_WEATHER_CABLED_METRIC = 30,
 		GRO_WEATHER_PLUS_CABLED_METRIC = 31,
 		VANTAGE_PRO = 33,
+		VANTAGE_PRO_PLUS = 34,
 		VANTAGE_PRO_2 = 43,
 		VANTAGE_PRO_2_FAN = 44,
 		VANTAGE_PRO_2_PLUS = 45,
@@ -121,6 +122,7 @@ protected:
 			sensorType == SensorType::GRO_WEATHER_CABLED_METRIC ||
 			sensorType == SensorType::GRO_WEATHER_PLUS_CABLED_METRIC ||
 			sensorType == SensorType::VANTAGE_PRO ||
+			sensorType == SensorType::VANTAGE_PRO_PLUS ||
 			sensorType == SensorType::VANTAGE_PRO_2 ||
 			sensorType == SensorType::VANTAGE_PRO_2_FAN ||
 			sensorType == SensorType::VANTAGE_PRO_2_PLUS ||
