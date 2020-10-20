@@ -176,7 +176,7 @@ void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	for (int i=0 ; i<3 ; i++)
 		if (!isInvalid(_obs.extraTemperature[i]))
-			cass_statement_bind_float(statement, 7+i, _obs.extraTemperature[i]);
+			cass_statement_bind_float(statement, 7+i, from_Farenheit_to_Celsius(_obs.extraTemperature[i]));
 	/*************************************************************/
 	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
 		cass_statement_bind_float(statement, 10,
