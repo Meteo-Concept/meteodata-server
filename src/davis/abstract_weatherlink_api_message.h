@@ -83,6 +83,20 @@ public:
 		VANTAGE_PRO_2_PLUS_ISS = 50,
 		VANTAGE_PRO_2_PLUS_FAN_ISS = 51,
 		VANTAGE_PRO_2_DAYTIME_FAN_ISS = 52,
+		GRO_WEATHER_WIRELESS = 53,
+		GRO_WEATHER_FAN_WIRELESS = 54,
+		GRO_WEATHER_FAN_WIRELESS_METRIC = 70,
+		GRO_WEATHER_FAN_WIRELESS_OV = 71,
+		GRO_WEATHER_WIRELESS_METRIC = 72,
+		GRO_WEATHER_WIRELESS_OV = 73,
+		VANTAGE_PRO_2_FAN_WIRELESS_METRIC = 76,
+		VANTAGE_PRO_2_FAN_WIRELESS_OV = 77,
+		VANTAGE_PRO_2_WIRELESS_METRIC = 78,
+		VANTAGE_PRO_2_WIRELESS_OV = 79,
+		VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC = 80,
+		VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV = 81,
+		VANTAGE_PRO_2_PLUS_WIRELESS_METRIC = 82,
+		VANTAGE_PRO_2_PLUS_WIRELESS_OV = 83,
 		SENSOR_SUITE = 55,
 		VANTAGE_VUE_ISS = 37,
 		BAROMETER = 242,
@@ -132,7 +146,21 @@ protected:
 			sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||
 			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_ISS ||
 			sensorType == SensorType::VANTAGE_PRO_2_DAYTIME_FAN_ISS ||
-			sensorType == SensorType::VANTAGE_VUE_ISS;
+			sensorType == SensorType::VANTAGE_VUE_ISS ||
+		        sensorType == SensorType::GRO_WEATHER_WIRELESS ||
+		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS ||
+		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_METRIC ||
+		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_OV ||
+		        sensorType == SensorType::GRO_WEATHER_WIRELESS_METRIC ||
+		        sensorType == SensorType::GRO_WEATHER_WIRELESS_OV ||
+		        sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_METRIC ||
+		        sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_OV ||
+		        sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_METRIC ||
+		        sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_OV ||
+		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
+		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
+		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
+		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
 	}
 
 
