@@ -56,7 +56,7 @@ class WlkImporter
 {
 public:
 	WlkImporter(const CassUuid& station, const std::string& timezone, DbConnectionObservations& db);
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end);
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = false);
 
 private:
 	CassUuid _station;

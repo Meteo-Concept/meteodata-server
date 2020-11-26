@@ -56,6 +56,7 @@ int main(int argc, char** argv)
 		("input-file", po::value<std::string>(&inputFile), "input WLK file")
 		("station", po::value<std::string>(&uuid), "station UUID")
 		("timezone", po::value<std::string>(&tz), "timezone identifier (like \"UTC\" or \"Europe/Paris\")")
+		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
 	;
 
 	po::positional_options_description pd;
@@ -100,6 +101,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	bool updateLastArchiveDownloadTime = vm.count("update-last-download-time");
 
 	try {
 		DbConnectionObservations db(address, user, password);
@@ -110,7 +112,7 @@ int main(int argc, char** argv)
 
 		std::ifstream input{inputFile};
 		date::sys_seconds start, end;
-		if (wlkImporter.import(input, start, end)) {
+		if (wlkImporter.import(input, start, end, updateLastArchiveDownloadTime)) {
 			std::cout << "Consider recomputing the climatology: \n"
 				  << "\tmeteodata-minmax --station " << uuid
 					<< " --begin " << date::format("%Y-%m-%d", start)

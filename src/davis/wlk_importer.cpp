@@ -42,7 +42,7 @@ WlkImporter::WlkImporter(const CassUuid& station, const std::string& timezone, D
 {
 }
 
-bool WlkImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end)
+bool WlkImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
 {
 	std::string line;
 	std::getline(input, line);
@@ -100,7 +100,7 @@ bool WlkImporter::import(std::istream& input, date::sys_seconds& start, date::sy
 		}
 	}
 
-	if (valid) {
+	if (valid && updateLastArchiveDownloadTime) {
 		start = s;
 		end = e;
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
