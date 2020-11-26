@@ -146,8 +146,15 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			if (!isInvalid(rainRate))
 				_obs.rainRate = from_rainrate_to_mm(rainRate);
 			auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
-			if (!isInvalid(rainFall) && _dayRain)
+			if (!isInvalid(rainFall) && _dayRain) {
 				_obs.rainFall = from_rainrate_to_mm(rainFall) - *_dayRain;
+				if (_obs.rainFall < 0) {
+					// Either the station clock is off or we
+					// are not looking at the correct reset
+					// time to compute _dayRain
+					_obs.rainFall = from_rainrate_to_mm(rainFall);
+				}
+			}
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 			_obs.uvIndex = data.get<float>("uv", INVALID_FLOAT);
 			_obs.extraHumidity[0] = data.get<int>("hum_extra_1", INVALID_INT);
