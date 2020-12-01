@@ -26,6 +26,7 @@
 #include <functional>
 #include <iterator>
 #include <chrono>
+#include <unordered_map>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -33,6 +34,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <date/date.h>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
@@ -48,6 +50,7 @@ namespace ip = boost::asio::ip;
 namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
+namespace pt = boost::property_tree;
 
 namespace meteodata {
 
@@ -78,10 +81,10 @@ void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::strin
 void WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived,
 		const std::map<int, CassUuid>& mapping,
 		const std::string& weatherlinkId,
-		TimeOffseter::PredefinedTimezone tz)
+		TimeOffseter&& to)
 {
 	_downloadersAPIv2.emplace_back(archived, std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId,
-		mapping, _apiId, _apiSecret, _db, tz));
+		mapping, _apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to)));
 }
 
 void WeatherlinkDownloadScheduler::start()
@@ -168,12 +171,23 @@ void WeatherlinkDownloadScheduler::reloadStations()
 			TimeOffseter::PredefinedTimezone(std::get<3>(station))
 		);
 	}
+
+
 	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkAPIv2Stations;
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
+
+	CurlWrapper client;
+	std::unordered_map<std::string, pt::ptree> stations = WeatherlinkApiv2Downloader::downloadAllStations(client, _apiId, _apiSecret);
+
 	for (const auto& station : weatherlinkAPIv2Stations) {
+		auto st = stations.find(std::get<3>(station));
+		TimeOffseter to = st != stations.cend() ?
+			TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})) :
+			TimeOffseter::getTimeOffseterFor(0);
 		addAPIv2(
-			std::get<0>(station), std::get<1>(station), std::get<2>(station), std::get<3>(station),
-			TimeOffseter::PredefinedTimezone(0)
+			std::get<0>(station), std::get<1>(station),
+			std::get<2>(station), std::get<3>(station),
+			std::move(to)
 		);
 	}
 }

@@ -64,7 +64,7 @@ public:
 	void addAPIv2(const CassUuid& station, bool archived,
 		const std::map<int, CassUuid>& substations,
 		const std::string& weatherlinkId,
-		TimeOffseter::PredefinedTimezone tz);
+		TimeOffseter&& to);
 
 private:
 	asio::io_service& _ioService;

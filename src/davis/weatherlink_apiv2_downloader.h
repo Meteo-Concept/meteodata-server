@@ -28,11 +28,13 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <set>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
@@ -58,9 +60,16 @@ public:
 		const std::map<int, CassUuid>& mapping,
 		const std::string& apiKey, const std::string& apiSecret,
 		DbConnectionObservations& db,
+		TimeOffseter&& to);
+	WeatherlinkApiv2Downloader(const CassUuid& station,
+		const std::string& weatherlinkId,
+		const std::map<int, CassUuid>& mapping,
+		const std::string& apiKey, const std::string& apiSecret,
+		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
 	void download(CurlWrapper& client);
 	void downloadRealTime(CurlWrapper& client);
+	static std::unordered_map<std::string, boost::property_tree::ptree> downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
 
 private:
 	const std::string& _apiKey;
@@ -88,7 +97,7 @@ private:
 	 */
 	std::set<CassUuid> _uuids;
 
-	std::string computeApiSignature(const Params& params);
+	static std::string computeApiSignature(const Params& params, const std::string& apiSecret);
 
 	void logAndThrowCurlError(CurlWrapper& client);
 

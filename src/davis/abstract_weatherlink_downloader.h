@@ -51,6 +51,26 @@ class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<Abstra
 public:
 	AbstractWeatherlinkDownloader(const CassUuid& station,
 		DbConnectionObservations& db,
+		TimeOffseter&& to) :
+		_db(db),
+		_station(station)
+	{
+		time_t lastArchiveDownloadTime;
+		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
+		float latitude, longitude;
+		int elevation;
+		db.getStationLocation(station, latitude, longitude, elevation);
+		_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
+		_timeOffseter = to;
+		_timeOffseter.setLatitude(latitude);
+		_timeOffseter.setLongitude(longitude);
+		_timeOffseter.setElevation(elevation);
+		_timeOffseter.setMeasureStep(_pollingPeriod);
+		std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
+	}
+
+	AbstractWeatherlinkDownloader(const CassUuid& station,
+		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz) :
 		_db(db),
 		_station(station)
