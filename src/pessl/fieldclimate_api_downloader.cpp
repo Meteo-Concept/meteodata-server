@@ -90,7 +90,7 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrappe
 	std::string headerDate;
 	std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
 
-	std::cerr << "GET " << "/v2" << route << " HTTP/1.0\r\n"
+	std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
 		<< "Date: " << headerDate << "\r\n"
 		<< "Authorization: " << authorization << "\r\n"
 		<< "Accept: application/json\r\n\r\n";
@@ -100,15 +100,21 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrappe
 
 	date::sys_seconds dateInUTC;
 
-	client.download(BASE_URL + route, [&](const std::string& body) {
+	auto ret = client.download(BASE_URL + route, [&](const std::string& body) {
+		std::istringstream bodyStream{body};
 		pt::ptree jsonTree;
-		pt::read_json(body, jsonTree);
+		pt::read_json(bodyStream, jsonTree);
 		const std::string& maxDate = jsonTree.get<std::string>("max_date");
 		std::istringstream dateStream{maxDate};
 		date::local_seconds date;
 		dateStream >> date::parse("%Y-%m-%d %H:%M:%S", date);
 		dateInUTC = _timeOffseter.convertFromLocalTime(date);
+		std::cerr << "Last date: " << dateInUTC << std::endl;
 	});
+
+	if (ret != CURLE_OK) {
+		logAndThrowCurlError(client);
+	}
 
 	return dateInUTC;
 }
@@ -204,18 +210,10 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 		});
 
 		if (ret != CURLE_OK) {
-			std::string_view error = client.getLastError();
-			std::ostringstream errorStream;
-			errorStream << "station " << _stationName << " Bad response from " << APIHOST << ": " << error;
-			std::string errorMsg = errorStream.str();
-			syslog(LOG_ERR, "%s", errorMsg.data());
-			std::cerr << errorMsg << std::endl;
-			throw std::runtime_error(errorMsg);
+			logAndThrowCurlError(client);
 		}
 
 		date += chrono::hours{24};
-		if (date < lastAvailable)
-			throw sys::system_error{asio::error::in_progress};
 	}
 }
 
@@ -273,6 +271,19 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 	});
 
 	if (ret != CURLE_OK) {
+		logAndThrowCurlError(client);
+	}
+}
+
+std::tuple<std::string, std::string> FieldClimateApiDownloader::computeAuthorizationAndDateFields(const std::string& method, const std::string& route)
+{
+	std::string date = date::format("%a, %d %b %Y %T GMT", chrono::system_clock::now());
+	std::string sig = computeHMACWithSHA256(method + route + date + _apiKey, _apiSecret);
+	return { "hmac " + _apiKey + ":" + std::move(sig), std::move(date) };
+}
+
+void FieldClimateApiDownloader::logAndThrowCurlError(CurlWrapper& client)
+{
 		std::string_view error = client.getLastError();
 		std::ostringstream errorStream;
 		errorStream << "station " << _stationName << " Bad response from " << APIHOST << ": " << error;
@@ -280,14 +291,6 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 		syslog(LOG_ERR, "%s", errorMsg.data());
 		std::cerr << errorMsg << std::endl;
 		throw std::runtime_error(errorMsg);
-	}
-}
-
-std::tuple<std::string, std::string> FieldClimateApiDownloader::computeAuthorizationAndDateFields(const std::string& method, const std::string& route)
-{
-	std::string date = date::format("%a, %d %b %Y %H:%M:%S GMT", chrono::system_clock::now());
-	std::string sig = computeHMACWithSHA256(method + route + date + _apiKey, _apiSecret);
-	return { "hmac " + _apiKey + ":" + std::move(sig), std::move(date) };
 }
 
 }

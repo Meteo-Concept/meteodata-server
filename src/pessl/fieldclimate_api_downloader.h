@@ -196,6 +196,14 @@ private:
 	 * @return the timestamp of the last data available from the API
 	 */
 	date::sys_seconds getLastDatetimeAvailable(CurlWrapper& client);
+
+	/**
+	 * @brief Display the last error message from Curl and throw an
+	 * exception
+	 *
+	 * @param client The Curl wrapper used to do HTTP queries
+	 */
+	void logAndThrowCurlError(CurlWrapper& client);
 };
 
 }
