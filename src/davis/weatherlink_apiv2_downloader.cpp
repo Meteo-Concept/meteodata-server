@@ -127,7 +127,7 @@ std::unordered_map<std::string, pt::ptree> WeatherlinkApiv2Downloader::downloadA
 	client.setHeader("Accept", "application/json");
 
 	std::unordered_map<std::string, pt::ptree> stations;
-	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
+	client.download(BASE_URL + queryStr, [&](const std::string& content) {
 		std::cerr << "Read all the content" << std::endl;
 
 		std::istringstream contentStream(content);
