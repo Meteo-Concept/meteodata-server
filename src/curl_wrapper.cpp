@@ -46,7 +46,7 @@ CurlWrapper::CurlWrapper() :
 void CurlWrapper::setHeader(const std::string& header, const std::string& value)
 {
 	std::string h = header + ":";
-	if (value.empty())
+	if (!value.empty())
 		h += " " + value;
 
 	curl_slist* newHeaders = curl_slist_append(_headers.get(), h.data());
@@ -74,6 +74,8 @@ CURLcode CurlWrapper::download(const std::string& url, std::function<void(const 
 
 	_buffer.clear();
 	CURLcode res = curl_easy_perform(_handle.get());
+	_headers.release();
+	_headers.reset();
 	if (res == CURLE_OK)
 		parser(_buffer);
 	_buffer.clear();
