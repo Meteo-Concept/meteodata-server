@@ -183,7 +183,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 		auto st = stations.find(std::get<3>(station));
 		TimeOffseter to = st != stations.cend() ?
 			TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})) :
-			TimeOffseter::getTimeOffseterFor(0);
+			TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
 		addAPIv2(
 			std::get<0>(station), std::get<1>(station),
 			std::get<2>(station), std::get<3>(station),
