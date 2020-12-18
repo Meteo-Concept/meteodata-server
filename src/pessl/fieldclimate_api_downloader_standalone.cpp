@@ -73,8 +73,8 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
-		("fieldclimate-api-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")
-		("fieldclimate-api-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part")
+		("fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")
+		("fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part")
 	;
 
 	po::options_description desc("Allowed options");
