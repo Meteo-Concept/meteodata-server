@@ -241,6 +241,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 			std::cerr << content << std::endl;
 
 			bool insertionOk = true;
+			auto archiveDay = date::floor<date::days>(_lastArchive);
+			auto referenceTimestamp = _lastArchive;
 
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
@@ -255,13 +257,18 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 				std::cerr << "\tParsed output for substation " << u << std::endl;
 
 				auto newestTimestamp = page.getNewestMessageTime();
-				auto archiveDay = date::floor<date::days>(_lastArchive);
+				// find the oldest of all the newest records
+				// of each substation
+				if (newestTimestamp < referenceTimestamp || referenceTimestamp == _lastArchive)
+					referenceTimestamp = newestTimestamp;
+
 				auto lastDay = date::floor<date::days>(end);
 				if (newestTimestamp <= _lastArchive) {
 					syslog(LOG_WARNING, "station %s: No new archive observation for one of the substations", _stationName.c_str());
-					std::cerr << "station " << _stationName << ": No new archive observation for (sub)station " << u << std::endl;
+					std::cerr << "station " << _stationName << ": No new archive observation for (sub)station " << u << " (newest is at " << newestTimestamp << ")" << std::endl;
 					continue;
 				}
+
 				while (archiveDay <= lastDay) {
 					int ret = _db.deleteDataPoints(u, archiveDay, _lastArchive, newestTimestamp);
 
@@ -277,16 +284,17 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 						insertionOk = false;
 					}
 				}
-				if (insertionOk) {
-					std::cerr << "Archive data stored\n" << std::endl;
-					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-						std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
-					insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-					if (!insertionOk) {
-						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
-					} else {
-						_lastArchive = newestTimestamp;
-					}
+			}
+
+			if (insertionOk) {
+				std::cerr << "Archive data stored\n" << std::endl;
+				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(referenceTimestamp);
+					std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
+				insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+				if (!insertionOk) {
+					syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+				} else {
+					_lastArchive = referenceTimestamp;
 				}
 			}
 		});

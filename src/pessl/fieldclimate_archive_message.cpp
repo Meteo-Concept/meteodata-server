@@ -107,6 +107,8 @@ void FieldClimateApiArchiveMessage::ingest(const pt::ptree& jsonTree, int index)
 
 	// temperature
 	getValueForSensor("temperature", "avg", _obs.temperature);
+	getValueForSensor("temperature", "min", _obs.minTemperature);
+	getValueForSensor("temperature", "max", _obs.maxTemperature);
 
 	// dominant wind direction
 	getValueForSensor("wind direction", "avg", _obs.windDir);
@@ -152,6 +154,9 @@ void FieldClimateApiArchiveMessage::ingest(const pt::ptree& jsonTree, int index)
 	// soil temperature
 	for (int i=0 ; i<4 ; i++)
 		getValueForSensor("soil temperature " + std::to_string(i+1), "avg", _obs.soilTemperature[i]);
+
+	// leaf wetness given in minutes
+	getValueForSensor("leaf wetness time ratio 1", "time", _obs.leafWetnessTimeRatio[0]);
 }
 
 void FieldClimateApiArchiveMessage::populateDataPoint(const CassUuid, CassStatement* const) const
@@ -294,6 +299,17 @@ void FieldClimateApiArchiveMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	// No insolation
 	/*************************************************************/
+	if (!isInvalid(_obs.minTemperature)) {
+		cass_statement_bind_float(statement, 38, _obs.minTemperature);
+	}
+	/*************************************************************/
+	if (!isInvalid(_obs.maxTemperature)) {
+		cass_statement_bind_float(statement, 39, _obs.maxTemperature);
+	}
+	/*************************************************************/
+	if (!isInvalid(_obs.leafWetnessTimeRatio[0])) {
+		cass_statement_bind_int32(statement, 40, _obs.leafWetnessTimeRatio[0]);
+	}
 }
 
 }

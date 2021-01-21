@@ -85,7 +85,8 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (isMainStationType(sensorType) &&
-	    dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B) {
+	    (dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
+	     dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_out", INVALID_FLOAT) ;
 		if (!isInvalid(hum))
@@ -171,6 +172,11 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.soilMoisture[1] = std::lround(data.get<float>("moist_soil_last_2", INVALID_FLOAT));
 		_obs.soilMoisture[2] = std::lround(data.get<float>("moist_soil_last_3", INVALID_FLOAT));
 		_obs.soilMoisture[3] = std::lround(data.get<float>("moist_soil_last_4", INVALID_FLOAT));
+	} else if (sensorType == SensorType::ANEMOMETER) {
+		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
+		_obs.windDir = data.get<int>("wind_dir_prevail", INVALID_INT);
+		_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
+		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
 	}
 }
 

@@ -128,7 +128,8 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (isMainStationType(sensorType) &&
-		    dataStructureType == DataStructureType::WEATHERLINK_IP_CURRENT_READING_REVISION_B) {
+		    (dataStructureType == DataStructureType::WEATHERLINK_IP_CURRENT_READING_REVISION_B ||
+		     dataStructureType == DataStructureType::ENVIROMONITOR_ISS_CURRENT_READING)) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.pressure = data.get<float>("bar", INVALID_FLOAT);
 			if (!isInvalid(_obs.pressure))
@@ -237,6 +238,12 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.soilMoisture[1] = data.count("moist_soil_2") > 0 ? std::lround(data.get<float>("moist_soil_2")) : INVALID_INT;
 			_obs.soilMoisture[2] = data.count("moist_soil_3") > 0 ? std::lround(data.get<float>("moist_soil_3")) : INVALID_INT;
 			_obs.soilMoisture[3] = data.count("moist_soil_4") > 0 ? std::lround(data.get<float>("moist_soil_4")) : INVALID_INT;
+		}
+
+		if (sensorType == SensorType::ANEMOMETER) {
+			_obs.windDir = data.get<int>("wind_dir_prevail", INVALID_INT);
+			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
+			_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
 		}
 	}
 }

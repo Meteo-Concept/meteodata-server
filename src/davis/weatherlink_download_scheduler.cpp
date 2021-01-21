@@ -103,7 +103,8 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 	}
 
 	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
-		if (now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
+		if (now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD ||
+		    now % it->second->getPollingPeriod() < POLLING_PERIOD)
 			genericDownload([it](auto& client) { (it->second)->downloadRealTime(client); });
 	}
 }

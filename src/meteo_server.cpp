@@ -154,7 +154,7 @@ void MeteoServer::start()
 void MeteoServer::startAccepting()
 {
 	Connector::ptr newConnector =
-		Connector::create<VantagePro2Connector>(_acceptor.get_io_service(), _db);
+		Connector::create<VantagePro2Connector>(_ioService, _db);
 	_acceptor.async_accept(newConnector->socket(),
 		std::bind(&MeteoServer::runNewConnector, this,
 			newConnector, std::placeholders::_1)

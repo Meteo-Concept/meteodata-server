@@ -28,6 +28,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <cmath>
 
 #include <boost/property_tree/ptree.hpp>
 #include <date/date.h>
@@ -139,6 +140,8 @@ private:
 		float pressure = INVALID_FLOAT; // hPa
 		int humidity = INVALID_INT;     // %
 		float temperature = INVALID_FLOAT; // °C
+		float minTemperature = INVALID_FLOAT; // °C
+		float maxTemperature = INVALID_FLOAT; // °C
 		int windDir = INVALID_INT; // °
 		float windSpeed = INVALID_FLOAT; // km/h
 		float windGustSpeed = INVALID_FLOAT; // km/h
@@ -152,6 +155,7 @@ private:
 		int leafWetness[2] = { INVALID_INT, INVALID_INT }; // index
 		int soilMoisture[4] = { INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT }; // kPa
 		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT }; // °C
+		int leafWetnessTimeRatio[1] = { INVALID_INT }; // min
 	};
 
 	/**

@@ -62,6 +62,14 @@ protected:
 		int lsid = reading.second.get<int>("lsid", -1);
 		auto allData = reading.second.get_child("data");
 		auto s = substations.find(lsid);
+		if (s == substations.end())
+			std::cerr << "Substation " << lsid << " not found" << std::endl;
+		else if (allData.empty())
+			std::cerr << "No data" << std::endl;
+		else if (!(s->second == station))
+			std::cerr << "Not the correct station" << std::endl;
+		else
+			std::cerr << "Found substation " << lsid << std::endl;
 		return !allData.empty() && s != substations.end() && s->second == station;
 	}
 
