@@ -179,7 +179,7 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 				// malfunctioned
 				auto newestTimestamp = collection.getNewestMessageTime();
 				auto archiveDay = date::floor<date::days>(_lastArchive);
-				auto lastDay = date::floor<date::days>(lastAvailable);
+				auto lastDay = date::floor<date::days>(newestTimestamp);
 				while (archiveDay <= lastDay) {
 					int ret = _db.deleteDataPoints(_station, archiveDay, _lastArchive, newestTimestamp);
 
