@@ -116,19 +116,7 @@ public:
 		WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD = 13,
 	};
 
-protected:
-	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
-	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();
-
-	constexpr static bool isInvalid(float v) {
-		return std::isnan(v); // /!\ NaN never compares equal to itself
-	}
-
-	constexpr static bool isInvalid(int v) {
-		return v == INVALID_INT;
-	}
-
-	constexpr bool isMainStationType(SensorType sensorType)
+	constexpr static bool isMainStationType(SensorType sensorType)
 	{
 		return
 			sensorType == SensorType::GRO_WEATHER_FAN_CABLED ||
@@ -151,20 +139,32 @@ protected:
 			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_ISS ||
 			sensorType == SensorType::VANTAGE_PRO_2_DAYTIME_FAN_ISS ||
 			sensorType == SensorType::VANTAGE_VUE_ISS ||
-		        sensorType == SensorType::GRO_WEATHER_WIRELESS ||
-		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS ||
-		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_METRIC ||
-		        sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_OV ||
-		        sensorType == SensorType::GRO_WEATHER_WIRELESS_METRIC ||
-		        sensorType == SensorType::GRO_WEATHER_WIRELESS_OV ||
-		        sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_METRIC ||
-		        sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_OV ||
-		        sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_METRIC ||
-		        sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_OV ||
-		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
-		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
-		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
-		        sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
+			sensorType == SensorType::GRO_WEATHER_WIRELESS ||
+			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS ||
+			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_METRIC ||
+			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_OV ||
+			sensorType == SensorType::GRO_WEATHER_WIRELESS_METRIC ||
+			sensorType == SensorType::GRO_WEATHER_WIRELESS_OV ||
+			sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_OV ||
+			sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_OV ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
+			sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
+	}
+
+protected:
+	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
+	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();
+
+	constexpr static bool isInvalid(float v) {
+		return std::isnan(v); // /!\ NaN never compares equal to itself
+	}
+
+	constexpr static bool isInvalid(int v) {
+		return v == INVALID_INT;
 	}
 
 

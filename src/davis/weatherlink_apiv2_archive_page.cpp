@@ -51,11 +51,10 @@ namespace {
 		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry2
 	) {
 		SensorType sensorType2 = std::get<0>(entry2);
-		int catalogType2 = static_cast<int>(sensorType2);
 		// Inject first the aux. sensor suites and then the ISS to have the possibility to
 		// override the aux. sensor suites data with the ISS data.
 		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
-		    ((catalogType2 >= 43 && catalogType2 <= 52) || sensorType2 == SensorType::VANTAGE_VUE_ISS))
+		    WeatherlinkApiv2ArchiveMessage::isMainStationType(sensorType2))
 			return true;
 
 		return false;
