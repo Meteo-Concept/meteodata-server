@@ -88,14 +88,12 @@ public:
 
 		auto lastMeasureSpan = chrono::minutes(AbstractMBDataMessage::POLLING_PERIOD);
 		std::string content = cleanInput(entry);
-		std::cerr << "\"" << content << "\"" << std::endl;
 		std::istringstream contentStream{content};
 
 		std::experimental::optional<float> rainfall;
 		if (type == "weatherlink") {
 			sys_seconds datetime, midnight;
 			std::tie(datetime,midnight) = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
-			std::cerr << datetime << std::endl;
 			auto begin = chrono::system_clock::to_time_t(midnight);
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;
@@ -105,7 +103,6 @@ public:
 		} else if (type == "meteohub") {
 			sys_seconds datetime;
 			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			std::cerr << datetime << std::endl;
 			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;
@@ -115,7 +112,6 @@ public:
 		} else if (type == "weathercat") {
 			sys_seconds datetime,midnight;
 			std::tie(datetime, midnight) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			std::cerr << datetime << std::endl;
 			auto begin = chrono::system_clock::to_time_t(midnight);
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;
@@ -125,7 +121,6 @@ public:
 		} else if (type == "wswin") {
 			sys_seconds datetime;
 			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			std::cerr << datetime << std::endl;
 			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;
@@ -135,7 +130,6 @@ public:
 		} else if (type == "weatherdisplay" || type == "cumulus" || type == "weewx") {
 			sys_seconds datetime;
 			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			std::cerr << datetime << std::endl;
 			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;

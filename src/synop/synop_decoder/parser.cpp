@@ -27,7 +27,6 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 
 	// Station type
 	if (*it != "AAXX") {
-		std::cerr << "Message is not of type SYNOP: " << (*it) << std::endl;
 		return false;
 	}
 	++it;
@@ -96,7 +95,6 @@ std::experimental::optional<PrecipitationAmount> parseRain(const std::string& s)
 {
 	std::experimental::optional<int> rrr = parseInt(s, 1, 3);
 	if (rrr) {
-		std::cerr << "Rain: " << *rrr << std::endl;
 		PrecipitationAmount pr;
 		if (rrr > 990) {
 			pr._amount = (*rrr - 990) / 10.;
@@ -154,7 +152,6 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 			_message._phenomena = SynopMessage::PhenomenaObservationsAvailable::BASIC_OBSERVATIONS;
 			break;
 	}
-	std::cerr << "Parsed phenomena availability" << std::endl;
 
 	// Base of lowest cloud, h
 	switch (it->at(2)) {
@@ -189,7 +186,6 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 			_message._hBaseLowestCloud = Range<int>{2500, Range<int>::unbound(), true, false};
 			break;
 	}
-	std::cerr << "Parsed base of lowest cloud" << std::endl;
 
 	// Horizontal visibility, VV
 	if (it->at(3) != '/' && it->at(4) != '/') {
@@ -227,19 +223,16 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 		else if (vv == 99)
 			_message._horizVisibility = Range<float>{50., Range<float>::unbound(), true, false};
 	}
-	std::cerr << "Parsed horizontal visibility" << std::endl;
 	it++;
 
 	// # Second group, mandatory
 	// Nebulosity, N
 	_message._cloudCover = static_cast<Nebulosity>(it->at(0));
-	std::cerr << "Parsed cloud cover" << std::endl;
 
 	// Dominant direction of the wind
 	std::experimental::optional<int> n = parseInt(*it, 1, 2);
 	if (n)
 		_message._meanWindDirection = (*n) * 10;
-	std::cerr << "Parsed wind direction" << std::endl;
 
 	// Mean wind speed
 	std::experimental::optional<int> ff = parseInt(*it, 3);
@@ -255,7 +248,6 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 			_message._meanWindSpeed = ff;
 		}
 	}
-	std::cerr << "Parsed wind speed" << std::endl;
 	it++;
 
 	// # Here begins the optional groups
@@ -524,7 +516,6 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 							gust = parseInt(*it, 3);
 						}
 						if (gust) {
-							std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
 							_message._gustObservations.push_back({*gust, *duration * 6});
 						}
 					}
@@ -584,7 +575,6 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 							gust = parseInt(*it, 3);
 						}
 						if (gust) {
-							std::cerr << "Highest gust over the last " << (*duration * 6) << " min: " << *gust << std::endl;
 							_message._gustObservations.push_back({*gust, *duration * 6});
 						}
 					}

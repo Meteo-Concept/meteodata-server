@@ -29,7 +29,7 @@
 #include <sstream>
 #include <cstring>
 #include <cctype>
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -75,11 +75,11 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 	if (_apiToken.empty())
 		return; // no token, no realtime obs
 
-	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
+	std::cout << SD_DEBUG << "Weatherlink APIv1: downloading real-time data for station " << _stationName << std::endl;
 
-	std::cerr << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1\r\n"
-	          << "Host: " << WeatherlinkDownloadScheduler::HOST << "\r\n"
-	          << "Accept: application/xml\r\n\r\n";
+	std::cout << SD_DEBUG << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1 "
+	          << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
+	          << "Accept: application/xml ";
 
 	std::ostringstream query;
 	query << "/v1/NoaaExt.xml"
@@ -93,15 +93,15 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 
 	CURLcode ret = client.download(REALTIME_BASE_URL + queryStr, [&](const std::string& body) {
 		std::istringstream responseStream(body);
-		std::cerr << "Read all the content" << std::endl;
 
 		WeatherlinkApiv1RealtimeMessage obs(&_timeOffseter);
 		obs.parse(responseStream);
 		int dbRet = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
 
 		if (!dbRet) {
-			syslog(LOG_ERR, "station %s: Failed to insert real-time observation", _stationName.c_str());
-			std::cerr << "station " << _stationName << ": Failed to insert real-time observation" << std::endl;
+			std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
+				  << ": failed to insert real-time observation"
+				  << std::endl;
 		}
 	});
 
@@ -112,7 +112,7 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 
 void WeatherlinkDownloader::download(CurlWrapper& client)
 {
-	std::cerr << "Now downloading for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "Weatherlink APIv1: now downloading for station " << _stationName << std::endl;
 	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
 	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
@@ -126,11 +126,10 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	auto min = tod.minutes().count();
 
 	std::uint32_t timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
-	std::cerr << "Timestamp: " << timestamp << std::endl;
 
-	std::cerr << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1\r\n"
-	          << "Host: " << WeatherlinkDownloadScheduler::HOST << "\r\n"
-	          << "Accept: */*\r\n\r\n";
+	std::cout << SD_DEBUG << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 "
+	          << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
+	          << "Accept: */* ";
 
 	std::ostringstream query;
 	query << "/webdl.php"
@@ -144,8 +143,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	CURLcode downloadRet = client.download(ARCHIVE_BASE_URL + queryStr, [&](const std::string& body) {
 		if (body.size() % 52 != 0) {
 			std::string errorMsg = std::string{"Incorrect response size from "} + WeatherlinkDownloadScheduler::HOST + " when downloading archives";
-			syslog(LOG_ERR, "%s", errorMsg.data());
-			std::cerr << errorMsg << std::endl;
+			std::cerr << SD_ERR << errorMsg << std::endl;
 			throw std::runtime_error(errorMsg);
 		}
 		int pagesLeft = body.size() / 52;
@@ -159,7 +157,6 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		for ( ; dataPoint < pastLastDataPoint && ret ; ++dataPoint) {
 			VantagePro2ArchiveMessage message{*dataPoint, &_timeOffseter};
 
-			std::cerr << "Analyzing page " << message.getTimestamp() << std::endl;
 			if (message.looksValid()) {
 				_lastArchive = message.getTimestamp();
 				auto end = _lastArchive;
@@ -169,27 +166,36 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 					ret = _db.deleteDataPoints(_station, day, start, end);
 
 					if (!ret)
-						syslog(LOG_ERR, "station %s: Couldn't delete temporary realtime observations", _stationName.c_str());
+						std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
+							  << ": couldn't delete temporary realtime observations"
+							  << std::endl;
 					day += date::days(1);
 				}
 
 				start = end;
 				ret = _db.insertV2DataPoint(_station, message);
 			} else {
-				std::cerr << "Record looks invalid, discarding..." << std::endl;
+				std::cerr << SD_WARNING << "Weatherlink APIv1 station " << _stationName
+					  << ": record looks invalid, discarding..."
+					  << std::endl;
 			}
 			//Otherwise, just discard
 		}
 
 		if (ret) {
-			std::cerr << "Archive data stored\n" << std::endl;
+			std::cout << SD_DEBUG << "Weatherlink APIv1 station " << _stationName
+				  << ": archive data stored\n"
+				  << std::endl;
 			time_t lastArchiveDownloadTime = _lastArchive.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 			if (!ret)
-				syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+				std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
+					  << ": couldn't update last archive download time"
+					  << std::endl;
 		} else {
-			std::cerr << "Failed to store archive! Aborting" << std::endl;
-			syslog(LOG_ERR, "station %s: Couldn't store archive", _stationName.c_str());
+			std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
+				  << ": failed to store archive! Aborting"
+				  << std::endl;
 			return;
 		}
 	});
@@ -204,8 +210,7 @@ void WeatherlinkDownloader::logAndThrowCurlError(CurlWrapper& client, const std:
 	std::ostringstream errorStream;
 	errorStream << "station " << _stationName << " Bad response from " << host << ": " << error;
 	std::string errorMsg = errorStream.str();
-	syslog(LOG_ERR, "%s", errorMsg.data());
-	std::cerr << errorMsg << std::endl;
+	std::cerr << SD_ERR << errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
 }
 

@@ -25,7 +25,7 @@
 #include <functional>
 #include <chrono>
 
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -97,18 +97,15 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << "StatIC file: Couldn't download from "  << _host << ": " << e.what() << std::endl;
-			syslog(LOG_ERR, "StatIC file: Couldn't download from %s: %s", _host.data(), e.what());
+			std::cerr << SD_ERR << "StatIC file: Couldn't download from " << _host.data() << ": " << e.what() << std::endl;
 		}
 		// Going back to sleep
 		waitUntilNextDownload();
@@ -122,7 +119,7 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void StatICTxtDownloader::download()
 {
-	std::cerr << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
 	query << (_https ? "https://" : "http://")
@@ -136,15 +133,16 @@ void StatICTxtDownloader::download()
 
 		StatICMessage m{responseStream, _timeOffseter};
 		if (!m) {
-			std::cerr << "Impossible to parse the message" << std::endl;
-			syslog(LOG_ERR, "StatIC file: Cannot parse response from: %s", _host.data());
+			std::cerr << SD_ERR << "StatIC file: Cannot parse response from: " << _host << std::endl;
 			return;
 		}
 
 		if (m.getDateTime() == _lastDownloadTime) {
 			// We are still reading the last file, discard it in order
 			// not to pollute the cumulative rainfall value
-			std::cerr << "Previous message has the same date: " << m.getDateTime() << "!" << std::endl;
+			std::cout << SD_NOTICE << "StatIC file: previous message from " << _host
+				  << " has the same date: " << m.getDateTime() << "!"
+				  << std::endl;
 			return;
 		} else {
 			// The rain is given over the last hour but the file may be
@@ -164,20 +162,22 @@ void StatICTxtDownloader::download()
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);
-		std::cerr << "UUID identified: " << uuidStr << std::endl;
+		std::cout << SD_DEBUG << "UUID identified for StatIC file: " << uuidStr << std::endl;
 		bool ret = _db.insertV2DataPoint(_station, m);
-		if (ret)
-			std::cerr << "Inserted into database" << std::endl;
-		else
-			std::cerr << "Insertion into database failed" << std::endl;
+		if (ret) {
+			std::cout << SD_DEBUG << "Data from StatIC file from " << _host
+				  << " inserted into database"
+				  << std::endl;
+		} else {
+			std::cerr << SD_ERR << "Failed to insert data from StatIC file from " << _host
+				  << " into database"
+				  << std::endl;
+		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::ostringstream errorStream;
-		errorStream << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error;
-		std::string errorMsg = errorStream.str();
-		syslog(LOG_ERR, "%s", errorMsg.data());
+		std::cerr << SD_ERR << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error << std::endl;
 	}
 }
 

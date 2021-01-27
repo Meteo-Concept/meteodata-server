@@ -66,9 +66,6 @@ MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, c
 
 	std::smatch baseMatch;
 	if (std::regex_search(_content, baseMatch, mandatoryPart) && baseMatch.size() == 16) {
-		for (auto&& match : baseMatch) {
-			std::cerr << "match: " << match.str() << std::endl;
-		}
 		if (baseMatch[1].length()) {
 			try {
 				_airTemp = std::stof(baseMatch[1].str());

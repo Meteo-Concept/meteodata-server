@@ -100,7 +100,9 @@ meteodata_SOURCES = \
 		    pessl/fieldclimate_archive_message_collection.cpp\
 		    pessl/fieldclimate_archive_message_collection.h\
 		    pessl/fieldclimate_archive_message.cpp\
-		    pessl/fieldclimate_archive_message.h
+		    pessl/fieldclimate_archive_message.h\
+		    monitoring/watchdog.h\
+		    monitoring/watchdog.cpp
 
 meteodata_minmax_SOURCES = \
 		    minmax.cpp
@@ -219,10 +221,10 @@ meteodata_wlk_standalone_SOURCES = \
 		    davis/wlk_message.h\
 		    davis/wlk_import_standalone.cpp
 
-meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
+meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(SYSTEMD_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
-meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS) $(SYSTEMD_LDFLAGS)
+meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs $(SYSTEMD_LIBS)
 
 meteodata_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
 meteodata_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic

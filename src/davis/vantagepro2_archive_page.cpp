@@ -51,8 +51,6 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 	if (*reinterpret_cast<const uint32_t*>(&point) == 0xFFFFFFFF) // dash value
 		return false;
 
-	std::cerr << "Year: " << point.year << " | month: " << point.month << " | day: " << point.day << " | time: " << point.time << std::endl;
-
 	auto time = _timeOffseter->convertFromLocalTime(point.day, point.month, point.year + 2000, point.time / 100, point.time % 100);
 	auto now = chrono::system_clock::now();
 	if ((time > _beginning || v2) && time <= now) {
@@ -78,9 +76,6 @@ void VantagePro2ArchivePage::prepare(const date::sys_seconds& beginning, const T
 	_timeOffseter = timeOffseter;
 	_beginning = beginning;
 	_mostRecent = _beginning;
-
-	std::cerr << "Archive page size: " << sizeof(ArchivePage) << " bytes" << std::endl;
-	std::cerr << "Archive data point size: " << sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint) << " bytes" << std::endl;
 }
 
 }

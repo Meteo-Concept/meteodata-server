@@ -29,11 +29,9 @@
 
 #include <fstream>
 #include <unistd.h>
-#include <syslog.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/program_options.hpp>

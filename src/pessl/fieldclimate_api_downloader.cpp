@@ -31,7 +31,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <dbconnection_observations.h>
 #include <date.h>
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <cassandra.h>
 
 #include "fieldclimate_api_download_scheduler.h"
@@ -76,12 +76,12 @@ FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station,
 	_timeOffseter.setLongitude(longitude);
 	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(_pollingPeriod);
-	std::cerr << "Discovered Pessl station " << _stationName << std::endl;
+	std::cout << SD_DEBUG << "Discovered Pessl station " << _stationName << std::endl;
 }
 
 date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrapper& client)
 {
-	std::cerr << "Checking if new data is available for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "Checking if new data is available for Pessl station " << _stationName << std::endl;
 
 	using namespace date;
 
@@ -90,10 +90,10 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrappe
 	std::string headerDate;
 	std::tie(authorization, headerDate) = computeAuthorizationAndDateFields("GET", route);
 
-	std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
-		<< "Date: " << headerDate << "\r\n"
-		<< "Authorization: " << authorization << "\r\n"
-		<< "Accept: application/json\r\n\r\n";
+	std::cout << SD_DEBUG << "GET " << "/v2" << route << " HTTP/1.1 "
+		<< "Date: " << headerDate << " "
+		<< "Authorization: " << authorization << " "
+		<< "Accept: application/json ";
 	client.setHeader("Authorization", authorization);
 	client.setHeader("Date", headerDate);
 	client.setHeader("Accept", "application/json");
@@ -109,7 +109,6 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrappe
 		date::local_seconds date;
 		dateStream >> date::parse("%Y-%m-%d %H:%M:%S", date);
 		dateInUTC = _timeOffseter.convertFromLocalTime(date);
-		std::cerr << "Last date: " << dateInUTC << std::endl;
 	});
 
 	if (ret != CURLE_OK) {
@@ -121,7 +120,7 @@ date::sys_seconds FieldClimateApiDownloader::getLastDatetimeAvailable(CurlWrappe
 
 void FieldClimateApiDownloader::download(CurlWrapper& client)
 {
-	std::cerr << "Downloading historical data for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "Downloading historical data for Pessl station " << _stationName << std::endl;
 
 	// Form the request. We specify the "Connection: keep-alive" header so that the
 	// will be usable by other downloaders.
@@ -133,13 +132,13 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 	// may throw
 	date::sys_seconds lastAvailable = getLastDatetimeAvailable(client);
 	if (lastAvailable <= _lastArchive) {
-		std::cerr << "No new data available for station " << _stationName << ", bailing off" << std::endl;
+		std::cout << SD_DEBUG << "No new data available for Pessl station " << _stationName << ", bailing off" << std::endl;
 		return;
 	}
 
 	using namespace date;
-	std::cerr << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << std::endl;
-	std::cerr << "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
+	std::cout << SD_DEBUG << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << "\n"
+		  << "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
 	while (date < lastAvailable) {
 		auto datePlus24Hours = date + chrono::hours{24};
 		std::ostringstream routeBuilder;
@@ -158,15 +157,14 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 		client.setHeader("Date", headerDate);
 		client.setHeader("Accept", "application/json");
 
-		std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
-			<< "Host: " << APIHOST << "\r\n"
-			<< "Date: " << headerDate << "\r\n"
-			<< "Authorization: " << authorization << "\r\n"
-			<< "Accept: application/json\r\n\r\n";
+		std::cout << SD_DEBUG << "GET " << "/v2" << route << " HTTP/1.1 "
+			<< "Host: " << APIHOST << " "
+			<< "Date: " << headerDate << " "
+			<< "Authorization: " << authorization << " "
+			<< "Accept: application/json ";
 
 
 		CURLcode ret = client.download(BASE_URL + route, [&](const std::string& body) {
-			std::cerr << "Read all the content" << std::endl;
 			std::istringstream responseStream(body);
 
 			bool insertionOk = true;
@@ -184,24 +182,28 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 					int ret = _db.deleteDataPoints(_station, archiveDay, _lastArchive, newestTimestamp);
 
 					if (!ret)
-						syslog(LOG_ERR, "station %s: Couldn't delete replaced observations", _stationName.c_str());
+						std::cerr << SD_ERR << "Pessl station " << _stationName
+							  << " : couldn't delete replaced observations"
+							  << std::endl;
 					archiveDay += date::days(1);
 				}
 				for (const FieldClimateApiArchiveMessage& m : collection) {
 					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
 					if (!ret) {
-						syslog(LOG_ERR, "station %s: Failed to insert archive observation for station", _stationName.c_str());
-						std::cerr << "station " << _stationName << ": Failed to insert archive observation for station " << _stationName << std::endl;
+						std::cerr << SD_ERR << "Pessl station " << _stationName
+							  << " : failed to insert archive observation for station"
+							  << std::endl;
 						insertionOk = false;
 					}
 				}
 				if (insertionOk) {
-					std::cerr << "Archive data stored\n" << std::endl;
+					std::cout << SD_DEBUG << "Archive data stored for Pessl station" << _stationName << std::endl;
 					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-						std::cerr << "station " << _stationName << ": Newest timestamp " << lastArchiveDownloadTime << std::endl;
 					insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 					if (!insertionOk) {
-						syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+						std::cerr << SD_ERR << "Pessl station " << _stationName
+							  << " : couldn't update last archive download time"
+							  << std::endl;
 					} else {
 						_lastArchive = newestTimestamp;
 					}
@@ -219,7 +221,7 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 
 void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 {
-	std::cerr << "Downloading real-time data for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "Downloading real-time data for Pessl station " << _stationName << std::endl;
 
 	std::ostringstream routeBuilder;
 	routeBuilder << "/data/"
@@ -234,17 +236,15 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 	client.setHeader("Date", headerDate);
 	client.setHeader("Accept", "application/json");
 
-	std::cerr << "GET " << "/v2" << route << " HTTP/1.1\r\n"
-		<< "Host: " << APIHOST << "\r\n"
-		<< "Date: " << headerDate << "\r\n"
-		<< "Authorization: " << authorization << "\r\n"
-		<< "Accept: application/json\r\n\r\n";
+	std::cout << SD_DEBUG << "GET " << "/v2" << route << " HTTP/1.1 "
+		<< "Host: " << APIHOST << " "
+		<< "Date: " << headerDate << " "
+		<< "Authorization: " << authorization << " "
+		<< "Accept: application/json ";
 
 
 	CURLcode ret = client.download(BASE_URL + route, [&,this](const std::string& body) {
 		std::istringstream responseStream{body};
-
-		std::cerr << "Read all the content" << std::endl;
 
 		FieldClimateApiArchiveMessageCollection collection{&_timeOffseter, &_sensors};
 		collection.parse(responseStream);
@@ -260,13 +260,16 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 		const FieldClimateApiArchiveMessage& m = *(collection.begin());
 		int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
 		if (!ret) {
-			syslog(LOG_ERR, "station %s: Failed to insert realtime observation for station", _stationName.c_str());
-			std::cerr << "station " << _stationName << ": Failed to insert realtime observation for station " << _stationName << std::endl;
+			std::cerr << SD_ERR << "Pessl station " << _stationName
+				 << ": failed to insert realtime observation for station"
+				 << std::endl;
 			insertionOk = false;
 		}
 
 		if (insertionOk) {
-			std::cerr << "Realtime data stored\n" << std::endl;
+			std::cout << SD_DEBUG << "Pessl station " << _stationName
+				  << ": realtime data stored\n"
+				  << std::endl;
 		}
 	});
 
@@ -288,8 +291,7 @@ void FieldClimateApiDownloader::logAndThrowCurlError(CurlWrapper& client)
 		std::ostringstream errorStream;
 		errorStream << "station " << _stationName << " Bad response from " << APIHOST << ": " << error;
 		std::string errorMsg = errorStream.str();
-		syslog(LOG_ERR, "%s", errorMsg.data());
-		std::cerr << errorMsg << std::endl;
+		std::cerr << SD_ERR << errorMsg << std::endl;
 		throw std::runtime_error(errorMsg);
 }
 

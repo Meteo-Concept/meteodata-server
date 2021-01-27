@@ -79,7 +79,8 @@ OgimetSynop::OgimetSynop(const SynopMessage& data) :
 
 void OgimetSynop::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
+	// Deprecated
+
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
 	/*************************************************************/
@@ -87,116 +88,6 @@ void OgimetSynop::populateDataPoint(const CassUuid station, CassStatement* const
 		date::floor<chrono::milliseconds>(_data._observationTime).time_since_epoch().count()
 		);
 	/*************************************************************/
-	if (_data._pressureTendency)
-		cass_statement_bind_float(statement, 3, (*_data._pressureTendency)._amount / 10.f);
-	/*************************************************************/
-	if (_data._pressureAtSeaLevel)
-		cass_statement_bind_float(statement, 3, *_data._pressureAtSeaLevel / 10.);
-	/*************************************************************/
-	// No absolute barometric pressure
-	/*************************************************************/
-	if (_data._pressureAtStation)
-		cass_statement_bind_float(statement, 3, *_data._pressureAtStation / 10.);
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	if (_data._meanTemperature)
-		cass_statement_bind_float(statement, 7, *_data._meanTemperature / 10.f);
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	if (_humidity)
-		cass_statement_bind_int32(statement, 9, *_humidity);
-	/*************************************************************/
-	// No extra temperature
-	/*************************************************************/
-	// No soil of leaf measurement
-	// Actually, we can have a soil temperature but only the minimal value over the last night
-	/*************************************************************/
-	// No soil moisture
-	/*************************************************************/
-	if (_wind_mps)
-		cass_statement_bind_float(statement, 40, *_wind_mps * 3.6);
-	/*************************************************************/
-	if (_data._meanWindDirection)
-		cass_statement_bind_int32(statement, 41, *_data._meanWindDirection);
-	/*************************************************************/
-	// No 10-min or 2-min average wind speed
-	/*************************************************************/
-	if (_gust)
-		cass_statement_bind_float(statement, 44, *_gust);
-	/*************************************************************/
-	// No wind gust dir
-	/*************************************************************/
-	// No precipitation intensity
-	/*************************************************************/
-	if (_rainfall)
-		cass_statement_bind_int32(statement, 48, *_rainfall);
-	/*************************************************************/
-	// No storm measurement
-	/*************************************************************/
-	// No UV
-	/*************************************************************/
-	if (_data._globalSolarRadiationLastHour)
-		cass_statement_bind_int32(statement, 56, *_data._globalSolarRadiationLastHour / 3.6);
-	/*************************************************************/
-	if (_data._dewPoint)
-		cass_statement_bind_float(statement, 57, *_data._dewPoint / 10.);
-	else if (_data._meanTemperature && _humidity)
-		cass_statement_bind_float(statement, 57,
-			dew_point(
-				*_data._meanTemperature / 10.,
-				*_humidity
-			)
-		);
-	/*************************************************************/
-	if (_data._meanTemperature && _humidity)
-		cass_statement_bind_float(statement, 58,
-			heat_index(
-				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
-				*_humidity
-			)
-		);
-	/*************************************************************/
-	if (_data._meanTemperature && _wind_mps)
-		cass_statement_bind_float(statement, 59,
-			wind_chill(
-				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
-				*_wind_mps * 3.6
-			)
-		);
-	/*************************************************************/
-	if (_data._meanTemperature && _wind_mps
-	&& _humidity && _data._globalSolarRadiationLastHour)
-		cass_statement_bind_float(statement, 60,
-			thsw_index(
-				*_data._meanTemperature / 10.,
-				*_humidity,
-				*_wind_mps,
-				*_data._netRadiationLastHour / 3.6
-			)
-		);
-	else if (_data._meanTemperature && _wind_mps && _humidity)
-		cass_statement_bind_float(statement, 60,
-			thsw_index(
-				*_data._meanTemperature / 10.,
-				*_humidity,
-				*_wind_mps
-			)
-		);
-	/*************************************************************/
-	if (_data._evapoMaybeTranspiRation)
-		cass_statement_bind_float(statement, 61, (*_data._evapoMaybeTranspiRation)._amount);
-	/*************************************************************/
-	// No forecast
-	/*************************************************************/
-	// No forecast icons
-	/*************************************************************/
-	// No sunrise time
-	/*************************************************************/
-	// No sunset time
-	/*************************************************************/
-	// No VantagePro2 archive rainfall or ET
 }
 
 void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const

@@ -33,7 +33,6 @@
 
 #include <cstring>
 #include <cctype>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -92,13 +91,6 @@ void DeferredSynopDownloader::buildDownloadRequest(std::ostream& out)
 	auto h   = tod.hours().count();
 	auto min = 0;
 
-	std::cerr << "GET " << "/cgi-bin/getsynop?begin=" << std::setfill('0')
-		<< std::setw(4) << y
-		<< std::setw(2) << m
-		<< std::setw(2) << d
-		<< std::setw(2) << h
-		<< std::setw(2) << min
-		<< "&block=" << _icao;
 	out << "/cgi-bin/getsynop?begin=" << std::setfill('0')
 		<< std::setw(4) << y
 		<< std::setw(2) << m

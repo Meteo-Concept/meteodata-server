@@ -28,7 +28,7 @@ AM_COND_IF([HAVE_DOT], [AC_SUBST(DOT_IS_AVAILABLE,["YES"])], [AC_SUBST(DOT_IS_AV
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([syslog.h])
+AC_CHECK_HEADERS([systemd/sd-daemon.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([cassandra.h])
 AC_CHECK_HEADERS([message.h])
@@ -46,6 +46,7 @@ AX_PTHREAD
 AC_CHECK_LIB([cassandra],[cass_session_new])
 AC_CHECK_LIB([cassobs],[main])
 AC_CHECK_LIB([tz],[main])
+AC_CHECK_LIB([systemd],[sd_notify])
 AX_CHECK_OPENSSL
 LIBCURL_CHECK_CONFIG
 BOOST_REQUIRE([1.52])

@@ -21,7 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 
 #include <memory>
 #include <tuple>
@@ -62,7 +62,7 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 	_fieldClimateApiKey(fieldClimateApiKey),
 	_fieldClimateApiSecret(fieldClimateApiSecret)
 {
-	syslog(LOG_NOTICE, "Meteodata has started succesfully");
+	std::cerr << SD_INFO << "Meteodata has started succesfully";
 }
 
 void MeteoServer::start()
@@ -88,7 +88,8 @@ void MeteoServer::start()
 		subscriber->start();
 	}
 
-	// Start the Synop downloader worker (one for all the SYNOP stations)
+	// Start the Synop downloader worker (one for all the SYNOP stations in
+	// the same group)
 	auto synopDownloaderFr = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_FR);
 	synopDownloaderFr->start();
 	auto synopDownloaderLu = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_LU);

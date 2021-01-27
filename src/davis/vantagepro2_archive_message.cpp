@@ -42,7 +42,8 @@ VantagePro2ArchiveMessage::VantagePro2ArchiveMessage(const ArchiveDataPoint& dat
 
 void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
+	// Deprecated method
+
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
 	/*************************************************************/
@@ -56,120 +57,6 @@ void VantagePro2ArchiveMessage::populateDataPoint(const CassUuid station, CassSt
 			)).time_since_epoch().count()
 		);
 	/*************************************************************/
-	// No bar trend
-	/*************************************************************/
-	std::cerr << "barometer: " << from_inHg_to_bar(_data.barometer) << std::endl;
-	cass_statement_bind_float(statement, 3, from_inHg_to_bar(_data.barometer));
-	/*************************************************************/
-	// No absolute barometric pressure
-	/*************************************************************/
-	// No raw barometric sensor reading
-	/*************************************************************/
-	// Do not store inside temperature
-	/*************************************************************/
-	if (_data.outsideTemp != 32767)
-		cass_statement_bind_float(statement, 7, from_Farenheit_to_Celsius(_data.outsideTemp/10.0));
-	/*************************************************************/
-	// Do not store inside humidity
-	/*************************************************************/
-	if (_data.outsideHum != 255)
-		cass_statement_bind_int32(statement, 9, _data.outsideHum);
-	/*************************************************************/
-	for (int i=0 ; i<3 ; i++) {
-		if (_data.extraTemp[1] != 255)
-			cass_statement_bind_float(statement, 10+i, from_Farenheit_to_Celsius(_data.extraTemp[i] - 90));
-	}
-	/*************************************************************/
-	for (int i=0 ; i<2 ; i++) {
-		if (_data.soilTemp[i] != 255)
-			cass_statement_bind_float(statement, 17+i, from_Farenheit_to_Celsius(_data.soilTemp[i] - 90));
-		if (_data.leafTemp[i] != 255)
-			cass_statement_bind_float(statement, 21+i, from_Farenheit_to_Celsius(_data.leafTemp[i] - 90));
-		if (_data.extraHum[i] != 255)
-			cass_statement_bind_int32(statement, 25+i, _data.extraHum[i]);
-		if (_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15)
-			cass_statement_bind_int32(statement, 36+i, _data.leafWetness[i]);
-	}
-	/*************************************************************/
-	for (int i=0 ; i<4 ; i++) {
-		if (_data.soilMoisture[i] != 255)
-			cass_statement_bind_int32(statement, 32+i, _data.soilMoisture[i]);
-	}
-	/*************************************************************/
-	if (_data.avgWindSpeed != 255)
-		cass_statement_bind_float(statement, 40, from_mph_to_kph(_data.avgWindSpeed));
-	/*************************************************************/
-	if (_data.prevailingWindDir != 255)
-		cass_statement_bind_int32(statement, 41, static_cast<int>(_data.prevailingWindDir * 22.5));
-	/*************************************************************/
-	// No 10-min or 2-min average wind speed
-	/*************************************************************/
-	if (_data.maxWindSpeed != 255)
-		cass_statement_bind_float(statement, 44, from_mph_to_kph(_data.maxWindSpeed));
-	/*************************************************************/
-	if (_data.maxWindSpeedDir != 255)
-		cass_statement_bind_int32(statement, 45, static_cast<int>(_data.maxWindSpeedDir * 22.5));
-	/*************************************************************/
-	if (_data.maxRainRate != 65535)
-		cass_statement_bind_float(statement, 46, from_rainrate_to_mm(_data.maxRainRate));
-	/*************************************************************/
-	// No avg rain rate over hour/day/...
-	/*************************************************************/
-	// No storm measurement
-	/*************************************************************/
-	if (_data.uv != 255)
-		cass_statement_bind_int32(statement, 55, _data.uv);
-	/*************************************************************/
-	if (_data.solarRad != 32767)
-		cass_statement_bind_int32(statement, 56, _data.solarRad);
-	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
-		cass_statement_bind_float(statement, 57,
-			dew_point(
-				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
-				_data.outsideHum
-			)
-		);
-	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)
-		cass_statement_bind_float(statement, 58,
-			heat_index(
-				_data.outsideTemp / 10,
-				_data.outsideHum
-			)
-		);
-	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255)
-		cass_statement_bind_float(statement, 59,
-			wind_chill(
-				_data.outsideTemp / 10,
-				_data.avgWindSpeed
-			)
-		);
-	/*************************************************************/
-	if (_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255)
-		cass_statement_bind_float(statement, 60,
-			thsw_index(
-				from_Farenheit_to_Celsius(_data.outsideTemp / 10),
-				_data.outsideHum,
-				from_mph_to_mps(_data.avgWindSpeed)
-			)
-		);
-	/*************************************************************/
-	// ET is not exploitable, it's given over the last hour
-	/*************************************************************/
-	std::string val = VantagePro2Message::from_forecast_to_diagnostic(_data.forecast);
-	if (!val.empty())
-		cass_statement_bind_string(statement, 64, val.c_str());
-	/*************************************************************/
-	// No forecast icons
-	/*************************************************************/
-	// No sunrise time
-	/*************************************************************/
-	// No sunset time
-	/*************************************************************/
-	cass_statement_bind_float(statement, 68, _data.rainfall);
-	cass_statement_bind_float(statement, 69, _data.et);
 }
 
 void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
@@ -199,7 +86,6 @@ void VantagePro2ArchiveMessage::populateV2DataPoint(const CassUuid station, Cass
 		).time_since_epoch().count()
 	);
 	/*************************************************************/
-	std::cerr << "barometer: " << from_inHg_to_bar(_data.barometer) << std::endl;
 	cass_statement_bind_float(statement, 3, from_inHg_to_bar(_data.barometer));
 	/*************************************************************/
 	if (_data.outsideTemp != 32767 && _data.outsideHum != 255)

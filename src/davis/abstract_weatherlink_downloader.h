@@ -66,7 +66,6 @@ public:
 		_timeOffseter.setLongitude(longitude);
 		_timeOffseter.setElevation(elevation);
 		_timeOffseter.setMeasureStep(_pollingPeriod);
-		std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
 	}
 
 	AbstractWeatherlinkDownloader(const CassUuid& station,
@@ -86,7 +85,6 @@ public:
 		_timeOffseter.setLongitude(longitude);
 		_timeOffseter.setElevation(elevation);
 		_timeOffseter.setMeasureStep(_pollingPeriod);
-		std::cerr << "Discovered Weatherlink station " << _stationName << std::endl;
 	}
 
 protected:

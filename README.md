@@ -50,7 +50,7 @@ These first two options can also be set in the configuration file (by default,
 - `--help`: Display an help message presenting the available options and exits
 - `--version`: Display the version of Meteodata and exit
 - `--config-file`: Gives the path to the configuration file
-- `--no-daemon | -D`: Normally, Meteodata runs as a daemon and outputs error
-messages and warnings to syslog but using this option makes it skip the
-daemonization process and outputs debug messages on the standard error output.
+- `--no-daemon | -D`: Normally, Meteodata runs as a systemd daemon (with a
+  watchdog, among other things) but using this option prevents it from sending
+  notifications to systemd.
 

@@ -29,7 +29,6 @@
 #include <array>
 #include <vector>
 #include <functional>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>

@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 
+#include <systemd/sd-daemon.h>
 #include <date/date.h>
 #include <message.h>
 
@@ -90,7 +91,7 @@ bool WlkImporter::import(std::istream& input, date::sys_seconds& start, date::sy
 		if (m) {
 			ret = _db.insertV2DataPoint(_station, m);
 			if (!ret) {
-				std::cerr << "Failed to insert entry at line " << lineNumber << std::endl;
+				std::cerr << SD_DEBUG << "WlkImporter: failed to insert entry at line " << lineNumber << std::endl;
 			} else {
 				valid = true;
 				date::sys_seconds newDate = m.getDateTime();
@@ -105,7 +106,7 @@ bool WlkImporter::import(std::istream& input, date::sys_seconds& start, date::sy
 		end = e;
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
 		if (!ret) {
-			std::cerr << "Failed to update the last archive download datetime" << std::endl;
+			std::cerr << SD_DEBUG << "WlkImporter: failed to update the last archive download datetime" << std::endl;
 		}
 	}
 

@@ -30,7 +30,6 @@
 #include <vector>
 #include <functional>
 #include <map>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>

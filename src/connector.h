@@ -65,7 +65,6 @@ namespace meteodata
 				Connector::ptr>::type
 		create(boost::asio::io_service& ioService, DbConnectionObservations& db)
 		{
-			std::cerr << "new connector" << std::endl;
 			return Connector::ptr(new T(std::ref(ioService), std::ref(db)));
 		}
 

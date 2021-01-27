@@ -27,7 +27,6 @@
 #include <iterator>
 #include <chrono>
 #include <unordered_map>
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -136,13 +135,11 @@ void WeatherlinkDownloadScheduler::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
 		auto now = chrono::system_clock::now();
 		auto daypoint = date::floor<date::days>(now);
 		auto tod = date::make_time(now - daypoint); // Yields time_of_day type

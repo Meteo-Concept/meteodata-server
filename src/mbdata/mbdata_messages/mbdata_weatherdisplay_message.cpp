@@ -71,9 +71,6 @@ MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(date::sys_seconds datet
 
 	std::smatch baseMatch;
 	if (std::regex_search(_content, baseMatch, mandatoryPart) && baseMatch.size() == 12) {
-		for (auto&& match : baseMatch) {
-			std::cerr << "match: " << match.str() << std::endl;
-		}
 		if (baseMatch[1].length()) {
 			try {
 				_airTemp = std::stof(baseMatch[1].str());

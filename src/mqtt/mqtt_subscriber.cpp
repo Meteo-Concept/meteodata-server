@@ -29,7 +29,7 @@
 #include <sstream>
 #include <cstring>
 #include <cctype>
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 
 #include <cassandra.h>
@@ -93,42 +93,42 @@ MqttSubscriber::MqttSubscriber(const CassUuid& station, MqttSubscriber::MqttSubs
 	_timeOffseter.setLongitude(longitude);
 	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(_pollingPeriod);
-	std::cerr << "Discovered MQTT station " << _stationName << std::endl;
+	std::cout << SD_NOTICE << "Discovered MQTT station " << _stationName << std::endl;
 }
 
 void MqttSubscriber::start()
 {
-	std::cerr << "About to start the MQTT client for " << _stationName << std::endl;
+	std::cout << SD_DEBUG << "About to start the MQTT client for " << _stationName << std::endl;
 	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
-	std::cerr << "Created the client" << std::endl;
 	_client->set_client_id(MqttSubscriber::CLIENT_ID);
 	_client->set_user_name(_details.user);
 	_client->set_password(_details.password.get());
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */
 	_client->add_verify_path(DEFAULT_VERIFY_PATH);
-	std::cerr << "Set info" << std::endl;
+	std::cout << SD_DEBUG << "Created the client" << std::endl;
 
 	auto self{shared_from_this()};
 	_client->set_connack_handler(
 		[this,self]([[maybe_unused]] bool sp, std::uint8_t ret) {
-			std::cerr << "Connection attempt to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
-			syslog(ret == mqtt::connect_return_code::accepted ? LOG_NOTICE : LOG_ERR, "Connection attempt to %s for station %s: %s", _details.host.c_str(), _stationName.c_str(), mqtt::connect_return_code_to_str(ret));
+			std::cout << SD_DEBUG << "Connection attempt to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			if (ret == mqtt::connect_return_code::accepted) {
+				std::cerr << SD_NOTICE << "Connection established to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 				_pid = _client->subscribe(_details.topic, mqtt::qos::at_least_once);
 				_client->subscribe(_details.topic + ARCHIVES_TOPIC, mqtt::qos::at_least_once);
+			} else {
+				std::cerr << SD_ERR << "Failed to establish connection to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			}
 			return true;
 		}
 	);
 	_client->set_close_handler(
 		[this,self]() {
-			syslog(LOG_NOTICE, "%s: disconnected", _stationName.c_str());
+			std::cerr << SD_NOTICE << "MQTT station " << _stationName << " disconnected" << std::endl;
 		}
 	);
 	_client->set_error_handler(
 		[this,self](sys::error_code const& ec) {
-			std::cerr << _stationName << ": unexpected disconnection " << ec.message() << std::endl;
-			syslog(LOG_ERR, "%s: unexpected disconnection %s", _stationName.c_str(), ec.message().c_str());
+			std::cerr << SD_ERR << "MQTT station " << _stationName << ": unexpected disconnection " << ec.message() << std::endl;
 		}
 	);
 	_client->set_puback_handler(
@@ -170,7 +170,7 @@ void MqttSubscriber::start()
 			return true;
 		}
 	);
-	std::cerr << "Set the handlers" << std::endl;
+	std::cout << SD_DEBUG << "Set the handlers" << std::endl;
 
 	_client->connect();
 }
@@ -182,11 +182,10 @@ void MqttSubscriber::stop()
 
 void MqttSubscriber::processArchive(const mqtt::string_view& content)
 {
-	std::cerr << "Now downloading for station " << _stationName << std::endl;
+	std::cout << SD_DEBUG << "Now downloading for MQTT station " << _stationName << std::endl;
 
 	if (content.size() != sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint)) {
-		syslog(LOG_ERR, "station %s: input from MQTT broker has an invalid size", _stationName.c_str());
-		std::cerr << "station " << _stationName << ": input has an invalid size " << std::endl;
+		std::cerr << SD_WARNING << "MQTT station " << _stationName << ": input from broker has an invalid size " << std::endl;
 		return;
 	}
 
@@ -198,18 +197,17 @@ void MqttSubscriber::processArchive(const mqtt::string_view& content)
 		// Do not bother in inserting v1 data points
 		ret = _db.insertV2DataPoint(_station, msg);
 	} else {
-		std::cerr << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
+		std::cerr << SD_WARNING << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
 	}
 	if (ret) {
-		std::cerr << "Archive data stored\n" << std::endl;
+		std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
 		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 		if (!ret)
-			syslog(LOG_ERR, "station %s: Couldn't update last archive download time", _stationName.c_str());
+			std::cerr << SD_ERR << "MQTT station " << _stationName << ": Couldn't update last archive download time" << std::endl;
 	} else {
-		std::cerr << "Failed to store archive! Aborting" << std::endl;
-		syslog(LOG_ERR, "station %s: Couldn't store archive", _stationName.c_str());
-		//stop();
+		std::cerr << SD_ERR << "Failed to store archive for MQTT station " << _stationName << "! Aborting" << std::endl;
+		// will retry...
 		return;
 	}
 }

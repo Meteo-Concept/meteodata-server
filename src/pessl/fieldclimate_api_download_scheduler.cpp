@@ -27,9 +27,9 @@
 #include <iterator>
 #include <chrono>
 #include <thread>
-#include <syslog.h>
 #include <unistd.h>
 
+#include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/ssl.hpp>
@@ -91,7 +91,7 @@ void FieldClimateApiDownloadScheduler::downloadArchives()
 			// capped at 10 per second
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
-			std::cerr << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "Pessl: Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 		}
 	}
 }
@@ -110,14 +110,11 @@ void FieldClimateApiDownloadScheduler::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
-
 		downloadArchives();
 		waitUntilNextDownload();
 	} else {

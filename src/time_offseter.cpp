@@ -24,6 +24,7 @@
 #include <iostream>
 #include <chrono>
 
+#include <systemd/sd-daemon.h>
 #include <date/date.h>
 #include <date/tz.h>
 
@@ -90,8 +91,8 @@ namespace meteodata
 			} else if (buffer.timeZone == 25) {
 				_timezoneInfo.timezone = date::locate_zone("Europe/Bucharest");
 			} else {
-				std::cerr << "Station has automatic DST but the station has no clue "
-					  << "about DST settings for its timezone (or so we believe)"
+				std::cerr << SD_WARNING << "Station has automatic DST but the station has no clue "
+					  << "about DST settings for its timezone"
 					  << std::endl;
 				_timezoneInfo.timeOffset = vantageTimezoneIndex2Offet(buffer.timeZone);
 				_byTimezone = false;

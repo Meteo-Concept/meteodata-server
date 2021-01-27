@@ -28,7 +28,7 @@
 #include <string>
 #include <functional>
 
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -100,18 +100,15 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << "MBData file: Couldn't download from "  << _host << ": " << e.what() << std::endl;
-			syslog(LOG_ERR, "MBData file: Couldn't download from %s: %s", _host.data(), e.what());
+			std::cerr << SD_ERR << "MBData file: Couldn't download from "  << _host << ": " << e.what() << std::endl;
 		}
 		// Going back to sleep
 		waitUntilNextDownload();
@@ -125,7 +122,7 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void MBDataTxtDownloader::download()
 {
-	std::cerr << "Now downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "Now downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
 	query << (_https ? "https://" : "http://")
@@ -139,48 +136,40 @@ void MBDataTxtDownloader::download()
 
 		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
 		if (!m || !(*m)) {
-			std::cerr << "Download failed" << std::endl;
-			syslog(LOG_ERR, "%s: Download failed", _stationName.c_str());
+			std::cerr << SD_ERR << _stationName << "Download failed" << std::endl;
 			return;
 		}
 
 		// We are still reading the last file, discard it
 		if (m->getDateTime() <= _lastDownloadTime) {
-			std::cerr << "File has not been updated" << std::endl;
+			std::cerr << SD_NOTICE << "File for station " << _stationName << " has not been updated" << std::endl;
 			return;
 		}
 		if (m->getDateTime() > chrono::system_clock::now() + chrono::minutes(1)) { // Allow for some clock deviation
-			std::cerr << "Station " << _stationName << " has data in the future" << std::endl;
-			syslog(LOG_ERR, "%s: Data from the future detected", _stationName.c_str());
+			std::cerr << SD_ERR << "Station " << _stationName << " has data in the future" << std::endl;
 			return;
 		}
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);
-		std::cerr << "UUID identified: " << uuidStr << std::endl;
 		bool ret = _db.insertV2DataPoint(_station, *m);
 		if (ret) {
-			std::cerr << "Inserted into database" << std::endl;
+			std::cout << SD_DEBUG << "Data from station " << _stationName << " inserted into database" << std::endl;
 		} else {
-			std::cerr << "Insertion into database failed" << std::endl;
-			syslog(LOG_ERR, "%s: Insertion into database failed", _stationName.c_str());
+			std::cerr << SD_ERR << "Insertion into database failed for station " << _stationName << std::endl;
 			return;
 		}
 		_lastDownloadTime = m->getDateTime();
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(_lastDownloadTime));
 		if (!ret) {
-			std::cerr << "Failed to update the last insertion time" << std::endl;
-			syslog(LOG_ERR, "%s: Failed to update the last insertion time", _stationName.c_str());
+			std::cerr << SD_ERR << "Failed to update the last insertion time of station " << _stationName << std::endl;
 			return;
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::ostringstream errorStream;
-		errorStream << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error;
-		std::string errorMsg = errorStream.str();
-		syslog(LOG_ERR, "%s", errorMsg.data());
+		std::cerr << SD_ERR << "Download failed for " << _stationName << ", bad response from " << _host << ": " << error;
 	}
 }
 

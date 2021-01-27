@@ -24,7 +24,7 @@
 #include <iostream>
 #include <fstream>
 #include <unistd.h>
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <cerrno>
 #include <cstdio>
 #include <cstdlib>
@@ -37,6 +37,7 @@
 
 #include "config.h"
 #include "meteo_server.h"
+#include "monitoring/watchdog.h"
 
 /**
  * @brief The configuration file default path
@@ -65,6 +66,7 @@ int main(int argc, char** argv)
 	std::string fieldClimateKey;
 	std::string fieldClimateSecret;
 	unsigned long threads;
+	bool daemonized;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -83,7 +85,7 @@ int main(int argc, char** argv)
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
-		("no-daemon,D", "do not daemonize at startup")
+		("no-daemon,D", "tell the program that it's not daemonized and that it should not try to notify systemd")
 	;
 	desc.add(config);
 
@@ -114,34 +116,36 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	if (!vm.count("no-daemon")) {
-		int daemonization = daemon(0,0);
+	daemonized = !vm.count("no-daemon");
 
-		if (daemonization) {
-			int errsv = errno;
-			perror("Could not start Meteodata");
-			return errsv;
-		}
-	}
-
-	openlog("meteodata", LOG_PID, LOG_DAEMON);
 	cass_log_set_level(CASS_LOG_INFO);
 	CassLogCallback logCallback =
 		[](const CassLogMessage *message, void*) -> void {
-			int logLevel =
-				message->severity == CASS_LOG_CRITICAL ? LOG_CRIT :
-				message->severity == CASS_LOG_ERROR    ? LOG_ERR :
-				message->severity == CASS_LOG_WARN     ? LOG_WARNING :
-				message->severity == CASS_LOG_INFO     ? LOG_INFO :
-									 LOG_DEBUG;
+			const char* logLevel =
+				message->severity == CASS_LOG_CRITICAL ? SD_CRIT :
+				message->severity == CASS_LOG_ERROR    ? SD_ERR :
+				message->severity == CASS_LOG_WARN     ? SD_WARNING :
+				message->severity == CASS_LOG_INFO     ? SD_INFO :
+									 SD_DEBUG;
 
-			syslog(logLevel, "%s (from %s, in %s, line %i)", message->message, message->function, message->file, message->line);
+			std::cerr << logLevel << " " << message->message
+				  << "(from " << message->function
+				  << ", in " << message->file
+				  << ", line " << message->line
+				  << ")"
+				  << std::endl;
 		};
 	cass_log_set_callback(logCallback, NULL);
 
 	try {
 		curl_global_init(CURL_GLOBAL_SSL);
 		boost::asio::io_service ioService;
+
+		if (daemonized) {
+			std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>(ioService);
+			watchdog->start();
+		}
+
 		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret, fieldClimateKey, fieldClimateSecret);
 		server.start();
 
@@ -150,20 +154,21 @@ int main(int argc, char** argv)
 		for (unsigned long i=0 ; i<threads ; i++) {
 			workers.emplace_back([&]() { ioService.run(); });
 		}
+		if (daemonized)
+			sd_notifyf(0, "READY=1\n" "STATUS=Data collection started\n" "MAINPID=%d", getpid());
 		// and wait for them to die
 		for (unsigned long i=0 ; i<threads ; i++) {
 			workers[i].join();
 		}
 	} catch (std::exception& e) {
 		// exit on error, and let systemd restart the daemon
-		std::cerr << e.what() << std::endl;
+		std::cerr << SD_CRIT << e.what() << std::endl;
+		if (daemonized)
+			sd_notifyf(0, "STATUS=Critical error met: %s, bailing off\n" "ERRNO=255", e.what());
 		curl_global_cleanup();
-		syslog(LOG_ERR, "%s", e.what());
-		closelog();
 		return 255;
 	}
 
 	// clean exit, not reached in daemon mode
 	curl_global_cleanup();
-	closelog();
 }

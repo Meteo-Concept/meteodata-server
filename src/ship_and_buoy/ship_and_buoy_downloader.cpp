@@ -34,7 +34,7 @@
 
 #include <cstring>
 #include <cctype>
-#include <syslog.h>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -90,13 +90,11 @@ void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
 		download();
 		// Going back to sleep
 		waitUntilNextDownload();
@@ -110,7 +108,7 @@ void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
 
 void ShipAndBuoyDownloader::download()
 {
-	std::cerr << "Now downloading SHIP and BUOY data " << std::endl;
+	std::cout << SD_NOTICE << "Now downloading SHIP and BUOY data " << std::endl;
 	auto ymd = date::year_month_day(date::floor<date::days>(chrono::system_clock::now() - date::days(1)));
 
 	CurlWrapper client;
@@ -135,23 +133,20 @@ void ShipAndBuoyDownloader::download()
 			if (uuidIt != _icaos.end()) {
 				char uuidStr[CASS_UUID_STRING_LENGTH];
 				cass_uuid_string(uuidIt->second, uuidStr);
-				std::cerr << "UUID identified: " << uuidStr << std::endl;
+				std::cout << SD_DEBUG << "UUID identified: " << uuidStr << std::endl;
 				bool ret = _db.insertV2DataPoint(uuidIt->second, m);
-				if (ret)
-					std::cerr << "Inserted into database" << std::endl;
-				else
-					std::cerr << "Insertion into database failed" << std::endl;
+				if (ret) {
+					std::cout << SD_DEBUG << "SHIP ou BUOY data inserted into database for station " << uuidStr << std::endl;
+				} else {
+					std::cerr << SD_ERR << "Failed to insert SHIP ou BUOY data into database for station " << uuidStr << std::endl;
+				}
 			}
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::ostringstream errorStream;
-		errorStream << "Failed to download SHIP and BUOY data: " << error;
-		std::string errorMsg = errorStream.str();
-		syslog(LOG_ERR, "%s", errorMsg.data());
-		std::cerr << errorMsg << std::endl;
+		std::cerr << SD_ERR << "Failed to download SHIP and BUOY data: " << error << std::endl;
 	}
 }
 

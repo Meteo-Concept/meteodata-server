@@ -33,8 +33,8 @@
 
 #include <cstring>
 #include <cctype>
-#include <syslog.h>
 #include <unistd.h>
+#include <systemd/sd-daemon.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/io_service.hpp>
@@ -77,17 +77,16 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	std::cerr << "Deadline handler hit: " << e.value() << ": " << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		std::cerr << "Timed out!" << std::endl;
 		try {
 			download();
 		} catch (std::exception& e) {
-			syslog(LOG_ERR, "SYNOP: Getting the SYNOP messages failed (%s), will retry", e.what());
+			std::cerr << SD_ERR << "SYNOP: Getting the SYNOP messages failed (" << e.what() << "), will retry"
+				  << std::endl;
 			// nothing more, just go back to sleep and retry next time
 		}
 		// Going back to sleep
@@ -102,7 +101,7 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 
 void AbstractSynopDownloader::download()
 {
-	std::cerr << "Now downloading SYNOP messages " << std::endl;
+	std::cout << SD_INFO << "Now downloading SYNOP messages " << std::endl;
 
 	std::ostringstream requestStream;
 	buildDownloadRequest(requestStream);
@@ -123,10 +122,9 @@ void AbstractSynopDownloader::download()
 				if (uuidIt != _icaos.end()) {
 					char uuidStr[CASS_UUID_STRING_LENGTH];
 					cass_uuid_string(uuidIt->second, uuidStr);
-					std::cerr << "UUID identified: " << uuidStr << std::endl;
 					OgimetSynop synop{m};
 					_db.insertV2DataPoint(uuidIt->second, synop);
-					std::cerr << "Inserted into database" << std::endl;
+					std::cout << SD_DEBUG << "SYNOP: Inserted into database" << std::endl;
 
 					std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 					std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
@@ -144,18 +142,14 @@ void AbstractSynopDownloader::download()
 						_db.insertV2Tx(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
 				}
 			} else {
-				std::cerr << "Record looks invalid, discarding..." << std::endl;
+				std::cerr << SD_WARNING << "SYNOP: Record looks invalid, discarding..." << std::endl;
 			}
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::ostringstream errorStream;
-		errorStream << "Failed to download SYNOPs: " << error;
-		std::string errorMsg = errorStream.str();
-		syslog(LOG_ERR, "%s", errorMsg.data());
-		std::cerr << errorMsg << std::endl;
+		std::cerr << SD_ERR << "Failed to download SYNOPs: " << error << std::endl;
 	}
 }
 

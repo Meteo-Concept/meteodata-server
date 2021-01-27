@@ -31,6 +31,7 @@
 #include <map>
 #include <thread>
 
+#include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio.hpp>
@@ -94,7 +95,7 @@ private:
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 
 		} catch (const std::runtime_error& e) {
-			std::cerr << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "Weatherlink: Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 		}
 	}
 	void downloadArchives();

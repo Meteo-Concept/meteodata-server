@@ -7,11 +7,13 @@ Requires =
 [Service]
 User = meteodata
 Group = meteodata
-Type = forking
+Type = notify
 ExecStart = /usr/local/bin/meteodata
 Restart = on-abnormal
 StartLimitInterval = 60
 StartLimitBurst = 10
+WatchdogSec = 60
+NotifyAccess = all
 
 [Install]
 WantedBy = multi-user.target

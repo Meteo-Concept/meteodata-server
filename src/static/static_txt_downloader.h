@@ -28,7 +28,6 @@
 #include <experimental/optional>
 #include <string>
 
-#include <syslog.h>
 #include <unistd.h>
 
 #include <boost/asio/io_service.hpp>

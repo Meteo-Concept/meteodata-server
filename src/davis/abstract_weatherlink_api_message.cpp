@@ -47,99 +47,13 @@ AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage(const TimeOffseter*
 
 void AbstractWeatherlinkApiMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
 {
-	std::cerr << "Populating the new datapoint (archived value)" << std::endl;
+	// Deprecated
+
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
 	/*************************************************************/
 	cass_statement_bind_int64(statement, 1, _obs.time.time_since_epoch().count());
 	/*************************************************************/
-	// No bar trend
-	/*************************************************************/
-	if (!isInvalid(_obs.pressure))
-		cass_statement_bind_float(statement, 3, _obs.pressure);
-	/*************************************************************/
-	// No absolute barometric pressure
-	/*************************************************************/
-	// No raw barometric sensor reading
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	if (!isInvalid(_obs.temperature))
-		cass_statement_bind_float(statement, 7, _obs.temperature);
-	/*************************************************************/
-	// No inside humidity
-	/*************************************************************/
-	if (!isInvalid(_obs.humidity))
-		cass_statement_bind_int32(statement, 9, _obs.humidity);
-	/*************************************************************/
-	// No extra temperatures
-	/*************************************************************/
-	// No leaf temperatures, soil temperatures, leaf temperatures, soil moistures
-	/*************************************************************/
-	/*************************************************************/
-	if (!isInvalid(_obs.windSpeed))
-		cass_statement_bind_float(statement, 40, from_mph_to_kph(_obs.windSpeed));
-	/*************************************************************/
-	if (!isInvalid(_obs.windDir))
-		cass_statement_bind_int32(statement, 41, _obs.windDir);
-	/*************************************************************/
-	// No 10-min or 2-min average wind speed
-	/*************************************************************/
-	if (!isInvalid(_obs.windGustSpeed))
-		cass_statement_bind_float(statement, 44, from_mph_to_kph(_obs.windGustSpeed));
-	/*************************************************************/
-	// No max wind speed dir
-	/*************************************************************/
-	if (!isInvalid(_obs.rainRate))
-		cass_statement_bind_float(statement, 46, _obs.rainRate);
-	/*************************************************************/
-	// No avg rain rate over hour/day/...
-	/*************************************************************/
-	// No storm measurement
-	/*************************************************************/
-	if (!isInvalid(_obs.uvIndex))
-		cass_statement_bind_int32(statement, 55, int(_obs.uvIndex * 10));
-	/*************************************************************/
-	if (!isInvalid(_obs.solarRad))
-		cass_statement_bind_int32(statement, 56, _obs.solarRad);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity))
-		cass_statement_bind_float(statement, 57,
-			dew_point(
-				_obs.temperature,
-				_obs.humidity
-			)
-		);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
-		cass_statement_bind_float(statement, 58,
-			heat_index(
-				_obs.temperatureF,
-				_obs.humidity
-			)
-		);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed))
-		cass_statement_bind_float(statement, 59,
-			wind_chill(
-				_obs.temperatureF,
-				_obs.windSpeed
-			)
-		);
-	/*************************************************************/
-	// No THSW
-	/*************************************************************/
-	// ET is not exploitable, it's given over the last hour
-	/*************************************************************/
-	// No forecast
-	/*************************************************************/
-	// No forecast icons
-	/*************************************************************/
-	// No sunrise time
-	/*************************************************************/
-	// No sunset time
-	/*************************************************************/
-	// No rain nor ET
 }
 
 void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
