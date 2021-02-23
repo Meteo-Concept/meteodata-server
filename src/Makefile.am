@@ -7,7 +7,8 @@ bin_PROGRAMS = \
 	       meteodata-weatherlink-apiv2-standalone \
 	       meteodata-static-standalone \
 	       meteodata-fieldclimate-api-standalone\
-	       meteodata-wlk-standalone
+	       meteodata-wlk-standalone\
+	       meteodata-objenious-api-standalone
 
 meteodata_SOURCES = \
 		    connector.cpp\
@@ -101,6 +102,14 @@ meteodata_SOURCES = \
 		    pessl/fieldclimate_archive_message_collection.h\
 		    pessl/fieldclimate_archive_message.cpp\
 		    pessl/fieldclimate_archive_message.h\
+		    objenious/objenious_api_downloader.cpp\
+		    objenious/objenious_api_downloader.h\
+		    objenious/objenious_api_download_scheduler.cpp\
+		    objenious/objenious_api_download_scheduler.h\
+		    objenious/objenious_archive_message_collection.cpp\
+		    objenious/objenious_archive_message_collection.h\
+		    objenious/objenious_archive_message.cpp\
+		    objenious/objenious_archive_message.h\
 		    monitoring/watchdog.h\
 		    monitoring/watchdog.cpp
 
@@ -221,6 +230,23 @@ meteodata_wlk_standalone_SOURCES = \
 		    davis/wlk_message.h\
 		    davis/wlk_import_standalone.cpp
 
+meteodata_objenious_api_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    objenious/objenious_api_downloader_standalone.cpp\
+		    objenious/objenious_api_downloader.cpp\
+		    objenious/objenious_api_downloader.h\
+		    objenious/objenious_api_download_scheduler.cpp\
+		    objenious/objenious_api_download_scheduler.h\
+		    objenious/objenious_archive_message_collection.cpp\
+		    objenious/objenious_archive_message_collection.h\
+		    objenious/objenious_archive_message.cpp\
+		    objenious/objenious_archive_message.h
+
 meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(SYSTEMD_CPPFLAGS)
 meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS) $(SYSTEMD_LDFLAGS)
@@ -270,3 +296,8 @@ meteodata_wlk_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $
 meteodata_wlk_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
 meteodata_wlk_standalone_LDFLAGS = 
 meteodata_wlk_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+
+meteodata_objenious_api_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
+meteodata_objenious_api_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
+meteodata_objenious_api_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
+meteodata_objenious_api_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
