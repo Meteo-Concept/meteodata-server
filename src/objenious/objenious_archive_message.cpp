@@ -58,16 +58,11 @@ ObjeniousApiArchiveMessage::ObjeniousApiArchiveMessage(const std::map<std::strin
 {
 }
 
-void ObjeniousApiArchiveMessage::ingest(const pt::ptree& jsonTree, int index)
+void ObjeniousApiArchiveMessage::ingest(const pt::ptree& data)
 {
-	// Every individual message will receive the full tree, but a specific
-	// index (one index = one date = one datapoint)
-	const pt::ptree& data = jsonTree.get_child("values");
-	auto entryIt = std::next(data.begin(), index);
-
 	using namespace date;
 
-	std::istringstream rawDate{entryIt->second.get_value<std::string>("timestamp")};
+	std::istringstream rawDate{data.get_value<std::string>("timestamp")};
 	rawDate >> parse("%FT%T%Z", _obs.time);
 	for (auto&& [mdVar, objVar] : *_variables) {
 		// is this ungodly?

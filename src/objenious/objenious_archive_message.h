@@ -42,6 +42,7 @@ namespace meteodata {
 namespace pt = boost::property_tree;
 
 class ObjeniousApiArchiveMessageCollection;
+class ObjeniousMqttSubscriber;
 
 /**
  * @brief A Message able to receive and store a JSON file resulting from a call to
@@ -59,6 +60,10 @@ public:
 	 * @brief Destruct the message
 	 */
 	~ObjeniousApiArchiveMessage() = default;
+
+	inline date::sys_seconds getTimestamp() const {
+	    return _obs.time;
+	}
 
 private:
 	/**
@@ -161,17 +166,17 @@ private:
 	 */
 	ObjeniousApiArchiveMessage(const std::map<std::string, std::string>* variables);
 
-	/**
-	 * @brief Parse the data output by the Objenious API to extract one
-	 * datapoint (for a specific datetime)
-	 *
-	 * The API may answer with several datapoints. The second parameter (the
-	 * index) indicates which datapoint has to be parsed.
-	 *
-	 * @param data The entire JSON object handed over by the API
-	 * @param index The specific data index to consider
-	 */
-	void ingest(const pt::ptree& data, int index);
+    /**
+     * @brief Parse the data output by the Objenious API to extract one
+     * datapoint (for a specific datetime)
+     *
+     * The API may answer with several datapoints. The second parameter (the
+     * index) indicates which datapoint has to be parsed.
+     *
+     * @param data The entire JSON object handed over by the API
+     * @param index The specific data index to consider
+     */
+    void ingest(const pt::ptree& data);
 
 	/**
 	 * @brief Populate a Météodata v1 API insertion query
@@ -192,7 +197,8 @@ private:
 	 */
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 
-friend ObjeniousApiArchiveMessageCollection;
+	friend class ObjeniousApiArchiveMessageCollection;
+	friend class ObjeniousMqttSubscriber;
 };
 
 }

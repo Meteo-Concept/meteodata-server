@@ -68,7 +68,7 @@ public:
 	void start();
 	void stop();
 
-private:
+protected:
 	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
 	/**
@@ -101,8 +101,16 @@ private:
 	std::uint16_t _pid = 0;
 
 	static constexpr char CLIENT_ID[] = "meteodata";
-	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
-	void processArchive(const mqtt::string_view& content);
+	virtual void processArchive(const mqtt::string_view& content) = 0;
+
+	virtual bool handleConnAck(bool sp, std::uint8_t ret);
+	virtual void handleClose();
+	virtual void handleError(boost::system::error_code const& ec);
+	virtual bool handlePubAck(std::uint16_t packetId);
+	virtual bool handlePubRec(std::uint16_t packetId);
+	virtual bool handlePubComp(std::uint16_t packetId);
+	virtual bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results);
+	virtual bool handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id, mqtt::string_view topic_name, mqtt::string_view contents);
 };
 
 }

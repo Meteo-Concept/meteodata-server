@@ -26,9 +26,6 @@
 #include <functional>
 #include <iterator>
 #include <chrono>
-#include <sstream>
-#include <cstring>
-#include <cctype>
 #include <systemd/sd-daemon.h>
 #include <unistd.h>
 
@@ -42,15 +39,13 @@
 
 #define DEFAULT_VERIFY_PATH "/etc/ssl/certs"
 
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 
 namespace meteodata {
 
 using namespace date;
 
 constexpr char MqttSubscriber::CLIENT_ID[];
-constexpr char MqttSubscriber::ARCHIVES_TOPIC[];
 
 MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, std::unique_ptr<char[]>&& password, size_t passwordLength, const std::string& topic) :
 	host(host),
@@ -96,6 +91,40 @@ MqttSubscriber::MqttSubscriber(const CassUuid& station, MqttSubscriber::MqttSubs
 	std::cout << SD_NOTICE << "Discovered MQTT station " << _stationName << std::endl;
 }
 
+bool MqttSubscriber::handleConnAck(bool, uint8_t) {
+	return true;
+}
+
+void MqttSubscriber::handleClose() {
+}
+
+void MqttSubscriber::handleError(sys::error_code const&) {
+}
+
+bool MqttSubscriber::handlePubAck(uint16_t) {
+	return true;
+}
+
+bool MqttSubscriber::handlePubRec(uint16_t) {
+	return true;
+}
+
+bool MqttSubscriber::handlePubComp(uint16_t) {
+	return true;
+}
+
+bool MqttSubscriber::handleSubAck(uint16_t, std::vector<boost::optional<std::uint8_t>>) {
+	return true;
+}
+
+bool MqttSubscriber::handlePublish(std::uint8_t,
+		boost::optional<std::uint16_t>,
+		mqtt::string_view,
+		mqtt::string_view contents) {
+	processArchive(contents);
+	return true;
+}
+
 void MqttSubscriber::start()
 {
 	std::cout << SD_DEBUG << "About to start the MQTT client for " << _stationName << std::endl;
@@ -109,12 +138,12 @@ void MqttSubscriber::start()
 
 	auto self{shared_from_this()};
 	_client->set_connack_handler(
-		[this,self]([[maybe_unused]] bool sp, std::uint8_t ret) {
+		[this,self](bool sp, std::uint8_t ret) {
 			std::cout << SD_DEBUG << "Connection attempt to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			if (ret == mqtt::connect_return_code::accepted) {
 				std::cerr << SD_NOTICE << "Connection established to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 				_pid = _client->subscribe(_details.topic, mqtt::qos::at_least_once);
-				_client->subscribe(_details.topic + ARCHIVES_TOPIC, mqtt::qos::at_least_once);
+				return handleConnAck(sp, ret);
 			} else {
 				std::cerr << SD_ERR << "Failed to establish connection to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			}
@@ -124,50 +153,41 @@ void MqttSubscriber::start()
 	_client->set_close_handler(
 		[this,self]() {
 			std::cerr << SD_NOTICE << "MQTT station " << _stationName << " disconnected" << std::endl;
+			handleClose();
 		}
 	);
 	_client->set_error_handler(
 		[this,self](sys::error_code const& ec) {
 			std::cerr << SD_ERR << "MQTT station " << _stationName << ": unexpected disconnection " << ec.message() << std::endl;
+			handleError(ec);
 		}
 	);
 	_client->set_puback_handler(
-		[self]([[maybe_unused]] std::uint16_t packet_id) {
-			return true;
+		[this,self]([[maybe_unused]] std::uint16_t packetId) {
+			return handlePubAck(packetId);
 		}
 	);
 	_client->set_pubrec_handler(
-		[self]([[maybe_unused]] std::uint16_t packet_id) {
-			return true;
+		[this,self]([[maybe_unused]] std::uint16_t packetId) {
+			return handlePubRec(packetId);
 		}
 	);
 	_client->set_pubcomp_handler(
-		[self]([[maybe_unused]] std::uint16_t packet_id) {
-			return true;
+		[this,self]([[maybe_unused]] std::uint16_t packetId) {
+			return handlePubComp(packetId);
 		}
 	);
 	_client->set_suback_handler(
-		[this,self](std::uint16_t packet_id, std::vector<boost::optional<std::uint8_t>> results) {
-			for (auto const& e : results) { /* we are expecting only one */
-				if (!e) {
-					std::cerr << _stationName <<  ": subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
-					stop();
-				}
-			}
-			if (packet_id == _pid) {
-				if (chrono::system_clock::now() - _lastArchive > chrono::minutes(_pollingPeriod))
-					_client->publish_at_least_once(_details.topic, date::format("DMPAFT %Y-%m-%d %H:%M", _lastArchive));
-			}
-			return true;
+		[this,self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+			return handleSubAck(packetId, results);
 		}
 	);
 	_client->set_publish_handler(
-		[this,self]([[maybe_unused]] std::uint8_t header,
-			[[maybe_unused]]  boost::optional<std::uint16_t> packet_id,
-			[[maybe_unused]] mqtt::string_view topic_name,
+		[this,self](std::uint8_t header,
+			boost::optional<std::uint16_t> packetId,
+			mqtt::string_view topic,
 			mqtt::string_view contents) {
-			processArchive(contents);
-			return true;
+			return handlePublish(header, packetId, topic, contents);
 		}
 	);
 	std::cout << SD_DEBUG << "Set the handlers" << std::endl;
@@ -178,38 +198,6 @@ void MqttSubscriber::start()
 void MqttSubscriber::stop()
 {
 	_client->disconnect();
-}
-
-void MqttSubscriber::processArchive(const mqtt::string_view& content)
-{
-	std::cout << SD_DEBUG << "Now downloading for MQTT station " << _stationName << std::endl;
-
-	if (content.size() != sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint)) {
-		std::cerr << SD_WARNING << "MQTT station " << _stationName << ": input from broker has an invalid size " << std::endl;
-		return;
-	}
-
-	VantagePro2ArchiveMessage::ArchiveDataPoint data;
-	std::memcpy(&data, content.data(), sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
-	VantagePro2ArchiveMessage msg{data, &_timeOffseter};
-	int ret = false;
-	if (msg.looksValid()) {
-		// Do not bother in inserting v1 data points
-		ret = _db.insertV2DataPoint(_station, msg);
-	} else {
-		std::cerr << SD_WARNING << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
-	}
-	if (ret) {
-		std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
-		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
-		ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-		if (!ret)
-			std::cerr << SD_ERR << "MQTT station " << _stationName << ": Couldn't update last archive download time" << std::endl;
-	} else {
-		std::cerr << SD_ERR << "Failed to store archive for MQTT station " << _stationName << "! Aborting" << std::endl;
-		// will retry...
-		return;
-	}
 }
 
 }

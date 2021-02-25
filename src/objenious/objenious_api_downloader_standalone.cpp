@@ -139,16 +139,16 @@ int main(int argc, char** argv)
 			};
 		cass_log_set_callback(logCallback, NULL);
 
-		// Start the Objenious downloaders workers (one per Pessl station)
-		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> fieldClimateStations;
+		// Start the Objenious downloaders workers (one per Objenious station)
+		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
 		DbConnectionObservations db{address, user, password};
-		db.getAllObjeniousApiStations(fieldClimateStations);
+		db.getAllObjeniousApiStations(objeniousStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		CurlWrapper client;
 
 		int retry = 0;
-		for (auto it = fieldClimateStations.cbegin() ; it != fieldClimateStations.cend() ;) {
+		for (auto it = objeniousStations.cbegin() ; it != objeniousStations.cend() ;) {
 			const auto& station = *it;
 			if (!userSelection.empty()) {
 				if (userSelection.find(std::get<0>(station)) == userSelection.cend()) {

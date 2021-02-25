@@ -157,36 +157,40 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 
 			bool insertionOk = true;
 
-			ObjeniousApiArchiveMessageCollection collection{&_variables};
-			collection.parse(responseStream);
+			try {
+                ObjeniousApiArchiveMessageCollection collection{&_variables};
+                collection.parse(responseStream);
 
-			auto newestTimestamp = collection.getNewestMessageTime();
-			for (const ObjeniousApiArchiveMessage& m : collection) {
-				int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
-				if (!ret) {
-					std::cerr << SD_ERR << "Objenious station " << _stationName
-						  << " : failed to insert archive observation for station"
-						  << std::endl;
-					insertionOk = false;
-				}
-			}
-			if (insertionOk) {
-				std::cout << SD_DEBUG << "Archive data stored for Objenious station" << _stationName << std::endl;
-				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-				insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-				if (!insertionOk) {
-					std::cerr << SD_ERR << "Objenious station " << _stationName
-						  << " : couldn't update last archive download time"
-						  << std::endl;
-				} else {
-					_lastArchive = newestTimestamp;
-				}
-			}
+                auto newestTimestamp = collection.getNewestMessageTime();
+                for (const ObjeniousApiArchiveMessage& m : collection) {
+                    int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+                    if (!ret) {
+                        std::cerr << SD_ERR << "Objenious station " << _stationName
+                                  << " : failed to insert archive observation for station"
+                                  << std::endl;
+                        insertionOk = false;
+                    }
+                }
+                if (insertionOk) {
+                    std::cout << SD_DEBUG << "Archive data stored for Objenious station" << _stationName << std::endl;
+                    time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
+                    insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+                    if (!insertionOk) {
+                        std::cerr << SD_ERR << "Objenious station " << _stationName
+                                  << " : couldn't update last archive download time"
+                                  << std::endl;
+                    } else {
+                        _lastArchive = newestTimestamp;
+                    }
+                }
 
-			if (collection.mayHaveMore()) {
-				cursor = collection.getPaginationCursor();
-			} else {
-				mayHaveMore = false;
+                if (collection.mayHaveMore()) {
+                    cursor = collection.getPaginationCursor();
+                } else {
+                    mayHaveMore = false;
+                }
+            } catch (const std::exception& e) {
+			    std::cerr << SD_ERR << "Failed to receive or parse an Objenious data message: " << e.what() << std::endl;
 			}
 		});
 

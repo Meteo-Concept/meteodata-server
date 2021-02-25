@@ -64,6 +64,10 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_txt_downloader.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
+		    mqtt/vp2_mqtt_subscriber.cpp\
+		    mqtt/vp2_mqtt_subscriber.h\
+		    mqtt/objenious_mqtt_subscriber.cpp\
+		    mqtt/objenious_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
 		    ship_and_buoy/meteo_france_ship_and_buoy.h\
 		    ship_and_buoy/ship_and_buoy_downloader.cpp\

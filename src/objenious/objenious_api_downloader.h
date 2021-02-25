@@ -59,7 +59,7 @@ public:
 	 * @param apiSecret the Objenious API key private part
 	 */
 	ObjeniousApiDownloader(const CassUuid& station,
-		const std::string& fieldclimateId,
+		const std::string& objeniousId,
 		const std::map<std::string, std::string>& variables,
 		DbConnectionObservations& db,
 		const std::string& apiId);

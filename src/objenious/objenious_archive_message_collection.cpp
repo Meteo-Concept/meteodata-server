@@ -52,15 +52,16 @@ void ObjeniousApiArchiveMessageCollection::parse(std::istream& input)
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
-	auto data = jsonTree.get_child("data");
+	auto&& data = jsonTree.get_child("values");
 	int nb = data.size();
 	if (nb == ObjeniousApiDownloader::PAGE_SIZE) {
 		_mayHaveMore = true;
 		_cursor = jsonTree.get<std::string>("cursor");
 	}
-	for (int i=0 ; i<nb ; i++) {
+
+	for (auto&& dataPoint : data) {
 		ObjeniousApiArchiveMessage message{_variables};
-		message.ingest(jsonTree, i);
+		message.ingest(dataPoint.second);
 		_messages.push_back(std::move(message));
 	}
 }
