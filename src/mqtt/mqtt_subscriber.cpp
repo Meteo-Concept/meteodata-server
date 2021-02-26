@@ -22,6 +22,7 @@
  */
 
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <functional>
 #include <iterator>
@@ -34,6 +35,7 @@
 #include <mqtt_client_cpp.hpp>
 
 #include "../time_offseter.h"
+#include "../cassandra_utils.h"
 #include "mqtt_subscriber.h"
 #include "../davis/vantagepro2_archive_page.h"
 
@@ -129,7 +131,10 @@ void MqttSubscriber::start()
 {
 	std::cout << SD_DEBUG << "About to start the MQTT client for " << _stationName << std::endl;
 	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
-	_client->set_client_id(MqttSubscriber::CLIENT_ID);
+
+	std::ostringstream clientId;
+	clientId << MqttSubscriber::CLIENT_ID << "." << _station;
+	_client->set_client_id(clientId.str());
 	_client->set_user_name(_details.user);
 	_client->set_password(_details.password.get());
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */

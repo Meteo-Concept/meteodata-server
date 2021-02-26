@@ -70,13 +70,16 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& content)
 {
 	std::cout << SD_DEBUG << "Now downloading for MQTT station " << _stationName << std::endl;
 
-	if (content.size() != sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint)) {
-		std::cerr << SD_WARNING << "MQTT station " << _stationName << ": input from broker has an invalid size " << std::endl;
+	std::size_t expectedSize = sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint);
+	std::size_t receivedSize = content.size();
+	if (receivedSize != expectedSize) {
+		std::cerr << SD_WARNING << "MQTT station " << _stationName << ": input from broker has an invalid size "
+		    << "(" << receivedSize << " byts instead of " << expectedSize << ")" << std::endl;
 		return;
 	}
 
 	VantagePro2ArchiveMessage::ArchiveDataPoint data;
-	std::memcpy(&data, content.data(), sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
+	std::memcpy(&data, content.data(), sizeof(data));
 	VantagePro2ArchiveMessage msg{data, &_timeOffseter};
 	int ret = false;
 	if (msg.looksValid()) {
