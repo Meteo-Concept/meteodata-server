@@ -85,14 +85,14 @@ void MeteoServer::start()
 		};
 
 		std::shared_ptr<MqttSubscriber> subscriber;
-		if (details.topic.substr(0, 5) == "/vp2/") {
+		if (details.topic.substr(0, 4) == "vp2/") {
 			subscriber.reset(new VP2MqttSubscriber(
 						std::get<0>(station),
 						std::move(details),
 						_ioService, _db,
 						TimeOffseter::PredefinedTimezone(std::get<7>(station))
 					));
-		} else if (details.topic.substr(0, 12) == "/objenious/") {
+		} else if (details.topic.substr(0, 11) == "objenious/") {
 			const CassUuid& mqttSt = std::get<0>(station);
 			auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
 					[&mqttSt](auto&& objSt){ return mqttSt == std::get<0>(objSt); });
