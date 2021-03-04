@@ -500,13 +500,12 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				// in this order in the station's EEPROM
 				time_t lastArchiveDownloadTime;
 				time_t lastDataInsertionTime;
-				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime, lastDataInsertionTime);
+				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
 				_timeOffseter.setLatitude(_coords[0]);
 				_timeOffseter.setLongitude(_coords[1]);
 				_timeOffseter.setElevation(_coords[2]);
 				_timeOffseter.setMeasureStep(_pollingPeriod);
 				_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-				_lastData    = date::sys_seconds(chrono::seconds(lastDataInsertionTime));
 				if (found) {
 					std::cout << SD_INFO << "station " << _stationName << " is connected" << std::endl;
 					std::cout << SD_DEBUG << "Now making sure station " << _stationName << " is not stuck in setup mode" << std::endl;
@@ -607,8 +606,8 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				chrono::system_clock::time_point now = chrono::system_clock::now();
 				std::cout << SD_DEBUG
 					  << "Last data received from station " << _stationName << " dates back from "
-					  << _lastData << std::endl;
-				if ((now - _lastData) > chrono::minutes(_pollingPeriod)) {
+					  << _lastArchive << std::endl;
+				if ((now - _lastArchive) > chrono::minutes(_pollingPeriod)) {
 					std::cout << SD_INFO << "Directly connected station " << _stationName
 						  << " has been disconnected for too long, retrieving the archives..."
 						  << std::endl;

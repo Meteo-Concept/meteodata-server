@@ -436,11 +436,6 @@ private:
 	 * retrieved from the station
 	 */
 	date::sys_seconds _lastArchive;
-	/**
-	 * @brief The timestamp (in POSIX time) of the last data retrieved from
-	 * the station
-	 */
-	date::sys_seconds _lastData;
 
 	/**
 	 * @brief The \a TimeOffseter to use to convert timestamps between the
