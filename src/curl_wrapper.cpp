@@ -74,7 +74,7 @@ CURLcode CurlWrapper::download(const std::string& url, std::function<void(const 
 
 	_buffer.clear();
 	CURLcode res = curl_easy_perform(_handle.get());
-	_headers.release();
+	// remove all headers (and frees the list), we don't reuse them
 	_headers.reset();
 	if (res == CURLE_OK)
 		parser(_buffer);
