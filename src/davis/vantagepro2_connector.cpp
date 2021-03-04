@@ -499,7 +499,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				// From documentation, latitude, longitude and elevation are stored contiguously
 				// in this order in the station's EEPROM
 				time_t lastArchiveDownloadTime;
-				time_t lastDataInsertionTime;
 				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
 				_timeOffseter.setLatitude(_coords[0]);
 				_timeOffseter.setLongitude(_coords[1]);
@@ -603,6 +602,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				}
 			} else {
 				_timeOffseter.prepare(_timezoneBuffer);
+				_archivePage.prepare(_lastArchive, &_timeOffseter);
 				chrono::system_clock::time_point now = chrono::system_clock::now();
 				std::cout << SD_DEBUG
 					  << "Last data received from station " << _stationName << " dates back from "
@@ -614,7 +614,6 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					std::cout << SD_DEBUG
 						  << "Retrieving archived data for " << _stationName
 						  << std::endl;
-					_archivePage.prepare(_lastArchive, &_timeOffseter);
 					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 					sendRequest(_echoRequest, std::strlen(_echoRequest));
 				} else {
