@@ -53,7 +53,7 @@ using namespace std::placeholders;
  * @brief The orchestrator for all requests to the FieldClimate API
  *
  * We normally need only one instance of this class (several can be used to
- * paralellize requests to the API). Instances of this class are responsible to
+ * parallelize requests to the API). Instances of this class are responsible to
  * prepare a HTTP client, connect it to the API server and call all the
  * individual downloaders (one per station) on the client.
  */

@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 		server.start();
 
 		std::vector<std::thread> workers;
-		// start all of the workers
+		// start all the workers
 		for (unsigned long i=0 ; i<threads ; i++) {
 			workers.emplace_back([&]() { ioService.run(); });
 		}

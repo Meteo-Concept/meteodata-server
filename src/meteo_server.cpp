@@ -158,11 +158,11 @@ void MeteoServer::start()
 		subscriber->start();
 	}
 
-	// Start the Weatherlink downloaders workers (one per Weatherlink station)
+	// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station)
 	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
 	weatherlinkScheduler->start();
 
-	// Start the FieldClimate downloaders workers (one per Pessl station)
+	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station)
 	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
 	fieldClimateScheduler->start();
 
@@ -186,10 +186,10 @@ void MeteoServer::startAccepting()
 {
 	Connector::ptr newConnector =
 		Connector::create<VantagePro2Connector>(_ioService, _db);
-	_acceptor.async_accept(newConnector->socket(),
-			std::bind(&MeteoServer::runNewConnector, this,
-				newConnector, std::placeholders::_1)
-			);
+	_acceptor.async_accept(
+	        newConnector->socket(),
+	        [this, newConnector](const boost::system::error_code& error) { runNewConnector(newConnector, error); }
+	);
 }
 
 void MeteoServer::runNewConnector(Connector::ptr c,
