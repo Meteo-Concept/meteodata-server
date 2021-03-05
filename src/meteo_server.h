@@ -57,7 +57,8 @@ public:
 	MeteoServer(boost::asio::io_service& io, const std::string& address,
 		const std::string& user, const std::string& password,
 		const std::string& weatherlinkApiV2Key, const std::string& weatherlinkApiV2Secret,
-		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret
+		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret,
+		const std::string& objeniousApiKey
 	);
 	/**
 	 * @brief Launch all operations: start the SYNOP messages
@@ -93,6 +94,10 @@ private:
 	 * @brief The FieldClimate API secret
 	 */
 	std::string _fieldClimateApiSecret;
+	/**
+	 * @brief The Objenious SPOT API key
+	 */
+	std::string _objeniousApiKey;
 
 	/**
 	 * @brief Start listening on the port, construct a connector,

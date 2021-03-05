@@ -65,6 +65,7 @@ int main(int argc, char** argv)
 	std::string weatherlinkApiV2Secret;
 	std::string fieldClimateKey;
 	std::string fieldClimateSecret;
+	std::string objeniousKey;
 	unsigned long threads;
 	bool daemonized;
 
@@ -76,8 +77,9 @@ int main(int argc, char** argv)
 		("weatherlink-apiv2-key,k", po::value<std::string>(&weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(&weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
 		("threads", po::value<unsigned long>(&threads), "number of threads to start to listen to ASIO events, defaults to 5")
-		("fieldclimate-key,k", po::value<std::string>(&fieldClimateKey), "api.fieldclimate.com key")
-		("fieldclimate-secret,s", po::value<std::string>(&fieldClimateSecret), "api.fieldclimate.com secret")
+		("fieldclimate-key", po::value<std::string>(&fieldClimateKey), "api.fieldclimate.com key")
+		("fieldclimate-secret", po::value<std::string>(&fieldClimateSecret), "api.fieldclimate.com secret")
+		("objenious-key", po::value<std::string>(&objeniousKey), "api.objenious.com key")
 	;
 
 	po::options_description desc("Allowed options");
@@ -146,7 +148,7 @@ int main(int argc, char** argv)
 			watchdog->start();
 		}
 
-		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret, fieldClimateKey, fieldClimateSecret);
+		MeteoServer server(ioService, address, user, password, weatherlinkApiV2Key, weatherlinkApiV2Secret, fieldClimateKey, fieldClimateSecret, objeniousKey);
 		server.start();
 
 		std::vector<std::thread> workers;

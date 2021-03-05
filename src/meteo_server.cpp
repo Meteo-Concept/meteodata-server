@@ -45,6 +45,7 @@
 #include "synop/deferred_synop_downloader.h"
 #include "synop/synop_downloader.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
+#include "objenious/objenious_api_download_scheduler.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -55,20 +56,23 @@ namespace meteodata
 MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& address,
 		const std::string& user, const std::string& password,
 		const std::string& weatherlinkAPIv2Key, const std::string& weatherlinkAPIv2Secret,
-		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret) :
+		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret,
+		const std::string& objeniousApiKey) :
 	_ioService(ioService),
 	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
 	_db(address, user, password),
 	_weatherlinkAPIv2Key(weatherlinkAPIv2Key),
 	_weatherlinkAPIv2Secret(weatherlinkAPIv2Secret),
 	_fieldClimateApiKey(fieldClimateApiKey),
-	_fieldClimateApiSecret(fieldClimateApiSecret)
+	_fieldClimateApiSecret(fieldClimateApiSecret),
+	_objeniousApiKey(objeniousApiKey)
 {
 	std::cerr << SD_INFO << "Meteodata has started succesfully";
 }
 
 void MeteoServer::start()
 {
+#if 0
 	// Start the MQTT subscribers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
@@ -165,7 +169,14 @@ void MeteoServer::start()
 	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station)
 	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
 	fieldClimateScheduler->start();
+#endif
 
+	// Start the Objenious download scheduler (one for all Objenious
+	// stations on our account, one downloader per station)
+	auto objeniousScheduler = std::make_shared<ObjeniousApiDownloadScheduler>(_ioService, _db, std::move(_objeniousApiKey));
+	objeniousScheduler->start();
+
+#if 0
 	// Start the MBData txt downloaders workers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
 	_db.getMBDataTxtStations(mbDataTxtStations);
@@ -177,6 +188,7 @@ void MeteoServer::start()
 				);
 		subscriber->start();
 	}
+#endif
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();

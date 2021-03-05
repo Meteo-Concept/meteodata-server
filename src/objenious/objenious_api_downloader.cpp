@@ -96,8 +96,7 @@ date::sys_seconds ObjeniousApiDownloader::getLastDatetimeAvailable(CurlWrapper& 
 		// do anything more complicated
 		const std::string& maxDate = jsonTree.get<std::string>("last_data_at." + _variables.begin()->second);
 		std::istringstream dateStream{maxDate};
-		date::sys_seconds date;
-		dateStream >> date::parse("%FT%T%Z", date);
+		dateStream >> date::parse("%FT%T%Z", dateInUTC);
 	});
 
 	if (ret != CURLE_OK) {
@@ -127,17 +126,19 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 
 	using namespace date;
 	std::cout << SD_DEBUG << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << "\n"
-		  << "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
+		<< "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
 
 	std::string cursor;
 	bool mayHaveMore = date < lastAvailable;
-	while (mayHaveMore) {
+	bool insertionOk = true;
+	auto newestTimestamp = _lastArchive;
+	while (mayHaveMore && insertionOk) {
 		std::ostringstream routeBuilder;
 		routeBuilder << "/devices/"
 			<< _objeniousId
 			<< "/values?"
-			<< "since=" << chrono::system_clock::to_time_t(date) << "&"
-			<< "until=" << chrono::system_clock::to_time_t(lastAvailable) << "&"
+			<< "since=" << date::format("%FT%TZ", date) << "&"
+			<< "until=" << date::format("%FT%TZ", lastAvailable) << "&"
 			<< "limit=" << PAGE_SIZE;
 		if (!cursor.empty())
 			routeBuilder << "&cursor=" << cursor;
@@ -149,48 +150,40 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 
 		std::cout << SD_DEBUG << "GET " << "/v2" << route << " HTTP/1.1 "
 			<< "Host: " << APIHOST << " "
-			<< "apikey:" << "XXXXXX "
 			<< "Accept: application/json ";
 
 		CURLcode ret = client.download(BASE_URL + route, [&](const std::string& body) {
 			std::istringstream responseStream(body);
 
-			bool insertionOk = true;
 
 			try {
-                ObjeniousApiArchiveMessageCollection collection{&_variables};
-                collection.parse(responseStream);
+				ObjeniousApiArchiveMessageCollection collection{&_variables};
+				collection.parse(responseStream);
 
-                auto newestTimestamp = collection.getNewestMessageTime();
-                for (const ObjeniousApiArchiveMessage& m : collection) {
-                    int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
-                    if (!ret) {
-                        std::cerr << SD_ERR << "Objenious station " << _stationName
-                                  << " : failed to insert archive observation for station"
-                                  << std::endl;
-                        insertionOk = false;
-                    }
-                }
-                if (insertionOk) {
-                    std::cout << SD_DEBUG << "Archive data stored for Objenious station" << _stationName << std::endl;
-                    time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
-                    insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-                    if (!insertionOk) {
-                        std::cerr << SD_ERR << "Objenious station " << _stationName
-                                  << " : couldn't update last archive download time"
-                                  << std::endl;
-                    } else {
-                        _lastArchive = newestTimestamp;
-                    }
-                }
+				auto newestTimestampInCollection = collection.getNewestMessageTime();
+				// This condition is not true if we have several
+				// pages to download because the most recent
+				// timestamp will be found on the first page
+				if (newestTimestampInCollection > newestTimestamp)
+					newestTimestamp = newestTimestampInCollection;
 
-                if (collection.mayHaveMore()) {
-                    cursor = collection.getPaginationCursor();
-                } else {
-                    mayHaveMore = false;
-                }
-            } catch (const std::exception& e) {
-			    std::cerr << SD_ERR << "Failed to receive or parse an Objenious data message: " << e.what() << std::endl;
+				for (const ObjeniousApiArchiveMessage& m : collection) {
+					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+					if (!ret) {
+						std::cerr << SD_ERR << "Objenious station " << _stationName
+						<< " : failed to insert archive observation for station"
+						<< std::endl;
+						insertionOk = false;
+					}
+				}
+
+				if (collection.mayHaveMore()) {
+					cursor = collection.getPaginationCursor();
+				} else {
+					mayHaveMore = false;
+				}
+			} catch (const std::exception& e) {
+				std::cerr << SD_ERR << "Failed to receive or parse an Objenious data message: " << e.what() << std::endl;
 			}
 		});
 
@@ -198,16 +191,29 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 			logAndThrowCurlError(client);
 		}
 	}
+
+	if (insertionOk) {
+		std::cout << SD_DEBUG << "Archive data stored for Objenious station" << _stationName << std::endl;
+		time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
+		insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+		if (!insertionOk) {
+			std::cerr << SD_ERR << "Objenious station " << _stationName
+				<< " : couldn't update last archive download time"
+				<< std::endl;
+		} else {
+			_lastArchive = newestTimestamp;
+		}
+	}
 }
 
 void ObjeniousApiDownloader::logAndThrowCurlError(CurlWrapper& client)
 {
-		std::string_view error = client.getLastError();
-		std::ostringstream errorStream;
-		errorStream << "Objenious station " << _stationName << " Bad response from " << APIHOST << ": " << error;
-		std::string errorMsg = errorStream.str();
-		std::cerr << SD_ERR << errorMsg << std::endl;
-		throw std::runtime_error(errorMsg);
+	std::string_view error = client.getLastError();
+	std::ostringstream errorStream;
+	errorStream << "Objenious station " << _stationName << " Bad response from " << APIHOST << ": " << error;
+	std::string errorMsg = errorStream.str();
+	std::cerr << SD_ERR << errorMsg << std::endl;
+	throw std::runtime_error(errorMsg);
 }
 
 }

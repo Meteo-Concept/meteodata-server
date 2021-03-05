@@ -115,14 +115,14 @@ public:
 	 * @brief Get the greatest timestamp (i.e. most recent datetime)
 	 * available among the parsed messages
 	 *
-	 * Calling this method before parse() or if the list of messages will
-	 * result in undefined behaviour.
+	 * Calling this method before parse() or if the list of messages is
+	 * empty will result in undefined behaviour.
 	 *
 	 * @return The most recent datetime which will be inserted in the
 	 * database thanks to this messages collection
 	 */
 	inline date::sys_seconds getNewestMessageTime() const {
-		return _messages.back()._obs.time;
+		return _messages.front()._obs.time;
 	}
 
 	inline bool mayHaveMore() const {

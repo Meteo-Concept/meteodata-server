@@ -77,7 +77,8 @@ void ObjeniousApiDownloadScheduler::add(
 void ObjeniousApiDownloadScheduler::start()
 {
 	reloadStations();
-	waitUntilNextDownload();
+	//waitUntilNextDownload();
+	downloadArchives();
 }
 
 void ObjeniousApiDownloadScheduler::downloadArchives()
@@ -127,9 +128,9 @@ void ObjeniousApiDownloadScheduler::reloadStations()
 {
 	_downloaders.clear();
 
-	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> fieldClimateStations;
-	_db.getAllObjeniousApiStations(fieldClimateStations);
-	for (const auto& station : fieldClimateStations) {
+	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
+	_db.getAllObjeniousApiStations(objeniousStations);
+	for (const auto& station : objeniousStations) {
 		add(std::get<0>(station), std::get<1>(station), std::get<2>(station));
 	}
 }

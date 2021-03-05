@@ -129,7 +129,8 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 
 	std::cout << SD_DEBUG << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 "
 	          << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
-	          << "Accept: */* ";
+	          << "Accept: */* "
+	          << std::endl;
 
 	std::ostringstream query;
 	query << "/webdl.php"
@@ -139,6 +140,8 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	      << _authentication
 	      << "&action=data";
 	std::string queryStr = query.str();
+
+	client.setHeader("Accept", "*/*");
 
 	CURLcode downloadRet = client.download(ARCHIVE_BASE_URL + queryStr, [&](const std::string& body) {
 		if (body.size() % 52 != 0) {
