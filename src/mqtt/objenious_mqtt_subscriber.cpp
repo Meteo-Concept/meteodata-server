@@ -50,14 +50,14 @@ using namespace date;
 constexpr char ObjeniousMqttSubscriber::ARCHIVES_TOPIC[];
 
 ObjeniousMqttSubscriber::ObjeniousMqttSubscriber(
-        const CassUuid& station, MqttSubscriber::MqttSubscriptionDetails&& details,
-        const std::string& objeniousId, const std::map <std::string, std::string>& variables,
-        asio::io_service& ioService, DbConnectionObservations& db,
-        TimeOffseter::PredefinedTimezone tz
-    ) :
-            MqttSubscriber(station, std::move(details), ioService, db, tz),
-            _objeniousId{objeniousId},
-            _variables{variables}
+		const CassUuid& station, MqttSubscriber::MqttSubscriptionDetails&& details,
+		const std::string& objeniousId, const std::map <std::string, std::string>& variables,
+		asio::io_service& ioService, DbConnectionObservations& db,
+		TimeOffseter::PredefinedTimezone tz
+	) :
+	MqttSubscriber(station, std::move(details), ioService, db, tz),
+	_objeniousId{objeniousId},
+	_variables{variables}
 {
 }
 
@@ -75,32 +75,32 @@ void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& content)
 {
 	std::cout << SD_DEBUG << "Now downloading for MQTT station " << _stationName << std::endl;
 
-	// TODO: check if there's a more clever way of building a stream out of an iterable
-	// range of characters
+	// TODO: check if there's a more clever way of building a stream out of
+	// an iterable range of characters
 	std::string jsonString{content.begin(), content.end()};
 	std::istringstream input{jsonString};
-    pt::ptree jsonTree;
-    pt::read_json(input, jsonTree);
+	pt::ptree jsonTree;
+	pt::read_json(input, jsonTree);
 
 	ObjeniousApiArchiveMessage msg{&_variables};
 	try {
-        msg.ingest(jsonTree);
+		msg.ingest(jsonTree);
 
-        int ret = _db.insertV2DataPoint(_station, msg);
-        if (ret) {
-            std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
-            time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
-            ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-            if (!ret)
-                std::cerr << SD_ERR << "MQTT station " << _stationName << ": Couldn't update last archive download time"
-                          << std::endl;
-        } else {
-            std::cerr << SD_ERR << "Failed to store archive for MQTT station " << _stationName << "! Aborting"
-                      << std::endl;
-            return;
-        }
-    } catch (const std::exception& e) {
-	    std::cerr << SD_ERR << "Failed to receive or parse an Objenious MQTT message: " << e.what() << std::endl;
+		int ret = _db.insertV2DataPoint(_station, msg);
+		if (ret) {
+			std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
+			time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
+			ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+			if (!ret)
+				std::cerr << SD_ERR << "MQTT station " << _stationName << ": Couldn't update last archive download time"
+					<< std::endl;
+		} else {
+			std::cerr << SD_ERR << "Failed to store archive for MQTT station " << _stationName << "! Aborting"
+				<< std::endl;
+			return;
+		}
+	} catch (const std::exception& e) {
+		std::cerr << SD_ERR << "Failed to receive or parse an Objenious MQTT message: " << e.what() << std::endl;
 	}
 }
 
