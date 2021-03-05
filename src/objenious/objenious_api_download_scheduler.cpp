@@ -77,8 +77,7 @@ void ObjeniousApiDownloadScheduler::add(
 void ObjeniousApiDownloadScheduler::start()
 {
 	reloadStations();
-	//waitUntilNextDownload();
-	downloadArchives();
+	waitUntilNextDownload();
 }
 
 void ObjeniousApiDownloadScheduler::downloadArchives()
