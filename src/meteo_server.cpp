@@ -72,7 +72,6 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 
 void MeteoServer::start()
 {
-#if 0
 	// Start the MQTT subscribers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
@@ -96,7 +95,7 @@ void MeteoServer::start()
 						_ioService, _db,
 						TimeOffseter::PredefinedTimezone(std::get<7>(station))
 					));
-		} else if (details.topic.substr(0, 11) == "objenious/") {
+		} else if (details.topic.substr(0, 10) == "objenious/") {
 			const CassUuid& mqttSt = std::get<0>(station);
 			auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
 					[&mqttSt](auto&& objSt){ return mqttSt == std::get<0>(objSt); });
@@ -169,9 +168,7 @@ void MeteoServer::start()
 	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station)
 	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
 	fieldClimateScheduler->start();
-#endif
 
-#if 0
 	// Start the MBData txt downloaders workers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
 	_db.getMBDataTxtStations(mbDataTxtStations);
@@ -183,7 +180,6 @@ void MeteoServer::start()
 				);
 		subscriber->start();
 	}
-#endif
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();
