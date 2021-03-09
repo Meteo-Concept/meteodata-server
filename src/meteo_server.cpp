@@ -171,11 +171,6 @@ void MeteoServer::start()
 	fieldClimateScheduler->start();
 #endif
 
-	// Start the Objenious download scheduler (one for all Objenious
-	// stations on our account, one downloader per station)
-	auto objeniousScheduler = std::make_shared<ObjeniousApiDownloadScheduler>(_ioService, _db, std::move(_objeniousApiKey));
-	objeniousScheduler->start();
-
 #if 0
 	// Start the MBData txt downloaders workers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
