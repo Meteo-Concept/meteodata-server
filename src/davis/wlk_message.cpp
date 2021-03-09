@@ -100,7 +100,7 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 
 	// Wind Speed
 	if (values["Wind Speed"] != "---")
-		_dewPoint = std::stof(values["Wind Speed"]);
+		_windSpeed = std::stof(values["Wind Speed"]);
 
 	// Wind Dir
 	if (values["Wind Dir"] != "---") {
