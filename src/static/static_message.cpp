@@ -203,7 +203,7 @@ void StatICMessage::populateV2DataPoint(const CassUuid station, CassStatement* c
 	// THSW index is irrelevant
 	/*************************************************************/
 	if (_uv)
-		cass_statement_bind_int32(statement, 32, *_uv);
+		cass_statement_bind_int32(statement, 32, *_uv * 10);
 	/*************************************************************/
 	// Wind chill is irrelevant
 	/*************************************************************/
