@@ -60,8 +60,15 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 		}
 	}
 	if (packetId == _pid) {
-		if (chrono::system_clock::now() - _lastArchive > chrono::minutes(_pollingPeriod))
-			_client->publish_at_least_once(_details.topic, date::format("DMPAFT %Y-%m-%d %H:%M", _lastArchive));
+		// The topic name ought to be vp2/<client>/dmpaft, we can write
+		// to vp2/<client> to request the archives
+		if (_details.topic.rfind("/dmpaft") == _details.topic.size() - 7) { // ends_with("/dmpaft")
+			if (chrono::system_clock::now() - _lastArchive > chrono::minutes(_pollingPeriod))
+				_client->publish_at_least_once(
+						_details.topic.substr(0, _details.topic.size() - 7),
+						date::format("DMPAFT %Y-%m-%d %H:%M", _lastArchive)
+					);
+		}
 	}
 	return true;
 }
