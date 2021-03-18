@@ -30,8 +30,10 @@
 #include <vector>
 #include <functional>
 #include <unistd.h>
+#include <chrono>
 
 #include <boost/system/error_code.hpp>
+#include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date/date.h>
 #include <date/tz.h>
@@ -42,8 +44,6 @@
 #include "../davis/vantagepro2_archive_page.h"
 
 namespace meteodata {
-
-using namespace meteodata;
 
 /**
  */
@@ -100,8 +100,22 @@ protected:
 	 */
 	std::uint16_t _pid = 0;
 
+	static constexpr int MAX_RETRIES = 3;
+
+	/**
+	 * @brief The number of times we have tried to restart
+	 */
+	int _retries = 0;
+
+	/**
+	 * @brief The timer used to retry the connection when the client
+	 * disconnects
+	 */
+	asio::basic_waitable_timer<std::chrono::steady_clock> _timer;
+
 	static constexpr char CLIENT_ID[] = "meteodata";
 	virtual void processArchive(const mqtt::string_view& content) = 0;
+	void checkRetryStartDeadline(const boost::system::error_code& e);
 
 	virtual bool handleConnAck(bool sp, std::uint8_t ret);
 	virtual void handleClose();

@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include <cassandra.h>
+#include <boost/asio/basic_waitable_timer.hpp>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
@@ -41,7 +42,10 @@
 
 #define DEFAULT_VERIFY_PATH "/etc/ssl/certs"
 
+namespace asio = boost::asio;
 namespace sys = boost::system;
+namespace chrono = std::chrono;
+namespace args = std::placeholders;
 
 namespace meteodata {
 
@@ -69,10 +73,11 @@ MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(MqttSubscriber:
 
 MqttSubscriber::MqttSubscriber(const CassUuid& station, MqttSubscriber::MqttSubscriptionDetails&& details,
 	asio::io_service& ioService, DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz) :
-	_ioService(ioService),
-	_db(db),
-	_station(station),
-	_details(std::move(details))
+	_ioService{ioService},
+	_db{db},
+	_station{station},
+	_details{std::move(details)},
+	_timer{ioService}
 {
 	time_t lastArchiveDownloadTime;
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -97,10 +102,39 @@ bool MqttSubscriber::handleConnAck(bool, uint8_t) {
 	return true;
 }
 
+void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
+{
+	/* if the timer has been cancelled, then bail out ; we probably have been
+	 * asked to die */
+	if (e == sys::errc::operation_canceled)
+		return;
+
+	// verify that the timeout is not spurious
+	if (_timer.expires_at() <= chrono::steady_clock::now()) {
+		start();
+	} else {
+		/* spurious handler call, restart the timer without changing the
+		 * deadline */
+		auto self(shared_from_this());
+		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
+	}
+}
+
 void MqttSubscriber::handleClose() {
+	// wait a little and restart, up to three times
+	auto self{shared_from_this()};
+	if (_retries < MAX_RETRIES) {
+		_timer.expires_from_now(chrono::minutes(_retries));
+		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
+	} else {
+		std::cerr << SD_ERR << "MQTT station " << _stationName << ": impossible to reconnect" << std::endl;
+		// bail off
+	}
 }
 
 void MqttSubscriber::handleError(sys::error_code const&) {
+	// Retry connecting
+	handleClose();
 }
 
 bool MqttSubscriber::handlePubAck(uint16_t) {
@@ -146,6 +180,7 @@ void MqttSubscriber::start()
 		[this,self](bool sp, std::uint8_t ret) {
 			std::cout << SD_DEBUG << "Connection attempt to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			if (ret == mqtt::connect_return_code::accepted) {
+				_retries = 0;
 				std::cerr << SD_NOTICE << "Connection established to " << _details.host << " for station " << _stationName << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 				_pid = _client->subscribe(_details.topic, mqtt::qos::at_least_once);
 				return handleConnAck(sp, ret);
@@ -197,6 +232,7 @@ void MqttSubscriber::start()
 	);
 	std::cout << SD_DEBUG << "Set the handlers" << std::endl;
 
+	_retries++;
 	_client->connect();
 }
 
