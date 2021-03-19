@@ -170,15 +170,16 @@ int main(int argc, char** argv)
 				weatherlinkApiV2Key, weatherlinkApiV2Secret,
 				db, TimeOffseter::PredefinedTimezone(0)
 			};
-			if (!std::get<1>(station)) {
-				std::cerr << "No access to archives for station " << std::get<0>(station) << std::endl;
-				++it;
-				continue;
-			}
 			try {
-				downloader.download(client);
+				if (!std::get<1>(station)) {
+					std::cerr << "No access to archives for station " << std::get<0>(station) << ", downloading the last datapoint" << std::endl;
+					downloader.downloadRealTime(client);
+				} else {
+					downloader.download(client);
+				}
+				++it;
 			} catch (std::runtime_error& e) {
-				std::cerr << "Getting the archive data failed: " << e.what() << std::endl;
+				std::cerr << "Getting the data failed: " << e.what() << std::endl;
 			}
 
 			++it;
