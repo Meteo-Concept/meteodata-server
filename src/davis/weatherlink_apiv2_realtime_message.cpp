@@ -232,12 +232,19 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.soilTemperature[2] = data.get<float>("temp_3", INVALID_FLOAT);
 			_obs.soilTemperature[3] = data.get<float>("temp_4", INVALID_FLOAT);
 			// The APIv2 returns a float for leaf wetness and soil moisture but we store an int
-			_obs.leafWetness[0] = data.count("wet_leaf_1") > 0 ? std::lround(data.get<float>("wet_leaf_1")) : INVALID_INT;
-			_obs.leafWetness[1] = data.count("wet_leaf_2") > 0 ? std::lround(data.get<float>("wet_leaf_2")) : INVALID_INT;
-			_obs.soilMoisture[0] = data.count("moist_soil_1") > 0 ? std::lround(data.get<float>("moist_soil_1")) : INVALID_INT;
-			_obs.soilMoisture[1] = data.count("moist_soil_2") > 0 ? std::lround(data.get<float>("moist_soil_2")) : INVALID_INT;
-			_obs.soilMoisture[2] = data.count("moist_soil_3") > 0 ? std::lround(data.get<float>("moist_soil_3")) : INVALID_INT;
-			_obs.soilMoisture[3] = data.count("moist_soil_4") > 0 ? std::lround(data.get<float>("moist_soil_4")) : INVALID_INT;
+			float temp;
+			temp = data.get<float>("wet_leaf_1", INVALID_FLOAT);
+			_obs.leafWetness[0] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
+			temp = data.get<float>("wet_leaf_2", INVALID_FLOAT);
+			_obs.leafWetness[1] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
+			temp = data.get<float>("moist_soil_1", INVALID_FLOAT);
+			_obs.soilMoisture[0] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
+			temp = data.get<float>("moist_soil_2", INVALID_FLOAT);
+			_obs.soilMoisture[1] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
+			temp = data.get<float>("moist_soil_3", INVALID_FLOAT);
+			_obs.soilMoisture[2] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
+			temp = data.get<float>("moist_soil_4", INVALID_FLOAT);
+			_obs.soilMoisture[3] = isInvalid(temp) ? INVALID_INT : std::lround(temp);
 		}
 
 		if (sensorType == SensorType::ANEMOMETER) {
