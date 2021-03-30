@@ -2,7 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([Meteodata], [0.19], [contact@meteo-concept.fr])
+AC_INIT([Meteodata], [0.20], [contact@meteo-concept.fr])
+AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([src/davis/vantagepro2_connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
@@ -12,6 +13,11 @@ AC_LANG_CPLUSPLUS
 
 # Checks for programs.
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX_17
+# For pkg-configing
+PKG_PROG_PKG_CONFIG
+PKG_INSTALLDIR
+
 AC_CHECK_PROGS([DOT], [dot])
 if test -z "$DOT";
 then AC_MSG_WARN([[Graphs will not be available in Doxygen documentation]])
@@ -43,10 +49,6 @@ AC_TYPE_SIZE_T
 # Checks for library functions.
 LT_INIT
 AX_PTHREAD
-AC_CHECK_LIB([cassandra],[cass_session_new])
-AC_CHECK_LIB([cassobs],[main])
-AC_CHECK_LIB([tz],[main])
-AC_CHECK_LIB([systemd],[sd_notify])
 AX_CHECK_OPENSSL
 LIBCURL_CHECK_CONFIG
 BOOST_REQUIRE([1.52])
@@ -57,6 +59,12 @@ BOOST_DEFUN([Property_Tree],
 [BOOST_FIND_HEADER([boost/ptree/ptree.hpp])
 BOOST_FIND_HEADER([boost/ptree/xml_parser.hpp])
 ])
+PKG_CHECK_MODULES(CASSANDRA, [cassandra])
+PKG_CHECK_MODULES(MYSQL, [mariadb mysqlclient])
+PKG_CHECK_MODULES(SYSTEMD, [libsystemd])
+PKG_CHECK_MODULES(MOSQUITTO, [libmosquitto])
+PKG_CHECK_MODULES(CASSOBS, [cassobs])
+PKG_CHECK_MODULES(DATE, [date])
 
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT

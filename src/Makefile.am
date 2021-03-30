@@ -251,57 +251,67 @@ meteodata_objenious_api_standalone_SOURCES = \
 		    objenious/objenious_archive_message.cpp\
 		    objenious/objenious_archive_message.h
 
-meteodata_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(SYSTEMD_CPPFLAGS)
-meteodata_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS) $(SYSTEMD_LDFLAGS)
-meteodata_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs $(SYSTEMD_LIBS)
 
-meteodata_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
-meteodata_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_minmax_LDFLAGS = 
-meteodata_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+basecppflags = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(CASSANDRA_CFLAGS) $(DATE_CFLAGS) $(MYSQL_CFLAGS) $(CASSOBS_CFLAGS)
+allcppflags = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(SYSTEMD_CFLAGS)
 
-meteodata_month_minmax_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
-meteodata_month_minmax_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_month_minmax_LDFLAGS = 
-meteodata_month_minmax_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+baseldflags = $(BOOST_ASIO_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(OPENSSL_LDFLAGS) $(CASSOBS_LDFLAGS) $(MYSQL_LDFLAGS) $(CASSANDRA_LDFLAGS) $(DATE_LDFLAGS)
+allldflags = $(baseldflags) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_PROPERTY_TREE_LDFLAGS) $(SYSTEMD_LDFLAGS)
 
-meteodata_records_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
-meteodata_records_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_records_LDFLAGS = 
-meteodata_records_LDADD = $(PTHREAD_CFLAGS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+baselibs = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SYSTEM_LIBS) $(OPENSSL_LIBS) $(LIBCURL) $(CASSOBS_LIBS) $(MYSQL_LIBS) $(CASSANDRA_LIBS) $(DATE_LIBS)
+alllibs = $(baselibs) $(BOOST_SYSTEM_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(SYSTEMD_LIBS)
 
-meteodata_synop_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS)
-meteodata_synop_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_synop_standalone_LDFLAGS = 
-meteodata_synop_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) -lcassobs
+meteodata_CPPFLAGS = $(allcppflags)
+meteodata_CXXFLAGS =
+meteodata_LDFLAGS = $(allldflags)
+meteodata_LDADD = $(alllibs)
 
-meteodata_weatherlink_oldxml_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
-meteodata_weatherlink_oldxml_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_weatherlink_oldxml_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
-meteodata_weatherlink_oldxml_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+meteodata_minmax_CPPFLAGS = $(basecppflags)
+meteodata_minmax_CXXFLAGS =
+meteodata_minmax_LDFLAGS = $(baseldflags)
+meteodata_minmax_LDADD = $(baselibs)
 
-meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
-meteodata_weatherlink_apiv2_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_weatherlink_apiv2_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
-meteodata_weatherlink_apiv2_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+meteodata_month_minmax_CPPFLAGS = $(basecppflags)
+meteodata_month_minmax_CXXFLAGS =
+meteodata_month_minmax_LDFLAGS = $(baseldflags)
+meteodata_month_minmax_LDADD = $(baselibs)
 
-meteodata_static_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
-meteodata_static_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_static_standalone_LDFLAGS = 
-meteodata_static_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+meteodata_records_CPPFLAGS = $(basecppflags)
+meteodata_records_CXXFLAGS =
+meteodata_records_LDFLAGS = $(baseldflags)
+meteodata_records_LDADD = $(baselibs)
 
-meteodata_fieldclimate_api_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
-meteodata_fieldclimate_api_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_fieldclimate_api_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
-meteodata_fieldclimate_api_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+meteodata_synop_standalone_CPPFLAGS = $(basecppflags)
+meteodata_synop_standalone_CXXFLAGS =
+meteodata_synop_standalone_LDFLAGS = $(baseldflags)
+meteodata_synop_standalone_LDADD = $(baselibs)
 
-meteodata_wlk_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
-meteodata_wlk_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_wlk_standalone_LDFLAGS = 
-meteodata_wlk_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)
+meteodata_weatherlink_oldxml_standalone_CPPFLAGS = $(basecppflags)
+meteodata_weatherlink_oldxml_standalone_CXXFLAGS =
+meteodata_weatherlink_oldxml_standalone_LDFLAGS = $(baseldflags)
+meteodata_weatherlink_oldxml_standalone_LDADD = $(baselibs)
 
-meteodata_objenious_api_standalone_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(CASSANDRA_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS)
-meteodata_objenious_api_standalone_CXXFLAGS = -std=c++17 -Wall -Wextra -pedantic
-meteodata_objenious_api_standalone_LDFLAGS = $(BOOST_ASIO_LDFLAGS) $(OPENSSL_LDFLAGS)
-meteodata_objenious_api_standalone_LDADD = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_SYSTEM_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(OPENSSL_LIBS) $(LIBCURL) -lcassobs
+meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(basecppflags)
+meteodata_weatherlink_apiv2_standalone_CXXFLAGS =
+meteodata_weatherlink_apiv2_standalone_LDFLAGS = $(baseldflags)
+meteodata_weatherlink_apiv2_standalone_LDADD = $(baselibs)
+
+meteodata_static_standalone_CPPFLAGS = $(basecppflags)
+meteodata_static_standalone_CXXFLAGS =
+meteodata_static_standalone_LDFLAGS = $(baseldflags)
+meteodata_static_standalone_LDADD = $(baselibs)
+
+meteodata_fieldclimate_api_standalone_CPPFLAGS = $(basecppflags)
+meteodata_fieldclimate_api_standalone_CXXFLAGS =
+meteodata_fieldclimate_api_standalone_LDFLAGS = $(baseldflags)
+meteodata_fieldclimate_api_standalone_LDADD = $(baselibs)
+
+meteodata_wlk_standalone_CPPFLAGS = $(basecppflags)
+meteodata_wlk_standalone_CXXFLAGS =
+meteodata_wlk_standalone_LDFLAGS = $(baseldflags)
+meteodata_wlk_standalone_LDADD = $(baselibs)
+
+meteodata_objenious_api_standalone_CPPFLAGS = $(basecppflags)
+meteodata_objenious_api_standalone_CXXFLAGS =
+meteodata_objenious_api_standalone_LDFLAGS = $(baseldflags)
+meteodata_objenious_api_standalone_LDADD = $(baselibs)
