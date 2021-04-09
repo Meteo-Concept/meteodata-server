@@ -167,10 +167,23 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.leafTemperature[1] = data.get<float>("temp_leaf_2", INVALID_FLOAT);
 			_obs.leafWetness[0] = data.get<int>("wet_leaf_1", INVALID_INT);
 			_obs.leafWetness[1] = data.get<int>("wet_leaf_2", INVALID_INT);
-			_obs.soilTemperature[0] = data.get<float>("moist_soil_1", INVALID_FLOAT);
-			_obs.soilTemperature[1] = data.get<float>("moist_soil_2", INVALID_FLOAT);
-			_obs.soilTemperature[2] = data.get<float>("moist_soil_3", INVALID_FLOAT);
-			_obs.soilTemperature[3] = data.get<float>("moist_soil_4", INVALID_FLOAT);
+			_obs.soilMoisture[0] = data.get<int>("moist_soil_1", INVALID_INT);
+			_obs.soilMoisture[1] = data.get<int>("moist_soil_2", INVALID_INT);
+			_obs.soilMoisture[2] = data.get<int>("moist_soil_3", INVALID_INT);
+			_obs.soilMoisture[3] = data.get<int>("moist_soil_4", INVALID_INT);
+			float tempF = data.get<float>("temp_soil_1", INVALID_FLOAT);
+			if (!isInvalid(tempF))
+				_obs.soilTemperature[0] = from_Farenheit_to_Celsius(tempF);
+			tempF = data.get<float>("temp_soil_2", INVALID_FLOAT);
+			if (!isInvalid(tempF))
+				_obs.soilTemperature[1] = from_Farenheit_to_Celsius(tempF);
+			tempF = data.get<float>("temp_soil_3", INVALID_FLOAT);
+			if (!isInvalid(tempF))
+				_obs.soilTemperature[2] = from_Farenheit_to_Celsius(tempF);
+			tempF = data.get<float>("temp_soil_4", INVALID_FLOAT);
+			if (!isInvalid(tempF))
+				_obs.soilTemperature[3] = from_Farenheit_to_Celsius(tempF);
+
 		}
 
 		if (sensorType == SensorType::SENSOR_SUITE &&
