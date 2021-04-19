@@ -188,6 +188,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 
 		if (sensorType == SensorType::SENSOR_SUITE &&
 		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			if (isInvalid(_obs.humidity)) {
 				float hum = data.get<float>("hum", INVALID_FLOAT) ;
 				if (!isInvalid(hum))
@@ -226,6 +227,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 			if (!isInvalid(_obs.pressure))
 				_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
@@ -233,6 +235,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 
 		if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
 			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			// The first two temperatures are put in both leaf and soil temperatures fields
 			// because we cannot know from the API where the user installed the sensors
 			// It's necessary to enable/disable the corresponding sensors from the administration
@@ -261,6 +264,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (sensorType == SensorType::ANEMOMETER) {
+            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.windDir = data.get<int>("wind_dir_prevail", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
