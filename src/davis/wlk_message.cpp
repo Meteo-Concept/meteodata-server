@@ -225,7 +225,7 @@ void WlkMessage::populateV2DataPoint(const CassUuid station, CassStatement* cons
 	if (_rainrate)
 		cass_statement_bind_float(statement, 19, *_rainrate);
 	/*************************************************************/
-	if (_rainrate)
+	if (_rainfall)
 		cass_statement_bind_float(statement, 20, *_rainfall);
 	/*************************************************************/
 	// No ETP
