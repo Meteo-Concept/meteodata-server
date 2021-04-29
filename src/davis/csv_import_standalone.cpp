@@ -1,6 +1,6 @@
 /**
- * @file wlk_import_standalone.cpp
- * @brief Implementation of the WlkImportStandalone class
+ * @file csv_import_standalone.cpp
+ * @brief Implementation of the CsvImportStandalone class
  * @author Laurent Georget
  * @date 2020-10-10
  */
@@ -30,13 +30,23 @@
 #include <boost/program_options.hpp>
 
 #include "../time_offseter.h"
-#include "wlk_importer.h"
+#include "csv_importer.h"
+#include "wlk_message.h"
+#include "mileos_message.h"
 #include "config.h"
 
 #define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
 
 using namespace meteodata;
 namespace po = boost::program_options;
+
+template <typename Importer> bool doImport(Importer& importer, const std::string& inputFile,
+	date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
+{
+	std::ifstream input{inputFile};
+	return importer.import(input, start, end, updateLastArchiveDownloadTime);
+}
+
 
 int main(int argc, char** argv)
 {
@@ -47,13 +57,15 @@ int main(int argc, char** argv)
 	std::string inputFile;
 	std::string uuid;
 	std::string tz;
+	std::string format;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
-		("input-file", po::value<std::string>(&inputFile), "input WLK file")
+		("input-file", po::value<std::string>(&inputFile), "input data file")
+		("format", po::value<std::string>(&format), "file format (\"wlk\" or \"mileos\")")
 		("station", po::value<std::string>(&uuid), "station UUID")
 		("timezone", po::value<std::string>(&tz), "timezone identifier (like \"UTC\" or \"Europe/Paris\")")
 		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
@@ -96,6 +108,11 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	if (vm.count("format") != 1 || (format != "wlk" && format != "mileos")) {
+		std::cout << "You must give the format of the file and it must be either 'wlk' or 'mileos'" << std::endl;
+		return 1;
+	}
+
 	if (vm.count("input-file") != 1 || vm.count("station") != 1 || vm.count("timezone") != 1) {
 		std::cout << "You must give the input file, the station and the timezone." << std::endl;
 		return 1;
@@ -108,11 +125,17 @@ int main(int argc, char** argv)
 		CassUuid station;
 		cass_uuid_from_string(uuid.c_str(), &station);
 		std::ifstream fileStream(inputFile);
-		WlkImporter wlkImporter(station, tz, db);
-
-		std::ifstream input{inputFile};
+		bool importResult = false;
 		date::sys_seconds start, end;
-		if (wlkImporter.import(input, start, end, updateLastArchiveDownloadTime)) {
+		if (format == "wlk") {
+			CsvImporter<WlkMessage, '\t', 2> wlkImporter(station, tz, db);
+			importResult = doImport(wlkImporter, inputFile, start, end, updateLastArchiveDownloadTime);
+		} else { // format == "mileos"
+			CsvImporter<MileosMessage, ';', 1> mileosImporter(station, tz, db);
+			importResult = doImport(mileosImporter, inputFile, start, end, updateLastArchiveDownloadTime);
+		}
+
+		if (importResult) {
 			std::cout << "Consider recomputing the climatology: \n"
 				  << "\tmeteodata-minmax --station " << uuid
 					<< " --begin " << date::format("%Y-%m-%d", start)
@@ -128,7 +151,7 @@ int main(int argc, char** argv)
 			return 2;
 		}
 	} catch (std::exception& e) {
-		std::cerr << "Meteodata-wlk-standalone met a critical error: " << e.what() << std::endl;
+		std::cerr << "Meteodata-csv-standalone met a critical error: " << e.what() << std::endl;
 		return 255;
 	}
 

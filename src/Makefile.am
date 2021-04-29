@@ -7,7 +7,7 @@ bin_PROGRAMS = \
 	       meteodata-weatherlink-apiv2-standalone \
 	       meteodata-static-standalone \
 	       meteodata-fieldclimate-api-standalone\
-	       meteodata-wlk-standalone\
+	       meteodata-csv-standalone\
 	       meteodata-objenious-api-standalone
 
 meteodata_SOURCES = \
@@ -225,14 +225,15 @@ meteodata_fieldclimate_api_standalone_SOURCES = \
 		    pessl/fieldclimate_archive_message.cpp\
 		    pessl/fieldclimate_archive_message.h
 
-meteodata_wlk_standalone_SOURCES = \
+meteodata_csv_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
-		    davis/wlk_importer.cpp\
-		    davis/wlk_importer.h\
+		    davis/csv_importer.h\
 		    davis/wlk_message.cpp\
 		    davis/wlk_message.h\
-		    davis/wlk_import_standalone.cpp
+		    davis/mileos_message.cpp\
+		    davis/mileos_message.h\
+		    davis/csv_import_standalone.cpp
 
 meteodata_objenious_api_standalone_SOURCES = \
 		    time_offseter.cpp\
@@ -306,10 +307,10 @@ meteodata_fieldclimate_api_standalone_CXXFLAGS =
 meteodata_fieldclimate_api_standalone_LDFLAGS = $(baseldflags)
 meteodata_fieldclimate_api_standalone_LDADD = $(baselibs)
 
-meteodata_wlk_standalone_CPPFLAGS = $(basecppflags)
-meteodata_wlk_standalone_CXXFLAGS =
-meteodata_wlk_standalone_LDFLAGS = $(baseldflags)
-meteodata_wlk_standalone_LDADD = $(baselibs)
+meteodata_csv_standalone_CPPFLAGS = $(basecppflags)
+meteodata_csv_standalone_CXXFLAGS =
+meteodata_csv_standalone_LDFLAGS = $(baseldflags)
+meteodata_csv_standalone_LDADD = $(baselibs)
 
 meteodata_objenious_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_objenious_api_standalone_CXXFLAGS =

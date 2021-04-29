@@ -1,8 +1,8 @@
 /**
- * @file wlk_importer.h
- * @brief Definition of the WlkImporter class
+ * @file mileos_importer.h
+ * @brief Definition of the MileosImporter class
  * @author Laurent Georget
- * @date 2020-10-09
+ * @date 2021-04-29
  */
 /*
  * Copyright (C) 2020  JD Environnement <contact@meteo-concept.fr>
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WLK_IMPORTER_H
-#define WLK_IMPORTER_H
+#ifndef MILEOS_IMPORTER_H
+#define MILEOS_IMPORTER_H
 
 #include <iostream>
 #include <vector>
@@ -48,14 +48,14 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 /**
- * A WlkImporter instance is able to parse a file with extension .wlk produced
+ * A MileosImporter instance is able to parse a file with extension .mileos produced
  * by the Weatherlink software to ingest meteorological data collected by
  * Davis® station
  */
-class WlkImporter
+class MileosImporter
 {
 public:
-	WlkImporter(const CassUuid& station, const std::string& timezone, DbConnectionObservations& db);
+	MileosImporter(const CassUuid& station, const std::string& timezone, DbConnectionObservations& db);
 	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = false);
 
 private:
