@@ -194,7 +194,7 @@ void FieldClimateApiArchiveMessage::populateV2DataPoint(const CassUuid station, 
 	/*************************************************************/
 	for (int i=0 ; i<2 ; i++)
 		if (!isInvalid(_obs.extraHumidity[i]))
-			cass_statement_bind_int32(statement, 5+i, _obs.extraHumidity[i]);
+			cass_statement_bind_int32(statement, 5+i, int(_obs.extraHumidity[i]));
 	/*************************************************************/
 	for (int i=0 ; i<3 ; i++)
 		if (!isInvalid(_obs.extraTemperature[i]))
@@ -220,7 +220,7 @@ void FieldClimateApiArchiveMessage::populateV2DataPoint(const CassUuid station, 
 	}
 	/*************************************************************/
 	if (!isInvalid(_obs.humidity))
-		cass_statement_bind_int32(statement, 17, _obs.humidity);
+		cass_statement_bind_int32(statement, 17, int(_obs.humidity));
 	/*************************************************************/
 	if (!isInvalid(_obs.temperature))
 		cass_statement_bind_float(statement, 18, _obs.temperature);

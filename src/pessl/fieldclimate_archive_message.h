@@ -138,7 +138,7 @@ private:
 	struct Observation {
 		date::sys_seconds time;
 		float pressure = INVALID_FLOAT; // hPa
-		int humidity = INVALID_INT;     // %
+		float humidity = INVALID_FLOAT;     // %
 		float temperature = INVALID_FLOAT; // °C
 		float minTemperature = INVALID_FLOAT; // °C
 		float maxTemperature = INVALID_FLOAT; // °C
@@ -149,7 +149,7 @@ private:
 		float rainFall = INVALID_FLOAT; // mm
 		int solarRad = INVALID_INT; // W/m2
 		float uvIndex = INVALID_FLOAT; // no unit
-		int extraHumidity[2] = { INVALID_INT, INVALID_INT }; // %
+		float extraHumidity[2] = { INVALID_FLOAT, INVALID_FLOAT }; // %
 		float extraTemperature[3] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT }; // °C
 		float leafTemperature[2] = { INVALID_FLOAT, INVALID_FLOAT }; // °C
 		int leafWetness[2] = { INVALID_INT, INVALID_INT }; // index
