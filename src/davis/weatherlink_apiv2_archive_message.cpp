@@ -123,18 +123,10 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.soilMoisture[1] = data.get<int>("moist_soil_2", INVALID_INT);
 		_obs.soilMoisture[2] = data.get<int>("moist_soil_3", INVALID_INT);
 		_obs.soilMoisture[3] = data.get<int>("moist_soil_4", INVALID_INT);
-		float tempF = data.get<float>("temp_soil_1", INVALID_FLOAT);
-		if (!isInvalid(tempF))
-			_obs.soilTemperature[0] = from_Farenheit_to_Celsius(tempF);
-		tempF = data.get<float>("temp_soil_2", INVALID_FLOAT);
-		if (!isInvalid(tempF))
-			_obs.soilTemperature[1] = from_Farenheit_to_Celsius(tempF);
-		tempF = data.get<float>("temp_soil_3", INVALID_FLOAT);
-		if (!isInvalid(tempF))
-			_obs.soilTemperature[2] = from_Farenheit_to_Celsius(tempF);
-		tempF = data.get<float>("temp_soil_4", INVALID_FLOAT);
-		if (!isInvalid(tempF))
-			_obs.soilTemperature[3] = from_Farenheit_to_Celsius(tempF);
+		_obs.soilTemperature[0] = data.get<float>("temp_soil_1", INVALID_FLOAT);
+		_obs.soilTemperature[1] = data.get<float>("temp_soil_2", INVALID_FLOAT);
+		_obs.soilTemperature[2] = data.get<float>("temp_soil_3", INVALID_FLOAT);
+		_obs.soilTemperature[3] = data.get<float>("temp_soil_4", INVALID_FLOAT);
 	} else if (sensorType == SensorType::SENSOR_SUITE &&
 		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
