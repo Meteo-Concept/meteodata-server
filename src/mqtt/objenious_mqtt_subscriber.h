@@ -43,26 +43,25 @@ namespace meteodata {
 using namespace meteodata;
 
 /**
- */
+*/
 class ObjeniousMqttSubscriber : public MqttSubscriber
 {
-public:
-	ObjeniousMqttSubscriber(const CassUuid& station, MqttSubscriptionDetails&& details,
-		const std::string& objeniousId, const std::map<std::string, std::string>& variables,
-		asio::io_service& ioService, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz);
+	public:
+	ObjeniousMqttSubscriber(MqttSubscriptionDetails details,
+			asio::io_service& ioService, DbConnectionObservations& db);
+	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
+			const std::string& objeniousId, const std::map<std::string, std::string>& variables);
 
-private:
-    /**
-     * @brief The suffix of the topic instances of this class will receive data at
-     */
+	private:
+	/**
+	 * @brief The suffix of the topic instances of this class will receive data at
+	 */
 	static constexpr char ARCHIVES_TOPIC[] = "/data";
 
 	/**
-	 * @brief The id of the device on the Objenious SPOT network
-	 * (TODO: decide whether this is the device id, the deveui, etc.)
+	 * @brief The map from topic to tuple {objeniousId, variables}
 	 */
-	std::string _objeniousId;
+	std::map<std::string, std::tuple<std::string, std::map<std::string, std::string>>> _devices;
 
 	/**
 	 * @brief What variables should be extracted from the data points, and what
@@ -71,9 +70,10 @@ private:
 	std::map<std::string, std::string> _variables;
 
 
-protected:
+	protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
-	void processArchive(const mqtt::string_view& content) override;
+	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
+	const char* getConnectorSuffix() override { return "objenious"; }
 };
 
 }

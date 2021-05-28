@@ -75,6 +75,8 @@ void MeteoServer::start()
 	// Start the MQTT subscribers (one per station)
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
+	std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
+	std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 	_db.getAllObjeniousApiStations(objeniousStations);
 	_db.getMqttStations(mqttStations);
 	for (auto&& station : mqttStations) {
@@ -82,44 +84,44 @@ void MeteoServer::start()
 			std::get<1>(station),
 			std::get<2>(station),
 			std::get<3>(station),
-			std::move(std::get<4>(station)),
-			std::get<5>(station),
-			std::get<6>(station)
+			std::string(std::get<4>(station).get(), std::get<5>(station))
 		};
 
-		std::shared_ptr<MqttSubscriber> subscriber;
-		if (details.topic.substr(0, 4) == "vp2/") {
-			subscriber.reset(new VP2MqttSubscriber(
-						std::get<0>(station),
-						std::move(details),
-						_ioService, _db,
-						TimeOffseter::PredefinedTimezone(std::get<7>(station))
-					));
-		} else if (details.topic.substr(0, 10) == "objenious/") {
-			const CassUuid& mqttSt = std::get<0>(station);
-			auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
-					[&mqttSt](auto&& objSt){ return mqttSt == std::get<0>(objSt); });
-			if (it != objeniousStations.end()) {
-				subscriber.reset(new ObjeniousMqttSubscriber(
-							std::get<0>(station),
-							std::move(details),
-							std::get<1>(*it), std::get<2>(*it),
-							_ioService, _db,
-							TimeOffseter::PredefinedTimezone(std::get<7>(station))
-						));
-			} else {
-				std::cerr << SD_ERR << "An Objenious MQTT connector is configured for station " << std::get<0>(station)
-					<< " but no corresponding Objenious station has been found" << std::endl;
+		const CassUuid& uuid = std::get<0>(station);
+		const std::string& topic = std::get<6>(station);
+		TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
+		if (topic.substr(0, 4) == "vp2/") {
+			auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
+			if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
+				std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
+					details, _ioService, _db);
+				mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 			}
-		}
+			mqttSubscribersIt->second->addStation(topic, uuid, tz);
+		} else if (topic.substr(0, 10) == "objenious/") {
+			auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
+			if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
+				std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
+					details, _ioService, _db
+				);
+				mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
+			}
 
-		if (subscriber) {
-			subscriber->start();
+			auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
+					[&uuid](auto&& objSt){ return uuid == std::get<0>(objSt); });
+			if (it != objeniousStations.end()) {
+				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
+			}
 		} else {
-			std::cerr << SD_ERR << "Unrecognized topic " << details.topic
+			std::cerr << SD_ERR << "Unrecognized topic " << topic
 				<< " for MQTT station " << std::get<0>(station) << std::endl;
 		}
 	}
+
+	for (auto&& mqttSubscriber : vp2MqttSubscribers)
+		mqttSubscriber.second->start();
+	for (auto&& mqttSubscriber : objeniousMqttSubscribers)
+		mqttSubscriber.second->start();
 
 	// Start the Synop downloader worker (one for all the SYNOP stations in
 	// the same group)
@@ -137,7 +139,7 @@ void MeteoServer::start()
 					_ioService, _db,
 					std::get<1>(synop),
 					std::get<0>(synop)
-				);
+					);
 		deferredSynopDownloader->start();
 	}
 
@@ -157,15 +159,17 @@ void MeteoServer::start()
 					std::get<2>(station),
 					std::get<3>(station),
 					std::get<4>(station)
-				);
+					);
 		subscriber->start();
 	}
 
-	// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station)
+	// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station but they
+	// share a single HTTP client)
 	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
 	weatherlinkScheduler->start();
 
-	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station)
+	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station but they
+	// share a single HTTP client)
 	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
 	fieldClimateScheduler->start();
 
@@ -177,7 +181,7 @@ void MeteoServer::start()
 			std::make_shared<MBDataTxtDownloader>(
 					_ioService, _db,
 					station
-				);
+					);
 		subscriber->start();
 	}
 
@@ -190,9 +194,9 @@ void MeteoServer::startAccepting()
 	Connector::ptr newConnector =
 		Connector::create<VantagePro2Connector>(_ioService, _db);
 	_acceptor.async_accept(
-	        newConnector->socket(),
-	        [this, newConnector](const boost::system::error_code& error) { runNewConnector(newConnector, error); }
-	);
+			newConnector->socket(),
+			[this, newConnector](const boost::system::error_code& error) { runNewConnector(newConnector, error); }
+			);
 }
 
 void MeteoServer::runNewConnector(Connector::ptr c,

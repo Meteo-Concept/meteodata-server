@@ -50,30 +50,44 @@ using namespace date;
 constexpr char ObjeniousMqttSubscriber::ARCHIVES_TOPIC[];
 
 ObjeniousMqttSubscriber::ObjeniousMqttSubscriber(
-		const CassUuid& station, MqttSubscriber::MqttSubscriptionDetails&& details,
-		const std::string& objeniousId, const std::map <std::string, std::string>& variables,
-		asio::io_service& ioService, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz
-	) :
-	MqttSubscriber(station, std::move(details), ioService, db, tz),
-	_objeniousId{objeniousId},
-	_variables{variables}
+		 MqttSubscriber::MqttSubscriptionDetails details,
+		asio::io_service& ioService, DbConnectionObservations& db
+	):
+	MqttSubscriber(details, ioService, db)
 {
 }
 
-bool ObjeniousMqttSubscriber::handleSubAck(std::uint16_t, std::vector<boost::optional<std::uint8_t>> results) {
-	for (auto const& e : results) { /* we are expecting only one */
-		if (!e) {
-			std::cerr << SD_ERR << _stationName <<  ": subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
-			stop();
-		}
-	}
-	return true;
+bool ObjeniousMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+    for (auto const& e : results) { /* we are expecting only one */
+        auto subscriptionIt = _subscriptions.find(packetId);
+        if (subscriptionIt == _subscriptions.end()) {
+            std::cerr << SD_ERR << "MQTT client " << _details.host << ": received an invalid subscription ack?!" << std::endl;
+            continue;
+        }
+
+        const std::string& topic = subscriptionIt->second;
+        if (!e) {
+            std::cerr  <<  "Station " << topic << ": subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
+        }
+    }
+    return true;
 }
 
-void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& content)
+void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
 {
-	std::cout << SD_DEBUG << "Now downloading for MQTT station " << _stationName << std::endl;
+    auto stationIt = _stations.find(topicName.to_string());
+    if (stationIt == _stations.end()) {
+        std::cout << SD_ERR << "Unknown topic " << topicName << std::endl;
+        return;
+    }
+
+    const CassUuid& station = std::get<0>(stationIt->second);
+    const std::string& stationName = std::get<1>(stationIt->second);
+    // no need to check for presence of the topic, that map is filled in at the
+    // same time at the other one
+    const auto& variables = std::get<1>(_devices[topicName.to_string()]);
+
+    std::cout << SD_DEBUG << "Now downloading for MQTT station " << stationName << std::endl;
 
 	// TODO: check if there's a more clever way of building a stream out of
 	// an iterable range of characters
@@ -82,26 +96,32 @@ void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& content)
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
-	ObjeniousApiArchiveMessage msg{&_variables};
+	ObjeniousApiArchiveMessage msg{&variables};
 	try {
 		msg.ingest(jsonTree);
 
-		int ret = _db.insertV2DataPoint(_station, msg);
+		int ret = _db.insertV2DataPoint(station, msg);
 		if (ret) {
 			std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
 			time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
-			ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+			ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 			if (!ret)
-				std::cerr << SD_ERR << "MQTT station " << _stationName << ": Couldn't update last archive download time"
+				std::cerr << SD_ERR << "MQTT station " << stationName << ": Couldn't update last archive download time"
 					<< std::endl;
 		} else {
-			std::cerr << SD_ERR << "Failed to store archive for MQTT station " << _stationName << "! Aborting"
+			std::cerr << SD_ERR << "Failed to store archive for MQTT station " << stationName << "! Aborting"
 				<< std::endl;
 			return;
 		}
 	} catch (const std::exception& e) {
 		std::cerr << SD_ERR << "Failed to receive or parse an Objenious MQTT message: " << e.what() << std::endl;
 	}
+}
+
+void ObjeniousMqttSubscriber::addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
+                                     const std::string& objeniousId, const std::map<std::string, std::string>& variables) {
+    MqttSubscriber::addStation(topic, station, tz);
+    _devices.emplace(topic, std::make_tuple(objeniousId, variables));
 }
 
 }

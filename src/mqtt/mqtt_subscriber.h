@@ -28,6 +28,7 @@
 #include <memory>
 #include <array>
 #include <vector>
+#include <map>
 #include <functional>
 #include <unistd.h>
 #include <chrono>
@@ -54,46 +55,29 @@ public:
 		std::string host;
 		int port;
 		std::string user;
-		std::unique_ptr<char[]> password;
-		size_t passwordLength;
-		std::string topic;
+		std::string password;
 
-		MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, std::unique_ptr<char[]>&& password, size_t passwordLength, const std::string& topic);
-		MqttSubscriptionDetails(MqttSubscriptionDetails&& other);
+		MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, const std::string& password);
+		friend bool operator<(const MqttSubscriptionDetails& s1, const MqttSubscriptionDetails& s2);
 	};
 
-	MqttSubscriber(const CassUuid& station, MqttSubscriptionDetails&& details,
-		asio::io_service& ioService, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz);
+	MqttSubscriber(const MqttSubscriptionDetails& details,
+		asio::io_service& ioService, DbConnectionObservations& db);
+	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start();
 	void stop();
 
 protected:
 	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
-	/**
-	 * @brief The connected station's identifier in the database
-	 */
-	CassUuid _station;
-	std::string _stationName;
 	MqttSubscriptionDetails _details;
+
+	std::map<std::uint16_t, std::string> _subscriptions;
+	/**
+	 * @brief Map from station UUID to station UUID, station name, polling period, last archive insertion datetime, time offseter
+	 */
+	std::map<std::string, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>> _stations;
 	decltype(mqtt::make_tls_client(_ioService, _details.host, _details.port)) _client;
-	/**
-	 * @brief The amount of time between two queries for data to the stations
-	 */
-	int _pollingPeriod;
-
-	/**
-	 * @brief The timestamp (in POSIX time) of the last archive entry
-	 * retrieved from the station
-	 */
-	date::sys_seconds _lastArchive;
-
-	/**
-	 * @brief The \a TimeOffseter to use to convert timestamps between the
-	 * station's time and POSIX time
-	 */
-	TimeOffseter _timeOffseter;
 
 	/**
 	 * @brief The channel subscription id
@@ -114,7 +98,8 @@ protected:
 	asio::basic_waitable_timer<std::chrono::steady_clock> _timer;
 
 	static constexpr char CLIENT_ID[] = "meteodata";
-	virtual void processArchive(const mqtt::string_view& content) = 0;
+	virtual void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) = 0;
+	virtual const char* getConnectorSuffix() = 0;
 	void checkRetryStartDeadline(const boost::system::error_code& e);
 
 	virtual bool handleConnAck(bool sp, std::uint8_t ret);
@@ -126,6 +111,7 @@ protected:
 	virtual bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results);
 	virtual bool handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id, mqtt::string_view topic_name, mqtt::string_view contents);
 };
+bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2);
 
 }
 

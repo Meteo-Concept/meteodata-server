@@ -51,16 +51,16 @@ using namespace meteodata;
 class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
-	VP2MqttSubscriber(const CassUuid& station, MqttSubscriptionDetails&& details,
-		asio::io_service& ioService, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz);
+	VP2MqttSubscriber(MqttSubscriptionDetails details,
+		asio::io_service& ioService, DbConnectionObservations& db);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
-	void processArchive(const mqtt::string_view& content) override;
+	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
+	const char* getConnectorSuffix() override { return "vp2"; }
 };
 
 }
