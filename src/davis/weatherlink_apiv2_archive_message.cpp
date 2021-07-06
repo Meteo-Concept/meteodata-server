@@ -56,8 +56,12 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
 		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
+
+        auto dataIt = reading.second.find("data");
+        if (dataIt == reading.second.not_found() || dataIt->second.empty())
+            continue;
 		// Only parse the last (most recent) element of the collection of data
-		auto data = reading.second.get_child("data").back().second;
+		auto data = dataIt->second.back().second;
 		ingest(data, sensorType, dataStructureType);
 	}
 }

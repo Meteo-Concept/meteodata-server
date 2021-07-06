@@ -90,8 +90,12 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		if (!acceptable(reading))
 			continue;
 
+		auto dataIt = reading.second.find("data");
+        if (dataIt == reading.second.not_found() || dataIt->second.empty()) // no data?! it's happened before
+            continue;
+
 		// we expect exactly one element, the current condition
-		auto data = reading.second.get_child("data").front().second;
+		auto data = dataIt->second.front().second;
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
 		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));

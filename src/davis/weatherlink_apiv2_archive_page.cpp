@@ -85,7 +85,10 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
 		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
-		for (std::pair<const std::string, pt::ptree>& data : reading.second.get_child("data")) {
+        auto dataIt = reading.second.find("data");
+        if (dataIt == reading.second.not_found() || dataIt->second.empty())
+            continue;
+		for (std::pair<const std::string, pt::ptree>& data : dataIt->second) {
 			WeatherlinkApiv2ArchiveMessage message(_timeOffseter);
 			message.ingest(data.second, sensorType, dataStructureType);
 			if (message._obs.time > _time)
