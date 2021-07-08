@@ -102,7 +102,10 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 	}
 
 	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
-		if (now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD ||
+		// Download only for stations without access to archive or
+		// stations for which it doesn't make use fetch more frequently
+		// than archives
+		if ((!it->first || it->second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD) &&
 		    now % it->second->getPollingPeriod() < POLLING_PERIOD)
 			genericDownload([it](auto& client) { (it->second)->downloadRealTime(client); });
 	}
