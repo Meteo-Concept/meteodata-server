@@ -296,7 +296,7 @@ void VantagePro2Message::populateV2DataPoint(const CassUuid stationId, CassState
 	}
 	/*************************************************************/
 	for (int i=0 ; i<3 ; i++) {
-		if (_l1.extraTemp[1] != 255)
+		if (_l1.extraTemp[i] != 255)
 			cass_statement_bind_float(statement, 7+i, from_Farenheit_to_Celsius(_l1.extraTemp[i] - 90));
 	}
 	/*************************************************************/
