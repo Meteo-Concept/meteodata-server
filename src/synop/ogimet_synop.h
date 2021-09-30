@@ -35,6 +35,8 @@
 
 #include "synop_decoder/synop_message.h"
 
+#include "../time_offseter.h"
+
 namespace meteodata {
 
 namespace asio = boost::asio;
@@ -52,7 +54,7 @@ public:
 	 *
 	 * @param data A SYNOP messgae obtained from Ogimet and decoded
 	 */
-	OgimetSynop(const SynopMessage& data);
+	OgimetSynop(const SynopMessage& data, const TimeOffseter* timeOffseter);
 	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
 	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 
@@ -61,6 +63,11 @@ private:
 	 * @brief The data point, an individual SYNOP message
 	 */
 	SynopMessage _data;
+
+	/**
+	 * @brief A time offseter to get some station properties
+	 */
+	const TimeOffseter* _timeOffseter;
 
 	std::experimental::optional<int> _humidity;
 	std::experimental::optional<float> _rainfall;

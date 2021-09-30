@@ -651,6 +651,7 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 	return false;
 }
 
+// Formula of Penman-Monteith, from the methodology by the FAO http://www.fao.org/3/X0490E/x0490e04.htm
 inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiation, float latitude, float longitude, int elevation, time_t timestamp, int polling_period)
 {
 	using namespace date;

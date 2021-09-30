@@ -121,9 +121,24 @@ void AbstractSynopDownloader::download()
 				auto uuidIt = _icaos.find(m._stationIcao);
 				if (uuidIt != _icaos.end()) {
 					char uuidStr[CASS_UUID_STRING_LENGTH];
-					cass_uuid_string(uuidIt->second, uuidStr);
-					OgimetSynop synop{m};
-					_db.insertV2DataPoint(uuidIt->second, synop);
+					const CassUuid& station = uuidIt->second;
+					cass_uuid_string(station, uuidStr);
+
+					std::string stationName;
+					int pollingPeriod;
+					time_t lastArchiveDownloadTime;
+					_db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime);
+					float latitude, longitude;
+					int elevation;
+					_db.getStationLocation(station, latitude, longitude, elevation);
+					TimeOffseter timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
+					timeOffseter.setLatitude(latitude);
+					timeOffseter.setLongitude(longitude);
+					timeOffseter.setElevation(elevation);
+					timeOffseter.setMeasureStep(pollingPeriod);
+
+					OgimetSynop synop{m, &timeOffseter};
+					_db.insertV2DataPoint(station, synop);
 					std::cout << SD_DEBUG << "SYNOP: Inserted into database" << std::endl;
 
 					std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
@@ -135,11 +150,11 @@ void AbstractSynopDownloader::download()
 					if (m._minutesOfSunshineLastDay)
 						insolationTime24 = std::make_pair(true, *m._minutesOfSunshineLastDay);
 					auto day = date::floor<date::days>(m._observationTime) - date::days(1);
-					_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+					_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
 					if (m._minTemperature)
-						_db.insertV2Tn(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
+						_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
 					if (m._maxTemperature)
-						_db.insertV2Tx(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
+						_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
 				}
 			} else {
 				std::cerr << SD_WARNING << "SYNOP: Record looks invalid, discarding..." << std::endl;

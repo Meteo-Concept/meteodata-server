@@ -44,36 +44,36 @@ int computeHumidity(int temperature, int dewPoint)
 
 namespace meteodata
 {
-
-OgimetSynop::OgimetSynop(const SynopMessage& data) :
+OgimetSynop::OgimetSynop(const SynopMessage& data, const TimeOffseter* timeOffseter) :
 	Message(),
+	_timeOffseter(timeOffseter),
 	_data(data),
 	_humidity(
 		_data._relativeHumidity ? *_data._relativeHumidity :
 		_data._dewPoint && _data._meanTemperature ? computeHumidity(*_data._meanTemperature, *_data._dewPoint) :
 		std::experimental::optional<int>()
-	),
+	 ),
 	_wind_mps(
 		_data._meanWindSpeed ?
-			(_data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ?
-				*_data._meanWindSpeed * 0.51444 :
-				*_data._meanWindSpeed) :
-			std::experimental::optional<float>()
-		 )
+		(_data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ?
+		 *_data._meanWindSpeed * 0.51444 :
+		 *_data._meanWindSpeed) :
+		std::experimental::optional<float>()
+	 )
 
-{
-	auto it = std::find_if(_data._precipitation.begin(), _data._precipitation.end(),
-			[](const auto& pr) { return pr._duration == 1; });
-	if (it != _data._precipitation.end())
-		_rainfall = it->_amount;
+	{
+		auto it = std::find_if(_data._precipitation.begin(), _data._precipitation.end(),
+				[](const auto& pr) { return pr._duration == 1; });
+		if (it != _data._precipitation.end())
+			_rainfall = it->_amount;
 
-	auto it2 = std::find_if(_data._gustObservations.begin(), _data._gustObservations.end(),
-			[](const auto& go) { return go._duration == 60; });
-	if (it2 != _data._gustObservations.end())
-		_gust = _data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ?
+		auto it2 = std::find_if(_data._gustObservations.begin(), _data._gustObservations.end(),
+				[](const auto& go) { return go._duration == 60; });
+		if (it2 != _data._gustObservations.end())
+			_gust = _data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ?
 				it2->_speed * 1.85200 :
 				it2->_speed * 3.6;
-}
+	}
 
 
 
@@ -86,12 +86,11 @@ void OgimetSynop::populateDataPoint(const CassUuid station, CassStatement* const
 	/*************************************************************/
 	cass_statement_bind_int64(statement, 1,
 		date::floor<chrono::milliseconds>(_data._observationTime).time_since_epoch().count()
-		);
+	);
 	/*************************************************************/
 }
 
-void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
-{
+void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const {
 	/*************************************************************/
 	cass_statement_bind_uuid(statement, 0, station);
 	/*************************************************************/
@@ -119,8 +118,8 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 			dew_point(
 				*_data._meanTemperature / 10.,
 				*_humidity
-			)
-		);
+		)
+	);
 	/*************************************************************/
 	// No extra humidity
 	/*************************************************************/
@@ -131,8 +130,8 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 			heat_index(
 				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_humidity
-			)
-		);
+		)
+	);
 	/*************************************************************/
 	// No inside humidity
 	/*************************************************************/
@@ -151,8 +150,22 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 	if (_rainfall)
 		cass_statement_bind_float(statement, 20, *_rainfall);
 	/*************************************************************/
-	if (_data._evapoMaybeTranspiRation)
+	if (_data._evapoMaybeTranspiRation) {
 		cass_statement_bind_float(statement, 21, (*_data._evapoMaybeTranspiRation)._amount);
+	} else if (_data._meanTemperature && _wind_mps && _humidity && _data._globalSolarRadiationLastHour) {
+		float etp = evapotranspiration(
+			*_data._meanTemperature / 10.,
+			*_humidity,
+			*_wind_mps,
+			*_data._globalSolarRadiationLastHour,
+			_timeOffseter->getLatitude(),
+			_timeOffseter->getLongitude(),
+			_timeOffseter->getElevation(),
+			date::round<chrono::seconds>(_data._observationTime).time_since_epoch().count(),
+			_timeOffseter->getMeasureStep()
+		);
+		cass_statement_bind_float(statement, 21, etp);
+	}
 	/*************************************************************/
 	// No soil moistures
 	/*************************************************************/
@@ -162,23 +175,23 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 		cass_statement_bind_int32(statement, 30, *_data._globalSolarRadiationLastHour / 3.6);
 	/*************************************************************/
 	if (_data._meanTemperature && _wind_mps
-	&& _humidity && _data._globalSolarRadiationLastHour)
+			&& _humidity && _data._globalSolarRadiationLastHour)
 		cass_statement_bind_float(statement, 31,
 			thsw_index(
 				*_data._meanTemperature / 10.,
 				*_humidity,
 				*_wind_mps,
-				*_data._netRadiationLastHour / 3.6
-			)
-		);
+				*_data._globalSolarRadiationLastHour / 3.6
+		)
+	);
 	else if (_data._meanTemperature && _wind_mps && _humidity)
 		cass_statement_bind_float(statement, 31,
 			thsw_index(
 				*_data._meanTemperature / 10.,
 				*_humidity,
 				*_wind_mps
-			)
-		);
+		)
+	);
 	/*************************************************************/
 	// No UV index
 	/*************************************************************/
@@ -187,8 +200,8 @@ void OgimetSynop::populateV2DataPoint(const CassUuid station, CassStatement* con
 			wind_chill(
 				from_Celsius_to_Farenheit(*_data._meanTemperature / 10.),
 				*_wind_mps * 3.6
-			)
-		);
+		)
+	);
 	/*************************************************************/
 	if (_data._meanWindDirection)
 		cass_statement_bind_int32(statement, 34, *_data._meanWindDirection);

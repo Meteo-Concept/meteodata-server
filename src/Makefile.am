@@ -127,6 +127,8 @@ meteodata_records_SOURCES = \
 		    records.cpp
 
 meteodata_synop_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
 		    synop/synop_standalone.h\
 		    synop/synop_standalone.cpp\
 		    synop/ogimet_synop.cpp\

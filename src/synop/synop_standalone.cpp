@@ -73,10 +73,25 @@ void SynopStandalone::start(const std::string& file)
 			const SynopMessage& m = parser.getDecodedMessage();
 			auto uuidIt = _icaos.find(m._stationIcao);
 			if (uuidIt != _icaos.end()) {
+				const CassUuid& station = uuidIt->second;
 				char uuidStr[CASS_UUID_STRING_LENGTH];
-				cass_uuid_string(uuidIt->second, uuidStr);
+				cass_uuid_string(station, uuidStr);
 				std::cerr << "UUID identified: " << uuidStr << std::endl;
-				OgimetSynop synop{m};
+
+				std::string stationName;
+				int pollingPeriod;
+				time_t lastArchiveDownloadTime;
+				_db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime);
+				float latitude, longitude;
+				int elevation;
+				_db.getStationLocation(station, latitude, longitude, elevation);
+				TimeOffseter timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
+				timeOffseter.setLatitude(latitude);
+				timeOffseter.setLongitude(longitude);
+				timeOffseter.setElevation(elevation);
+				timeOffseter.setMeasureStep(pollingPeriod);
+
+				OgimetSynop synop{m, &timeOffseter};
 				_db.insertV2DataPoint(uuidIt->second, synop);
 				std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 				std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
@@ -87,11 +102,11 @@ void SynopStandalone::start(const std::string& file)
 				if (m._minutesOfSunshineLastDay)
 					insolationTime24 = std::make_pair(true, *(m._minutesOfSunshineLastDay));
 				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
-				_db.insertV2EntireDayValues(uuidIt->second, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+				_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
 				if (m._minTemperature)
-					_db.insertV2Tn(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
+					_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
 				if (m._maxTemperature)
-					_db.insertV2Tx(uuidIt->second, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
+					_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
 			}
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
@@ -114,7 +129,7 @@ int main(int argc, char** argv)
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
-	;
+		;
 
 	po::positional_options_description pd;
 	pd.add("input-file", 1);
@@ -127,7 +142,7 @@ int main(int argc, char** argv)
 		("weatherlink-apiv2-key,k", po::value<std::string>(), "Ignored")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(), "Ignored")
 		("input-file", po::value<std::string>(&inputFile), "input CSV file containing the SYNOP messages (in the OGIMET getsynop format)")
-	;
+		;
 	desc.add(config);
 
 	po::variables_map vm;
