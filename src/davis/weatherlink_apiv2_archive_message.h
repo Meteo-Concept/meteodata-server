@@ -58,6 +58,8 @@ public:
 
 private:
 	void ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType);
+	float extractRainFall(const pt::ptree& data);
+	float extractRainRate(const pt::ptree& data);
 
 friend WeatherlinkApiv2ArchivePage;
 };

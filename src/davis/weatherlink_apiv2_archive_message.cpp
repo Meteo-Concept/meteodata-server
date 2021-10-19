@@ -48,6 +48,36 @@ WeatherlinkApiv2ArchiveMessage::WeatherlinkApiv2ArchiveMessage(const TimeOffsete
 	AbstractWeatherlinkApiMessage(timeOffseter)
 {}
 
+float WeatherlinkApiv2ArchiveMessage::extractRainFall(const pt::ptree& data)
+{
+	// Sometimes the rainfall is not available in clicks but only in inches
+	// in the API messages (maybe when the device is a datalogger IP?)
+	auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+	if (!isInvalid(rainFall)) {
+		return from_rainrate_to_mm(rainFall);
+	} else {
+		auto rainFallIn = data.get<float>("rainfall_in", INVALID_FLOAT);
+		if (!isInvalid(rainFallIn)) {
+			return from_in_to_mm(rainFallIn);
+		}
+	}
+	return INVALID_FLOAT;
+}
+
+float WeatherlinkApiv2ArchiveMessage::extractRainRate(const pt::ptree& data)
+{
+	auto rainRate = data.get<int>("rain_rate_in_clicks", INVALID_INT);
+	if (!isInvalid(rainRate)) {
+		return from_rainrate_to_mm(rainRate);
+	} else {
+		auto rainRateIn = data.get<float>("rain_rate_hi_in", INVALID_FLOAT);
+		if (!isInvalid(rainRateIn)) {
+			return from_in_to_mm(rainRateIn);
+		}
+	}
+	return INVALID_FLOAT;
+}
+
 void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 {
 	pt::ptree jsonTree;
@@ -80,12 +110,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
-		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		auto rainRate = extractRainRate(data);
 		if (!isInvalid(rainRate))
-			_obs.rainRate = from_rainrate_to_mm(rainRate);
-		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+			_obs.rainRate = rainRate;
+		auto rainFall = extractRainFall(data);
 		if (!isInvalid(rainFall))
-			_obs.rainFall = from_rainrate_to_mm(rainFall);
+			_obs.rainFall = rainFall;
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (isMainStationType(sensorType) &&
@@ -106,12 +136,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.windDir = static_cast<int>(windDir * 22.5);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
-		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		auto rainRate = extractRainRate(data);
 		if (!isInvalid(rainRate))
-			_obs.rainRate = from_rainrate_to_mm(rainRate);
-		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
+			_obs.rainRate = rainRate;
+		auto rainFall = extractRainFall(data);
 		if (!isInvalid(rainFall))
-			_obs.rainFall = from_rainrate_to_mm(rainFall);
+			_obs.rainFall = rainFall;
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 		_obs.extraHumidity[0] = data.get<int>("hum_extra_1", INVALID_INT);
@@ -144,12 +174,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
-		auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
+		auto rainRate = extractRainRate(data);
 		if (!isInvalid(rainRate))
-			_obs.rainRate = from_rainrate_to_mm(rainRate);
-		auto rainFall = data.get<int>("rainfall_clicks", INVALID_INT);
-		if (isInvalid(rainFall))
-			_obs.rainFall = from_rainrate_to_mm(rainFall);
+			_obs.rainRate = rainRate;
+		auto rainFall = extractRainFall(data);
+		if (!isInvalid(rainFall))
+			_obs.rainFall = rainFall;
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
