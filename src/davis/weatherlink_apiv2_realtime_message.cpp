@@ -153,7 +153,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
 			if (!isInvalid(rainFall) && _dayRain) {
 				_obs.rainFall = from_rainrate_to_mm(rainFall) - *_dayRain;
-				if (_obs.rainFall < 0) {
+				if (_obs.rainFall < -0.1) { // don't compare with exactly 0 because of rouding errors
 					// Either the station clock is off or we
 					// are not looking at the correct reset
 					// time to compute _dayRain
