@@ -100,8 +100,9 @@ public:
 			}
 		}
 
-		std::copy(_fields.begin(), _fields.end(), std::ostream_iterator<std::string>(std::cout, "|"));
-		std::cout << std::endl;
+		std::cerr << SD_DEBUG << "[CsvImporter] measurement: ";
+		std::copy(_fields.begin(), _fields.end(), std::ostream_iterator<std::string>(std::cerr, "|"));
+		std::cerr << std::endl;
 
 		bool valid = false;
 		date::sys_seconds s = date::floor<chrono::seconds>(chrono::system_clock::now());
@@ -114,7 +115,7 @@ public:
 			if (m) {
 				ret = _db.insertV2DataPoint(_station, m);
 				if (!ret) {
-					std::cerr << SD_DEBUG << "CsvImporter: failed to insert entry at line " << lineNumber << std::endl;
+					std::cerr << SD_ERR << "[CsvImporter] measurement: failed to insert entry at line " << lineNumber << std::endl;
 				} else {
 					valid = true;
 					date::sys_seconds newDate = m.getDateTime();
@@ -129,7 +130,7 @@ public:
 			end = e;
 			ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
 			if (!ret) {
-				std::cerr << SD_DEBUG << "CsvImporter: failed to update the last archive download datetime" << std::endl;
+				std::cerr << SD_ERR << "[CsvImporter] management: failed to update the last archive download datetime" << std::endl;
 			}
 		}
 

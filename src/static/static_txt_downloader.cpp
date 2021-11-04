@@ -36,6 +36,7 @@
 
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
+#include "../cassandra_utils.h"
 #include "static_txt_downloader.h"
 #include "static_message.h"
 
@@ -105,7 +106,8 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << SD_ERR << "StatIC file: Couldn't download from " << _host.data() << ": " << e.what() << std::endl;
+			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
+			    << "StatIC file: Couldn't download from " << _host.data() << ": " << e.what() << std::endl;
 		}
 		// Going back to sleep
 		waitUntilNextDownload();
@@ -119,7 +121,8 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void StatICTxtDownloader::download()
 {
-	std::cout << SD_INFO << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "[StatIC " << _station << "] measurement: "
+	    << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
 	query << (_https ? "https://" : "http://")
@@ -133,14 +136,16 @@ void StatICTxtDownloader::download()
 
 		StatICMessage m{responseStream, _timeOffseter};
 		if (!m) {
-			std::cerr << SD_ERR << "StatIC file: Cannot parse response from: " << _host << std::endl;
+			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
+			    << "StatIC file: Cannot parse response from: " << _host << std::endl;
 			return;
 		}
 
 		if (m.getDateTime() == _lastDownloadTime) {
 			// We are still reading the last file, discard it in order
 			// not to pollute the cumulative rainfall value
-			std::cout << SD_NOTICE << "StatIC file: previous message from " << _host
+			std::cout << SD_NOTICE << "[StatIC " << _station << "] protocol: "
+			      << "previous message from " << _host
 				  << " has the same date: " << m.getDateTime() << "!"
 				  << std::endl;
 			return;
@@ -160,24 +165,24 @@ void StatICTxtDownloader::download()
 				m.computeRainfall(f1h, fDay);
 		}
 
-		char uuidStr[CASS_UUID_STRING_LENGTH];
-		cass_uuid_string(_station, uuidStr);
-		std::cout << SD_DEBUG << "UUID identified for StatIC file: " << uuidStr << std::endl;
 		bool ret = _db.insertV2DataPoint(_station, m);
 		if (ret) {
-			std::cout << SD_DEBUG << "Data from StatIC file from " << _host
-				  << " inserted into database"
-				  << std::endl;
+			std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: "
+			    << "Data from StatIC file from " << _host
+				<< " inserted into database"
+				<< std::endl;
 		} else {
-			std::cerr << SD_ERR << "Failed to insert data from StatIC file from " << _host
-				  << " into database"
-				  << std::endl;
+			std::cerr << SD_ERR << "[StatIC " << _station << "] measurement: "
+			    << "Failed to insert data from StatIC file from " << _host
+				<< " into database"
+				<< std::endl;
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error << std::endl;
+		std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
+		    << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error << std::endl;
 	}
 }
 

@@ -40,6 +40,7 @@
 #include "../time_offseter.h"
 #include "../http_utils.h"
 #include "../curl_wrapper.h"
+#include "../cassandra_utils.h"
 
 namespace meteodata {
 
@@ -70,18 +71,21 @@ ObjeniousApiDownloader::ObjeniousApiDownloader(const CassUuid& station,
 	int elevation;
 	db.getStationLocation(station, latitude, longitude, elevation);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-	std::cout << SD_DEBUG << "Discovered Objenious station " << _stationName << std::endl;
+	std::cout << SD_DEBUG << "[Objenious " << _station << "] connection: "
+	    << "Discovered Objenious station " << _stationName << std::endl;
 }
 
 date::sys_seconds ObjeniousApiDownloader::getLastDatetimeAvailable(CurlWrapper& client)
 {
-	std::cout << SD_INFO << "Checking if new data is available for Objenious station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[Objenious " << _station << "] management: "
+	    << "Checking if new data is available for Objenious station " << _stationName << std::endl;
 
 	using namespace date;
 
 	std::string route = "/devices/" + _objeniousId + "/state";
 
-	std::cout << SD_DEBUG << "GET " << route << " HTTP/1.1 "
+	std::cout << SD_DEBUG << "[Objenious " << _station << "] protocol: "
+	    << "GET " << route << " HTTP/1.1 "
 		<< "Accept: application/json ";
 	client.setHeader("apikey", _apiKey);
 	client.setHeader("Accept", "application/json");
@@ -108,9 +112,10 @@ date::sys_seconds ObjeniousApiDownloader::getLastDatetimeAvailable(CurlWrapper& 
 
 void ObjeniousApiDownloader::download(CurlWrapper& client)
 {
-	std::cout << SD_INFO << "Downloading historical data for Objenious station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[Objenious " << _station << "] measurement: "
+	    << "Downloading historical data for Objenious station " << _stationName << std::endl;
 
-	// Form the request. We specify the "Connection: keep-alive" header so that the
+	// Form the request. We specify the "Connection: keep-alive" header so that the socket
 	// will be usable by other downloaders.
 	boost::asio::streambuf request;
 	std::ostream requestStream(&request);
@@ -120,12 +125,14 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 	// may throw
 	date::sys_seconds lastAvailable = getLastDatetimeAvailable(client);
 	if (lastAvailable <= _lastArchive) {
-		std::cout << SD_DEBUG << "No new data available for Objenious station " << _stationName << ", bailing off" << std::endl;
+		std::cout << SD_DEBUG << "[Objenious " << _station << "] management: "
+		    << "No new data available for Objenious station " << _stationName << ", bailing off" << std::endl;
 		return;
 	}
 
 	using namespace date;
-	std::cout << SD_DEBUG << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << "\n"
+	std::cout << SD_DEBUG << "[Objenious " << _station << "] management: "
+	    << "Last archive dates back from " << _lastArchive << "; last available is " << lastAvailable << "\n"
 		<< "(approximately " << date::floor<date::days>(lastAvailable - date) << " days)" << std::endl;
 
 	std::string cursor;
@@ -148,7 +155,8 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 		client.setHeader("apikey", _apiKey);
 		client.setHeader("Accept", "application/json");
 
-		std::cout << SD_DEBUG << "GET " << "/v2" << route << " HTTP/1.1 "
+		std::cout << SD_DEBUG << "[Objenious " << _station << "] protocol: "
+		    << "GET " << "/v2" << route << " HTTP/1.1 "
 			<< "Host: " << APIHOST << " "
 			<< "Accept: application/json ";
 
@@ -170,9 +178,9 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 				for (const ObjeniousApiArchiveMessage& m : collection) {
 					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
 					if (!ret) {
-						std::cerr << SD_ERR << "Objenious station " << _stationName
-						<< " : failed to insert archive observation for station"
-						<< std::endl;
+						std::cerr << SD_ERR << "[Objenious " << _station << "] measurement: "
+                            << "Failed to insert archive observation for station " << _stationName
+                            << std::endl;
 						insertionOk = false;
 					}
 				}
@@ -183,7 +191,8 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 					mayHaveMore = false;
 				}
 			} catch (const std::exception& e) {
-				std::cerr << SD_ERR << "Failed to receive or parse an Objenious data message: " << e.what() << std::endl;
+				std::cerr << SD_ERR << "[Objenious " << _station << "] protocol: "
+				    << "Failed to receive or parse an Objenious data message: " << e.what() << std::endl;
 			}
 		});
 
@@ -193,12 +202,13 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 	}
 
 	if (insertionOk) {
-		std::cout << SD_DEBUG << "Archive data stored for Objenious station" << _stationName << std::endl;
+		std::cout << SD_DEBUG << "[Objenious " << _station << "] measurement: "
+		    << "Archive data stored for Objenious station" << _stationName << std::endl;
 		time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newestTimestamp);
 		insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 		if (!insertionOk) {
-			std::cerr << SD_ERR << "Objenious station " << _stationName
-				<< " : couldn't update last archive download time"
+			std::cerr << SD_ERR << "[Objenious " << _station << "] management: "
+				<< "couldn't update last archive download time for station " << _stationName
 				<< std::endl;
 		} else {
 			_lastArchive = newestTimestamp;
@@ -212,7 +222,8 @@ void ObjeniousApiDownloader::logAndThrowCurlError(CurlWrapper& client)
 	std::ostringstream errorStream;
 	errorStream << "Objenious station " << _stationName << " Bad response from " << APIHOST << ": " << error;
 	std::string errorMsg = errorStream.str();
-	std::cerr << SD_ERR << errorMsg << std::endl;
+	std::cerr << SD_ERR << "[Objenious " << _station << "] protocol: "
+	    << errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
 }
 

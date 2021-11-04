@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <map>
 #include <chrono>
+#include <systemd/sd-daemon.h>
 
 #include <date/date.h>
 #include <message.h>
@@ -67,8 +68,6 @@ MileosMessage::MileosMessage(std::istream& entry, const TimeOffseter& tz, const 
 	chrono::minutes time;
 	in = std::istringstream(values["heure"]);
 	in >> date::parse("%H:%M:%S", time);
-
-	std::cout << "Date and time " << values["jour"] << " " << values["heure"] << std::endl;
 
 	date::local_seconds datetime = local_days(date) + time;
 	_datetime = tz.convertFromLocalTime(datetime);

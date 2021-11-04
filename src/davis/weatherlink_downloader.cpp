@@ -75,11 +75,13 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 	if (_apiToken.empty())
 		return; // no token, no realtime obs
 
-	std::cout << SD_DEBUG << "Weatherlink APIv1: downloading real-time data for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: "
+	    << "downloading real-time data for station " << _stationName << std::endl;
 
-	std::cout << SD_DEBUG << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1 "
-	          << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
-	          << "Accept: application/xml ";
+	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: "
+	    << "GET " << "/v1/NoaaExt.xml?"  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1 "
+	    << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
+	    << "Accept: application/xml ";
 
 	std::ostringstream query;
 	query << "/v1/NoaaExt.xml"
@@ -99,8 +101,8 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 		int dbRet = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
 
 		if (!dbRet) {
-			std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
-				  << ": failed to insert real-time observation"
+			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] measurement: "
+				  << "failed to insert real-time observation"
 				  << std::endl;
 		}
 	});
@@ -112,7 +114,8 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 
 void WeatherlinkDownloader::download(CurlWrapper& client)
 {
-	std::cout << SD_INFO << "Weatherlink APIv1: now downloading for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: "
+	    << " now downloading for station " << _stationName << std::endl;
 	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
 	auto daypoint = date::floor<date::days>(time);
 	auto ymd = date::year_month_day(daypoint);   // calendar date
@@ -127,10 +130,11 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 
 	std::uint32_t timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
 
-	std::cout << SD_DEBUG << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 "
-	          << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
-	          << "Accept: */* "
-	          << std::endl;
+	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: "
+	    << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 "
+	    << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
+	    << "Accept: */* "
+	    << std::endl;
 
 	std::ostringstream query;
 	query << "/webdl.php"
@@ -146,7 +150,8 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	CURLcode downloadRet = client.download(ARCHIVE_BASE_URL + queryStr, [&](const std::string& body) {
 		if (body.size() % 52 != 0) {
 			std::string errorMsg = std::string{"Incorrect response size from "} + WeatherlinkDownloadScheduler::HOST + " when downloading archives";
-			std::cerr << SD_ERR << errorMsg << std::endl;
+			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] protocol: "
+			    << errorMsg << std::endl;
 			throw std::runtime_error(errorMsg);
 		}
 		int pagesLeft = body.size() / 52;
@@ -169,8 +174,8 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 					ret = _db.deleteDataPoints(_station, day, start, end);
 
 					if (!ret)
-						std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
-							  << ": couldn't delete temporary realtime observations"
+						std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
+							  << "couldn't delete temporary realtime observations"
 							  << std::endl;
 					day += date::days(1);
 				}
@@ -178,26 +183,26 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 				start = end;
 				ret = _db.insertV2DataPoint(_station, message);
 			} else {
-				std::cerr << SD_WARNING << "Weatherlink APIv1 station " << _stationName
-					  << ": record looks invalid, discarding..."
+				std::cerr << SD_WARNING << "[Weatherlink_v1 " << _station << "] measurement: "
+					  << "record looks invalid, discarding..."
 					  << std::endl;
 			}
 			//Otherwise, just discard
 		}
 
 		if (ret) {
-			std::cout << SD_DEBUG << "Weatherlink APIv1 station " << _stationName
-				  << ": archive data stored\n"
+			std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: "
+				  << "archive data stored\n"
 				  << std::endl;
 			time_t lastArchiveDownloadTime = _lastArchive.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 			if (!ret)
-				std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
-					  << ": couldn't update last archive download time"
+				std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
+					  << "couldn't update last archive download time"
 					  << std::endl;
 		} else {
-			std::cerr << SD_ERR << "Weatherlink APIv1 station " << _stationName
-				  << ": failed to store archive! Aborting"
+			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] measurement: "
+				  << "failed to store archive! Aborting"
 				  << std::endl;
 			return;
 		}
@@ -213,7 +218,7 @@ void WeatherlinkDownloader::logAndThrowCurlError(CurlWrapper& client, const std:
 	std::ostringstream errorStream;
 	errorStream << "station " << _stationName << " Bad response from " << host << ": " << error;
 	std::string errorMsg = errorStream.str();
-	std::cerr << SD_ERR << errorMsg << std::endl;
+	std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] protocol: " <<  errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
 }
 

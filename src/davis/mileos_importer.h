@@ -48,9 +48,8 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 /**
- * A MileosImporter instance is able to parse a file with extension .mileos produced
- * by the Weatherlink software to ingest meteorological data collected by
- * Davis® station
+ * A MileosImporter instance is able to parse a file with extension .mileos
+ * to ingest meteorological data collected by Davis® station
  */
 class MileosImporter
 {

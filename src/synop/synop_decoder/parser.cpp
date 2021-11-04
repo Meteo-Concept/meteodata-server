@@ -608,18 +608,13 @@ bool Parser::parse(std::istream& in)
 	_groups.emplace_back(extracted.substr(6, 16));
 	_groups.emplace_back(extracted.substr(23, 4));
 
-	std::istream_iterator<std::string> begin{in},
-					   end;
+	std::istream_iterator<std::string> begin{in}, end;
 	std::copy(begin, end, std::back_inserter(_groups));
 
 	// The last group may be padded with one or more "=" signs, remove those
 	std::string& lastGroup = _groups.back();
 	if (lastGroup.size() > 5)
 		lastGroup.erase(5);
-
-	for (const auto& g : _groups) {
-		std::cout << "Groupe identifié: " << g << "\n";
-	}
 
 	auto it = _groups.begin();
 

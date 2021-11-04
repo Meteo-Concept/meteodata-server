@@ -64,11 +64,9 @@ void ObjeniousApiArchiveMessage::ingest(const pt::ptree& data)
 
 	std::istringstream rawDate{data.get<std::string>("timestamp", std::string{})};
 	rawDate >> parse("%FT%T%Z", _obs.time);
-	std::cerr << "Value parsed from " << data.get_value<std::string>("timestamp") << ": " << _obs.time << "\n";
 	for (auto&& [mdVar, objVar] : *_variables) {
 		// is this ungodly?
 		_obs.*(FIELDS.at(mdVar)) = data.get("data." + objVar, INVALID_FLOAT);
-		std::cerr << "Value parsed for " << mdVar << ": " << _obs.*(FIELDS.at(mdVar)) << "\n";
 	}
 }
 

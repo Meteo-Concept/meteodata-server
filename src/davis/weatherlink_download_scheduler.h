@@ -43,6 +43,7 @@
 #include "weatherlink_apiv2_downloader.h"
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
+#include "../cassandra_utils.h"
 
 namespace meteodata {
 
@@ -95,7 +96,8 @@ private:
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "Weatherlink: Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Weatherlink] protocol: "
+			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 		}
 	}
 	void downloadArchives();

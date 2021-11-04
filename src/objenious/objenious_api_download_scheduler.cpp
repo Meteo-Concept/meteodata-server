@@ -89,7 +89,8 @@ void ObjeniousApiDownloadScheduler::downloadArchives()
 			// (10 per second looks fine)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "Objenious: Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Objenious] protocol: "
+			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 		}
 	}
 }

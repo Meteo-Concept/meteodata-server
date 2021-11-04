@@ -34,6 +34,7 @@
 #include <mqtt_client_cpp.hpp>
 
 #include "../time_offseter.h"
+#include "../cassandra_utils.h"
 #include "mqtt_subscriber.h"
 #include "vp2_mqtt_subscriber.h"
 #include "../davis/vantagepro2_archive_page.h"
@@ -56,14 +57,16 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 	for (auto const& e : results) { /* we are expecting only one */
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
-			std::cerr << SD_ERR << "MQTT client " << _details.host << ": received an invalid subscription ack?!" << std::endl;
+			std::cerr << SD_ERR << "[MQTT] protocol: "
+			    << "client " << _details.host << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		const std::string& topic = subscriptionIt->second;
 		const auto& station = _stations[subscriptionIt->second];
 		if (!e) {
-			std::cerr  <<  "Station " << std::get<1>(station) << ": subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
+			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: "
+                 << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
 		} else {
 			const date::sys_seconds& lastArchive = std::get<3>(station);
 			int pollingPeriod = std::get<2>(station);
@@ -85,19 +88,22 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 {
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
-		std::cout << SD_ERR << "Unknown topic " << topicName << std::endl;
+		std::cout << SD_NOTICE << "[MQTT protocol]: "
+		    << "Unknown topic " << topicName << std::endl;
 		return;
 	}
 
 	const CassUuid& station = std::get<0>(stationIt->second);
 	const std::string& stationName = std::get<1>(stationIt->second);
 	const TimeOffseter& timeOffseter = std::get<4>(stationIt->second);
-	std::cout << SD_DEBUG << "Now downloading for MQTT station " << stationName << std::endl;
+	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
+	    << "Now downloading for MQTT station " << stationName << std::endl;
 
 	std::size_t expectedSize = sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint);
 	std::size_t receivedSize = content.size();
 	if (receivedSize != expectedSize) {
-		std::cerr << SD_WARNING << "MQTT station " << stationName << ": input from broker has an invalid size "
+		std::cerr << SD_WARNING << "[MQTT " << station << "] protocol: "
+		    << "input from broker has an invalid size "
 			<< "(" << receivedSize << " bytes instead of " << expectedSize << ")" << std::endl;
 		return;
 	}
@@ -110,16 +116,20 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		// Do not bother in inserting v1 data points
 		ret = _db.insertV2DataPoint(station, msg);
 	} else {
-		std::cerr << SD_WARNING << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
+		std::cerr << SD_WARNING << "[MQTT " << station << "] measurement: "
+		    << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
 	}
 	if (ret) {
-		std::cout << SD_DEBUG << "Archive data stored\n" << std::endl;
+		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
+		    << "Archive data stored" << std::endl;
 		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
-			std::cerr << SD_ERR << "MQTT station " << stationName << ": Couldn't update last archive download time" << std::endl;
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+			    << "Couldn't update last archive download time" << std::endl;
 	} else {
-		std::cerr << SD_ERR << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
+		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: "
+		    << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}

@@ -130,7 +130,7 @@ int main(int argc, char** argv)
 				message->severity == CASS_LOG_INFO     ? SD_INFO :
 									 SD_DEBUG;
 
-			std::cerr << logLevel << " " << message->message
+			std::cerr << logLevel << "[Cassandra] database: " << message->message
 				  << "(from " << message->function
 				  << ", in " << message->file
 				  << ", line " << message->line

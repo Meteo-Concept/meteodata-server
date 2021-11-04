@@ -107,7 +107,8 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
     timeOffseter.setLongitude(longitude);
     timeOffseter.setElevation(elevation);
     timeOffseter.setMeasureStep(pollingPeriod);
-    std::cout << SD_NOTICE << "Discovered MQTT station " << stationName << std::endl;
+    std::cout << SD_NOTICE << "[MQTT " << station << "] connection: "
+        << "Discovered MQTT station " << stationName << std::endl;
 
     _stations.emplace(topic, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>{station, stationName, pollingPeriod, lastArchive, timeOffseter});
 }
@@ -140,7 +141,8 @@ void MqttSubscriber::handleClose() {
 		_timer.expires_from_now(chrono::minutes(_retries));
 		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
 	} else {
-		std::cerr << SD_ERR << "MQTT station " /* TODO << _stationName */ << ": impossible to reconnect" << std::endl;
+		std::cerr << SD_ERR << "[MQTT] protocol: "
+		    << "impossible to reconnect" << std::endl;
 		// bail off
 	}
 }
@@ -176,7 +178,8 @@ bool MqttSubscriber::handlePublish(std::uint8_t,
 
 void MqttSubscriber::start()
 {
-	std::cout << SD_DEBUG << "About to start the MQTT client  "  << std::endl;
+	std::cout << SD_DEBUG << "[MQTT] protocol: "
+	    << "About to start the MQTT client  "  << std::endl;
 	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
 
 	std::ostringstream clientId;
@@ -186,34 +189,40 @@ void MqttSubscriber::start()
 	_client->set_password(_details.password);
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */
 	_client->add_verify_path(DEFAULT_VERIFY_PATH);
-	std::cout << SD_DEBUG << "Created the client" << std::endl;
+	std::cout << SD_DEBUG << "[MQTT] protocol: "
+	    << "Created the client" << std::endl;
 
 	auto self{shared_from_this()};
 	_client->set_connack_handler(
 		[this,self](bool sp, std::uint8_t ret) {
-			std::cout << SD_DEBUG << "Connection attempt to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
+			std::cout << SD_DEBUG << "[MQTT] protocol: "
+			    << "Connection attempt to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			if (ret == mqtt::connect_return_code::accepted) {
 				_retries = 0;
-				std::cerr << SD_NOTICE << "Connection established to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
+				std::cerr << SD_NOTICE << "[MQTT] protocol: "
+				    << "Connection established to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 				for (auto&& station: _stations) {
 					_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
 				}
 				return handleConnAck(sp, ret);
 			} else {
-				std::cerr << SD_ERR << "Failed to establish connection to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
+				std::cerr << SD_ERR << "[MQTT] protocol: "
+				    << "Failed to establish connection to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
 			}
 			return true;
 		}
 	);
 	_client->set_close_handler(
 		[this,self]() {
-			std::cerr << SD_NOTICE << "MQTT client " << _details.host << " disconnected" << std::endl;
+			std::cerr << SD_NOTICE << "[MQTT] protocol: "
+			    << "MQTT client " << _details.host << " disconnected" << std::endl;
 			handleClose();
 		}
 	);
 	_client->set_error_handler(
 		[this,self](sys::error_code const& ec) {
-			std::cerr << SD_ERR << "MQTT client " << _details.host << ": unexpected disconnection " << ec.message() << std::endl;
+			std::cerr << SD_ERR << "[MQTT] protocol: "
+			    << "MQTT client " << _details.host << ": unexpected disconnection " << ec.message() << std::endl;
 			handleError(ec);
 		}
 	);
@@ -245,7 +254,8 @@ void MqttSubscriber::start()
 			return handlePublish(header, packetId, topic, contents);
 		}
 	);
-	std::cout << SD_DEBUG << "Set the handlers" << std::endl;
+	std::cout << SD_DEBUG << "[MQTT] protocol: "
+	    << "Set the handlers" << std::endl;
 
 	_retries++;
 	_client->connect();

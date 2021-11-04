@@ -91,7 +91,8 @@ void FieldClimateApiDownloadScheduler::downloadArchives()
 			// (capped at 10 per second)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "Pessl: Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Pessl] protocol: "
+			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
 		}
 	}
 }

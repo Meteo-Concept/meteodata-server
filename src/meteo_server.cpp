@@ -67,7 +67,8 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& 
 	_fieldClimateApiSecret(fieldClimateApiSecret),
 	_objeniousApiKey(objeniousApiKey)
 {
-	std::cerr << SD_INFO << "Meteodata has started succesfully";
+	std::cerr << SD_INFO << "[Server] management: "
+	    << "Meteodata has started succesfully" << std::endl;
 }
 
 void MeteoServer::start()
@@ -113,7 +114,8 @@ void MeteoServer::start()
 				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 			}
 		} else {
-			std::cerr << SD_ERR << "Unrecognized topic " << topic
+			std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: "
+			    << "Unrecognized topic " << topic
 				<< " for MQTT station " << std::get<0>(station) << std::endl;
 		}
 	}

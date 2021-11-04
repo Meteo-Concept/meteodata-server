@@ -45,6 +45,7 @@
 #include "ship_and_buoy_downloader.h"
 #include "meteo_france_ship_and_buoy.h"
 #include "../curl_wrapper.h"
+#include "../cassandra_utils.h"
 
 namespace asio = boost::asio;
 namespace sys = boost::system; //system() is a function, it cannot be redefined
@@ -108,7 +109,8 @@ void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
 
 void ShipAndBuoyDownloader::download()
 {
-	std::cout << SD_NOTICE << "Now downloading SHIP and BUOY data " << std::endl;
+	std::cout << SD_NOTICE << "[SHIP] measurement: "
+	    << "Now downloading SHIP and BUOY data " << std::endl;
 	auto ymd = date::year_month_day(date::floor<date::days>(chrono::system_clock::now() - date::days(1)));
 
 	CurlWrapper client;
@@ -131,14 +133,15 @@ void ShipAndBuoyDownloader::download()
 				continue;
 			auto uuidIt = _icaos.find(m.getIdentifier());
 			if (uuidIt != _icaos.end()) {
-				char uuidStr[CASS_UUID_STRING_LENGTH];
-				cass_uuid_string(uuidIt->second, uuidStr);
-				std::cout << SD_DEBUG << "UUID identified: " << uuidStr << std::endl;
+				std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
+				    << "UUID identified: " << uuidIt->second << std::endl;
 				bool ret = _db.insertV2DataPoint(uuidIt->second, m);
 				if (ret) {
-					std::cout << SD_DEBUG << "SHIP ou BUOY data inserted into database for station " << uuidStr << std::endl;
+					std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] measurement: "
+					    << "SHIP ou BUOY data inserted into database for station " << uuidIt->second << std::endl;
 				} else {
-					std::cerr << SD_ERR << "Failed to insert SHIP ou BUOY data into database for station " << uuidStr << std::endl;
+					std::cerr << SD_ERR << "[SHIP " << uuidIt->second << "] measurement: "
+					    << "Failed to insert SHIP ou BUOY data into database for station " << uuidIt->second << std::endl;
 				}
 			}
 		}
@@ -146,7 +149,8 @@ void ShipAndBuoyDownloader::download()
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "Failed to download SHIP and BUOY data: " << error << std::endl;
+		std::cerr << SD_ERR << "[SHIP] protocol: "
+		    << "Failed to download SHIP and BUOY data: " << error << std::endl;
 	}
 }
 

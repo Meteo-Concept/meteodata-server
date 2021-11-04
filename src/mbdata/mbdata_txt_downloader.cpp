@@ -36,6 +36,7 @@
 #include <date/date.h>
 #include <dbconnection_observations.h>
 
+#include "../cassandra_utils.h"
 #include "mbdata_txt_downloader.h"
 #include "mbdata_messages/mbdata_message_factory.h"
 #include "../time_offseter.h"
@@ -122,7 +123,8 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void MBDataTxtDownloader::download()
 {
-	std::cout << SD_INFO << "Now downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "[MBData " << _station << "] measurement: "
+	    << "Downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
 	query << (_https ? "https://" : "http://")
@@ -136,17 +138,20 @@ void MBDataTxtDownloader::download()
 
 		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
 		if (!m || !(*m)) {
-			std::cerr << SD_ERR << _stationName << "Download failed" << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] protocol: "
+			    << "Download failed for station " << _stationName << std::endl;
 			return;
 		}
 
 		// We are still reading the last file, discard it
 		if (m->getDateTime() <= _lastDownloadTime) {
-			std::cerr << SD_NOTICE << "File for station " << _stationName << " has not been updated" << std::endl;
+			std::cerr << SD_NOTICE << "[MBData " << _station << "] measurement: "
+			    << "File for station " << _stationName << " has not been updated" << std::endl;
 			return;
 		}
 		if (m->getDateTime() > chrono::system_clock::now() + chrono::minutes(1)) { // Allow for some clock deviation
-			std::cerr << SD_ERR << "Station " << _stationName << " has data in the future" << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] management: "
+			    << "Station " << _stationName << " has data in the future" << std::endl;
 			return;
 		}
 
@@ -154,22 +159,26 @@ void MBDataTxtDownloader::download()
 		cass_uuid_string(_station, uuidStr);
 		bool ret = _db.insertV2DataPoint(_station, *m);
 		if (ret) {
-			std::cout << SD_DEBUG << "Data from station " << _stationName << " inserted into database" << std::endl;
+			std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: "
+			    << "Data from station " << _stationName << " inserted into database" << std::endl;
 		} else {
-			std::cerr << SD_ERR << "Insertion into database failed for station " << _stationName << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] measurement: "
+			    << "Insertion into database failed for station " << _stationName << std::endl;
 			return;
 		}
 		_lastDownloadTime = m->getDateTime();
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(_lastDownloadTime));
 		if (!ret) {
-			std::cerr << SD_ERR << "Failed to update the last insertion time of station " << _stationName << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] management: "
+			    << "Failed to update the last insertion time of station " << _stationName << std::endl;
 			return;
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "Download failed for " << _stationName << ", bad response from " << _host << ": " << error;
+		std::cerr << SD_ERR << "[MBData " << _station << "] protocol: "
+		    << "Download failed for " << _stationName << ", bad response from " << _host << ": " << error;
 	}
 }
 

@@ -68,8 +68,6 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 	in = std::istringstream(values["Time"]);
 	in >> date::parse("%H:%M", time);
 
-	std::cout << "Date and time " << values["Date"] << " " << values["Time"] << std::endl;
-
 	date::local_seconds datetime = local_days(date) + time;
 	_datetime = tz.convertFromLocalTime(datetime);
 

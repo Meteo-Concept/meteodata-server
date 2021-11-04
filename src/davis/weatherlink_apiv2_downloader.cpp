@@ -118,7 +118,8 @@ std::unordered_map<std::string, pt::ptree> WeatherlinkApiv2Downloader::downloadA
 	      << "api-signature=" << params["api-signature"] << "&"
 	      << "t=" << params["t"];
 	std::string queryStr = query.str();
-	std::cout << SD_DEBUG << "GET " << queryStr << " HTTP/1.1 "
+	std::cout << SD_DEBUG << "[Weatherlink_v2] protocol: "
+	          << "GET " << queryStr << " HTTP/1.1 "
 	          << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " "
 	          << "Accept: application/json ";
 
@@ -142,7 +143,8 @@ std::unordered_map<std::string, pt::ptree> WeatherlinkApiv2Downloader::downloadA
 
 void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 {
-	std::cout << SD_INFO << "Weatherlink APIv2: downloading real-time data for station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
+	    << "downloading real-time data for station " << _stationName << std::endl;
 
 	WeatherlinkApiv2Downloader::Params params = {
 		{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
@@ -157,7 +159,8 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	      << "api-signature=" << params["api-signature"] << "&"
 	      << "t=" << params["t"];
 	std::string queryStr = query.str();
-	std::cout << SD_DEBUG << "GET " << queryStr << " HTTP/1.1 "
+	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: "
+	          << "GET " << queryStr << " HTTP/1.1 "
 	          << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " "
 	          << "Accept: application/json ";
 
@@ -184,7 +187,8 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 				obs.parse(contentStream, _substations, u);
 			int ret = _db.insertV2DataPoint(u, obs); // Don't bother inserting V1
 			if (!ret) {
-				std::cerr << SD_ERR << "station " << _stationName << ": Failed to insert real-time observation for substation " << u << std::endl;
+				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
+				    << "Failed to insert real-time observation for substation " << u << std::endl;
 			}
 		}
 	});
@@ -196,13 +200,14 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 
 void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 {
-	std::cout << SD_INFO << "Weatherlink APIv2: downloading historical data for station " << _stationName << std::endl;
+	std::cout << SD_INFO <<  "[Weatherlink_v2 " << _station << "] measurement: "
+	    << "Weatherlink APIv2: downloading historical data for station " << _stationName << std::endl;
 
 	auto end = chrono::system_clock::now();
 	auto date = _lastArchive;
 
 	using namespace date;
-	std::cout << SD_DEBUG << "Weatherlink APIv2: "
+	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: "
 		  << "Last archive dates back from " << _lastArchive << "; now is " << end << "\n"
 		  << "(approximately " << date::floor<date::days>(end - date) << " days)" << std::endl;
 	while (date < end) {
@@ -224,9 +229,10 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 		      << "start-timestamp=" << params["start-timestamp"] << "&"
 		      << "end-timestamp=" << params["end-timestamp"];
 		std::string queryStr = query.str();
-		std::cout << SD_DEBUG << "GET " << queryStr << " HTTP/1.1 "
-		          << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " "
-		          << "Accept: application/json ";
+		std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: "
+		    << "GET " << queryStr << " HTTP/1.1 "
+		    << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " "
+		    << "Accept: application/json ";
 
 		client.setHeader("Accept", "application/json");
 
@@ -238,7 +244,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
 
-				std::cout << SD_DEBUG << "Weatherlink APIv2: parsing output for substation " << u << std::endl;
+				std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: "
+				    << " parsing output for substation " << u << std::endl;
 				WeatherlinkApiv2ArchivePage page(_lastArchive, &_timeOffseter);
 				if (_substations.empty())
 					page.parse(contentStream);
@@ -253,8 +260,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 
 				auto lastDay = date::floor<date::days>(end);
 				if (newestTimestamp <= _lastArchive) {
-					std::cerr << SD_WARNING << "Weatherlink APIv2 station " << _stationName
-						  << ": no new archive observation for substation " << u
+					std::cerr << SD_WARNING << "[Weatherlink_v2 " << _station << "] measurement: "
+						  << "no new archive observation for substation " << u
 						  << std::endl;
 					continue;
 				}
@@ -263,16 +270,16 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 					int ret = _db.deleteDataPoints(u, archiveDay, _lastArchive, newestTimestamp);
 
 					if (!ret)
-						std::cerr << SD_ERR << "Weatherlink APIv2 station " << _stationName
-							  << ": couldn't delete temporary realtime observations"
+						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] management: "
+							  << "couldn't delete temporary realtime observations"
 							  << std::endl;
 					archiveDay += date::days(1);
 				}
 				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
 					int ret = _db.insertV2DataPoint(u, m); // Don't bother inserting V1
 					if (!ret) {
-						std::cerr << SD_ERR << "Weatherlink APIv2 station " << _stationName
-							  << ": failed to insert archive observation for substation " << u
+						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
+							  << "failed to insert archive observation for substation " << u
 							  << std::endl;
 						insertionOk = false;
 					}
@@ -280,14 +287,14 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 			}
 
 			if (insertionOk) {
-				std::cout << SD_DEBUG << "Weatherlink APIv2 station " << _stationName
-					  << ": archive data stored"
+				std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
+					  << "archive data stored"
 					  << std::endl;
 				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(referenceTimestamp);
 				insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 				if (!insertionOk) {
-					std::cerr << SD_ERR << "Weatherlink APIv2 station "
-						  << ": couldn't update last archive download time"
+					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] management: "
+						  << "couldn't update last archive download time"
 						  << std::endl;
 				} else {
 					_lastArchive = referenceTimestamp;
@@ -308,7 +315,7 @@ void WeatherlinkApiv2Downloader::logAndThrowCurlError(CurlWrapper& client)
 	std::ostringstream errorStream;
 	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << ": " << error;
 	std::string errorMsg = errorStream.str();
-	std::cout << SD_DEBUG << errorMsg << std::endl;
+	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
 }
 
