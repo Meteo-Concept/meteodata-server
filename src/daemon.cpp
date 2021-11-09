@@ -66,7 +66,7 @@ int main(int argc, char** argv)
 	std::string fieldClimateKey;
 	std::string fieldClimateSecret;
 	std::string objeniousKey;
-	unsigned long threads;
+	unsigned long threads = 1;
 	bool daemonized;
 
 	po::options_description config("Configuration");
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(&weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(&weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
-		("threads", po::value<unsigned long>(&threads), "number of threads to start to listen to ASIO events, defaults to 5")
+		("threads", po::value<unsigned long>(&threads), "number of threads to start to listen to ASIO events, defaults to 1")
 		("fieldclimate-key", po::value<std::string>(&fieldClimateKey), "api.fieldclimate.com key")
 		("fieldclimate-secret", po::value<std::string>(&fieldClimateSecret), "api.fieldclimate.com secret")
 		("objenious-key", po::value<std::string>(&objeniousKey), "api.objenious.com key")
