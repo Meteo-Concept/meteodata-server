@@ -88,8 +88,15 @@ void WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archiv
 
 void WeatherlinkDownloadScheduler::start()
 {
+    _mustStop = false;
 	reloadStations();
 	waitUntilNextDownload();
+}
+
+void WeatherlinkDownloadScheduler::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void WeatherlinkDownloadScheduler::downloadRealTime()
@@ -150,7 +157,8 @@ void WeatherlinkDownloadScheduler::checkDeadline(const sys::error_code& e)
 		downloadRealTime();
 		if (tod.minutes().count() < POLLING_PERIOD) //will trigger once per hour
 			downloadArchives();
-		waitUntilNextDownload();
+		if (!_mustStop)
+            waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

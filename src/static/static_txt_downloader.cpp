@@ -81,7 +81,14 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 
 void StatICTxtDownloader::start()
 {
+    _mustStop = false;
 	waitUntilNextDownload();
+}
+
+void StatICTxtDownloader::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void StatICTxtDownloader::waitUntilNextDownload()
@@ -109,8 +116,9 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
 			    << "StatIC file: Couldn't download from " << _host.data() << ": " << e.what() << std::endl;
 		}
-		// Going back to sleep
-		waitUntilNextDownload();
+		// Going back to sleep unless we shouldn't
+		if (!_mustStop)
+            waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

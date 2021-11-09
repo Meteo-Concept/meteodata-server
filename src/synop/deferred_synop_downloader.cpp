@@ -66,6 +66,7 @@ DeferredSynopDownloader::DeferredSynopDownloader(asio::io_service& ioService, Db
 
 void DeferredSynopDownloader::start()
 {
+    _mustStop = false;
 	waitUntilNextDownload();
 }
 

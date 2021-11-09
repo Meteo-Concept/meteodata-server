@@ -48,8 +48,7 @@
 #include "../cassandra_utils.h"
 
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
@@ -69,12 +68,19 @@ ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_service& ioService, DbConn
 
 void ShipAndBuoyDownloader::start()
 {
+    _mustStop = false;
 	std::vector<std::tuple<CassUuid, std::string>> icaos;
 	_db.getAllIcaos(icaos);
 	for (auto&& icao : icaos)
 		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
 	download();
 	waitUntilNextDownload();
+}
+
+void ShipAndBuoyDownloader::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void ShipAndBuoyDownloader::waitUntilNextDownload()
@@ -97,8 +103,9 @@ void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		download();
-		// Going back to sleep
-		waitUntilNextDownload();
+		// Going back to sleep unless we shouldn't
+		if (!_mustStop)
+            waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

@@ -78,8 +78,15 @@ void FieldClimateApiDownloadScheduler::add(
 
 void FieldClimateApiDownloadScheduler::start()
 {
+    _mustStop = false;
 	reloadStations();
 	waitUntilNextDownload();
+}
+
+void FieldClimateApiDownloadScheduler::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void FieldClimateApiDownloadScheduler::downloadArchives()

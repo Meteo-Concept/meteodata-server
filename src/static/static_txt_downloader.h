@@ -52,6 +52,7 @@ class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloa
 public:
 	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, bool _https, int timezone);
 	void start();
+    void stop();
 
 private:
 	asio::io_service& _ioService;
@@ -65,6 +66,7 @@ private:
 	std::experimental::optional<float> _previousRainfall;
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
+	bool _mustStop = false;
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();

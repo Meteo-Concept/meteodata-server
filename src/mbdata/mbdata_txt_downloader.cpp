@@ -84,7 +84,14 @@ MBDataTxtDownloader::MBDataTxtDownloader(
 
 void MBDataTxtDownloader::start()
 {
+    _mustStop = false;
 	waitUntilNextDownload();
+}
+
+void MBDataTxtDownloader::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void MBDataTxtDownloader::waitUntilNextDownload()

@@ -79,6 +79,11 @@ public:
 	 */
 	void start();
 
+    /**
+     * @brief Stop the periodic downloads
+     */
+    void stop();
+
 	/**
 	 * @brief Add a station to download the data for
 	 *
@@ -120,6 +125,8 @@ private:
 	std::vector<std::shared_ptr<ObjeniousApiDownloader>> _downloaders;
 
 	CurlWrapper _client;
+
+	bool _mustStop = false;
 
 public:
 	/**

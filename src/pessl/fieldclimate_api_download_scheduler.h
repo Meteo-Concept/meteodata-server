@@ -81,6 +81,11 @@ public:
 	void start();
 
 	/**
+	 * @brief Stop the periodic downloads
+	 */
+	void stop();
+
+	/**
 	 * @brief Add a station to download the data for
 	 *
 	 * @param station The station Météodata UUID
@@ -128,6 +133,11 @@ private:
 	std::vector<std::shared_ptr<FieldClimateApiDownloader>> _downloaders;
 
 	CurlWrapper _client;
+
+	/**
+	 * @brief Whether to stop collecting data
+	 */
+	bool _mustStop = false;
 
 public:
 	/**

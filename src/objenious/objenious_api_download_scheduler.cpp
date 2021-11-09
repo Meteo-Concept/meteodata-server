@@ -76,8 +76,15 @@ void ObjeniousApiDownloadScheduler::add(
 
 void ObjeniousApiDownloadScheduler::start()
 {
+    _mustStop = false;
 	reloadStations();
 	waitUntilNextDownload();
+}
+
+void ObjeniousApiDownloadScheduler::stop()
+{
+    _mustStop = true;
+    _timer.cancel();
 }
 
 void ObjeniousApiDownloadScheduler::downloadArchives()
@@ -115,7 +122,8 @@ void ObjeniousApiDownloadScheduler::checkDeadline(const sys::error_code& e)
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		downloadArchives();
-		waitUntilNextDownload();
+		if (!_mustStop)
+            waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

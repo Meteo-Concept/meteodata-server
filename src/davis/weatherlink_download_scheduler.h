@@ -61,6 +61,7 @@ public:
 	WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
 		const std::string& apiId, const std::string& apiSecret);
 	void start();
+    void stop();
 	void add(const CassUuid& station, const std::string& auth,
 		const std::string& apiToken, TimeOffseter::PredefinedTimezone tz);
 	void addAPIv2(const CassUuid& station, bool archived,
@@ -77,6 +78,7 @@ private:
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
 	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
 	CurlWrapper _client;
+	bool _mustStop = false;
 
 public:
 	using DownloaderIterator =  decltype(_downloaders)::const_iterator;

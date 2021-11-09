@@ -74,6 +74,19 @@ void AbstractSynopDownloader::waitUntilNextDownload()
 	_timer.async_wait(std::bind(&AbstractSynopDownloader::checkDeadline, self, args::_1));
 }
 
+void AbstractSynopDownloader::stop()
+{
+    std::cout << SD_NOTICE << "[SYNOP] connection: "
+        << "Stopping activity" << std::endl;
+
+    /* signal that the downloader should not go to sleep after its
+     * current download (if any) but rather die */
+    _mustStop = true;
+    /* cancel the timer, this will let the downloader be destroyed since
+     * it will run out of activity in the checkDeadline() method below */
+    _timer.cancel();
+}
+
 void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
@@ -91,8 +104,9 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 				<< std::endl;
 			// nothing more, just go back to sleep and retry next time
 		}
-		// Going back to sleep
-		waitUntilNextDownload();
+		// Going back to sleep unless we're not supposed too
+		if (!_mustStop)
+            waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

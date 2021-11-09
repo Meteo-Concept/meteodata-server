@@ -58,6 +58,7 @@ namespace meteodata {
 using namespace date;
 
 constexpr char SynopDownloader::GROUP_FR[];
+constexpr char SynopDownloader::GROUP_LU[];
 
 SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& group) :
 	AbstractSynopDownloader(ioService, db),
@@ -67,6 +68,7 @@ SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObserv
 
 void SynopDownloader::start()
 {
+    _mustStop = false;
 	std::vector<std::tuple<CassUuid, std::string>> icaos;
 	_db.getAllIcaos(icaos);
 	for (auto&& icao : icaos)

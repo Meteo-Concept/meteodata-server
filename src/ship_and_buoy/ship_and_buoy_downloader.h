@@ -45,8 +45,7 @@ namespace meteodata {
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -59,12 +58,14 @@ class ShipAndBuoyDownloader : public std::enable_shared_from_this<ShipAndBuoyDow
 public:
 	ShipAndBuoyDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	void start();
+    void stop();
 
 private:
 	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
+	bool _mustStop = false;
 
 	static constexpr char HOST[] = "donneespubliques.meteofrance.fr";
 	static constexpr char URL[] = "/donnees_libres/Txt/Marine/marine.%Y%m%d.csv";

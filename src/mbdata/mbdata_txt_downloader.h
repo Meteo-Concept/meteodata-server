@@ -51,6 +51,7 @@ class MBDataTxtDownloader : public std::enable_shared_from_this<MBDataTxtDownloa
 public:
 	MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 	void start();
+    void stop();
 
 private:
 	asio::io_service& _ioService;
@@ -64,6 +65,7 @@ private:
 	std::string _type;
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
+	bool _mustStop = false;
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();

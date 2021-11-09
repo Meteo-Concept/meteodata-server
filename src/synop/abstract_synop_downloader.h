@@ -60,12 +60,14 @@ public:
 	AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	virtual ~AbstractSynopDownloader() = default;
 	virtual void start() = 0;
+    virtual void stop();
 
 protected:
 	asio::io_service& _ioService;
 	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
+	bool _mustStop = false;
 
 	static constexpr char HOST[] = "www.ogimet.com";
 
