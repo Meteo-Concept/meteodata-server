@@ -173,14 +173,14 @@ Observation FieldClimateApiArchiveMessage::getObservation(const CassUuid station
         result.extratemp[i] = { !isInvalid(_obs.extraTemperature[i]), _obs.extraTemperature[i] };
     result.heatindex = {
             !isInvalid(_obs.temperature) && !isInvalid(_obs.humidity),
-            heat_index(_obs.temperature, _obs.humidity)
+            heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)
     };
     for (int i=0 ; i<2 ; i++) {
-        result.leaftemp[i] = { !isInvalid(_obs.leafTemperature[i]), from_Farenheit_to_Celsius(_obs.leafTemperature[i]) };
+        result.leaftemp[i] = { !isInvalid(_obs.leafTemperature[i]), _obs.leafTemperature[i] };
         result.leafwetnesses[i] = { !isInvalid(_obs.leafWetness[i]), _obs.leafWetness[i] };
     }
     result.outsidehum = { !isInvalid(_obs.humidity), _obs.humidity };
-    result.outsidetemp = { !isInvalid(_obs.temperature), from_Farenheit_to_Celsius(_obs.temperature) };
+    result.outsidetemp = { !isInvalid(_obs.temperature), _obs.temperature };
     result.rainrate = { !isInvalid(_obs.rainRate), _obs.rainRate };
     result.rainfall = { !isInvalid(_obs.rainFall), _obs.rainFall };
     for (int i=0 ; i<4 ; i++) {
