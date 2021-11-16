@@ -185,7 +185,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 				obs.parse(contentStream);
 			else
 				obs.parse(contentStream, _substations, u);
-			int ret = _db.insertV2DataPoint(u, obs); // Don't bother inserting V1
+			int ret = _db.insertV2DataPoint(obs.getObservation(u));
 			if (!ret) {
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 				    << "Failed to insert real-time observation for substation " << u << std::endl;
@@ -276,7 +276,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 					archiveDay += date::days(1);
 				}
 				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
-					int ret = _db.insertV2DataPoint(u, m); // Don't bother inserting V1
+					int ret = _db.insertV2DataPoint(m.getObservation(u));
 					if (!ret) {
 						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 							  << "failed to insert archive observation for substation " << u

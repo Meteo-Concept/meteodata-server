@@ -176,7 +176,7 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 					newestTimestamp = newestTimestampInCollection;
 
 				for (const ObjeniousApiArchiveMessage& m : collection) {
-					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+					int ret = _db.insertV2DataPoint(m.getObservation(_station));
 					if (!ret) {
 						std::cerr << SD_ERR << "[Objenious " << _station << "] measurement: "
                             << "Failed to insert archive observation for station " << _stationName

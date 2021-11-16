@@ -27,10 +27,9 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
+#include <optional>
 
 #include <boost/asio.hpp>
-#include <message.h>
 #include <date/date.h>
 
 #include "../../time_offseter.h"
@@ -48,27 +47,14 @@ namespace chrono = std::chrono;
 class MBDataWeatherlinkMessage : public AbstractMBDataMessage
 {
 public:
-	MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+	MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
 
-	inline std::experimental::optional<float> getDailyRainfall() const {
+	inline std::optional<float> getDailyRainfall() const {
 		return _dailyRainfall;
 	}
 
 private:
-	std::experimental::optional<float> _airTemp;
-	std::experimental::optional<float> _dewPoint;
-	std::experimental::optional<int> _humidity;
-	std::experimental::optional<int> _windDir;
-	std::experimental::optional<float> _wind;
-	std::experimental::optional<float> _pressure;
-	std::experimental::optional<float> _gust;
-	std::experimental::optional<float> _rainRate;
-	std::experimental::optional<int> _solarRad;
-	std::experimental::optional<float> _dailyRainfall;
-	std::experimental::optional<float> _computedRainfall;
-	std::experimental::optional<float> _diffRainfall;
+	std::optional<float> _dailyRainfall;
 };
 
 }

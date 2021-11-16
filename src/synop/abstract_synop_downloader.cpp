@@ -155,7 +155,7 @@ void AbstractSynopDownloader::download()
 					timeOffseter.setMeasureStep(pollingPeriod);
 
 					OgimetSynop synop{m, &timeOffseter};
-					_db.insertV2DataPoint(station, synop);
+					_db.insertV2DataPoint(synop.getObservations(station));
 					std::cout << SD_DEBUG << "[SYNOP] measurement: "
 					    << "Inserted into database" << std::endl;
 

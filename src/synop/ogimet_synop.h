@@ -27,11 +27,11 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
+#include <optional>
 
 #include <boost/asio.hpp>
 #include <cassandra.h>
-#include <message.h>
+#include <observation.h>
 
 #include "synop_decoder/synop_message.h"
 
@@ -46,7 +46,7 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one raw data point from the
  * archive of a VantagePro2 (R) station, by Davis Instruments (R)
  */
-class OgimetSynop : public Message
+class OgimetSynop
 {
 public:
 	/**
@@ -55,8 +55,7 @@ public:
 	 * @param data A SYNOP messgae obtained from Ogimet and decoded
 	 */
 	OgimetSynop(const SynopMessage& data, const TimeOffseter* timeOffseter);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+    Observation getObservations(const CassUuid station) const;
 
 private:
 	/**
@@ -69,10 +68,10 @@ private:
 	 */
 	const TimeOffseter* _timeOffseter;
 
-	std::experimental::optional<int> _humidity;
-	std::experimental::optional<float> _rainfall;
-	std::experimental::optional<float> _wind_mps;
-	std::experimental::optional<float> _gust;
+	std::optional<int> _humidity;
+	std::optional<float> _rainfall;
+	std::optional<float> _wind_mps;
+	std::optional<float> _gust;
 };
 
 }

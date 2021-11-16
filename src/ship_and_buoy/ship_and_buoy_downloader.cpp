@@ -142,7 +142,7 @@ void ShipAndBuoyDownloader::download()
 			if (uuidIt != _icaos.end()) {
 				std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
 				    << "UUID identified: " << uuidIt->second << std::endl;
-				bool ret = _db.insertV2DataPoint(uuidIt->second, m);
+				bool ret = _db.insertV2DataPoint(m.getObservation(uuidIt->second));
 				if (ret) {
 					std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] measurement: "
 					    << "SHIP ou BUOY data inserted into database for station " << uuidIt->second << std::endl;

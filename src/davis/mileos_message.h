@@ -28,9 +28,9 @@
 #include <chrono>
 #include <optional>
 
-#include <message.h>
 #include <date/date.h>
 #include <cassandra.h>
+#include <observation.h>
 
 #include "../time_offseter.h"
 
@@ -42,12 +42,11 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one line from the Mileos xlsx
  * files exported from the platform.
  */
-class MileosMessage : public Message
+class MileosMessage
 {
 public:
 	MileosMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+    Observation getObservation(const CassUuid station) const;
 
 	inline operator bool() {
 		return _valid;

@@ -113,7 +113,7 @@ public:
 			lineIterator = std::istringstream{line};
 			Msg m{lineIterator, _tz, _fields};
 			if (m) {
-				ret = _db.insertV2DataPoint(_station, m);
+				ret = _db.insertV2DataPoint(m.getObservation(_station));
 				if (!ret) {
 					std::cerr << SD_ERR << "[CsvImporter] measurement: failed to insert entry at line " << lineNumber << std::endl;
 				} else {

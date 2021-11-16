@@ -27,10 +27,11 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
+#include <optional>
 
+#include <cassandra.h>
 #include <boost/asio.hpp>
-#include <message.h>
+#include <observation.h>
 #include <date/date.h>
 
 namespace meteodata {
@@ -42,12 +43,11 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one raw data point from the
  * CSV downloadable from https://donneespubliques.meteofrance.fr/donnees_libres/Txt/Marine/...
  */
-class MeteoFranceShipAndBuoy : public Message
+class MeteoFranceShipAndBuoy
 {
 public:
 	MeteoFranceShipAndBuoy(std::istream& entry, const std::vector<std::string>& fields);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+    Observation getObservation(const CassUuid station) const;
 
 	inline const std::string& getIdentifier() {
 		return _identifier;
@@ -62,23 +62,23 @@ private:
 	date::sys_seconds _datetime; //time, yyyymmddHHMMss
 	float _latitude; //lat
 	float _longitude; //lon
-	std::experimental::optional<float> _airTemp; //t, K
-	std::experimental::optional<float> _dewPoint; //td, K
-	std::experimental::optional<int> _humidity; //u, %
-	std::experimental::optional<int> _windDir; //dd, m/s
-	std::experimental::optional<float> _wind; //ff, m/s
-	std::experimental::optional<int> _pressure; //pmer, Pa
-	std::experimental::optional<float> _seaTemp; //tmer, K
-	std::experimental::optional<float> _seaWindHeight; //HwaHwa
-	std::experimental::optional<float> _seaWindPeriod; //PwaPwa
-	std::experimental::optional<float> _seaWindDirection; //dwadwa
-	std::experimental::optional<float> _swellHeight1; //Hw1Hw1
-	std::experimental::optional<float> _swellPeriod1; //Pw1Pw1
-	std::experimental::optional<float> _swellDirection1; //dw1dw1
-	std::experimental::optional<float> _swellHeight2; //Hw2Hw2
-	std::experimental::optional<float> _swellPeriod2; //Pw2Pw2
-	std::experimental::optional<float> _swellDirection2; //dw2dw2
-	std::experimental::optional<float> _gust; //rafper, m/s
+	std::optional<float> _airTemp; //t, K
+	std::optional<float> _dewPoint; //td, K
+	std::optional<int> _humidity; //u, %
+	std::optional<int> _windDir; //dd, m/s
+	std::optional<float> _wind; //ff, m/s
+	std::optional<int> _pressure; //pmer, Pa
+	std::optional<float> _seaTemp; //tmer, K
+	std::optional<float> _seaWindHeight; //HwaHwa
+	std::optional<float> _seaWindPeriod; //PwaPwa
+	std::optional<float> _seaWindDirection; //dwadwa
+	std::optional<float> _swellHeight1; //Hw1Hw1
+	std::optional<float> _swellPeriod1; //Pw1Pw1
+	std::optional<float> _swellDirection1; //dw1dw1
+	std::optional<float> _swellHeight2; //Hw2Hw2
+	std::optional<float> _swellPeriod2; //Pw2Pw2
+	std::optional<float> _swellDirection2; //dw2dw2
+	std::optional<float> _gust; //rafper, m/s
 	bool _valid;
 };
 

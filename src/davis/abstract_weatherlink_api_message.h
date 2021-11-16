@@ -34,7 +34,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <date/date.h>
-#include <message.h>
+#include <observation.h>
 
 #include "../time_offseter.h"
 
@@ -53,14 +53,13 @@ namespace pt = boost::property_tree;
  * @brief A Message able to receive and store a file resulting from a call to
  * a Weatherlink APIhttps://api.weatherlink.com/NoaaExt.xml?...
  */
-class AbstractWeatherlinkApiMessage : public Message
+class AbstractWeatherlinkApiMessage
 {
 public:
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 	AbstractWeatherlinkApiMessage(const TimeOffseter* _timeOffseter);
 
 	virtual void parse(std::istream& input) = 0;
+	Observation getObservation(const CassUuid station) const;
 	constexpr static size_t MAXSIZE = (2 << 20);
 
 	enum class SensorType {
@@ -168,7 +167,7 @@ protected:
 	}
 
 
-	struct Observation {
+	struct DataPoint {
 		date::sys_time<chrono::milliseconds> time;
 		float pressure = INVALID_FLOAT;
 		int humidity = INVALID_INT;
@@ -188,7 +187,7 @@ protected:
 		int soilMoisture[4] = { INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT };
 		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
 	};
-	Observation _obs;
+	DataPoint _obs;
 
 	/**
 	 * @brief The \a TimeOffseter able to convert the archive entries' timestamps to

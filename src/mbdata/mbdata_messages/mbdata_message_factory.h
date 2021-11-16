@@ -90,7 +90,7 @@ public:
 		std::string content = cleanInput(entry);
 		std::istringstream contentStream{content};
 
-		std::experimental::optional<float> rainfall;
+		std::optional<float> rainfall;
 		if (type == "weatherlink") {
 			sys_seconds datetime, midnight;
 			std::tie(datetime,midnight) = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
@@ -137,7 +137,7 @@ public:
 				rainfall = f;
 			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall, timeOffseter);
 		} else {
-			throw new std::invalid_argument("Unknown message type");
+			throw std::invalid_argument("Unknown message type");
 		}
 	}
 };

@@ -51,8 +51,6 @@ namespace meteodata {
 
 using namespace date;
 
-constexpr char MqttSubscriber::CLIENT_ID[];
-
 MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, const std::string& password) :
 	host(host),
 	port(port),

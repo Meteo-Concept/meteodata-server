@@ -39,11 +39,12 @@ namespace meteodata {
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
-	AbstractMBDataMessage(datetime, content, timeOffseter),
-	_diffRainfall(previousRainfall)
+MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
+	AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
+
+    _diffRainfall = previousRainfall;
 
 	const std::regex mandatoryPart{
 		"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
@@ -134,103 +135,6 @@ MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, con
 
 		_valid = true;
 	}
-}
-
-void MBDataWeathercatMessage::populateDataPoint(const CassUuid, CassStatement* const) const
-{
-	// Not implemented, no one cares
-}
-
-void MBDataWeathercatMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
-{
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_uint32(statement, 1,
-		cass_date_from_epoch(
-			date::floor<chrono::seconds>(
-				_datetime
-			).time_since_epoch().count()
-		)
-	);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		date::floor<chrono::milliseconds>(
-			_datetime
-		).time_since_epoch().count()
-	);
-	/*************************************************************/
-	if (_pressure)
-		cass_statement_bind_float(statement, 3, *_pressure);
-	/*************************************************************/
-	if (_dewPoint)
-		cass_statement_bind_float(statement, 4, *_dewPoint);
-	else if (_airTemp && _humidity)
-		cass_statement_bind_float(statement, 4,
-			dew_point(
-				*_airTemp,
-				*_humidity
-			)
-		);
-	/*************************************************************/
-	// No extra humidity
-	/*************************************************************/
-	// No extra temperature
-	/*************************************************************/
-	// Heat index is irrelevant off-shore
-	/*************************************************************/
-	// No inside humidity
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	// No leaf measurements
-	/*************************************************************/
-	if (_humidity)
-		cass_statement_bind_int32(statement, 17, *_humidity);
-	/*************************************************************/
-	if (_airTemp)
-		cass_statement_bind_float(statement, 18, *_airTemp);
-	/*************************************************************/
-	if (_rainRate)
-		cass_statement_bind_float(statement, 19, *_rainRate);
-	/*************************************************************/
-	if (_computedRainfall)
-		cass_statement_bind_float(statement, 20, *_computedRainfall);
-	/*************************************************************/
-	// No ETP
-	/*************************************************************/
-	// No soil moistures
-	/*************************************************************/
-	// No soil temperature
-	/*************************************************************/
-	if (_solarRad)
-		cass_statement_bind_int32(statement, 30, *_solarRad);
-	/*************************************************************/
-	// THSW index is irrelevant
-	/*************************************************************/
-	// No UV
-	/*************************************************************/
-	// Wind chill is irrelevant
-	/*************************************************************/
-	if (_windDir)
-		cass_statement_bind_int32(statement, 34, *_windDir);
-	/*************************************************************/
-	if (_gust)
-		cass_statement_bind_float(statement, 35, *_gust);
-	/*************************************************************/
-	if (_wind)
-		cass_statement_bind_float(statement, 36, *_wind);
-	/*************************************************************/
-	if (_solarRad) {
-		bool ins = insolated(
-			*_solarRad,
-			_timeOffseter.getLatitude(),
-			_timeOffseter.getLongitude(),
-			date::floor<chrono::seconds>(_datetime).time_since_epoch().count()
-		);
-		cass_statement_bind_int32(statement, 37, ins ? _timeOffseter.getMeasureStep() : 0);
-	}
-	/*************************************************************/
 }
 
 }

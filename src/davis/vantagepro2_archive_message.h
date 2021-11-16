@@ -31,7 +31,7 @@
 #include <boost/asio.hpp>
 
 #include <cassandra.h>
-#include <message.h>
+#include <observation.h>
 
 #include "../time_offseter.h"
 
@@ -49,7 +49,7 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one raw data point from the
  * archive of a VantagePro2 (R) station, by Davis Instruments (R)
  */
-class VantagePro2ArchiveMessage : public Message
+class VantagePro2ArchiveMessage
 {
 public:
 	/**
@@ -108,8 +108,8 @@ public:
 	 * convert timestamps from and to the station local time
 	 */
 	VantagePro2ArchiveMessage(const ArchiveDataPoint& data, const TimeOffseter* timeOffseter);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+
+    Observation getObservation(CassUuid station) const;
 
 	inline date::sys_seconds getTimestamp() const {
 		return date::floor<chrono::seconds>(

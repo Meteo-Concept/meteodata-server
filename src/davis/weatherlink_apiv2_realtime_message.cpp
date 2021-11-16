@@ -33,7 +33,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cassandra.h>
-#include <message.h>
+#include <observation.h>
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_realtime_message.h"

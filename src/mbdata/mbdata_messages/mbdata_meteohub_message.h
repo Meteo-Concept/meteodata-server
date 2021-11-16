@@ -27,11 +27,12 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
+#include <optional>
 
 #include <boost/asio.hpp>
-#include <message.h>
 #include <date/date.h>
+#include <observation.h>
+#include <cassandra.h>
 
 #include "../../time_offseter.h"
 #include "abstract_mbdata_message.h"
@@ -48,22 +49,7 @@ namespace chrono = std::chrono;
 class MBDataMeteohubMessage : public AbstractMBDataMessage
 {
 public:
-	MBDataMeteohubMessage(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-
-private:
-	std::experimental::optional<float> _airTemp;
-	std::experimental::optional<float> _dewPoint;
-	std::experimental::optional<int> _humidity;
-	std::experimental::optional<int> _windDir;
-	std::experimental::optional<float> _wind;
-	std::experimental::optional<float> _pressure;
-	std::experimental::optional<float> _gust;
-	std::experimental::optional<float> _rainRate;
-	std::experimental::optional<int> _solarRad;
-	std::experimental::optional<float> _computedRainfall;
-	std::experimental::optional<float> _diffRainfall;
+	MBDataMeteohubMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter);
 };
 
 }

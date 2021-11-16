@@ -32,7 +32,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <date/date.h>
-#include <message.h>
+#include <observation.h>
+#include <cassandra.h>
 
 #include "../message.h"
 #include "../time_offseter.h"
@@ -47,7 +48,7 @@ class FieldClimateApiArchiveMessageCollection;
  * @brief A Message able to receive and store a JSON file resulting from a call to
  * https://api.fieldclimate.com/v2/...
  */
-class FieldClimateApiArchiveMessage : public Message
+class FieldClimateApiArchiveMessage
 {
 public:
 	/**
@@ -59,6 +60,8 @@ public:
 	 * @brief Destruct the message
 	 */
 	~FieldClimateApiArchiveMessage() = default;
+
+    Observation getObservation(const CassUuid station) const;
 
 private:
 	/**
@@ -135,7 +138,7 @@ private:
 	 * @brief A struct used to store observation values to then populate the
 	 * DB insertion query
 	 */
-	struct Observation {
+	struct DataPoint {
 		date::sys_seconds time;
 		float pressure = INVALID_FLOAT; // hPa
 		float humidity = INVALID_FLOAT;     // %
@@ -162,7 +165,7 @@ private:
 	 * @brief An observation object to store values as the API return value
 	 * is getting parsed
 	 */
-	Observation _obs;
+	DataPoint _obs;
 
 	/**
 	 * @brief The real constructor used by the
@@ -190,28 +193,9 @@ private:
 	 */
 	void ingest(const pt::ptree& data, int index);
 
-	/**
-	 * @brief Populate a Météodata v1 API insertion query
-	 *
-	 * This method is actually a no-op, we dropped usage of the v1 table
-	 * some time ago now...
-	 *
-	 * @param station The station UUID
-	 * @param statement The insert statement to populate
-	 */
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-
-	/**
-	 * @brief Populate a Météodata v2 API insertion query
-	 *
-	 * @param station The station UUID
-	 * @param statement The insert statement to populate
-	 */
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-
-friend FieldClimateApiArchiveMessageCollection;
+    friend FieldClimateApiArchiveMessageCollection;
 };
 
 }
 
-#endif /* WEATHERLINK_APIV2_ARCHIVE_MESSAGE_H */
+#endif /* FIELDCLIMATE_ARCHIVE_MESSAGE_H */

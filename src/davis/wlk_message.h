@@ -28,7 +28,7 @@
 #include <chrono>
 #include <optional>
 
-#include <message.h>
+#include <observation.h>
 #include <date/date.h>
 #include <cassandra.h>
 
@@ -42,12 +42,11 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one line from the .wlk files
  * exported by the Weatherlink software.
  */
-class WlkMessage : public Message
+class WlkMessage
 {
 public:
 	WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
+    Observation getObservation(const CassUuid station) const;
 
 	inline operator bool() {
 		return _valid;

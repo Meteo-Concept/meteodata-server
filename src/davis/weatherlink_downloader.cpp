@@ -50,8 +50,7 @@
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
@@ -96,9 +95,9 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 	CURLcode ret = client.download(REALTIME_BASE_URL + queryStr, [&](const std::string& body) {
 		std::istringstream responseStream(body);
 
-		WeatherlinkApiv1RealtimeMessage obs(&_timeOffseter);
-		obs.parse(responseStream);
-		int dbRet = _db.insertV2DataPoint(_station, obs); // Don't bother inserting V1
+		WeatherlinkApiv1RealtimeMessage message(&_timeOffseter);
+		message.parse(responseStream);
+		int dbRet = _db.insertV2DataPoint(message.getObservation(_station));
 
 		if (!dbRet) {
 			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] measurement: "
@@ -156,7 +155,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		}
 		int pagesLeft = body.size() / 52;
 
-		const VantagePro2ArchiveMessage::ArchiveDataPoint* dataPoint = reinterpret_cast<const VantagePro2ArchiveMessage::ArchiveDataPoint*>(body.data());
+		const auto* dataPoint = reinterpret_cast<const VantagePro2ArchiveMessage::ArchiveDataPoint*>(body.data());
 		const VantagePro2ArchiveMessage::ArchiveDataPoint* pastLastDataPoint = dataPoint + pagesLeft;
 
 		bool ret = true;
@@ -181,7 +180,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 				}
 
 				start = end;
-				ret = _db.insertV2DataPoint(_station, message);
+				ret = _db.insertV2DataPoint(message.getObservation(_station));
 			} else {
 				std::cerr << SD_WARNING << "[Weatherlink_v1 " << _station << "] measurement: "
 					  << "record looks invalid, discarding..."

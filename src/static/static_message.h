@@ -27,10 +27,10 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
+#include <optional>
 
 #include <boost/asio.hpp>
-#include <message.h>
+#include <observation.h>
 #include <date/date.h>
 
 #include "../time_offseter.h"
@@ -44,23 +44,22 @@ namespace chrono = std::chrono;
  * @brief A Message able to receive and store one raw data point from a
  * StatIC text file (otherwise exploited by Infoclimat)
  */
-class StatICMessage : public Message
+class StatICMessage
 {
 public:
 	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter);
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
 	void computeRainfall(float rainfall1h, float rainfallDay);
+    Observation getObservation(const CassUuid station) const;
 
 	inline operator bool() const {
 		return _valid;
 	}
 
-	inline std::experimental::optional<float> getHourRainfall() const {
+	inline std::optional<float> getHourRainfall() const {
 		return _hourRainfall;
 	}
 
-	inline std::experimental::optional<float> getDayRainfall() const {
+	inline std::optional<float> getDayRainfall() const {
 		return _dayRainfall;
 	}
 
@@ -73,19 +72,19 @@ public:
 private:
 	std::string _identifier; //numer_sta
 	date::sys_seconds _datetime;
-	std::experimental::optional<float> _airTemp;
-	std::experimental::optional<float> _dewPoint;
-	std::experimental::optional<int> _humidity;
-	std::experimental::optional<int> _windDir;
-	std::experimental::optional<float> _wind;
-	std::experimental::optional<float> _pressure;
-	std::experimental::optional<float> _gust;
-	std::experimental::optional<float> _rainRate;
-	std::experimental::optional<int> _solarRad;
-	std::experimental::optional<int> _uv;
-	std::experimental::optional<float> _hourRainfall;
-	std::experimental::optional<float> _dayRainfall;
-	std::experimental::optional<float> _computedRainfall;
+	std::optional<float> _airTemp;
+	std::optional<float> _dewPoint;
+	std::optional<int> _humidity;
+	std::optional<int> _windDir;
+	std::optional<float> _wind;
+	std::optional<float> _pressure;
+	std::optional<float> _gust;
+	std::optional<float> _rainRate;
+	std::optional<int> _solarRad;
+	std::optional<int> _uv;
+	std::optional<float> _hourRainfall;
+	std::optional<float> _dayRainfall;
+	std::optional<float> _computedRainfall;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;
 };

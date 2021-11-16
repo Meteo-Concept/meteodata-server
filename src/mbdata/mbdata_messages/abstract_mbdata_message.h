@@ -27,12 +27,13 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
-#include <experimental/optional>
 #include <memory>
+#include <optional>
 
 #include <boost/asio.hpp>
-#include <message.h>
 #include <date/date.h>
+#include <cassandra.h>
+#include <observation.h>
 
 #include "../../time_offseter.h"
 
@@ -47,7 +48,7 @@ class MBDataMessageFactory;
  * @brief A Message able to receive and store one raw data point from a
  * MBData text file
  */
-class AbstractMBDataMessage : public Message
+class AbstractMBDataMessage
 {
 public:
 	/**
@@ -76,7 +77,7 @@ public:
 	static
 	typename std::enable_if<std::is_base_of<AbstractMBDataMessage,T>::value,
 			AbstractMBDataMessage::ptr>::type
-	create(date::sys_seconds datetime, const std::string& content, std::experimental::optional<float> rainfall, const TimeOffseter& timeOffseter)
+	create(date::sys_seconds datetime, const std::string& content, std::optional<float> rainfall, const TimeOffseter& timeOffseter)
 	{
 		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), rainfall, std::ref(timeOffseter)));
 	}
@@ -89,6 +90,8 @@ public:
 		return _datetime;
 	}
 
+    Observation getObservation(const CassUuid station) const;
+
 protected:
 	AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter);
 
@@ -98,7 +101,19 @@ protected:
 	const TimeOffseter& _timeOffseter;
 	constexpr static int POLLING_PERIOD = 10;
 
-friend MBDataMessageFactory;
+    std::optional<float> _airTemp;
+    std::optional<float> _dewPoint;
+    std::optional<int> _humidity;
+    std::optional<int> _windDir;
+    std::optional<float> _wind;
+    std::optional<float> _pressure;
+    std::optional<float> _gust;
+    std::optional<float> _rainRate;
+    std::optional<int> _solarRad;
+    std::optional<float> _computedRainfall;
+    std::optional<float> _diffRainfall;
+
+    friend MBDataMessageFactory;
 };
 
 }

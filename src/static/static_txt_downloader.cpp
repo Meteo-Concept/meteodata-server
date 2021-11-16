@@ -173,7 +173,7 @@ void StatICTxtDownloader::download()
 				m.computeRainfall(f1h, fDay);
 		}
 
-		bool ret = _db.insertV2DataPoint(_station, m);
+		bool ret = _db.insertV2DataPoint(m.getObservation(_station));
 		if (ret) {
 			std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: "
 			    << "Data from StatIC file from " << _host

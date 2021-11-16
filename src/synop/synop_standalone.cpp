@@ -92,7 +92,7 @@ void SynopStandalone::start(const std::string& file)
 				timeOffseter.setMeasureStep(pollingPeriod);
 
 				OgimetSynop synop{m, &timeOffseter};
-				_db.insertV2DataPoint(uuidIt->second, synop);
+				_db.insertV2DataPoint(synop.getObservations(uuidIt->second));
 				std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 				std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
 				auto it = std::find_if(m._precipitation.begin(), m._precipitation.end(),

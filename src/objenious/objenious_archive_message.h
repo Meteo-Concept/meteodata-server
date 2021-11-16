@@ -32,7 +32,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <date/date.h>
-#include <message.h>
+#include <observation.h>
+#include <cassandra.h>
 
 #include "../message.h"
 #include "../time_offseter.h"
@@ -48,7 +49,7 @@ class ObjeniousMqttSubscriber;
  * @brief A Message able to receive and store a JSON file resulting from a call to
  * https://api.objenious.com/v2/...
  */
-class ObjeniousApiArchiveMessage : public Message
+class ObjeniousApiArchiveMessage
 {
 public:
 	/**
@@ -65,6 +66,8 @@ public:
 	    return _obs.time;
 	}
 
+    Observation getObservation(const CassUuid station) const;
+
 private:
 	/**
 	 * @brief A struct used to store observation values to then populate the
@@ -74,7 +77,7 @@ private:
 	 * integers). Given that the resolution is usually the unit or 0.1, this
 	 * shouldn't cause any major rounding issue.
 	 */
-	struct Observation {
+	struct DataPoint {
 		date::sys_seconds time;
 		float pressure = INVALID_FLOAT; // hPa
 		float humidity = INVALID_FLOAT;     // %
@@ -100,7 +103,7 @@ private:
 
 	const std::map<std::string, std::string>* _variables;
 
-	static const std::map<std::string, float Observation::*> FIELDS;
+	static const std::map<std::string, float DataPoint::*> FIELDS;
 
 	/**
 	 * @brief Whether a floating point sensored value is invalid
@@ -154,7 +157,7 @@ private:
 	 * @brief An observation object to store values as the API return value
 	 * is getting parsed
 	 */
-	Observation _obs;
+	DataPoint _obs;
 
 	/**
 	 * @brief The real constructor used by the
@@ -178,29 +181,10 @@ private:
      */
     void ingest(const pt::ptree& data);
 
-	/**
-	 * @brief Populate a Météodata v1 API insertion query
-	 *
-	 * This method is actually a no-op, we dropped usage of the v1 table
-	 * some time ago now...
-	 *
-	 * @param station The station UUID
-	 * @param statement The insert statement to populate
-	 */
-	virtual void populateDataPoint(const CassUuid station, CassStatement* const statement) const override;
-
-	/**
-	 * @brief Populate a Météodata v2 API insertion query
-	 *
-	 * @param station The station UUID
-	 * @param statement The insert statement to populate
-	 */
-	virtual void populateV2DataPoint(const CassUuid station, CassStatement* const statement) const override;
-
 	friend class ObjeniousApiArchiveMessageCollection;
 	friend class ObjeniousMqttSubscriber;
 };
 
 }
 
-#endif /* WEATHERLINK_APIV2_ARCHIVE_MESSAGE_H */
+#endif /* OBJENIOUS_ARCHIVE_MESSAGE_H */

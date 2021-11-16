@@ -34,8 +34,7 @@
 
 namespace meteodata
 {
-MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::vector<std::string>& fields) :
-	Message()
+MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::vector<std::string>& fields)
 {
 	unsigned int i=0;
 	std::map<std::string, std::string> values;
@@ -112,92 +111,24 @@ MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::v
 	_valid = true;
 }
 
+Observation MeteoFranceShipAndBuoy::getObservation(const CassUuid station) const {
+    Observation result;
 
-
-void MeteoFranceShipAndBuoy::populateDataPoint(const CassUuid, CassStatement* const) const
-{
-	// Let's not bother with deprecated stuff
-}
-
-void MeteoFranceShipAndBuoy::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
-{
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_uint32(statement, 1,
-		cass_date_from_epoch(
-			date::floor<chrono::seconds>(
-				_datetime
-			).time_since_epoch().count()
-		)
-	);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		date::floor<chrono::milliseconds>(
-			_datetime
-		).time_since_epoch().count()
-	);
-	/*************************************************************/
-	if (_pressure)
-		cass_statement_bind_float(statement, 3, *_pressure);
-	/*************************************************************/
-	if (_dewPoint)
-		cass_statement_bind_float(statement, 4, *_dewPoint);
-	else if (_airTemp && _humidity)
-		cass_statement_bind_float(statement, 4,
-			dew_point(
-				*_airTemp,
-				*_humidity
-			)
-		);
-	/*************************************************************/
-	// No extra humidity
-	/*************************************************************/
-	// No extra temperature
-	/*************************************************************/
-	// Heat index is irrelevant off-shore
-	/*************************************************************/
-	// No inside humidity
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	// No leaf measurements
-	/*************************************************************/
-	if (_humidity)
-		cass_statement_bind_int32(statement, 17, *_humidity);
-	/*************************************************************/
-	if (_airTemp)
-		cass_statement_bind_float(statement, 18, *_airTemp);
-	/*************************************************************/
-	// No max precipitation rate
-	/*************************************************************/
-	// No rainfall
-	/*************************************************************/
-	// No ETP
-	/*************************************************************/
-	// No soil moistures
-	/*************************************************************/
-	// No soil temperature
-	/*************************************************************/
-	// No solar radiation
-	/*************************************************************/
-	// THSW index is irrelevant
-	/*************************************************************/
-	// No UV index
-	/*************************************************************/
-	// Wind chill is irrelevant
-	/*************************************************************/
-	if (_windDir)
-		cass_statement_bind_int32(statement, 34, *_windDir);
-	/*************************************************************/
-	if (_gust)
-		cass_statement_bind_float(statement, 35, *_gust);
-	/*************************************************************/
-	if (_wind)
-		cass_statement_bind_float(statement, 36, *_wind);
-	/*************************************************************/
-	// No insolation
-	/*************************************************************/
+    result.station = station;
+    result.day = date::floor<date::days>(_datetime);
+    result.time = _datetime;
+    result.barometer = {bool(_pressure), *_pressure};
+    result.outsidehum = {bool(_humidity), *_humidity};
+    result.outsidetemp = {bool(_airTemp), *_airTemp};
+    if (_dewPoint) {
+        result.dewpoint = {true, *_dewPoint};
+    } else if (_airTemp && _humidity) {
+        result.dewpoint = {true, dew_point(*_airTemp, *_humidity)};
+    }
+    result.winddir = { bool(_windDir), *_windDir };
+    result.windgust = { bool(_gust), *_gust };
+    result.windspeed = { bool(_wind), *_wind };
+    return result;
 }
 
 }

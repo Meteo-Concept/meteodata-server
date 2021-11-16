@@ -105,7 +105,7 @@ void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& topicName,
 	try {
 		msg.ingest(jsonTree);
 
-		int ret = _db.insertV2DataPoint(station, msg);
+		int ret = _db.insertV2DataPoint(msg.getObservation(station));
 		if (ret) {
 			std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
 			    << "Archive data stored\n" << std::endl;

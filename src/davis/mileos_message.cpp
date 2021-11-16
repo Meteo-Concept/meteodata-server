@@ -29,7 +29,7 @@
 #include <systemd/sd-daemon.h>
 
 #include <date/date.h>
-#include <message.h>
+#include <observation.h>
 
 #include "mileos_message.h"
 #include "vantagepro2_message.h"
@@ -38,8 +38,7 @@ namespace chrono = std::chrono;
 
 namespace meteodata
 {
-MileosMessage::MileosMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields) :
-	Message()
+MileosMessage::MileosMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields)
 {
 	unsigned int i=0;
 	std::map<std::string, std::string> values;
@@ -157,92 +156,28 @@ MileosMessage::MileosMessage(std::istream& entry, const TimeOffseter& tz, const 
 	_valid = true;
 }
 
-
-
-void MileosMessage::populateDataPoint(const CassUuid, CassStatement* const) const
+Observation MileosMessage::getObservation(const CassUuid station) const
 {
-	// Let's not bother with deprecated stuff
-}
+    Observation result;
 
-void MileosMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
-{
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_uint32(statement, 1,
-		cass_date_from_epoch(
-			chrono::system_clock::to_time_t(_datetime)
-		)
-	);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		date::floor<chrono::milliseconds>(
-			_datetime
-		).time_since_epoch().count()
-	);
-	/*************************************************************/
-	if (_pressure)
-		cass_statement_bind_float(statement, 3, *_pressure);
-	/*************************************************************/
-	if (_dewPoint)
-		cass_statement_bind_float(statement, 4, *_dewPoint);
-	else if (_airTemp && _humidity)
-		cass_statement_bind_float(statement, 4,
-			dew_point(
-				*_airTemp,
-				*_humidity
-			)
-		);
-	/*************************************************************/
-	// No extra humidity
-	/*************************************************************/
-	// No extra temperature
-	/*************************************************************/
-	// No heat index
-	/*************************************************************/
-	// No inside humidity
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	// No leaf measurements
-	/*************************************************************/
-	if (_humidity)
-		cass_statement_bind_int32(statement, 17, *_humidity);
-	/*************************************************************/
-	if (_airTemp)
-		cass_statement_bind_float(statement, 18, *_airTemp);
-	/*************************************************************/
-	if (_rainrate)
-		cass_statement_bind_float(statement, 19, *_rainrate);
-	/*************************************************************/
-	if (_rainfall)
-		cass_statement_bind_float(statement, 20, *_rainfall);
-	/*************************************************************/
-	// No ETP
-	/*************************************************************/
-	// No soil moistures
-	/*************************************************************/
-	// No soil temperature
-	/*************************************************************/
-	// No solar radiation
-	/*************************************************************/
-	// THSW index is irrelevant
-	/*************************************************************/
-	// No UV index
-	/*************************************************************/
-	// No wind chill
-	/*************************************************************/
-	if (_windDir)
-		cass_statement_bind_int32(statement, 34, *_windDir);
-	/*************************************************************/
-	if (_gust)
-		cass_statement_bind_float(statement, 35, *_gust);
-	/*************************************************************/
-	if (_windSpeed)
-		cass_statement_bind_float(statement, 36, *_windSpeed);
-	/*************************************************************/
-	// No insolation
-	/*************************************************************/
+    result.station = station;
+    result.day = date::floor<date::days>(_datetime);
+    result.time = date::floor<chrono::seconds>(_datetime);
+    result.barometer = { bool(_pressure), *_pressure };
+    if (_dewPoint) {
+        result.dewpoint = {true, *_dewPoint};
+    } else if (_airTemp && _humidity) {
+        result.dewpoint = { true, dew_point(*_airTemp, *_humidity) };
+    }
+    result.outsidehum = { bool(_humidity), *_humidity };
+    result.outsidetemp = { bool(_airTemp), *_airTemp };
+    result.rainrate = { bool(_rainrate), *_rainrate };
+    result.rainfall = { bool(_rainfall), *_rainfall };
+    result.winddir = { bool(_windDir), *_windDir };
+    result.windgust = { bool(_gust), *_gust };
+    result.windspeed = { bool(_windSpeed), *_windSpeed };
+
+    return result;
 }
 
 }

@@ -41,155 +41,103 @@ namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
 AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage(const TimeOffseter* timeOffseter) :
-	Message(),
 	_timeOffseter{timeOffseter}
 {}
 
-void AbstractWeatherlinkApiMessage::populateDataPoint(const CassUuid station, CassStatement* const statement) const
-{
-	// Deprecated
+Observation AbstractWeatherlinkApiMessage::getObservation(const CassUuid station) const {
+    Observation result;
 
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 1, _obs.time.time_since_epoch().count());
-	/*************************************************************/
-}
+    result.station = station;
+    result.day = date::floor<date::days>(_obs.time);
+    result.time = date::floor<chrono::seconds>(_obs.time);
+    result.barometer = {!isInvalid(_obs.pressure), _obs.pressure};
+    result.dewpoint = {
+            !isInvalid(_obs.temperature) && !isInvalid(_obs.humidity),
+            dew_point(_obs.temperature, _obs.humidity)
+    };
+    for (int i = 0 ; i < 2 ; i++)
+        result.extrahum[i] = {!isInvalid(_obs.extraHumidity[i]), _obs.extraHumidity[i]};
+    for (int i = 0 ; i < 3 ; i++) {
+        result.extratemp[i] = {
+                !isInvalid(_obs.extraTemperature[i]),
+                from_Farenheit_to_Celsius(_obs.extraTemperature[i])
+        };
+    }
+    result.heatindex = {
+            !isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity),
+            heat_index(_obs.temperatureF, _obs.humidity)
+    };
+    for (int i = 0 ; i < 2 ; i++) {
+        result.leaftemp[i] = {
+                !isInvalid(_obs.leafTemperature[i]),
+                from_Farenheit_to_Celsius(_obs.leafTemperature[i])
+        };
+        result.leafwetnesses[i] = {!isInvalid(_obs.leafWetness[i]), _obs.leafWetness[i]};
+    }
+    result.outsidehum = {!isInvalid(_obs.humidity), _obs.humidity};
+    result.outsidetemp = {!isInvalid(_obs.temperature), _obs.temperature};
+    result.rainrate = {!isInvalid(_obs.rainRate), _obs.rainRate};
+    result.rainfall = {!isInvalid(_obs.rainFall), _obs.rainFall};
 
-void AbstractWeatherlinkApiMessage::populateV2DataPoint(const CassUuid station, CassStatement* const statement) const
-{
-	/*************************************************************/
-	cass_statement_bind_uuid(statement, 0, station);
-	/*************************************************************/
-	cass_statement_bind_uint32(statement, 1,
-		cass_date_from_epoch(
-			date::floor<chrono::seconds>(
-				_obs.time
-			).time_since_epoch().count()
-		)
-	);
-	/*************************************************************/
-	cass_statement_bind_int64(statement, 2,
-		_obs.time.time_since_epoch().count()
-	);
-	/*************************************************************/
-	if (!isInvalid(_obs.pressure))
-		cass_statement_bind_float(statement, 3, _obs.pressure);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity))
-		cass_statement_bind_float(statement, 4,
-			dew_point(
-				_obs.temperature,
-				_obs.humidity
-			)
-		);
-	/*************************************************************/
-	for (int i=0 ; i<2 ; i++)
-		if (!isInvalid(_obs.extraHumidity[i]))
-			cass_statement_bind_int32(statement, 5+i, _obs.extraHumidity[i]);
-	/*************************************************************/
-	for (int i=0 ; i<3 ; i++)
-		if (!isInvalid(_obs.extraTemperature[i]))
-			cass_statement_bind_float(statement, 7+i, from_Farenheit_to_Celsius(_obs.extraTemperature[i]));
-	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity))
-		cass_statement_bind_float(statement, 10,
-			heat_index(
-				_obs.temperatureF,
-				_obs.humidity
-			)
-		);
-	/*************************************************************/
-	// No inside humidity
-	/*************************************************************/
-	// No inside temperature
-	/*************************************************************/
-	for (int i=0 ; i<2 ; i++) {
-		if (!isInvalid(_obs.leafTemperature[i]))
-			cass_statement_bind_float(statement, 13+i, from_Farenheit_to_Celsius(_obs.leafTemperature[i]));
-		if (!isInvalid(_obs.leafWetness[i]))
-			cass_statement_bind_int32(statement, 15+i,_obs.leafWetness[i]);
-	}
-	/*************************************************************/
-	if (!isInvalid(_obs.humidity))
-		cass_statement_bind_int32(statement, 17, _obs.humidity);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperature))
-		cass_statement_bind_float(statement, 18, _obs.temperature);
-	/*************************************************************/
-	if (!isInvalid(_obs.rainRate))
-		cass_statement_bind_float(statement, 19, _obs.rainRate);
-	/*************************************************************/
-	if (!isInvalid(_obs.rainFall))
-		cass_statement_bind_float(statement, 20, _obs.rainFall);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
-	 && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad))
-		cass_statement_bind_float(statement, 21,
-			evapotranspiration(
-				_obs.temperature,
-				_obs.humidity,
-				from_mph_to_mps(_obs.windSpeed),
-				_obs.solarRad,
-				_timeOffseter->getLatitude(),
-				_timeOffseter->getLongitude(),
-				_timeOffseter->getElevation(),
-				chrono::system_clock::to_time_t(_obs.time),
-				_timeOffseter->getMeasureStep()
-			)
-		);
-	/*************************************************************/
-	for (int i=0 ; i<4 ; i++) {
-		if (!isInvalid(_obs.soilMoisture[i]))
-			cass_statement_bind_int32(statement, 22+i, _obs.soilMoisture[i]);
-		if (!isInvalid(_obs.soilTemperature[i]))
-			cass_statement_bind_float(statement, 26+i, from_Farenheit_to_Celsius(_obs.soilTemperature[i]));
-	}
-	/*************************************************************/
-	if (!isInvalid(_obs.solarRad))
-		cass_statement_bind_int32(statement, 30, _obs.solarRad);
-	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed)
-	 && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad))
-		cass_statement_bind_float(statement, 31,
-			thsw_index(
-				_obs.temperatureF,
-				_obs.humidity,
-				_obs.windSpeed,
-				_obs.solarRad
-			)
-		);
-	else if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed)
-	 && !isInvalid(_obs.humidity) && isInvalid(_obs.solarRad))
-		cass_statement_bind_float(statement, 31,
-			thsw_index(
-				_obs.temperatureF,
-				_obs.humidity,
-				_obs.windSpeed
-			)
-		);
-	/*************************************************************/
-	if (!isInvalid(_obs.uvIndex))
-		cass_statement_bind_int32(statement, 32, int(_obs.uvIndex * 10));
-	/*************************************************************/
-	if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed))
-		cass_statement_bind_float(statement, 33,
-			wind_chill(
-				_obs.temperatureF,
-				_obs.windSpeed
-			)
-		);
-	/*************************************************************/
-	if (!isInvalid(_obs.windDir))
-		cass_statement_bind_int32(statement, 34, _obs.windDir);
-	/*************************************************************/
-	if (!isInvalid(_obs.windGustSpeed))
-		cass_statement_bind_float(statement, 35, from_mph_to_kph(_obs.windGustSpeed));
-	/*************************************************************/
-	if (!isInvalid(_obs.windSpeed))
-		cass_statement_bind_float(statement, 36, from_mph_to_kph(_obs.windSpeed));
-	/*************************************************************/
-	// No insolation
-	/*************************************************************/
+    if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
+        && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad)) {
+        result.et = {
+                true,
+                evapotranspiration(
+                        _obs.temperature,
+                        _obs.humidity,
+                        from_mph_to_mps(_obs.windSpeed),
+                        _obs.solarRad,
+                        _timeOffseter->getLatitude(),
+                        _timeOffseter->getLongitude(),
+                        _timeOffseter->getElevation(),
+                        chrono::system_clock::to_time_t(_obs.time),
+                        _timeOffseter->getMeasureStep()
+                )
+        };
+    }
+
+    for (int i = 0 ; i < 4 ; i++) {
+        result.soilmoistures[i] = {!isInvalid(_obs.soilMoisture[i]), _obs.soilMoisture[i]};
+        result.soiltemp[i] = {
+                !isInvalid(_obs.soilTemperature[i]),
+                from_Farenheit_to_Celsius(_obs.soilTemperature[i])
+        };
+    }
+
+    result.solarrad = {!isInvalid(_obs.solarRad), _obs.solarRad};
+
+    if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed)
+        && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad)) {
+        result.thswindex = {
+                true,
+                thsw_index(
+                        _obs.temperatureF,
+                        _obs.humidity,
+                        _obs.windSpeed,
+                        _obs.solarRad
+                )
+        };
+    } else if (!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed)
+             && !isInvalid(_obs.humidity) && isInvalid(_obs.solarRad)) {
+        result.thswindex = {
+                true,
+                thsw_index(
+                        _obs.temperatureF,
+                        _obs.humidity,
+                        _obs.windSpeed
+                )
+        };
+    }
+    result.uv = { !isInvalid(_obs.uvIndex), _obs.uvIndex * 10 };
+    result.windchill = {
+            !isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed),
+            wind_chill(_obs.temperatureF, _obs.windSpeed)
+    };
+    result.winddir = { !isInvalid(_obs.windDir), _obs.windDir };
+    result.windgust = { !isInvalid(_obs.windGustSpeed), from_mph_to_kph(_obs.windGustSpeed) };
+    result.windspeed = { !isInvalid(_obs.windSpeed), from_mph_to_kph(_obs.windSpeed) };
+
+    return result;
 }
 }

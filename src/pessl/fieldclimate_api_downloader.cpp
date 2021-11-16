@@ -191,7 +191,7 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 					archiveDay += date::days(1);
 				}
 				for (const FieldClimateApiArchiveMessage& m : collection) {
-					int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+					int ret = _db.insertV2DataPoint(m.getObservation(_station)); // Cannot insert V1
 					if (!ret) {
 						std::cerr << SD_ERR << "[Pessl " << _station << "] measurement: "
 							  << "Failed to insert archive observation for station " << _stationName
@@ -264,7 +264,7 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 
 		// we expect exactly one message in the collection
 		const FieldClimateApiArchiveMessage& m = *(collection.begin());
-		int ret = _db.insertV2DataPoint(_station, m); // Cannot insert V1
+		int ret = _db.insertV2DataPoint(m.getObservation(_station));
 		if (!ret) {
 			std::cerr << SD_ERR << "[Pessl " << _station << "] measurement: "
 				 << "failed to insert realtime observation for station " << _stationName
