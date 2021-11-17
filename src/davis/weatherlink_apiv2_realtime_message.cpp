@@ -71,12 +71,49 @@ WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffse
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 {
-	doParse(input, std::bind(&WeatherlinkApiv2RealtimeMessage::acceptEntry, this, std::placeholders::_1));
+	doParse(input,
+			[this](auto&& entry) {
+				return acceptEntry(std::forward<decltype(entry)>(entry));
+			}
+	);
 }
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
 {
-	doParse(input, std::bind(&WeatherlinkApiv2RealtimeMessage::acceptEntryWithSubstations, this, std::placeholders::_1, substations, station));
+	doParse(input,
+			[this, substations, station](auto&& entry) {
+				return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
+			}
+	);
+}
+
+date::sys_seconds WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+{
+	Acceptor acceptable;
+	if (substations.empty())
+		acceptable = [this](auto&& entry) { return acceptEntry(std::forward<decltype(entry)>(entry)); };
+	else
+		acceptable = [this, substations, station](auto&& entry) { return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station); };
+
+	pt::ptree jsonTree;
+	pt::read_json(input, jsonTree);
+
+	std::vector<date::sys_seconds> updates = {date::floor<chrono::seconds>(chrono::system_clock::from_time_t(0))}; // put a default to simplify the logic of the max element
+
+	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
+		if (!acceptable(reading))
+			continue;
+
+		auto dataIt = reading.second.find("data");
+		if (dataIt == reading.second.not_found() || dataIt->second.empty())
+			continue;
+
+		// we expect exactly one element, the current condition
+		auto data = dataIt->second.front().second;
+		updates.push_back(date::floor<chrono::seconds>(chrono::system_clock::from_time_t(data.get<int>("ts"))));
+	}
+
+	return *std::max_element(updates.begin(), updates.end());
 }
 
 void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Acceptor& acceptable)
