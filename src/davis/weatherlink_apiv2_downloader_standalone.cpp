@@ -154,6 +154,7 @@ int main(int argc, char** argv)
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		CurlWrapper client;
+		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key, weatherlinkApiV2Secret);
 
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
 			const auto& station = *it;
@@ -162,6 +163,12 @@ int main(int argc, char** argv)
 					++it;
 					continue;
 				}
+			}
+
+			if (allDiscovered.find(std::get<3>(station)) == allDiscovered.cend()) {
+				std::cerr << "Station absent from the API list: " << std::get<3>(station) << "," << std::get<0>(station) << std::endl;
+				++it;
+				continue;
 			}
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
@@ -185,7 +192,6 @@ int main(int argc, char** argv)
 			++it;
 		}
 	} catch (std::exception& e) {
-		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
 		return 255;
 	}

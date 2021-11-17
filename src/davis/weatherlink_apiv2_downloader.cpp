@@ -131,7 +131,6 @@ std::unordered_map<std::string, pt::ptree> WeatherlinkApiv2Downloader::downloadA
 		pt::ptree jsonTree;
 		pt::read_json(contentStream, jsonTree);
 
-		std::unordered_map<std::string, pt::ptree> stations;
 		for (std::pair<const std::string, pt::ptree>& st : jsonTree.get_child("stations")) {
 			auto id = st.second.get<std::string>("station_id");
 			stations.insert_or_assign(id, st.second);
