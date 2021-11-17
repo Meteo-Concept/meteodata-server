@@ -190,13 +190,15 @@ void WeatherlinkDownloadScheduler::reloadStations()
 
 	for (const auto& station : weatherlinkAPIv2Stations) {
 		auto st = stations.find(std::get<3>(station));
-		TimeOffseter to = st != stations.cend() ?
-			TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})) :
-			TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone::UTC);
+		if (st == stations.end()) {
+			std::cout << SD_ERR << "[Weatherlink_v2 " << std::get<0>(station) << "] management: "
+	    		<< "station is absent from the list of stations available in the API, is it unlinked?" << std::endl;
+			continue;
+		}
 		addAPIv2(
 			std::get<0>(station), std::get<1>(station),
 			std::get<2>(station), std::get<3>(station),
-			std::move(to)
+			TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"}))
 		);
 	}
 }
