@@ -93,6 +93,13 @@ std::string_view CurlWrapper::getLastError()
 	return std::string_view(_errorBuffer);
 }
 
+long CurlWrapper::getLastRequestCode()
+{
+    long code;
+    curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
+	return code;
+}
+
 std::size_t CurlWrapper::receiveData(void* buffer, std::size_t size, std::size_t nbemb, void* userp)
 {
 	// This function can be called several times by curl to output data from a HTTP query

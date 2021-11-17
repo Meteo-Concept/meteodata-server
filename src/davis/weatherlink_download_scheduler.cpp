@@ -181,7 +181,6 @@ void WeatherlinkDownloadScheduler::reloadStations()
 		);
 	}
 
-
 	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkAPIv2Stations;
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
 
@@ -191,7 +190,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 	for (const auto& station : weatherlinkAPIv2Stations) {
 		auto st = stations.find(std::get<3>(station));
 		if (st == stations.end()) {
-			std::cout << SD_ERR << "[Weatherlink_v2 " << std::get<0>(station) << "] management: "
+			std::cout << SD_ERR << "[Weatherlink_v2 " << std::get<0>(station ) << "] management: "
 	    		<< "station is absent from the list of stations available in the API, is it unlinked?" << std::endl;
 			continue;
 		}

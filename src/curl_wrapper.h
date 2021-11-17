@@ -71,6 +71,12 @@ public:
 	 */
 	std::string_view getLastError();
 
+	/**
+	 * @brief Get the HTTP code of the last request made by curl
+	 * @return The last HTTP code received, or 0 if no request has already been made
+	 */
+	long getLastRequestCode();
+
 private:
     /**
      * @brief An alias for the curl library bare handle

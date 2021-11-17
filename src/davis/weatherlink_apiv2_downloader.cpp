@@ -131,7 +131,6 @@ std::unordered_map<std::string, pt::ptree> WeatherlinkApiv2Downloader::downloadA
 		pt::ptree jsonTree;
 		pt::read_json(contentStream, jsonTree);
 
-		std::unordered_map<std::string, pt::ptree> stations;
 		for (std::pair<const std::string, pt::ptree>& st : jsonTree.get_child("stations")) {
 			auto id = st.second.get<std::string>("station_id");
 			stations.insert_or_assign(id, st.second);
@@ -198,7 +197,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	}
 }
 
-void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
+void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 {
 	std::cout << SD_INFO <<  "[Weatherlink_v2 " << _station << "] measurement: "
 	    << "Weatherlink APIv2: downloading historical data for station " << _stationName << std::endl;
@@ -211,6 +210,15 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: "
 		  << "Last archive dates back from " << _lastArchive << "; now is " << end << "\n"
 		  << "(approximately " << days << " days)" << std::endl;
+
+	if (days.count() > MAX_DISCONNECTION_DAYS && !force) {
+		std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connection: "
+				  << "Station " << _stationName << " has been disconnected for more than "
+				  << MAX_DISCONNECTION_DAYS << " days, not downloading without --force, "
+				  << "please reset the station manually"
+				  << std::endl;
+		return;
+	}
 
 	bool stationIsDisconnected = false;
 	if (days.count() > 1) {
@@ -246,6 +254,11 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client)
 		});
 
 		if (ret != CURLE_OK) {
+			if (client.getLastRequestCode() == 403) {
+				std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connect: "
+						  << "Impossible to get archive for station " << _stationName << ", "
+						  << "please check that it's still got a PRO subscription" << std::endl;
+			}
 			logAndThrowCurlError(client);
 		}
 	}

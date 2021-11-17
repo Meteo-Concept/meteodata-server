@@ -67,7 +67,7 @@ public:
 		const std::string& apiKey, const std::string& apiSecret,
 		DbConnectionObservations& db,
 		TimeOffseter::PredefinedTimezone tz);
-	void download(CurlWrapper& client);
+	void download(CurlWrapper& client, bool force = false);
 	void downloadRealTime(CurlWrapper& client);
 	static std::unordered_map<std::string, boost::property_tree::ptree> downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
 
@@ -102,6 +102,8 @@ private:
 	void logAndThrowCurlError(CurlWrapper& client);
 
 	static const std::string BASE_URL;
+
+	static constexpr int MAX_DISCONNECTION_DAYS = 30;
 };
 
 }

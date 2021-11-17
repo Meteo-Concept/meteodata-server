@@ -89,6 +89,7 @@ int main(int argc, char** argv)
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
 		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations for which the min/max must be computed (can be given multiple times, defaults to all stations)")
+		("force,f", "whether to force downloads for stations never connected or disconnected for a long time")
 	;
 	desc.add(config);
 
@@ -145,7 +146,7 @@ int main(int argc, char** argv)
 
 				std::cerr << logLevel << ": " <<  message->message << " (from " << message->function << ", in " << message->file << ", line " << message->line << std::endl;
 			};
-		cass_log_set_callback(logCallback, NULL);
+		cass_log_set_callback(logCallback, nullptr);
 
 		// Start the Weatherlink downloaders workers (one per Weatherlink station)
 		std::vector<std::tuple<CassUuid, bool, std::map<int,CassUuid>, std::string>> weatherlinkStations;
@@ -154,6 +155,9 @@ int main(int argc, char** argv)
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		CurlWrapper client;
+		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key, weatherlinkApiV2Secret);
+
+		bool forceDownload = vm.count("force");
 
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
 			const auto& station = *it;
@@ -162,6 +166,12 @@ int main(int argc, char** argv)
 					++it;
 					continue;
 				}
+			}
+
+			if (allDiscovered.find(std::get<3>(station)) == allDiscovered.cend()) {
+				std::cerr << "Station absent from the API list: " << std::get<3>(station) << "," << std::get<0>(station) << std::endl;
+				++it;
+				continue;
 			}
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
@@ -175,7 +185,7 @@ int main(int argc, char** argv)
 					std::cerr << "No access to archives for station " << std::get<0>(station) << ", downloading the last datapoint" << std::endl;
 					downloader.downloadRealTime(client);
 				} else {
-					downloader.download(client);
+					downloader.download(client, forceDownload);
 				}
 				++it;
 			} catch (std::runtime_error& e) {
@@ -185,7 +195,6 @@ int main(int argc, char** argv)
 			++it;
 		}
 	} catch (std::exception& e) {
-		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
 		return 255;
 	}
