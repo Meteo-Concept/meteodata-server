@@ -19,7 +19,6 @@ src/autoscan-2.69.log
 src/config.h.in
 src/stamp-h1
 src/Makefile.am.user
-src/.deps/
 m4/libtool.m4
 m4/ltoptions.m4
 m4/ltsugar.m4
@@ -31,5 +30,17 @@ libtool
 *.tar.gz
 config.h
 depcomp
-meteodata
 Doxyfile
+.deps/
+.dirstamp
+src/meteodata
+src/meteodata-csv-standalone
+src/meteodata-fieldclimate-api-standalone
+src/meteodata-minmax
+src/meteodata-month-minmax
+src/meteodata-objenious-api-standalone
+src/meteodata-records
+src/meteodata-static-standalone
+src/meteodata-synop-standalone
+src/meteodata-weatherlink-apiv2-standalone
+src/meteodata-weatherlink-oldxml-standalone
