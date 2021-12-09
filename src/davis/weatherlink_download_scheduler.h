@@ -115,6 +115,15 @@ private:
 	 * realtime data more frequently than others, in minutes
 	 */
 	static constexpr int POLLING_PERIOD = 5;
+	/**
+	 * The delay between the time a datapoint should hit the Weatherlink
+	 * servers (for instance 16:15:00) and the time it's reasonable to
+	 * expect it to be available in the API (for instance 16:17:00
+	 * because it needs to be parsed, inserted in the DB, etc.).
+	 * This value must be kept < POLLING_PERIOD, otherwise the logic of
+	 * the scheduler will break.
+	 */
+	static constexpr int API_DELAY = 2;
 };
 
 }

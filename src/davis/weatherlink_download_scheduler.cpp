@@ -135,8 +135,9 @@ void WeatherlinkDownloadScheduler::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
 	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = chrono::minutes(realTimePollingPeriod) -
-	       (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
+	auto tp = realTimePollingPeriod -
+	       (chrono::system_clock::now().time_since_epoch() % realTimePollingPeriod) +
+	       chrono::minutes(API_DELAY);
 	_timer.expires_from_now(tp);
 	_timer.async_wait(std::bind(&WeatherlinkDownloadScheduler::checkDeadline, self, args::_1));
 }
@@ -191,7 +192,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 		auto st = stations.find(std::get<3>(station));
 		if (st == stations.end()) {
 			std::cout << SD_ERR << "[Weatherlink_v2 " << std::get<0>(station ) << "] management: "
-	    		<< "station is absent from the list of stations available in the API, is it unlinked?" << std::endl;
+			<< "station is absent from the list of stations available in the API, is it unlinked?" << std::endl;
 			continue;
 		}
 		addAPIv2(
