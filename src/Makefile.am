@@ -8,7 +8,8 @@ bin_PROGRAMS = \
 	       meteodata-static-standalone \
 	       meteodata-fieldclimate-api-standalone\
 	       meteodata-csv-standalone\
-	       meteodata-objenious-api-standalone
+	       meteodata-objenious-api-standalone\
+	       meteodata-cimel4A-standalone
 
 meteodata_SOURCES = \
 		    connector.cpp\
@@ -254,6 +255,12 @@ meteodata_objenious_api_standalone_SOURCES = \
 		    objenious/objenious_archive_message.cpp\
 		    objenious/objenious_archive_message.h
 
+meteodata_cimel4A_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cimel/cimel4A_importer.h\
+		    cimel/cimel4A_importer.cpp\
+		    cimel/cimel4A_import_standalone.cpp
 
 basecppflags = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(CASSANDRA_CFLAGS) $(DATE_CFLAGS) $(MYSQL_CFLAGS) $(CASSOBS_CFLAGS)
 allcppflags = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(SYSTEMD_CFLAGS)
@@ -318,3 +325,8 @@ meteodata_objenious_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_objenious_api_standalone_CXXFLAGS =
 meteodata_objenious_api_standalone_LDFLAGS = $(baseldflags)
 meteodata_objenious_api_standalone_LDADD = $(baselibs)
+
+meteodata_cimel4A_standalone_CPPFLAGS = $(basecppflags)
+meteodata_cimel4A_standalone_CXXFLAGS =
+meteodata_cimel4A_standalone_LDFLAGS = $(baseldflags)
+meteodata_cimel4A_standalone_LDADD = $(baselibs)

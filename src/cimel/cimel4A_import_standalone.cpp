@@ -1,11 +1,11 @@
 /**
- * @file csv_import_standalone.cpp
- * @brief Implementation of the CsvImportStandalone class
+ * @file cimel4A_import_standalone.cpp
+ * @brief Implementation of the importer program for CIMEL stations
  * @author Laurent Georget
- * @date 2020-10-10
+ * @date 2021-12-21
  */
 /*
- * Copyright (C) 2020  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2021  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,9 +30,7 @@
 #include <boost/program_options.hpp>
 
 #include "../time_offseter.h"
-#include "csv_importer.h"
-#include "wlk_message.h"
-#include "mileos_message.h"
+#include "cimel4A_importer.h"
 #include "config.h"
 
 #define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
@@ -58,6 +56,7 @@ int main(int argc, char** argv)
 	std::string uuid;
 	std::string tz;
 	std::string format;
+	std::string cimelId;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -65,8 +64,8 @@ int main(int argc, char** argv)
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
 		("input-file", po::value<std::string>(&inputFile), "input data file")
-		("format", po::value<std::string>(&format), R"(file format ("wlk" or "mileos"))")
 		("station", po::value<std::string>(&uuid), "station UUID")
+		("cimel", po::value<std::string>(&cimelId), "the CIMEL station ID (INSEE code followed by the station number)")
 		("timezone", po::value<std::string>(&tz), R"(timezone identifier (like "UTC" or "Europe/Paris"))")
 		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
 	;
@@ -108,11 +107,6 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	if (vm.count("format") != 1 || (format != "wlk" && format != "mileos")) {
-		std::cout << "You must give the format of the file and it must be either 'wlk' or 'mileos'" << std::endl;
-		return 1;
-	}
-
 	if (vm.count("input-file") != 1 || vm.count("station") != 1 || vm.count("timezone") != 1) {
 		std::cout << "You must give the input file, the station and the timezone." << std::endl;
 		return 1;
@@ -125,15 +119,10 @@ int main(int argc, char** argv)
 		CassUuid station;
 		cass_uuid_from_string(uuid.c_str(), &station);
 		std::ifstream fileStream(inputFile);
-		bool importResult = false;
 		date::sys_seconds start, end;
-		if (format == "wlk") {
-			CsvImporter<WlkMessage, '\t', 2> wlkImporter(station, tz, db);
-			importResult = doImport(wlkImporter, inputFile, start, end, updateLastArchiveDownloadTime);
-		} else { // format == "mileos"
-			CsvImporter<MileosMessage, ';', 1> mileosImporter(station, tz, db);
-			importResult = doImport(mileosImporter, inputFile, start, end, updateLastArchiveDownloadTime);
-		}
+
+		Cimel4AImporter cimel4AImporter(station, cimelId, tz, db);
+		bool importResult = cimel4AImporter.import(fileStream, start, end, updateLastArchiveDownloadTime);
 
 		if (importResult) {
 			std::cout << "Consider recomputing the climatology: \n"
@@ -151,7 +140,7 @@ int main(int argc, char** argv)
 			return 2;
 		}
 	} catch (std::exception& e) {
-		std::cerr << "Meteodata-csv-standalone met a critical error: " << e.what() << std::endl;
+		std::cerr << "Meteodata-cimel-standalone met a critical error: " << e.what() << std::endl;
 		return 255;
 	}
 
