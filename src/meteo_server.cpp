@@ -46,6 +46,7 @@
 #include "synop/synop_downloader.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
 #include "objenious/objenious_api_download_scheduler.h"
+#include "rest_web_server.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -186,6 +187,10 @@ void MeteoServer::start()
 					);
 		subscriber->start();
 	}
+
+	// Start the Web server for the REST API
+	auto restWebServer = std::make_shared<RestWebServer>(_ioService, _db);
+	restWebServer->start();
 
 	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 	startAccepting();

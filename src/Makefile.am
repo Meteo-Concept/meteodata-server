@@ -15,11 +15,15 @@ meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
 		    daemon.cpp\
+		    http_connection.cpp\
+		    http_connection.h\
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
 		    meteo_server.cpp\
 		    meteo_server.h\
+		    rest_web_server.cpp\
+		    rest_web_server.h\
 		    time_offseter.cpp\
 		    time_offseter.h\
 		    davis/abstract_weatherlink_api_message.cpp\
@@ -31,6 +35,8 @@ meteodata_SOURCES = \
 		    davis/vantagepro2_archive_page.h\
 		    davis/vantagepro2_connector.cpp\
 		    davis/vantagepro2_connector.h\
+		    davis/vantagepro2_http_request_handler.cpp\
+		    davis/vantagepro2_http_request_handler.h\
 		    davis/vantagepro2_message.cpp\
 		    davis/vantagepro2_message.h\
 		    davis/weatherlink_apiv1_realtime_message.cpp\
@@ -263,7 +269,7 @@ meteodata_cimel4A_standalone_SOURCES = \
 		    cimel/cimel4A_import_standalone.cpp
 
 basecppflags = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(CASSANDRA_CFLAGS) $(DATE_CFLAGS) $(MYSQL_CFLAGS) $(CASSOBS_CFLAGS)
-allcppflags = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(SYSTEMD_CFLAGS)
+allcppflags = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(BOOST_BEAST_CPPFLAGS) $(SYSTEMD_CFLAGS)
 
 baseldflags = $(BOOST_ASIO_LDFLAGS) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS) $(OPENSSL_LDFLAGS) $(CASSOBS_LDFLAGS) $(MYSQL_LDFLAGS) $(CASSANDRA_LDFLAGS) $(DATE_LDFLAGS)
 allldflags = $(baseldflags) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_PROPERTY_TREE_LDFLAGS) $(SYSTEMD_LDFLAGS)

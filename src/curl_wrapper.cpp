@@ -34,8 +34,9 @@
 namespace meteodata {
 
 CurlWrapper::CurlWrapper() :
-	_handle(curl_easy_init(), &curl_easy_cleanup),
-	_headers(nullptr, &curl_slist_free_all)
+	_handle{curl_easy_init(), &curl_easy_cleanup},
+	_headers{nullptr, &curl_slist_free_all},
+	_errorBuffer{}
 {
 	curl_easy_setopt(_handle.get(), CURLOPT_ERRORBUFFER, _errorBuffer);
 	curl_easy_setopt(_handle.get(), CURLOPT_WRITEFUNCTION, &CurlWrapper::receiveData);
@@ -90,7 +91,7 @@ CURLcode CurlWrapper::download(const std::string& url, std::function<void(const 
 
 std::string_view CurlWrapper::getLastError()
 {
-	return std::string_view(_errorBuffer);
+	return {_errorBuffer};
 }
 
 long CurlWrapper::getLastRequestCode()
@@ -103,7 +104,7 @@ long CurlWrapper::getLastRequestCode()
 std::size_t CurlWrapper::receiveData(void* buffer, std::size_t size, std::size_t nbemb, void* userp)
 {
 	// This function can be called several times by curl to output data from a HTTP query
-	std::string* destination = reinterpret_cast<std::string*>(userp);
+	auto* destination = reinterpret_cast<std::string*>(userp);
 	std::size_t realsize = size * nbemb;
 	if (realsize && buffer)
 		destination->append(reinterpret_cast<char*>(buffer), realsize);
