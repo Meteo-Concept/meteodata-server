@@ -65,6 +65,16 @@ public:
 	 */
 	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone, DbConnectionObservations& db);
 
+	/**
+	 * Constructs a Cimel4AImporter
+	 * @param station The station identifier in Meteodata
+	 * @param cimelId The CIMEL identifier of the station (to check for mixed up files), the CIMEL id is defined as
+	 * the INSEE code of the city followed by the station number (it's also the prefix of export filenames)
+	 * @param timeOffseter The timeOffseter this instance should use
+	 * @param db The database connection to insert data
+	 */
+	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db);
+
 	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = true);
 
 private:

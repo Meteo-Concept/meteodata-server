@@ -62,10 +62,7 @@ namespace meteodata {
 				targetFound = true;
 				if (verb == request.method()) {
 					(this->*handler)(request, response, std::move(match));
-					response.set(boost::beast::http::field::server, "Meteodata");
 					response.set(boost::beast::http::field::content_type, "text/plain");
-					response.keep_alive(request.keep_alive());
-					response.prepare_payload();
 					return;
 				}
 			}
@@ -181,8 +178,6 @@ namespace meteodata {
 
 			response.body() = "";
 			response.result(boost::beast::http::status::no_content);
-			response.keep_alive(request.keep_alive());
-			response.prepare_payload();
 		}
 	}
 }

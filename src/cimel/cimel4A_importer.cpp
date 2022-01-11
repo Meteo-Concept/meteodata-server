@@ -51,6 +51,14 @@ Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cim
 {
 }
 
+Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db) :
+		_station{station},
+		_cimelId{cimelId},
+		_db{db},
+		_tz{timeOffseter}
+{
+}
+
 bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
 {
 	std::string paragraph = readParagraph(input);

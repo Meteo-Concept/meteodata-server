@@ -26,6 +26,10 @@ meteodata_SOURCES = \
 		    rest_web_server.h\
 		    time_offseter.cpp\
 		    time_offseter.h\
+		    cimel/cimel4A_importer.cpp\
+		    cimel/cimel4A_importer.h\
+		    cimel/cimel_http_request_handler.cpp\
+		    cimel/cimel_http_request_handler.h\
 		    davis/abstract_weatherlink_api_message.cpp\
 		    davis/abstract_weatherlink_api_message.h\
 		    davis/abstract_weatherlink_downloader.h\

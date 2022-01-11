@@ -32,6 +32,7 @@
 #include "http_connection.h"
 #include "davis/vantagepro2_http_request_handler.h"
 #include <dbconnection_observations.h>
+#include <cimel/cimel_http_request_handler.h>
 
 namespace meteodata
 {
@@ -98,10 +99,16 @@ namespace meteodata
 
     void HttpConnection::processRequest()
     {
-		// One day, we'll have to test the request to know which is the appropriate handler for the request.
-		// For now, we have juste one.
-		VantagePro2HttpRequestHandler handler{_db};
-		handler.processRequest(_request, _response);
+		auto url = _request.target();
+		if (url.substr(0, 13) == "/imports/vp2/") {
+			VantagePro2HttpRequestHandler handler{_db};
+			handler.processRequest(_request, _response);
+		} else if (url.substr(0, 15) == "/imports/cimel/") {
+			CimelHttpRequestHandler handler{_db};
+			handler.processRequest(_request, _response);
+		} else {
+			_response.result(http::status::not_found);
+		}
 		writeResponse();
 		_timeout.expires_from_now(chrono::seconds(60));
     }
@@ -111,9 +118,11 @@ namespace meteodata
     {
         auto self = shared_from_this();
 
-        _response.content_length(_response.body().size());
+		_response.set(boost::beast::http::field::server, "Meteodata");
+		_response.keep_alive(_request.keep_alive());
+		_response.prepare_payload();
 
-        http::async_write(
+		http::async_write(
             _socket,
             _response,
             [self,this](beast::error_code ec, std::size_t)
