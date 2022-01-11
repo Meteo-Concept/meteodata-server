@@ -45,7 +45,8 @@ namespace meteodata
 	HttpConnection::HttpConnection(boost::asio::ip::tcp::socket&& socket,
 								   meteodata::DbConnectionObservations& db) :
 		_socket{std::move(socket)},
-		_db{db}
+		_db{db},
+		_timeout{_socket.get_executor()}
 	{
 	}
 

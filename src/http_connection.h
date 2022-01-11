@@ -46,7 +46,7 @@ namespace meteodata
 		boost::beast::flat_buffer _buffer{4096};
 		boost::beast::http::request<boost::beast::http::string_body> _request;
 		boost::beast::http::response<boost::beast::http::string_body> _response;
-		boost::asio::steady_timer _timeout{_socket.get_executor()};
+		boost::asio::steady_timer _timeout;
 
 		void readRequest();
 		void processRequest();
