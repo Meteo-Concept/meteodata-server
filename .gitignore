@@ -44,3 +44,4 @@ src/meteodata-static-standalone
 src/meteodata-synop-standalone
 src/meteodata-weatherlink-apiv2-standalone
 src/meteodata-weatherlink-oldxml-standalone
+src/meteodata-cimel4A-standalone
