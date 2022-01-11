@@ -35,7 +35,6 @@
 #include "time_offseter.h"
 #include "davis/vantagepro2_connector.h"
 #include "davis/weatherlink_download_scheduler.h"
-#include "davis/weatherlink_downloader.h"
 #include "mbdata/mbdata_txt_downloader.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
@@ -45,7 +44,6 @@
 #include "synop/deferred_synop_downloader.h"
 #include "synop/synop_downloader.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
-#include "objenious/objenious_api_download_scheduler.h"
 #include "rest_web_server.h"
 
 using namespace boost::asio;
@@ -54,146 +52,161 @@ using namespace boost::asio::ip;
 namespace meteodata
 {
 
-MeteoServer::MeteoServer(boost::asio::io_service& ioService, const std::string& address,
-		const std::string& user, const std::string& password,
-		const std::string& weatherlinkAPIv2Key, const std::string& weatherlinkAPIv2Secret,
-		const std::string& fieldClimateApiKey, const std::string& fieldClimateApiSecret,
-		const std::string& objeniousApiKey) :
-	_ioService(ioService),
-	_acceptor(ioService, tcp::endpoint(tcp::v4(), 5886)),
-	_db(address, user, password),
-	_weatherlinkAPIv2Key(weatherlinkAPIv2Key),
-	_weatherlinkAPIv2Secret(weatherlinkAPIv2Secret),
-	_fieldClimateApiKey(fieldClimateApiKey),
-	_fieldClimateApiSecret(fieldClimateApiSecret),
-	_objeniousApiKey(objeniousApiKey)
+MeteoServer::MeteoServer(boost::asio::io_service& ioService,
+						 MeteoServer::MeteoServerConfiguration&& config) :
+	_ioService{ioService},
+	_acceptor{ioService, tcp::endpoint{tcp::v4(), 5886}},
+	_db{config.address, config.user, config.password},
+	_configuration{config}
 {
+	_configuration.password.clear();
+
 	std::cerr << SD_INFO << "[Server] management: "
 	    << "Meteodata has started succesfully" << std::endl;
 }
 
 void MeteoServer::start()
 {
-	// Start the MQTT subscribers (one per station)
-	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
-	std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
-	std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
-	std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
-	_db.getAllObjeniousApiStations(objeniousStations);
-	_db.getMqttStations(mqttStations);
-	for (auto&& station : mqttStations) {
-		MqttSubscriber::MqttSubscriptionDetails details{
-			std::get<1>(station),
-			std::get<2>(station),
-			std::get<3>(station),
-			std::string(std::get<4>(station).get(), std::get<5>(station))
-		};
+	if (_configuration.startMqtt) {
+		// Start the MQTT subscribers (one per station)
+		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
+		_db.getAllObjeniousApiStations(objeniousStations);
+		_db.getMqttStations(mqttStations);
+		for (auto&& station : mqttStations) {
+			MqttSubscriber::MqttSubscriptionDetails details{
+				std::get<1>(station),
+				std::get<2>(station),
+				std::get<3>(station),
+				std::string(std::get<4>(station).get(), std::get<5>(station))
+			};
 
-		const CassUuid& uuid = std::get<0>(station);
-		const std::string& topic = std::get<6>(station);
-		TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
-		if (topic.substr(0, 4) == "vp2/") {
-			auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
-			if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
-				std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
-					details, _ioService, _db);
-				mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
-			}
-			mqttSubscribersIt->second->addStation(topic, uuid, tz);
-		} else if (topic.substr(0, 10) == "objenious/") {
-			auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
-			if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
-				std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
-					details, _ioService, _db
-				);
-				mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
-			}
+			const CassUuid& uuid = std::get<0>(station);
+			const std::string& topic = std::get<6>(station);
+			TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
+			if (topic.substr(0, 4) == "vp2/") {
+				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
+				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
+					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
+						details, _ioService, _db);
+					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
+				}
+				mqttSubscribersIt->second->addStation(topic, uuid, tz);
+			} else if (topic.substr(0, 10) == "objenious/") {
+				auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
+				if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
+					std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
+						details, _ioService, _db
+					);
+					mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
+				}
 
-			auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
-					[&uuid](auto&& objSt){ return uuid == std::get<0>(objSt); });
-			if (it != objeniousStations.end()) {
-				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
+				auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
+						[&uuid](auto&& objSt){ return uuid == std::get<0>(objSt); });
+				if (it != objeniousStations.end()) {
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
+				}
+			} else {
+				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: "
+					<< "Unrecognized topic " << topic
+					<< " for MQTT station " << std::get<0>(station) << std::endl;
 			}
-		} else {
-			std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: "
-			    << "Unrecognized topic " << topic
-				<< " for MQTT station " << std::get<0>(station) << std::endl;
+		}
+
+		for (auto&& mqttSubscriber : vp2MqttSubscribers)
+			mqttSubscriber.second->start();
+		for (auto&& mqttSubscriber : objeniousMqttSubscribers)
+			mqttSubscriber.second->start();
+	}
+
+	if (_configuration.startSynop) {
+		// Start the Synop downloader worker (one for all the SYNOP stations in
+		// the same group)
+		auto synopDownloaderFr = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_FR);
+		synopDownloaderFr->start();
+		auto synopDownloaderLu = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_LU);
+		synopDownloaderLu->start();
+
+		// Start the deferred SYNOP downloader worker (one for each deferred SYNOP)
+		std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
+		_db.getDeferredSynops(deferredSynops);
+		for (auto&& synop : deferredSynops) {
+			auto deferredSynopDownloader =
+				std::make_shared<DeferredSynopDownloader>(
+						_ioService, _db,
+						std::get<1>(synop),
+						std::get<0>(synop)
+						);
+			deferredSynopDownloader->start();
 		}
 	}
 
-	for (auto&& mqttSubscriber : vp2MqttSubscribers)
-		mqttSubscriber.second->start();
-	for (auto&& mqttSubscriber : objeniousMqttSubscribers)
-		mqttSubscriber.second->start();
-
-	// Start the Synop downloader worker (one for all the SYNOP stations in
-	// the same group)
-	auto synopDownloaderFr = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_FR);
-	synopDownloaderFr->start();
-	auto synopDownloaderLu = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_LU);
-	synopDownloaderLu->start();
-
-	// Start the deferred SYNOP downloader worker (one for each deferred SYNOP)
-	std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
-	_db.getDeferredSynops(deferredSynops);
-	for (auto&& synop : deferredSynops) {
-		auto deferredSynopDownloader =
-			std::make_shared<DeferredSynopDownloader>(
-					_ioService, _db,
-					std::get<1>(synop),
-					std::get<0>(synop)
-					);
-		deferredSynopDownloader->start();
+	if (_configuration.startShip) {
+		// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
+		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
+		meteofranceDownloader->start();
 	}
 
-	// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
-	auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
-	meteofranceDownloader->start();
-
-	// Start the StatIC stations downloaders (one per station)
-	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int>> statICTxtStations;
-	_db.getStatICTxtStations(statICTxtStations);
-	for (auto&& station : statICTxtStations) {
-		auto subscriber =
-			std::make_shared<StatICTxtDownloader>(
-					_ioService, _db,
-					std::get<0>(station),
-					std::get<1>(station),
-					std::get<2>(station),
-					std::get<3>(station),
-					std::get<4>(station)
-					);
-		subscriber->start();
+	if (_configuration.startStatic) {
+		// Start the StatIC stations downloaders (one per station)
+		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int>> statICTxtStations;
+		_db.getStatICTxtStations(statICTxtStations);
+		for (auto&& station : statICTxtStations) {
+			auto subscriber =
+				std::make_shared<StatICTxtDownloader>(
+						_ioService, _db,
+						std::get<0>(station),
+						std::get<1>(station),
+						std::get<2>(station),
+						std::get<3>(station),
+						std::get<4>(station)
+						);
+			subscriber->start();
+		}
 	}
 
-	// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station but they
-	// share a single HTTP client)
-	auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(_weatherlinkAPIv2Key), std::move(_weatherlinkAPIv2Secret));
-	weatherlinkScheduler->start();
-
-	// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station but they
-	// share a single HTTP client)
-	auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(_fieldClimateApiKey), std::move(_fieldClimateApiSecret));
-	fieldClimateScheduler->start();
-
-	// Start the MBData txt downloaders workers (one per station)
-	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
-	_db.getMBDataTxtStations(mbDataTxtStations);
-	for (auto&& station : mbDataTxtStations) {
-		auto subscriber =
-			std::make_shared<MBDataTxtDownloader>(
-					_ioService, _db,
-					station
-					);
-		subscriber->start();
+	if (_configuration.startWeatherlink) {
+		// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station but they
+		// share a single HTTP client)
+		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(
+				_configuration.weatherlinkApiV2Key), std::move(_configuration.weatherlinkApiV2Secret));
+		weatherlinkScheduler->start();
 	}
 
-	// Start the Web server for the REST API
-	auto restWebServer = std::make_shared<RestWebServer>(_ioService, _db);
-	restWebServer->start();
+	if (_configuration.startFieldclimate) {
+		// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station but they
+		// share a single HTTP client)
+		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(
+				_configuration.fieldClimateApiKey), std::move(_configuration.fieldClimateApiSecret));
+		fieldClimateScheduler->start();
+	}
 
-	// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
-	startAccepting();
+	if (_configuration.startMbdata) {
+		// Start the MBData txt downloaders workers (one per station)
+		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
+		_db.getMBDataTxtStations(mbDataTxtStations);
+		for (auto&& station : mbDataTxtStations) {
+			auto subscriber =
+					std::make_shared<MBDataTxtDownloader>(
+							_ioService, _db,
+							station
+					);
+			subscriber->start();
+		}
+	}
+
+	if (_configuration.startRest) {
+		// Start the Web server for the REST API
+		auto restWebServer = std::make_shared<RestWebServer>(_ioService, _db);
+		restWebServer->start();
+	}
+
+	if (_configuration.startVp2) {
+		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
+		startAccepting();
+	}
 }
 
 void MeteoServer::startAccepting()
