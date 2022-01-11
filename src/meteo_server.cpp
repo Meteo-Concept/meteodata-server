@@ -55,7 +55,7 @@ namespace meteodata
 MeteoServer::MeteoServer(boost::asio::io_service& ioService,
 						 MeteoServer::MeteoServerConfiguration&& config) :
 	_ioService{ioService},
-	_acceptor{ioService, tcp::endpoint{tcp::v4(), 5886}},
+	_acceptor{ioService},
 	_db{config.address, config.user, config.password},
 	_configuration{config}
 {
@@ -211,6 +211,7 @@ void MeteoServer::start()
 
 void MeteoServer::startAccepting()
 {
+	_acceptor.bind(tcp::endpoint{tcp::v4(), 5886});
 	Connector::ptr newConnector =
 		Connector::create<VantagePro2Connector>(_ioService, _db);
 	_acceptor.async_accept(
