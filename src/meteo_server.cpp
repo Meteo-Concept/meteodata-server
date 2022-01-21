@@ -205,13 +205,15 @@ void MeteoServer::start()
 
 	if (_configuration.startVp2) {
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
+		_acceptor.open(tcp::v4());
+		_acceptor.bind(tcp::endpoint{tcp::v4(), 5886});
+		_acceptor.listen();
 		startAccepting();
 	}
 }
 
 void MeteoServer::startAccepting()
 {
-	_acceptor.bind(tcp::endpoint{tcp::v4(), 5886});
 	Connector::ptr newConnector =
 		Connector::create<VantagePro2Connector>(_ioService, _db);
 	_acceptor.async_accept(
