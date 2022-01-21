@@ -206,6 +206,7 @@ void MeteoServer::start()
 	if (_configuration.startVp2) {
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 		_acceptor.open(tcp::v4());
+		_acceptor.set_option(tcp::acceptor::reuse_address(true));
 		_acceptor.bind(tcp::endpoint{tcp::v4(), 5886});
 		_acceptor.listen();
 		startAccepting();
