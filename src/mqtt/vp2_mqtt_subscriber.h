@@ -26,7 +26,7 @@
 
 #include <iostream>
 #include <memory>
-#include <array>
+#include <map>
 #include <vector>
 #include <functional>
 #include <chrono>
@@ -58,8 +58,7 @@ public:
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
-
-	void checkDeadline(const boost::system::error_code& e);
+	std::map<std::string, date::sys_seconds> _clockResetTimes;
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;

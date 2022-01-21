@@ -74,7 +74,7 @@ protected:
 
 	std::map<std::uint16_t, std::string> _subscriptions;
 	/**
-	 * @brief Map from station UUID to station UUID, station name, polling period, last archive insertion datetime, time offseter
+	 * @brief Map from topic to station UUID, station name, polling period, last archive insertion datetime, time offseter
 	 */
 	std::map<std::string, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>> _stations;
 	decltype(mqtt::make_tls_client(_ioService, _details.host, _details.port)) _client;

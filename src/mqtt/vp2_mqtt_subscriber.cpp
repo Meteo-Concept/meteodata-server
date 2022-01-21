@@ -25,6 +25,7 @@
 #include <memory>
 #include <functional>
 #include <iterator>
+#include <map>
 #include <chrono>
 #include <sstream>
 #include <systemd/sd-daemon.h>
@@ -91,12 +92,11 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 	return true;
 }
 
-void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
-{
+void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) {
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT protocol]: "
-		    << "Unknown topic " << topicName << std::endl;
+				  << "Unknown topic " << topicName << std::endl;
 		return;
 	}
 
@@ -104,14 +104,14 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	const std::string& stationName = std::get<1>(stationIt->second);
 	const TimeOffseter& timeOffseter = std::get<4>(stationIt->second);
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
-	    << "Now receiving for MQTT station " << stationName << std::endl;
+			  << "Now receiving for MQTT station " << stationName << std::endl;
 
 	std::size_t expectedSize = sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint);
 	std::size_t receivedSize = content.size();
 	if (receivedSize != expectedSize) {
 		std::cerr << SD_WARNING << "[MQTT " << station << "] protocol: "
-		    << "input from broker has an invalid size "
-			<< "(" << receivedSize << " bytes instead of " << expectedSize << ")" << std::endl;
+				  << "input from broker has an invalid size "
+				  << "(" << receivedSize << " bytes instead of " << expectedSize << ")" << std::endl;
 		return;
 	}
 
@@ -123,20 +123,21 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		ret = _db.insertV2DataPoint(msg.getObservation(station));
 	} else {
 		std::cerr << SD_WARNING << "[MQTT " << station << "] measurement: "
-		    << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
+				  << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp()
+				  << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
 	}
 
 	if (ret) {
 		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
-		    << "Archive data stored" << std::endl;
+				  << "Archive data stored" << std::endl;
 		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-			    << "Couldn't update last archive download time" << std::endl;
+					  << "Couldn't update last archive download time" << std::endl;
 	} else {
 		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: "
-		    << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
+				  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}
@@ -144,18 +145,20 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	// about once per hour, set the clock (it seems very frequent, but it doesn't matter)
 	using namespace date;
 	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
-	int pollingPeriod = std::get<2>(stationIt->second);
-	if (now.time_since_epoch() % chrono::hours(1) < chrono::minutes(pollingPeriod)) {
-		date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
-		// The topic name ought to be vp2/<client>/dmpaft, we can write
-		// to vp2/<client> to send the SETTIME command
-		if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
-			std::string topic{topicName.substr(0, topicName.size() - 7)};
+	// The topic name ought to be vp2/<client>/dmpaft, we can write
+	// to vp2/<client> to send the SETTIME command
+	if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
+		std::string topic{topicName.substr(0, topicName.size() - 7)};
+		if (_clockResetTimes[topic] + chrono::hours(1) < now) {
+			date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
+			std::cerr << SD_INFO << "[MQTT " << station << "] protocol: "
+					  << "Setting the station clock to " << date::format("%Y-%m-%d %H:%M:%S", stationTime) << std::endl;
 			_client->publish_at_least_once(
-				topic,
-				date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime)
+					topic,
+					date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime)
 			);
 		}
+		_clockResetTimes[topic] = now;
 	}
 }
 
