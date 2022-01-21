@@ -70,14 +70,21 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 		} else {
 			const date::sys_seconds& lastArchive = std::get<3>(station);
 			int pollingPeriod = std::get<2>(station);
-			// The topic name ought to be vp2/<client>/dmpaft, we can write
-			// to vp2/<client> to request the archives
-			if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
-				if (chrono::system_clock::now() - lastArchive > chrono::minutes(pollingPeriod))
+			if (chrono::system_clock::now() - lastArchive > chrono::minutes(pollingPeriod)) {
+				// The topic name ought to be vp2/<client>/dmpaft, we can write
+				// to vp2/<client> to request the archives
+				if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
+					// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
+					_client->publish_at_least_once(
+							topic.substr(0, topic.size() - 7),
+							"GETTIME"
+					);
+					// Fetch all the archives available right now, this will resync the scheduler at the same time
 					_client->publish_at_least_once(
 							topic.substr(0, topic.size() - 7),
 							date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive)
-							);
+					);
+				}
 			}
 		}
 	}
@@ -97,7 +104,7 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	const std::string& stationName = std::get<1>(stationIt->second);
 	const TimeOffseter& timeOffseter = std::get<4>(stationIt->second);
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
-	    << "Now downloading for MQTT station " << stationName << std::endl;
+	    << "Now receiving for MQTT station " << stationName << std::endl;
 
 	std::size_t expectedSize = sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint);
 	std::size_t receivedSize = content.size();
@@ -118,6 +125,7 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		std::cerr << SD_WARNING << "[MQTT " << station << "] measurement: "
 		    << "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp() << " and system clock says " << chrono::system_clock::now() << ")" << std::endl;
 	}
+
 	if (ret) {
 		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
 		    << "Archive data stored" << std::endl;
@@ -131,6 +139,23 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		    << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
+	}
+
+	// about once per hour, set the clock (it seems very frequent, but it doesn't matter)
+	using namespace date;
+	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	int pollingPeriod = std::get<2>(stationIt->second);
+	if (now.time_since_epoch() % chrono::hours(1) < chrono::minutes(pollingPeriod)) {
+		date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
+		// The topic name ought to be vp2/<client>/dmpaft, we can write
+		// to vp2/<client> to send the SETTIME command
+		if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
+			std::string topic{topicName.substr(0, topicName.size() - 7)};
+			_client->publish_at_least_once(
+				topic,
+				date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime)
+			);
+		}
 	}
 }
 

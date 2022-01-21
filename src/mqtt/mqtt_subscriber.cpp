@@ -34,6 +34,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
+#include <utility>
 
 #include "../time_offseter.h"
 #include "../cassandra_utils.h"
@@ -241,7 +242,7 @@ void MqttSubscriber::start()
 	);
 	_client->set_suback_handler(
 		[this,self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
-			return handleSubAck(packetId, results);
+			return handleSubAck(packetId, std::move(results));
 		}
 	);
 	_client->set_publish_handler(

@@ -29,8 +29,10 @@
 #include <array>
 #include <vector>
 #include <functional>
+#include <chrono>
 #include <unistd.h>
 
+#include <boost/asio/steady_timer.hpp>
 #include <boost/system/error_code.hpp>
 #include <cassandra.h>
 #include <date/date.h>
@@ -56,6 +58,8 @@ public:
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
+
+	void checkDeadline(const boost::system::error_code& e);
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
