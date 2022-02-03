@@ -77,6 +77,17 @@ namespace meteodata {
 		return true;
 	}
 
+	void CimelHttpRequestHandler::getLastArchive(const Request& request, Response& response, std::cmatch&& url) {
+		CassUuid uuid;
+		if (getUuidAndCheckAccess(request, response, uuid, url)) {
+			std::string name;
+			int pollingPeriod;
+			time_t lastDownload;
+			_db.getStationDetails(uuid, name, pollingPeriod, lastDownload);
+			response.body() = std::to_string(lastDownload);
+		}
+	}
+
 	void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& response, std::cmatch&& url) {
 		CassUuid uuid;
 
@@ -104,8 +115,10 @@ namespace meteodata {
 			date::sys_seconds start, end;
 			Cimel4AImporter cimel4AImporter(uuid, info.cimelId, std::move(timeOffseter), _db);
 
+			date::year year{std::stoi(url[2].str())};
+
 			response.body() = "";
-			if (cimel4AImporter.import(stream, start, end, true)) {
+			if (cimel4AImporter.import(stream, start, end, year, true)) {
 				std::cerr << SD_INFO << "[CIMEL HTTP " << uuid << "] measurement: "
 						  << "stored archive for station " << name
 						  << std::endl;

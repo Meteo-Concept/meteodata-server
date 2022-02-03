@@ -64,12 +64,14 @@ namespace meteodata {
 
 		bool getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid, const std::cmatch& url);
 
+		void getLastArchive(const Request& request, Response& response, std::cmatch&& url);
 		void postArchiveFile(const Request& request, Response& response, std::cmatch&& url);
 
 		using Route = void (CimelHttpRequestHandler::*)(const Request& request, Response& response, std::cmatch&& url);
 
 		const std::array<std::tuple<boost::beast::http::verb, std::regex, CimelHttpRequestHandler::Route>, 2> routes = {
-				std::make_tuple( boost::beast::http::verb::post, std::regex{"/imports/cimel/4A/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/?"} , &CimelHttpRequestHandler::postArchiveFile )
+				std::make_tuple( boost::beast::http::verb::get, std::regex{"/imports/cimel/4A/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"} , &CimelHttpRequestHandler::getLastArchive ),
+				std::make_tuple( boost::beast::http::verb::post, std::regex{"/imports/cimel/4A/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/((?:19|20)[0-9]{2})/?"} , &CimelHttpRequestHandler::postArchiveFile )
 		};
 
 	};

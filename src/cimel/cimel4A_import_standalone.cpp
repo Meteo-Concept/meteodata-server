@@ -26,6 +26,7 @@
 #include <map>
 #include <sstream>
 #include <fstream>
+#include <limits>
 
 #include <boost/program_options.hpp>
 
@@ -57,6 +58,7 @@ int main(int argc, char** argv)
 	std::string tz;
 	std::string format;
 	std::string cimelId;
+	int year;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -68,6 +70,7 @@ int main(int argc, char** argv)
 		("cimel", po::value<std::string>(&cimelId), "the CIMEL station ID (INSEE code followed by the station number)")
 		("timezone", po::value<std::string>(&tz), R"(timezone identifier (like "UTC" or "Europe/Paris"))")
 		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
+		("year", po::value<int>(&year), "the year the observations were collected (defaults to the current year, it cannot be deduced from the content)")
 	;
 
 	po::positional_options_description pd;
@@ -114,6 +117,18 @@ int main(int argc, char** argv)
 
 	bool updateLastArchiveDownloadTime = vm.count("update-last-download-time");
 
+	date::year y = date::year_month_day{date::floor<date::days>(std::chrono::system_clock::now())}.year();
+	if (vm.count("year")) {
+		if (date::year{year} > y || year < 1900) {
+			std::cout << "The year " << year << " looks awfully suspicious, proceed anyway with Enter, or abort the program." << std::endl;
+
+			std::cin.ignore(std::numeric_limits<std::streamsize>::max());
+			std::string dummy;
+			std::cin >> dummy;
+		}
+		y = date::year{year};
+	}
+
 	try {
 		DbConnectionObservations db(address, user, password);
 		CassUuid station;
@@ -122,7 +137,7 @@ int main(int argc, char** argv)
 		date::sys_seconds start, end;
 
 		Cimel4AImporter cimel4AImporter(station, cimelId, tz, db);
-		bool importResult = cimel4AImporter.import(fileStream, start, end, updateLastArchiveDownloadTime);
+		bool importResult = cimel4AImporter.import(fileStream, start, end, y, updateLastArchiveDownloadTime);
 
 		if (importResult) {
 			std::cout << "Consider recomputing the climatology: \n"

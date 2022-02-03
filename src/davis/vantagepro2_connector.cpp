@@ -195,7 +195,7 @@ void VantagePro2Connector::handleSetTimeDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
-		_setTimeTimer.async_wait(std::bind(&VantagePro2Connector::checkDeadline, self, _1));
+		_setTimeTimer.async_wait(std::bind(&VantagePro2Connector::handleSetTimeDeadline, self, _1));
 	}
 }
 

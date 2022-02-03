@@ -22,7 +22,6 @@
  */
 
 #include <iostream>
-#include <regex>
 #include <string>
 
 #include <systemd/sd-daemon.h>
@@ -59,139 +58,121 @@ Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cim
 {
 }
 
-bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
+bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year, bool updateLastArchiveDownloadTime)
 {
-	std::string paragraph = readParagraph(input);
+	// Parse header "S0\s+"
+	char header[4];
+	input >> header[0] >> header[1] >> std::ws >> header[2] >> header[3];
+	if (header[0] != 'S' || header[1] != '0') {
+		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong header \"" << header[0] << header[1] << "\" (expected \"S0\")" << std::endl;
+		return false;
+	}
 
-	std::regex id{"^S0\\s+(.{2})(.{2})(.{4}).(.)"};
-	std::smatch match;
-	auto result = std::regex_search(paragraph, match, id);
+	if (header[2] != '4' || header[3] != 'A') {
+		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station type \"" << header[2] << header[3] << "\" (expected \"4A\")" << std::endl;
+		return false;
+	}
 
-	if (result) {
-		int dept = parseInt(match[2].str());
-		int city = parseInt(match[3].str());
-		int nb   = parseInt(match[4].str());
+	int dept, city, nb;
+	input >> parse(dept, 2, 16)
+		  >> parse(city, 4, 16)
+		  >> ignore(1)
+		  >> parse(nb, 1, 16);
 
-		if (match[1].str() != "4A") {
-			std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station type \"" << match[1].str() << "\" (expected \"4A\")" << std::endl;
-			return false;
-		}
-
-		std::string detectedId = std::to_string(dept * 10000 + city * 10 + nb);
-		if (detectedId != _cimelId) {
-			std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station id \"" << detectedId << "\" (expected \"" << _cimelId << "\")" << std::endl;
-			return false;
-		}
+	std::string detectedId = std::to_string(dept * 10000 + city * 10 + nb);
+	if (detectedId != _cimelId) {
+		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station id \"" << detectedId << "\" (expected \"" << _cimelId << "\")" << std::endl;
+		return false;
 	}
 
 	auto now = chrono::system_clock::now();
-	auto currentYear = date::year_month_day{date::floor<date::days>(now)}.year();
 	start = date::floor<chrono::seconds>(now);
 	end = date::floor<chrono::seconds>(chrono::system_clock::from_time_t(0));
 
 	for (;;) {
+		Observation o;
+
+		// Ignore until next paragraph
+		input.ignore(std::numeric_limits<std::streamsize>::max(), 'S');
+		input.unget();
+		input >> header[0] >> header[1] >> std::ws;
+		if (header[0] != 'S' || header[1] != '0') {
+			std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong daily value header \"" << header[0] << header[1] << "\" (expected \"S0\")" << std::endl;
+			return false;
+		}
 		if (!input)
 			break;
 
-		Observation o;
+		unsigned int day, month;
+		int tn, tx, rainfall;
+		input >> parse(day, 2, 10) >> parse(month, 2, 10)
+			  >> parse(tn,  4, 16) >> parse(tx,    4, 16)
+			  >> ignore(24)
+			  >> parse(rainfall, 4, 16)
+			  >> ignore(88);
 
-		paragraph = readParagraph(input);
+		date::year_month_day ymd{year, date::month{month}, date::day{day}};
+		date::sys_days date{ymd};
+		auto timestamp = chrono::system_clock::to_time_t(date);
 
-		std::regex dailyValues{
-			"^S0\\s+"            // start
-			"([0-9]{2})([0-9]{2})"       // day / month
-			"([0-9A-F]{4})([0-9A-F]{4})([0-9A-F]{4})" // Tn / Tx / Tm
-			"[0-9A-F]{2}[0-9A-F]{2}" // hour of Tn / hour of Tx
-			"[0-9A-F]{16}"              // ignored: humidity
-			"([0-9A-F]{4})"             // rainfall
-			"[0-9A-F]{88}"              // ignored
+		if (tn != 0xFFFF)
+			_db.insertV2Tn(_station, timestamp, static_cast<float>(tn - 400) / 10.f);
+		if (tx != 0xFFFF)
+			_db.insertV2Tn(_station, timestamp, static_cast<float>(tx - 400) / 10.f);
+
+		if (rainfall != 0xFFFF)
+			_db.insertV2EntireDayValues(_station, timestamp, {true, static_cast<float>(rainfall) / 10.f}, {false, 0});
+
+		for (int hour = 0 ; hour < 24 ; hour++) { // No DST? Nothing visible in the example data files anyway.
+			o.station = _station;
+			// + chrono::seconds(0) prevents a compilation issue where the time subdivision doesn't match
+			auto t = _tz.convertFromLocalTime(date::local_days{ymd} + chrono::hours(hour) + chrono::seconds(0));
+			o.day = date::floor<date::days>(t);
+			o.time = date::floor<chrono::seconds>(t);
+			if (start > o.time)
+				start = o.time;
+			if (o.time > end)
+				end = o.time;
+
+			int temp, hum, rain, rainrate, leafwetness;
+			input >> parse(temp, 4, 16)
+				  >> parse(hum,  2, 16)
+				  >> ignore(2)
+				  >> parse(rain, 4, 16)
+				  >> parse(rainrate, 2, 16)
+				  >> parse(leafwetness, 2, 16);
+
+			o.outsidetemp = { temp     != 0xFFFF, static_cast<float>(temp - 400) / 10.f };
+			o.outsidehum  = { hum      != 0xFF  , static_cast<float>(hum) / 2.f };
+			o.rainfall    = { rain     != 0xFFFF, static_cast<float>(rain) / 10. };
+			o.rainrate    = { rainrate != 0xFF  , static_cast<float>(rainrate) };
+			o.leafwetness_timeratio1 = { leafwetness != 0xFF, static_cast<float>(leafwetness) * 60. };
+
+			bool ret = _db.insertV2DataPoint(o);
+			if (!ret) {
+				std::cerr << SD_ERR << "[Cimel4A " << _station << "] measurement: failed to insert datapoint" << std::endl;
+			}
 		};
-		result = std::regex_search(paragraph, match, dailyValues);
-		if (result) {
-			auto ymd = date::year_month_day{
-					currentYear,
-					date::month(std::stoi(match[2].str(), nullptr, 10)),
-					date::day(std::stoi(match[1].str(), nullptr, 10))
-			};
-			date::sys_days date{ymd};
-			if (match[3].str() != "FFFF")
-				_db.insertV2Tn(_station, chrono::system_clock::to_time_t(date), (parseInt(match[4].str()) - 400) / 10.);
-			if (match[4].str() != "FFFF")
-				_db.insertV2Tx(_station, chrono::system_clock::to_time_t(date), (parseInt(match[3].str()) - 400) / 10.);
-			if (match[6].str() != "FFFF")
-				_db.insertV2EntireDayValues(_station, chrono::system_clock::to_time_t(date), {true, parseInt(match[6].str()) / 10.}, {false, 0});
+	}
 
-			std::regex hourlyValues{
-					"(.{4})(.{2}).{2}(.{4})(.{2})(.{2})"
-			};
-			auto hourlyDataBegin = std::sregex_iterator(match[0].second, paragraph.end(), hourlyValues);
-			auto hourlyDataEnd   = std::sregex_iterator();
-
-			int hour = 0;
-			for (auto i = hourlyDataBegin ; i != hourlyDataEnd ; ++i) {
-				auto&& m = *i;
-				o.station = _station;
-				// + chrono::seconds(0) prevents a compilation issue where the time subdivision doesn't match
-				auto timestamp = _tz.convertFromLocalTime(date::local_days{ymd} + chrono::hours(hour) + chrono::seconds(0));
-				o.day = date::floor<date::days>(timestamp);
-				o.time = date::floor<chrono::seconds>(timestamp);
-				if (start > o.time)
-					start = o.time;
-				if (o.time > end)
-					end = o.time;
-
-				o.outsidetemp = { m[1].str() != "FFFF", (parseInt(m[1].str()) - 400) / 10. };
-				o.outsidehum  = { m[2].str() != "FF"  , parseInt(m[2].str()) / 2. };
-				o.rainfall    = { m[3].str() != "FFFF", parseInt(m[3].str()) / 10. };
-				o.rainrate    = { m[4].str() != "FF"  , parseInt(m[4].str()) };
-				o.leafwetness_timeratio1 = { m[5].str() != "FF", parseInt(m[5].str()) * 60. };
-
-				bool ret = _db.insertV2DataPoint(o);
-				if (!ret) {
-					std::cerr << SD_ERR << "[Cimel4A " << _station << "] measurement: failed to insert datapoint" << std::endl;
-				}
-				hour++;
-			}
-
-			if (updateLastArchiveDownloadTime) {
-				bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
-				if (!ret) {
-					std::cerr << SD_ERR << "[Cimel4A " << _station << "] management: failed to update the last archive download datetime" << std::endl;
-				}
-			}
+	if (updateLastArchiveDownloadTime) {
+		bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
+		if (!ret) {
+			std::cerr << SD_ERR << "[Cimel4A " << _station << "] management: failed to update the last archive download datetime" << std::endl;
 		}
 	}
 	return true;
 }
 
-int Cimel4AImporter::parseInt(const std::string& s)
-{
-	int result = 0;
-	for (char c: s) {
-		if (c >= '0' && c <= '9') {
-			result = result * 16 + c - '0';
-		} else if (c >= 'A' && c <= 'F') {
-			result = result * 16 + c - 'A' + 10;
+std::istream& operator>>(std::istream& is, const Cimel4AImporter::Ignorer& ignorer) {
+	std::streamsize i = ignorer.length;
+	while (i > 0) {
+		auto c = is.get();
+		if (!std::isspace(c)) {
+			i--; // do not count blank characters
 		}
 	}
-	return result;
-}
-
- std::string Cimel4AImporter::readParagraph(std::istream& in)
-{
-	char c = in.get();
-	if (c != 'S')
-		return "";
-
-	std::string paragraph;
-	do {
-		if (c != '\n' && c != '\r')
-			paragraph += c;
-		c = in.get();
-	} while (in && c != 'S');
-	in.unget();
-
-	return paragraph;
+	return is;
 }
 
 }

@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
@@ -75,18 +76,60 @@ public:
 	 */
 	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db);
 
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = true);
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year, bool updateLastArchiveDownloadTime = true);
+
+	template<typename T>
+	struct Parser
+	{
+		int length = 2;
+		int base = 10;
+
+		T& destination;
+	};
+
+	template<typename T>
+	static Parser<T> parse(T& destination, int length, int base)
+	{
+		return Parser<T>{length, base, destination};
+	}
+
+	struct Ignorer
+	{
+		std::streamsize length;
+	};
+
+	static Ignorer ignore(std::streamsize length)
+	{
+		return Ignorer{length};
+	}
 
 private:
 	CassUuid _station;
 	std::string _cimelId;
 	DbConnectionObservations& _db;
 	TimeOffseter _tz;
-	std::vector<std::string> _fields;
-
-	static int parseInt(const std::string& s);
-	static std::string readParagraph(std::istream& in);
 };
+
+template<typename T>
+std::istream& operator>>(std::istream& is, Cimel4AImporter::Parser<T>&& p) {
+	p.destination = 0;
+	for (int i = p.length ; i > 0 ; i--) {
+		auto c = is.get();
+		if (std::isspace(c)) {
+			i++; // do as if the blank character was not there at all
+			continue;
+		}
+		if (c >= '0' && c <= '9') {
+			p.destination = p.destination * p.base + c - '0';
+		} else if (c >= 'A' && c <= 'F') {
+			p.destination = p.destination * p.base + c - 'A' + 10;
+		}
+	}
+
+	return is;
+}
+
+std::istream& operator>>(std::istream& is, const Cimel4AImporter::Ignorer& ignorer);
 
 }
 
