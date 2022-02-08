@@ -109,11 +109,37 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 	}
 
 	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
-		// Download only for stations without access to archive or
-		// stations for which it doesn't make use fetch more frequently
-		// than archives
-		if ((!it->first || it->second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD) &&
-		    now % it->second->getPollingPeriod() < POLLING_PERIOD)
+		// This function is called every POLLING_PERIOD minutes but
+		// stations have varying polling periods of their own, and we
+		// shouldn't download every POLLING_PERIOD minutes in some
+		// cases.
+
+		bool shouldDownload = false;
+		if (it->first) {
+			// If the station has access to archives, only download
+			// the realtime data if it doesn't make us download more
+			// frequently than the station polling period (e.g.
+			// stations programmed with a polling period of 1h
+			// meanwhile realtime data is normally downloaded every
+			// UNPRIVILEGED_POLLING_PERIOD minutes).
+			shouldDownload = it->second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD;
+
+			// Also, take care of not downloading more frequently
+			// than the station polling period (e.g. if the station
+			// has a polling period of 10min, only download during
+			// the first POLLING_PERIOD minutes of every period of
+			// 10 minutes).
+			shouldDownload = shouldDownload && now % it->second->getPollingPeriod() < POLLING_PERIOD;
+		} else {
+			// If the station doesn't have access to archives, only
+			// download data at the basic rate of
+			// UNPRIVILEGED_POLLING_PERIOD minutes (download only
+			// during the first POLLING_PERIOD minutes of every
+			// period of UNPRIVILEGED_POLLING_PERIOD minutes).
+			shouldDownload = now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD;
+		}
+
+		if (shouldDownload)
 			genericDownload([it](auto& client) { (it->second)->downloadRealTime(client); });
 	}
 }

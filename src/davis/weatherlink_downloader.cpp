@@ -129,7 +129,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 
 	std::uint32_t timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
 
-	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: "
+	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: "
 	    << "GET " << "/webdl.php?timestamp=" << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 "
 	    << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
 	    << "Accept: */* "
