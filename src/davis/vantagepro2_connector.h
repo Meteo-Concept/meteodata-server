@@ -71,7 +71,7 @@ public:
 	VantagePro2Connector(boost::asio::io_service& ioService, DbConnectionObservations& db);
 
 	//main loop
-	virtual void start() override;
+	void start() override;
 
 private:
 	/**
@@ -218,6 +218,22 @@ private:
 	void waitForNextMeasure();
 
 	/**
+	 * Wait on the main timer for a set duration (from now) and call checkDeadline
+	 * when it expires
+	 * @tparam Rep The duration template parameter
+	 * @tparam Period The ratio duration template parameter
+	 * @param expiryTime The expiry time after which the checkDeadline will be called
+	 * (unless the timer is cancelled)
+	 */
+	template<typename Rep, typename Period>
+	void countdown(const std::chrono::duration<Rep, Period>& expiryTime)
+	{
+		auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+		_timer.expires_after(expiryTime);
+		_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
+	}
+
+	/**
 	 * @brief Send a message to the station
 	 *
 	 * @param req the request
@@ -315,7 +331,7 @@ private:
 	/**
 	 * @brief The current state of the state machine
 	 */
-	State _currentState;
+	State _currentState = State::STOPPED;
 	/**
 	 * @brief A Boost::Asio timer used to time out on network operations and
 	 * to wait between two measurements
@@ -337,22 +353,7 @@ private:
 	 * the station
 	 */
 	asio::streambuf _discardBuffer;
-	/**
-	 * @brief A message in which one data point from the station can be
-	 * received
-	 */
-	VantagePro2Message _message;
 
-	/**
-	 * @brief A boolean that tells whether the connector has stopped all
-	 * communications with the station
-	 *
-	 * This boolean is necessary because the VantagePro2Connector will not
-	 * die immediately when the socket is closed if the _timer is still in
-	 * activity for example. If this happens, then the _timer knows thanks
-	 * to this boolean that it should not reset itself but rather stop.
-	 */
-	bool _stopped = false;
 	/**
 	 * @brief The number of timeouts registered since the last successful
 	 * communication
@@ -373,7 +374,7 @@ private:
 	/**
 	 * @brief The connected station's identifier in the database
 	 */
-	CassUuid _station;
+	CassUuid _station{};
 	/**
 	 * @brief The station's name
 	 */
@@ -381,7 +382,7 @@ private:
 	/**
 	 * @brief The amount of time between two queries for data to the stations
 	 */
-	int _pollingPeriod;
+	int _pollingPeriod{};
 
 	/**
 	 * @brief A one-character buffer to receive acknowledgements from the
@@ -390,15 +391,15 @@ private:
 	 * When receiving a request, the station usually answers with 0x06, this
 	 * buffer stores this acknowledgement.
 	 */
-	char _ackBuffer;
+	char _ackBuffer{};
 	/**
 	 * @brief A buffer to receive the coordinates from the station
 	 */
-	int16_t _coords[4];
+	int16_t _coords[4]{};
 	/**
 	 * @brief A buffer to receive the timezone setting of the station
 	 */
-	TimeOffseter::VantagePro2TimezoneBuffer _timezoneBuffer;
+	TimeOffseter::VantagePro2TimezoneBuffer _timezoneBuffer{};
 
 	/**
 	 * @brief A type of buffer able to receive the answer of the station to
@@ -417,7 +418,7 @@ private:
 	 * @brief A buffer used to store the answer of the station to an
 	 * archive download request
 	 */
-	ArchiveSizeBuffer _archiveSize;
+	ArchiveSizeBuffer _archiveSize{};
 
 	/**
 	 * @brief An \a ArchivePage which will receive all downloaded archive
@@ -429,19 +430,19 @@ private:
 	 * \ref VantagePro2ArchivePage::storeToMessages to save the data in the
 	 * current page before the buffer can be reused.
 	 */
-	VantagePro2ArchivePage _archivePage;
+	VantagePro2ArchivePage _archivePage{};
 
 	/**
 	 * @brief The timestamp (in POSIX time) of the last archive entry
 	 * retrieved from the station
 	 */
-	date::sys_seconds _lastArchive;
+	date::sys_seconds _lastArchive{};
 
 	/**
 	 * @brief The \a TimeOffseter to use to convert timestamps between the
 	 * station's time and POSIX time
 	 */
-	TimeOffseter _timeOffseter;
+	TimeOffseter _timeOffseter{};
 
 	/**
 	 * @brief An echo request, typically used for the wake up procedure
@@ -452,10 +453,6 @@ private:
 	 * station
 	 */
 	static constexpr char _getStationRequest[] = "EEBRD 0B 06\n";
-	/**
-	 * @brief A measurement request, querying one data point
-	 */
-	static constexpr char _getMeasureRequest[] = "LPS 3 2\n";
 	/**
 	 * @brief An archive request, for a range an archived data points
 	 */
@@ -479,7 +476,7 @@ private:
 	/**
 	 * @brief A negative acknowledgement
 	 */
-	static constexpr char _nak[] = "\x21";
+	static constexpr char _nak[] = "!"; // "\x21"
 	/**
 	 * @brief An abort/cancel order
 	 */
