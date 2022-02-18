@@ -69,7 +69,7 @@ public:
 	 * like 07 for France)
 	 */
 	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& group);
-	virtual void start() override;
+	void start() override;
 
 	/**
 	 * The SYNOP country prefix for France
@@ -81,8 +81,8 @@ public:
 	static constexpr char GROUP_LU[] = "06";
 
 private:
-	virtual chrono::minutes computeWaitDuration() override;
-	virtual void buildDownloadRequest(std::ostream& out) override;
+	chrono::minutes computeWaitDuration() override;
+	void buildDownloadRequest(std::ostream& out) override;
 
 	/**
 	 * The prefix of the SYNOP stations to download

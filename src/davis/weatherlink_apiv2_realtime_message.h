@@ -55,8 +55,8 @@ class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, pu
 {
 public:
 	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain);
-	virtual void parse(std::istream& input) override;
-	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
+	void parse(std::istream& input) override;
+	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
 	date::sys_seconds getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
 
 private:

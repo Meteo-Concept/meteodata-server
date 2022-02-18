@@ -59,12 +59,12 @@ class DeferredSynopDownloader : public AbstractSynopDownloader
 {
 public:
 	DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao, const CassUuid& uuid);
-	virtual void start() override;
+	void start() override;
 
 private:
 	std::string _icao;
-	virtual chrono::minutes computeWaitDuration() override;
-	virtual void buildDownloadRequest(std::ostream& out) override;
+	chrono::minutes computeWaitDuration() override;
+	void buildDownloadRequest(std::ostream& out) override;
 };
 
 }
