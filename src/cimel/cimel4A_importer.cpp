@@ -120,7 +120,7 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 		if (tn != 0xFFFF)
 			_db.insertV2Tn(_station, timestamp, static_cast<float>(tn - 400) / 10.f);
 		if (tx != 0xFFFF)
-			_db.insertV2Tn(_station, timestamp, static_cast<float>(tx - 400) / 10.f);
+			_db.insertV2Tx(_station, timestamp, static_cast<float>(tx - 400) / 10.f);
 
 		if (rainfall != 0xFFFF)
 			_db.insertV2EntireDayValues(_station, timestamp, {true, static_cast<float>(rainfall) / 10.f}, {false, 0});
