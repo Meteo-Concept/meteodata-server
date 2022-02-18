@@ -44,16 +44,16 @@ namespace asio = boost::asio;
 namespace sys = boost::system;
 namespace chrono = std::chrono;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace std::placeholders;
 using namespace date;
 
-VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService,
-	DbConnectionObservations& db) :
-	Connector(ioService, db),
-	_timer(ioService),
-	_setTimeTimer(ioService)
+VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService, DbConnectionObservations& db) :
+		Connector(ioService, db),
+		_timer(ioService),
+		_setTimeTimer(ioService)
 {
 }
 
@@ -74,7 +74,8 @@ void VantagePro2Connector::start()
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
-std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector::buildArchiveRequestParams(const date::sys_seconds& time)
+std::shared_ptr<VantagePro2Connector::ArchiveRequestParams>
+VantagePro2Connector::buildArchiveRequestParams(const date::sys_seconds& time)
 {
 	auto buffer = std::make_shared<VantagePro2Connector::ArchiveRequestParams>();
 	auto timeStation = _timeOffseter.convertToLocalTime(time);
@@ -83,10 +84,10 @@ std::shared_ptr<VantagePro2Connector::ArchiveRequestParams> VantagePro2Connector
 	auto tod = date::make_time(timeStation - daypoint); // Yields time_of_day type
 
 	// Obtain individual components as integers
-	auto y   = int(ymd.year());
-	auto m   = unsigned(ymd.month());
-	auto d   = unsigned(ymd.day());
-	auto h   = tod.hours().count();
+	auto y = int(ymd.year());
+	auto m = unsigned(ymd.month());
+	auto d = unsigned(ymd.day());
+	auto h = tod.hours().count();
 	auto min = tod.minutes().count();
 
 	buffer->date = ((y - 2000) << 9) + (m << 5) + d;
@@ -107,10 +108,10 @@ std::shared_ptr<VantagePro2Connector::SettimeRequestParams> VantagePro2Connector
 
 	buffer->seconds = tod.seconds().count();
 	buffer->minutes = tod.minutes().count();
-	buffer->hours   = tod.hours().count();
-	buffer->day     = unsigned(ymd.day());
-	buffer->month   = unsigned(ymd.month());
-	buffer->year    = int(ymd.year()) - 1900;
+	buffer->hours = tod.hours().count();
+	buffer->day = unsigned(ymd.day());
+	buffer->month = unsigned(ymd.month());
+	buffer->year = int(ymd.year()) - 1900;
 	VantagePro2Message::computeCRC(buffer.get(), sizeof(VantagePro2Connector::SettimeRequestParams));
 
 	return buffer;
@@ -124,12 +125,11 @@ void VantagePro2Connector::waitForNextMeasure()
 	_timeouts = 0;
 	_transmissionErrors = 0;
 
-	 auto tp = chrono::minutes(_pollingPeriod) -
-	       (chrono::system_clock::now().time_since_epoch() % chrono::minutes(_pollingPeriod));
-	std::cout << SD_INFO << "[Direct " << _station << "] measurement: "
-		  << "Next measurement will be taken in "
-		  << chrono::duration_cast<chrono::minutes>(tp).count() << "min "
-		  << chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count() << "s " << std::endl;
+	auto tp = chrono::minutes(_pollingPeriod) -
+			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(_pollingPeriod));
+	std::cout << SD_INFO << "[Direct " << _station << "] measurement: " << "Next measurement will be taken in "
+			  << chrono::duration_cast<chrono::minutes>(tp).count() << "min "
+			  << chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count() << "s " << std::endl;
 	_timer.expires_after(tp);
 	_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
 }
@@ -161,16 +161,15 @@ void VantagePro2Connector::checkDeadline(const sys::error_code& e)
 void VantagePro2Connector::handleSetTimeDeadline(const sys::error_code& e)
 {
 	std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-		  << "SetTime time deadline handler hit for station " << _stationName
-		  << ": " << e.value() << ": " << e.message()
-		  << std::endl;
+			  << "SetTime time deadline handler hit for station " << _stationName << ": " << e.value() << ": "
+			  << e.message() << std::endl;
 	if (e == sys::errc::operation_canceled)
 		return;
 
 	// verify that the timeout is not spurious
 	if (_setTimeTimer.expires_at() <= chrono::steady_clock::now()) {
 		std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-		    << "Timed out! We have to reset the station clock ASAP" << std::endl;
+				  << "Timed out! We have to reset the station clock ASAP" << std::endl;
 		/* This timer does not interrupt the normal handling of events
 		 * but signals with a flag that the time should be set */
 		_setTimeRequested = true;
@@ -201,18 +200,16 @@ void VantagePro2Connector::stop()
 	 * self (aka this) anymore, so this instance will be destroyed */
 }
 
-void VantagePro2Connector::sendRequest(const char *req, int reqsize)
+void VantagePro2Connector::sendRequest(const char* req, int reqsize)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	countdown(chrono::seconds(6));
-	async_write(_sock, asio::buffer(req, reqsize),
-		[this,self](const sys::error_code& ec, std::size_t) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			handleEvent(ec);
-		}
-	);
+	async_write(_sock, asio::buffer(req, reqsize), [this, self](const sys::error_code& ec, std::size_t) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		_timer.cancel();
+		handleEvent(ec);
+	});
 }
 
 template<typename T>
@@ -223,43 +220,38 @@ void VantagePro2Connector::sendBuffer(const std::shared_ptr<T>& buffer, int reqs
 
 	// passing buffer to the lambda keeps the buffer alive
 	async_write(_sock, asio::buffer(buffer.get(), reqsize),
-		[this,self,buffer](const sys::error_code& ec, std::size_t) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			handleEvent(ec);
-		}
-	);
+				[this, self, buffer](const sys::error_code& ec, std::size_t) {
+					if (ec == sys::errc::operation_canceled)
+						return;
+					_timer.cancel();
+					handleEvent(ec);
+				});
 }
 
 void VantagePro2Connector::recvWakeUp()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	countdown(chrono::seconds(2));
-	async_read_until(_sock, _discardBuffer, "\n\r",
-		[this,self](const sys::error_code& ec, std::size_t n) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			_discardBuffer.consume(n);
-			handleEvent(ec);
-		}
-	);
+	async_read_until(_sock, _discardBuffer, "\n\r", [this, self](const sys::error_code& ec, std::size_t n) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		_timer.cancel();
+		_discardBuffer.consume(n);
+		handleEvent(ec);
+	});
 }
 
 void VantagePro2Connector::recvOk()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	countdown(chrono::seconds(6));
-	async_read_until(_sock, _discardBuffer, "OK\n\r",
-		[this,self](const sys::error_code& ec, std::size_t n) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			_discardBuffer.consume(n);
-			handleEvent(ec);
-		}
-	);
+	async_read_until(_sock, _discardBuffer, "OK\n\r", [this, self](const sys::error_code& ec, std::size_t n) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		_timer.cancel();
+		_discardBuffer.consume(n);
+		handleEvent(ec);
+	});
 }
 
 void VantagePro2Connector::sendAck()
@@ -281,61 +273,55 @@ void VantagePro2Connector::recvAck()
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	countdown(chrono::seconds(6));
-	async_read(_sock, asio::buffer(&_ackBuffer, 1),
-		[this,self](const sys::error_code& ec, std::size_t) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			if (_ackBuffer == '\n' || _ackBuffer == '\r') {
-				//we eat some garbage, discard and carry on
-				recvAck();
-			} else {
-				handleEvent(ec);
-			}
+	async_read(_sock, asio::buffer(&_ackBuffer, 1), [this, self](const sys::error_code& ec, std::size_t) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		_timer.cancel();
+		if (_ackBuffer == '\n' || _ackBuffer == '\r') {
+			//we eat some garbage, discard and carry on
+			recvAck();
+		} else {
+			handleEvent(ec);
 		}
-	);
+	});
 }
 
-template <typename MutableBuffer>
+template<typename MutableBuffer>
 void VantagePro2Connector::recvData(const MutableBuffer& buffer)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	countdown(chrono::seconds(6));
-	async_read(_sock, buffer,
-		[this,self](const sys::error_code& ec, std::size_t) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			_timer.cancel();
-			handleEvent(ec);
-		}
-	);
+	async_read(_sock, buffer, [this, self](const sys::error_code& ec, std::size_t) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		_timer.cancel();
+		handleEvent(ec);
+	});
 }
 
-template <typename Restarter>
+template<typename Restarter>
 void VantagePro2Connector::flushSocketAndRetry(State restartState, Restarter restart)
 {
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	// wait before flushing in order not to leave garbage behind
 	_timer.expires_from_now(chrono::seconds(10));
-	_timer.async_wait(
-		[restartState,restart,this,self](const sys::error_code& ec) {
-			if (ec == sys::errc::operation_canceled)
-				return;
-			if (_sock.available() > 0) {
-				auto bufs = _discardBuffer.prepare(512);
-				std::size_t bytes = _sock.receive(bufs);
-				_discardBuffer.commit(bytes);
-				std::cout << SD_DEBUG <<  "[Direct " << _station << "] recovery:"
-				    << "Cleared " << bytes << " bytes" << std::endl;
-				_discardBuffer.consume(_discardBuffer.size());
-			}
-			_currentState = restartState;
-			restart();
+	_timer.async_wait([restartState, restart, this, self](const sys::error_code& ec) {
+		if (ec == sys::errc::operation_canceled)
+			return;
+		if (_sock.available() > 0) {
+			auto bufs = _discardBuffer.prepare(512);
+			std::size_t bytes = _sock.receive(bufs);
+			_discardBuffer.commit(bytes);
+			std::cout << SD_DEBUG << "[Direct " << _station << "] recovery:" << "Cleared " << bytes << " bytes"
+					  << std::endl;
+			_discardBuffer.consume(_discardBuffer.size());
 		}
-	);
+		_currentState = restartState;
+		restart();
+	});
 }
 
-template <typename Restarter>
+template<typename Restarter>
 void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State restartState, Restarter restart)
 {
 	/* In case of success, we are done here, the main code in the state
@@ -369,13 +355,13 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 			_currentState = restartState;
 			flushSocketAndRetry(restartState, restart);
 		} else {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-			    << "too many timeouts from station " << _stationName << ", aborting" << std::endl;
+			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "too many timeouts from station "
+					  << _stationName << ", aborting" << std::endl;
 			stop();
 		}
 	} else { /* TCP reset by peer, etc. */
-		std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-		    << "unknown network error: " << e.message() << std::endl;
+		std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "unknown network error: " << e.message()
+				  << std::endl;
 		stop();
 	}
 }
@@ -390,536 +376,509 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 	auto requestSetTime = [this]() { sendRequest(_settimeRequest, sizeof(_settimeRequest) - 1); };
 
 	switch (_currentState) {
-	case State::STARTING:
-		_currentState = State::SENDING_WAKE_UP_STATION;
-		std::cout << SD_NOTICE << "[Direct] connection: "
-		    << "A new station is connected" << std::endl;
-		requestEcho();
-		break;
-
-	case State::WAITING_NEXT_MEASURE_TICK:
-		if (e == sys::errc::timed_out) {
-			_currentState = State::SENDING_WAKE_UP_ARCHIVE;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] measurement: "
-			    << "Time to wake up! We need a new measurement" << std::endl;
+		case State::STARTING:
+			_currentState = State::SENDING_WAKE_UP_STATION;
+			std::cout << SD_NOTICE << "[Direct] connection: " << "A new station is connected" << std::endl;
 			requestEcho();
-		} else {
-			waitForNextMeasure();
-		}
-		break;
+			break;
 
-	case State::SENDING_WAKE_UP_STATION:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_STATION, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ECHO_STATION;
-			std::cout << SD_DEBUG << "[Direct] protocol: "
-			    << "Sent wake up" << std::endl;
-			recvWakeUp();
-		}
-		break;
-
-	case State::WAITING_ECHO_STATION:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_STATION, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_REQ_STATION;
-			std::cout << SD_DEBUG << "[Direct] protocol: "
-			    << "Station has woken up" << std::endl;
-			requestStation();
-		}
-		break;
-
-	case State::SENDING_REQ_STATION:
-		handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_STATION;
-			std::cout << SD_DEBUG << "[Direct] protocol: "
-			    << "Sent identification request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_STATION:
-		handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				std::cerr << SD_WARNING << "[Direct] protocol: "
-					  << "was waiting for acknowledgement, got " << _ackBuffer
-					  << std::endl;
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_REQ_STATION, requestStation);
-				} else {
-					std::cerr << SD_ERR << "[Direct] protocol: " << _stationName
-						  << " : Cannot get the station to acknowledge the identification request"
-						  << std::endl;
-					stop();
-				}
+		case State::WAITING_NEXT_MEASURE_TICK:
+			if (e == sys::errc::timed_out) {
+				_currentState = State::SENDING_WAKE_UP_ARCHIVE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] measurement: "
+						  << "Time to wake up! We need a new measurement" << std::endl;
+				requestEcho();
 			} else {
-				_currentState = State::WAITING_DATA_STATION;
-				std::cout << SD_DEBUG << "[Direct] protocol: "
-				    << "Identification request acked by station" << std::endl;
-				recvData(asio::buffer(_coords));
+				waitForNextMeasure();
 			}
-		}
-		break;
+			break;
 
-	case State::WAITING_DATA_STATION:
-		handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
-		if (e == sys::errc::success) {
-			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_REQ_STATION, requestStation);
+		case State::SENDING_WAKE_UP_STATION:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_STATION, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ECHO_STATION;
+				std::cout << SD_DEBUG << "[Direct] protocol: " << "Sent wake up" << std::endl;
+				recvWakeUp();
+			}
+			break;
+
+		case State::WAITING_ECHO_STATION:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_STATION, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::SENDING_REQ_STATION;
+				std::cout << SD_DEBUG << "[Direct] protocol: " << "Station has woken up" << std::endl;
+				requestStation();
+			}
+			break;
+
+		case State::SENDING_REQ_STATION:
+			handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ACK_STATION;
+				std::cout << SD_DEBUG << "[Direct] protocol: " << "Sent identification request" << std::endl;
+				recvAck();
+			}
+			break;
+
+		case State::WAITING_ACK_STATION:
+			handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
+			if (e == sys::errc::success) {
+				if (_ackBuffer != 0x06) {
+					std::cerr << SD_WARNING << "[Direct] protocol: " << "was waiting for acknowledgement, got "
+							  << _ackBuffer << std::endl;
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_REQ_STATION, requestStation);
+					} else {
+						std::cerr << SD_ERR << "[Direct] protocol: " << _stationName
+								  << " : Cannot get the station to acknowledge the identification request" << std::endl;
+						stop();
+					}
 				} else {
-					std::cerr << SD_ERR << "[Directl] protocol: "
-						  << "Too many transmissions errors on station identification CRC validation, aborting"
-						  << std::endl;
-					stop();
-				}
-			} else {
-				// From documentation, latitude, longitude and elevation are stored contiguously
-				// in this order in the station's EEPROM
-				time_t lastArchiveDownloadTime;
-				bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
-				_timeOffseter.setLatitude(_coords[0]);
-				_timeOffseter.setLongitude(_coords[1]);
-				_timeOffseter.setElevation(_coords[2]);
-				_timeOffseter.setMeasureStep(_pollingPeriod);
-				_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-				if (found) {
-					std::cout << SD_INFO << "[Direct " << _station << "] connection: " << _stationName << " is connected" << std::endl;
-					std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-					    << "Now making sure station " << _stationName << " is not stuck in setup mode" << std::endl;
-					_currentState = State::SENDING_REQ_MAIN_MODE;
-					requestMainMode();
-				} else {
-					std::cerr << SD_ERR << "[Direct] connection: "
-                            << "Unknown station (" << _coords[0] << ", " << _coords[1] << ", " << _coords[2] << ") ! Aborting" << std::endl;
-					stop();
+					_currentState = State::WAITING_DATA_STATION;
+					std::cout << SD_DEBUG << "[Direct] protocol: " << "Identification request acked by station"
+							  << std::endl;
+					recvData(asio::buffer(_coords));
 				}
 			}
-		}
-		break;
+			break;
 
-	case State::SENDING_REQ_MAIN_MODE:
-		handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE, requestMainMode);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_MAIN_MODE;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-			    << "Sent switch to main mode request" << std::endl;
-			recvOk();
-		}
-		break;
-
-	case State::WAITING_ACK_MAIN_MODE:
-		handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE, requestMainMode);
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_REQ_TIMEZONE;
-			std::cout << SD_INFO << "[Direct " << _station << "] management: "
-			    << "Now fetching timezone information for station " << _stationName << std::endl;
-			requestTimezone();
-		} else {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Cannot get the directly connected station " << _stationName
-				  << " to acknowledge the switch to main mode command ! Aborting"
-				  << std::endl;
-			stop();
-		}
-		break;
-
-	case State::SENDING_REQ_TIMEZONE:
-		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_TIMEZONE;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-			    << "Sent timezone identification request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_TIMEZONE:
-		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
-					  << "Was waiting for acknowledgement from station " << _stationName << ", got " << _ackBuffer
-					  << std::endl;
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_REQ_TIMEZONE, requestTimezone);
+		case State::WAITING_DATA_STATION:
+			handleGenericErrors(e, State::SENDING_REQ_STATION, requestStation);
+			if (e == sys::errc::success) {
+				if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_REQ_STATION, requestStation);
+					} else {
+						std::cerr << SD_ERR << "[Directl] protocol: "
+								  << "Too many transmissions errors on station identification CRC validation, aborting"
+								  << std::endl;
+						stop();
+					}
 				} else {
-					std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-						  << "Cannot get the station " << _station << " to acknowledge the timezone request"
-						  << std::endl;
-					stop();
-				}
-			} else {
-				_currentState = State::WAITING_DATA_TIMEZONE;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                        << "Timezone request acked by station" << std::endl;
-				recvData(asio::buffer(&_timezoneBuffer,sizeof(_timezoneBuffer)));
-			}
-		}
-		break;
-
-	case State::WAITING_DATA_TIMEZONE:
-		handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
-		if (e == sys::errc::success) {
-			if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_REQ_TIMEZONE, requestTimezone);
-				} else {
-					std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-						  << "Too many transmissions errors on station identification CRC validation, aborting"
-						  << std::endl;
-					stop();
-				}
-			} else {
-				_timeOffseter.prepare(_timezoneBuffer);
-				_archivePage.prepare(_lastArchive, &_timeOffseter);
-				chrono::system_clock::time_point now = chrono::system_clock::now();
-				std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-                        << "Last data received from station " << _stationName << " dates back from "
-					  << _lastArchive << std::endl;
-				if ((now - _lastArchive) > chrono::minutes(_pollingPeriod)) {
-					std::cout << SD_INFO << "[Direct " << _station << "] measurement: "
-					      << " station " << _stationName
-						  << " has been disconnected for too long, retrieving the archives..."
-						  << std::endl;
-					_currentState = State::SENDING_WAKE_UP_ARCHIVE;
-					requestEcho();
-				} else {
-					std::cout << SD_INFO << "[Direct " << _station << "] management: "
-						  << "station " << _stationName << "'s clock has to be set"
-						  << std::endl;
-					_currentState = State::SENDING_WAKE_UP_SETTIME;
-					requestEcho();
+					// From documentation, latitude, longitude and elevation are stored contiguously
+					// in this order in the station's EEPROM
+					time_t lastArchiveDownloadTime;
+					bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName,
+														_pollingPeriod, lastArchiveDownloadTime);
+					_timeOffseter.setLatitude(_coords[0]);
+					_timeOffseter.setLongitude(_coords[1]);
+					_timeOffseter.setElevation(_coords[2]);
+					_timeOffseter.setMeasureStep(_pollingPeriod);
+					_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
+					if (found) {
+						std::cout << SD_INFO << "[Direct " << _station << "] connection: " << _stationName
+								  << " is connected" << std::endl;
+						std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
+								  << "Now making sure station " << _stationName << " is not stuck in setup mode"
+								  << std::endl;
+						_currentState = State::SENDING_REQ_MAIN_MODE;
+						requestMainMode();
+					} else {
+						std::cerr << SD_ERR << "[Direct] connection: " << "Unknown station (" << _coords[0] << ", "
+								  << _coords[1] << ", " << _coords[2] << ") ! Aborting" << std::endl;
+						stop();
+					}
 				}
 			}
-		}
-		break;
+			break;
 
-	case State::SENDING_WAKE_UP_ARCHIVE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ECHO_ARCHIVE;
-            std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                      << "Waking up station for archive request" << std::endl;
-			recvWakeUp();
-		}
-		break;
-
-	case State::WAITING_ECHO_ARCHIVE:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_REQ_ARCHIVE;
-            std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                      << "Station is woken up, ready to send archives" << std::endl;
-			requestArchive();
-		}
-		break;
-
-	case State::SENDING_REQ_ARCHIVE:
-		handleGenericErrors(e, State::SENDING_REQ_ARCHIVE, requestArchive);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_ARCHIVE;
-            std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                      << "Sent archive request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_ARCHIVE:
-		handleGenericErrors(e, State::SENDING_REQ_ARCHIVE, requestArchive);
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				std::cout << SD_WARNING << "[Direct " << _station << "] protocol: "
-					  << "Was waiting for acknowledgement, got " << _ackBuffer
-					  << std::endl;
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_REQ_ARCHIVE, requestArchive);
-				} else {
-					std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-						  << "Cannot get the station to acknowledge the archive request"
+		case State::SENDING_REQ_MAIN_MODE:
+			handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE, requestMainMode);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ACK_MAIN_MODE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent switch to main mode request"
 						  << std::endl;
-					stop();
-				}
-			} else {
-				_currentState = State::SENDING_ARCHIVE_PARAMS;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				    << "Archive download request acked by station" << std::endl;
-				auto buffer = buildArchiveRequestParams(_lastArchive);
-				sendBuffer(buffer, sizeof(ArchiveRequestParams));
+				recvOk();
 			}
-		}
-		break;
+			break;
 
-	case State::SENDING_ARCHIVE_PARAMS:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Connection to station " << _stationName << " lost while requesting archive"
-				  << std::endl;
-			stop();
-		} else {
-			_currentState = State::WAITING_ACK_ARCHIVE_PARAMS;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-			    << "Sent archive request parameters" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_ARCHIVE_PARAMS:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Connection to station " << _stationName << " lost while requesting archive"
-				  << std::endl;
-			stop();
-		} else {
-			if (_ackBuffer != 0x06) {
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-					  << "Was waiting for acknowledgement, got " << _ackBuffer << " (NAK?)"
-					  << std::endl;
+		case State::WAITING_ACK_MAIN_MODE:
+			handleGenericErrors(e, State::SENDING_REQ_MAIN_MODE, requestMainMode);
+			if (e == sys::errc::success) {
+				_currentState = State::SENDING_REQ_TIMEZONE;
+				std::cout << SD_INFO << "[Direct " << _station << "] management: "
+						  << "Now fetching timezone information for station " << _stationName << std::endl;
+				requestTimezone();
+			} else {
 				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-					  << "Cannot get the station to acknowledge the archive request"
-					  << std::endl;
+						  << "Cannot get the directly connected station " << _stationName
+						  << " to acknowledge the switch to main mode command ! Aborting" << std::endl;
+				stop();
+			}
+			break;
+
+		case State::SENDING_REQ_TIMEZONE:
+			handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ACK_TIMEZONE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+						  << "Sent timezone identification request" << std::endl;
+				recvAck();
+			}
+			break;
+
+		case State::WAITING_ACK_TIMEZONE:
+			handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
+			if (e == sys::errc::success) {
+				if (_ackBuffer != 0x06) {
+					std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
+							  << "Was waiting for acknowledgement from station " << _stationName << ", got "
+							  << _ackBuffer << std::endl;
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_REQ_TIMEZONE, requestTimezone);
+					} else {
+						std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "Cannot get the station "
+								  << _station << " to acknowledge the timezone request" << std::endl;
+						stop();
+					}
+				} else {
+					_currentState = State::WAITING_DATA_TIMEZONE;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "Timezone request acked by station" << std::endl;
+					recvData(asio::buffer(&_timezoneBuffer, sizeof(_timezoneBuffer)));
+				}
+			}
+			break;
+
+		case State::WAITING_DATA_TIMEZONE:
+			handleGenericErrors(e, State::SENDING_REQ_TIMEZONE, requestTimezone);
+			if (e == sys::errc::success) {
+				if (!VantagePro2Message::validateCRC(_coords, sizeof(_coords))) {
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_REQ_TIMEZONE, requestTimezone);
+					} else {
+						std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
+								  << "Too many transmissions errors on station identification CRC validation, aborting"
+								  << std::endl;
+						stop();
+					}
+				} else {
+					_timeOffseter.prepare(_timezoneBuffer);
+					_archivePage.prepare(_lastArchive, &_timeOffseter);
+					chrono::system_clock::time_point now = chrono::system_clock::now();
+					std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
+							  << "Last data received from station " << _stationName << " dates back from "
+							  << _lastArchive << std::endl;
+					if ((now - _lastArchive) > chrono::minutes(_pollingPeriod)) {
+						std::cout << SD_INFO << "[Direct " << _station << "] measurement: " << " station "
+								  << _stationName << " has been disconnected for too long, retrieving the archives..."
+								  << std::endl;
+						_currentState = State::SENDING_WAKE_UP_ARCHIVE;
+						requestEcho();
+					} else {
+						std::cout << SD_INFO << "[Direct " << _station << "] management: " << "station " << _stationName
+								  << "'s clock has to be set" << std::endl;
+						_currentState = State::SENDING_WAKE_UP_SETTIME;
+						requestEcho();
+					}
+				}
+			}
+			break;
+
+		case State::SENDING_WAKE_UP_ARCHIVE:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ECHO_ARCHIVE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+						  << "Waking up station for archive request" << std::endl;
+				recvWakeUp();
+			}
+			break;
+
+		case State::WAITING_ECHO_ARCHIVE:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_ARCHIVE, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::SENDING_REQ_ARCHIVE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+						  << "Station is woken up, ready to send archives" << std::endl;
+				requestArchive();
+			}
+			break;
+
+		case State::SENDING_REQ_ARCHIVE:
+			handleGenericErrors(e, State::SENDING_REQ_ARCHIVE, requestArchive);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ACK_ARCHIVE;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent archive request"
+						  << std::endl;
+				recvAck();
+			}
+			break;
+
+		case State::WAITING_ACK_ARCHIVE:
+			handleGenericErrors(e, State::SENDING_REQ_ARCHIVE, requestArchive);
+			if (e == sys::errc::success) {
+				if (_ackBuffer != 0x06) {
+					std::cout << SD_WARNING << "[Direct " << _station << "] protocol: "
+							  << "Was waiting for acknowledgement, got " << _ackBuffer << std::endl;
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_REQ_ARCHIVE, requestArchive);
+					} else {
+						std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
+								  << "Cannot get the station to acknowledge the archive request" << std::endl;
+						stop();
+					}
+				} else {
+					_currentState = State::SENDING_ARCHIVE_PARAMS;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "Archive download request acked by station" << std::endl;
+					auto buffer = buildArchiveRequestParams(_lastArchive);
+					sendBuffer(buffer, sizeof(ArchiveRequestParams));
+				}
+			}
+			break;
+
+		case State::SENDING_ARCHIVE_PARAMS:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "Connection to station "
+						  << _stationName << " lost while requesting archive" << std::endl;
 				stop();
 			} else {
-				_currentState = State::WAITING_ARCHIVE_NB_PAGES;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				    << "Archive dowload parameters acked by station" << std::endl;
-				recvData(asio::buffer(&_archiveSize,sizeof(_archiveSize)));
-			}
-		}
-		break;
-
-	case State::WAITING_ARCHIVE_NB_PAGES:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Connection to station " << _stationName << " lost while requesting archive"
-				  << std::endl;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				  << "Station " << _stationName << " has not sent the archive size"
-				  << std::endl;
-			stop();
-		} else {
-			if (VantagePro2Message::validateCRC(&_archiveSize,sizeof(_archiveSize))) {
-				_currentState = State::SENDING_ACK_ARCHIVE_DOWNLOAD;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				    << "Archive size has a valid CRC, we will receive "
-				    << _archiveSize.pagesLeft << " pages, first record at " << _archiveSize.index << std::endl;
-				sendAck();
-			} else {
-				_currentState = State::SENDING_ABORT_ARCHIVE_DOWNLOAD;
-				std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
-				    << "Archive size does not have a valid CRC, aborting for now but will retry" << std::endl;
-				sendAbort();
-			}
-		}
-		break;
-
-	case State::SENDING_ABORT_ARCHIVE_DOWNLOAD:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				  << "connection to station " << _stationName << " lost while requesting archive"
-				  << std::endl;
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-			      << "Failed to abort the download, bailing out"
-				  << std::endl;
-			stop();
-		} else {
-			_currentState = State::WAITING_NEXT_MEASURE_TICK;
-			std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
-				  << "failed to receive correct archive download parameters, will retry at next download"
-				  << std::endl;
-			waitForNextMeasure();
-		}
-		break;
-
-	case State::WAITING_ARCHIVE_PAGE:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "connection to station " << _stationName << " lost while requesting archive"
-				  << std::endl;
-			stop();
-		} else {
-			if (_archivePage.isValid()) {
-				bool ret = _archivePage.store(_db, _station);
-				if (ret) {
-					std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-					    << "Archive data page stored, updating the archive download time" << std::endl;
-
-					time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(_archivePage.lastArchiveRecordDateTime());
-					ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
-					if (!ret)
-						std::cerr << SD_ERR << "[Direct " << _station << "] management: "
-							  << "couldn't update last archive download time"
-							  << std::endl;
-				} else {
-					std::cerr << SD_ERR << "[Direct " << _station << "] measurement: "
-						  << "couldn't store archive"
+				_currentState = State::WAITING_ACK_ARCHIVE_PARAMS;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent archive request parameters"
 						  << std::endl;
-					stop();
-				}
-				_archiveSize.pagesLeft--;
-				_currentState = State::SENDING_ARCHIVE_PAGE_ANSWER;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-				    << "Received correct archive data" << std::endl;
-				sendAck();
-			} else {
-				_currentState = State::SENDING_ARCHIVE_PAGE_ANSWER;
-				_transmissionErrors++;
-				if (_transmissionErrors > 100) {
-					std::cerr << SD_ERR << "[Direct " << _station << "] measurement: "
-						  << "received too many incorrect archive data, bailing out"
-						  << std::endl;
-					stop();
-				}
-				std::cerr << SD_WARNING << "[Direct " << _station << "] measurement: "
-					  << "received incorrect archive data, retrying"
-					  << std::endl;
-				sendNak();
+				recvAck();
 			}
-		}
-		break;
+			break;
 
-	case State::SENDING_ACK_ARCHIVE_DOWNLOAD:
-	case State::SENDING_ARCHIVE_PAGE_ANSWER:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "connection to station " << _stationName << " lost while acknowledgeing archive page"
-				  << std::endl;
-			stop();
-		} else {
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                  << "Sent answer to station" << std::endl;
-			if (_archiveSize.pagesLeft) {
-				_currentState = State::WAITING_ARCHIVE_PAGE;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                      << _archiveSize.pagesLeft << " pages left to download" << std::endl;
-				recvData(_archivePage.getBuffer());
+		case State::WAITING_ACK_ARCHIVE_PARAMS:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "Connection to station "
+						  << _stationName << " lost while requesting archive" << std::endl;
+				stop();
 			} else {
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                      << "Archive data stored" << std::endl;
-				if (_setTimeRequested) {
+				if (_ackBuffer != 0x06) {
 					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                          << "Station " << _stationName << "'s clock has to be set" << std::endl;
-					_currentState = State::SENDING_WAKE_UP_SETTIME;
-					requestEcho();
-				} else {
-					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                          << "Now sleeping until next measurement" << std::endl;
-					_currentState = State::WAITING_NEXT_MEASURE_TICK;
-					waitForNextMeasure();
-				}
-			}
-		}
-		break;
-
-	case State::SENDING_WAKE_UP_SETTIME:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ECHO_SETTIME;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                  << "Waking up station for clock setting" << std::endl;
-			recvWakeUp();
-		}
-		break;
-
-	case State::WAITING_ECHO_SETTIME:
-		handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME, requestEcho);
-		if (e == sys::errc::success) {
-			_currentState = State::SENDING_SETTIME;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                  << "Station is woken up, ready to receive clock setting" << std::endl;
-			requestSetTime();
-		}
-		break;
-
-	case State::SENDING_SETTIME:
-		handleGenericErrors(e, State::SENDING_SETTIME, requestSetTime);
-		if (e == sys::errc::success) {
-			_currentState = State::WAITING_ACK_SETTIME;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
-                                  << "Sent settime request" << std::endl;
-			recvAck();
-		}
-		break;
-
-	case State::WAITING_ACK_SETTIME:
-		handleGenericErrors(e, State::SENDING_SETTIME, requestSetTime);
-		if (e == sys::errc::success) {
-			if (_ackBuffer != 0x06) {
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-					  << "was waiting for acknowledgement, got " << _ackBuffer
-					  << std::endl;
-				if (++_transmissionErrors < 5) {
-					flushSocketAndRetry(State::SENDING_SETTIME, requestSetTime);
-				} else {
+							  << "Was waiting for acknowledgement, got " << _ackBuffer << " (NAK?)" << std::endl;
 					std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-						  << "Cannot get the station to acknowledge the archive request"
-						  << std::endl;
+							  << "Cannot get the station to acknowledge the archive request" << std::endl;
 					stop();
+				} else {
+					_currentState = State::WAITING_ARCHIVE_NB_PAGES;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "Archive dowload parameters acked by station" << std::endl;
+					recvData(asio::buffer(&_archiveSize, sizeof(_archiveSize)));
 				}
-			} else {
-				_currentState = State::SENDING_SETTIME_PARAMS;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                      << "Archive download request acked by station" << std::endl;
-				auto buffer = buildSettimeParams();
-				sendBuffer(buffer, sizeof(SettimeRequestParams));
 			}
-		}
-		break;
+			break;
 
-	case State::SENDING_SETTIME_PARAMS:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Connection to the station lost while setting clock"
-				  << std::endl;
-			stop();
-		} else {
-			_currentState = State::WAITING_ACK_TIME_SET;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-                                  << "Sent time parameters" << std::endl;
-			recvAck();
-		}
-		break;
+		case State::WAITING_ARCHIVE_NB_PAGES:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "Connection to station "
+						  << _stationName << " lost while requesting archive" << std::endl;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Station " << _stationName
+						  << " has not sent the archive size" << std::endl;
+				stop();
+			} else {
+				if (VantagePro2Message::validateCRC(&_archiveSize, sizeof(_archiveSize))) {
+					_currentState = State::SENDING_ACK_ARCHIVE_DOWNLOAD;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "Archive size has a valid CRC, we will receive " << _archiveSize.pagesLeft
+							  << " pages, first record at " << _archiveSize.index << std::endl;
+					sendAck();
+				} else {
+					_currentState = State::SENDING_ABORT_ARCHIVE_DOWNLOAD;
+					std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
+							  << "Archive size does not have a valid CRC, aborting for now but will retry" << std::endl;
+					sendAbort();
+				}
+			}
+			break;
 
-	case State::WAITING_ACK_TIME_SET:
-		// We cannot retry anything here, we are in the middle of a request, just give up
-		if (e != sys::errc::success) {
-			std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
-				  << "Connection to station " << _stationName << " lost while setting clock"
-				  << std::endl;
-			std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-			     << "Station " << _stationName << " has not acked the clock setting" << std::endl;
-		} else if (_ackBuffer != 0x06) {
+		case State::SENDING_ABORT_ARCHIVE_DOWNLOAD:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_DEBUG << "[Direct " << _station << "] protocol: " << "connection to station "
+						  << _stationName << " lost while requesting archive" << std::endl;
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
+						  << "Failed to abort the download, bailing out" << std::endl;
+				stop();
+			} else {
+				_currentState = State::WAITING_NEXT_MEASURE_TICK;
+				std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
+						  << "failed to receive correct archive download parameters, will retry at next download"
+						  << std::endl;
+				waitForNextMeasure();
+			}
+			break;
+
+		case State::WAITING_ARCHIVE_PAGE:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "connection to station "
+						  << _stationName << " lost while requesting archive" << std::endl;
+				stop();
+			} else {
+				if (_archivePage.isValid()) {
+					bool ret = _archivePage.store(_db, _station);
+					if (ret) {
+						std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
+								  << "Archive data page stored, updating the archive download time" << std::endl;
+
+						time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(
+								_archivePage.lastArchiveRecordDateTime());
+						ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+						if (!ret)
+							std::cerr << SD_ERR << "[Direct " << _station << "] management: "
+									  << "couldn't update last archive download time" << std::endl;
+					} else {
+						std::cerr << SD_ERR << "[Direct " << _station << "] measurement: " << "couldn't store archive"
+								  << std::endl;
+						stop();
+					}
+					_archiveSize.pagesLeft--;
+					_currentState = State::SENDING_ARCHIVE_PAGE_ANSWER;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Received correct archive data"
+							  << std::endl;
+					sendAck();
+				} else {
+					_currentState = State::SENDING_ARCHIVE_PAGE_ANSWER;
+					_transmissionErrors++;
+					if (_transmissionErrors > 100) {
+						std::cerr << SD_ERR << "[Direct " << _station << "] measurement: "
+								  << "received too many incorrect archive data, bailing out" << std::endl;
+						stop();
+					}
+					std::cerr << SD_WARNING << "[Direct " << _station << "] measurement: "
+							  << "received incorrect archive data, retrying" << std::endl;
+					sendNak();
+				}
+			}
+			break;
+
+		case State::SENDING_ACK_ARCHIVE_DOWNLOAD:
+		case State::SENDING_ARCHIVE_PAGE_ANSWER:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "connection to station "
+						  << _stationName << " lost while acknowledgeing archive page" << std::endl;
+				stop();
+			} else {
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent answer to station"
+						  << std::endl;
+				if (_archiveSize.pagesLeft) {
+					_currentState = State::WAITING_ARCHIVE_PAGE;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << _archiveSize.pagesLeft
+							  << " pages left to download" << std::endl;
+					recvData(_archivePage.getBuffer());
+				} else {
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Archive data stored"
+							  << std::endl;
+					if (_setTimeRequested) {
+						std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Station " << _stationName
+								  << "'s clock has to be set" << std::endl;
+						_currentState = State::SENDING_WAKE_UP_SETTIME;
+						requestEcho();
+					} else {
+						std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+								  << "Now sleeping until next measurement" << std::endl;
+						_currentState = State::WAITING_NEXT_MEASURE_TICK;
+						waitForNextMeasure();
+					}
+				}
+			}
+			break;
+
+		case State::SENDING_WAKE_UP_SETTIME:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ECHO_SETTIME;
 				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
-					  << "was waiting for acknowledgement, got " << _ackBuffer
-					  << std::endl;
-		}
+						  << "Waking up station for clock setting" << std::endl;
+				recvWakeUp();
+			}
+			break;
 
-		std::cout << SD_INFO << "[Direct " << _station << "] management: "
-		    << "Time set for station " << _stationName << std::endl;
-		_setTimeRequested = false;
-		_setTimeTimer.expires_from_now(chrono::hours(1));
-		{
-			auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
-			_setTimeTimer.async_wait([this, self](const sys::error_code& e) {
-				handleSetTimeDeadline(e);
-			});
-			_currentState = State::WAITING_NEXT_MEASURE_TICK;
-			waitForNextMeasure();
-		}
-		break;
+		case State::WAITING_ECHO_SETTIME:
+			handleGenericErrors(e, State::SENDING_WAKE_UP_SETTIME, requestEcho);
+			if (e == sys::errc::success) {
+				_currentState = State::SENDING_SETTIME;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+						  << "Station is woken up, ready to receive clock setting" << std::endl;
+				requestSetTime();
+			}
+			break;
 
-	case State::STOPPED:
-		/* discard everything, only spurious events from cancelled
-		    operations can get here */
-		break;
+		case State::SENDING_SETTIME:
+			handleGenericErrors(e, State::SENDING_SETTIME, requestSetTime);
+			if (e == sys::errc::success) {
+				_currentState = State::WAITING_ACK_SETTIME;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] management: " << "Sent settime request"
+						  << std::endl;
+				recvAck();
+			}
+			break;
+
+		case State::WAITING_ACK_SETTIME:
+			handleGenericErrors(e, State::SENDING_SETTIME, requestSetTime);
+			if (e == sys::errc::success) {
+				if (_ackBuffer != 0x06) {
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "was waiting for acknowledgement, got " << _ackBuffer << std::endl;
+					if (++_transmissionErrors < 5) {
+						flushSocketAndRetry(State::SENDING_SETTIME, requestSetTime);
+					} else {
+						std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
+								  << "Cannot get the station to acknowledge the archive request" << std::endl;
+						stop();
+					}
+				} else {
+					_currentState = State::SENDING_SETTIME_PARAMS;
+					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+							  << "Archive download request acked by station" << std::endl;
+					auto buffer = buildSettimeParams();
+					sendBuffer(buffer, sizeof(SettimeRequestParams));
+				}
+			}
+			break;
+
+		case State::SENDING_SETTIME_PARAMS:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: "
+						  << "Connection to the station lost while setting clock" << std::endl;
+				stop();
+			} else {
+				_currentState = State::WAITING_ACK_TIME_SET;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent time parameters"
+						  << std::endl;
+				recvAck();
+			}
+			break;
+
+		case State::WAITING_ACK_TIME_SET:
+			// We cannot retry anything here, we are in the middle of a request, just give up
+			if (e != sys::errc::success) {
+				std::cerr << SD_ERR << "[Direct " << _station << "] protocol: " << "Connection to station "
+						  << _stationName << " lost while setting clock" << std::endl;
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Station " << _stationName
+						  << " has not acked the clock setting" << std::endl;
+			} else if (_ackBuffer != 0x06) {
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
+						  << "was waiting for acknowledgement, got " << _ackBuffer << std::endl;
+			}
+
+			std::cout << SD_INFO << "[Direct " << _station << "] management: " << "Time set for station "
+					  << _stationName << std::endl;
+			_setTimeRequested = false;
+			_setTimeTimer.expires_from_now(chrono::hours(1));
+			{
+				auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
+				_setTimeTimer.async_wait([this, self](const sys::error_code& e) {
+					handleSetTimeDeadline(e);
+				});
+				_currentState = State::WAITING_NEXT_MEASURE_TICK;
+				waitForNextMeasure();
+			}
+			break;
+
+		case State::STOPPED:
+			/* discard everything, only spurious events from cancelled
+				operations can get here */
+			break;
 	}
 }
 

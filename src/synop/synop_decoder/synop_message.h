@@ -20,16 +20,17 @@ struct SynopMessage
 	 * Indicator for units of wind speed
 	 * @see table 1855, A-296
 	 */
-	enum class WindSpeedUnit {
-		METERS_PER_SECOND,
-		KNOTS
+	enum class WindSpeedUnit
+	{
+		METERS_PER_SECOND, KNOTS
 	};
 
 	/**
 	 * Indicator for inclusion or omission of precipitation data
 	 * @see table 1819, A-295
 	 */
-	enum class PrecipitationAvailability {
+	enum class PrecipitationAvailability
+	{
 		SECTION_1 = '1',
 		SECTION_3 = '2',
 		SECTION_1_AND_3 = '0',
@@ -42,12 +43,9 @@ struct SynopMessage
 	 * Indicator for present and past weather data
 	 * @see table 1860, A-297
 	 */
-	enum class PhenomenaObservationsAvailable {
-		BASIC_OBSERVATIONS,
-		ADVANCED_OBSERVATIONS,
-		NO_PHENOMENON,
-		NOT_OBSERVED,
-		NOT_AVAILABLE
+	enum class PhenomenaObservationsAvailable
+	{
+		BASIC_OBSERVATIONS, ADVANCED_OBSERVATIONS, NO_PHENOMENON, NOT_OBSERVED, NOT_AVAILABLE
 	};
 
 	using TimePoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::minutes>;

@@ -32,16 +32,18 @@
 #include <curl/curl.h>
 #include <curl/easy.h>
 
-namespace meteodata {
+namespace meteodata
+{
 
 /**
  * @brief Ultra-simple curl wrapper for simple HTTP queries
  */
-class CurlWrapper {
+class CurlWrapper
+{
 public:
-    /**
-     * @brief Construct the wrapper
-     */
+	/**
+	 * @brief Construct the wrapper
+	 */
 	CurlWrapper();
 
 	/**
@@ -78,22 +80,22 @@ public:
 	long getLastRequestCode();
 
 private:
-    /**
-     * @brief An alias for the curl library bare handle
-     */
-    using CurlHandle = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>;
-    /**
-     * @brief An alias for the curl library headers list type
-     */
-    using CurlHeadersList = std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)>;
+	/**
+	 * @brief An alias for the curl library bare handle
+	 */
+	using CurlHandle = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>;
+	/**
+	 * @brief An alias for the curl library headers list type
+	 */
+	using CurlHeadersList = std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)>;
 
-    /**
-     * @brief A curl object to call curl functions upon
-     */
-    CurlHandle _handle;
-    /**
-     * @brief The list of HTTP headers to pass to the next query
-     */
+	/**
+	 * @brief A curl object to call curl functions upon
+	 */
+	CurlHandle _handle;
+	/**
+	 * @brief The list of HTTP headers to pass to the next query
+	 */
 	CurlHeadersList _headers;
 	/**
 	 * @brief A buffer big enough to store curl error messages

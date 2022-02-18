@@ -44,7 +44,8 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -58,9 +59,8 @@ using namespace meteodata;
 class WeatherlinkDownloader : public AbstractWeatherlinkDownloader
 {
 public:
-	WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-		const std::string& apiToken, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz);
+	WeatherlinkDownloader(const CassUuid& station, const std::string& auth, const std::string& apiToken,
+						  DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz);
 	void download(CurlWrapper& client);
 	void downloadRealTime(CurlWrapper& client);
 

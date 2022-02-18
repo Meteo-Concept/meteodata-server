@@ -30,7 +30,8 @@
 #include "meteo_server.h"
 #include "connector.h"
 
-namespace meteodata {
+namespace meteodata
+{
 /**
  * @brief Main class and orchestrator
  *
@@ -39,10 +40,12 @@ namespace meteodata {
  * and starts a meteo station connector on demand, each time a station
  * opens a connection.
  */
-class MeteoServer {
+class MeteoServer
+{
 
 public:
-	struct MeteoServerConfiguration {
+	struct MeteoServerConfiguration
+	{
 		std::string address;
 		std::string user;
 		std::string password;
@@ -115,8 +118,7 @@ private:
 	 * @param error an error code returned from the accept()
 	 * operation
 	 */
-	void runNewConnector(Connector::ptr c,
-		const boost::system::error_code& error);
+	void runNewConnector(Connector::ptr c, const boost::system::error_code& error);
 };
 }
 

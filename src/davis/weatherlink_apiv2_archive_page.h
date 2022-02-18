@@ -34,7 +34,8 @@
 #include "../time_offseter.h"
 #include "weatherlink_apiv2_parser_trait.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 /**
  * @brief A Message able to receive and store a JSON file resulting from a call to
@@ -46,9 +47,10 @@ class WeatherlinkApiv2ArchivePage : public WeatherlinkApiv2ParserTrait
 public:
 	template<typename T>
 	WeatherlinkApiv2ArchivePage(date::sys_time<T> lastArchive, const TimeOffseter* timeOffseter):
-		_time{date::floor<chrono::seconds>(lastArchive)},
-		_timeOffseter{timeOffseter}
+			_time{date::floor<chrono::seconds>(lastArchive)},
+			_timeOffseter{timeOffseter}
 	{}
+
 	void parse(std::istream& input) override;
 	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
 
@@ -59,9 +61,14 @@ private:
 	void doParse(std::istream& input, const Acceptor& acceptable);
 
 public:
-	inline decltype(_messages)::const_iterator begin() const { return _messages.cbegin(); }
-	inline decltype(_messages)::const_iterator end() const { return _messages.cend(); }
-	inline date::sys_seconds getNewestMessageTime() { return _time; }
+	inline decltype(_messages)::const_iterator begin() const
+	{ return _messages.cbegin(); }
+
+	inline decltype(_messages)::const_iterator end() const
+	{ return _messages.cend(); }
+
+	inline date::sys_seconds getNewestMessageTime()
+	{ return _time; }
 };
 
 }

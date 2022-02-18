@@ -10,7 +10,8 @@ struct PressureTendency
 	 * preceding the time of observation.
 	 * @see a, table 0200, A-244
 	 */
-	enum class Description {
+	enum class Description
+	{
 		INCREASING_THEN_DECREASING = '0',
 		INCREASING_THEN_MORE_SLOWLY,
 		INCREASING,

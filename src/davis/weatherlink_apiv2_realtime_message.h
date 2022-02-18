@@ -42,7 +42,8 @@
 #include "weatherlink_apiv2_parser_trait.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
@@ -57,15 +58,14 @@ public:
 	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain);
 	void parse(std::istream& input) override;
 	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
-	date::sys_seconds getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
+	date::sys_seconds
+	getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
 
 private:
-    std::optional<float> _dayRain;
+	std::optional<float> _dayRain;
 	void doParse(std::istream& input, const Acceptor& acceptable);
-	constexpr bool compareDataPackages(
-		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2
-	);
+	constexpr bool compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
+									   const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2);
 };
 
 }

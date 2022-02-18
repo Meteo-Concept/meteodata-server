@@ -43,7 +43,8 @@
 #include "weatherlink_apiv2_realtime_message.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -55,21 +56,17 @@ using namespace meteodata;
 class WeatherlinkApiv2Downloader : public AbstractWeatherlinkDownloader
 {
 public:
-	WeatherlinkApiv2Downloader(const CassUuid& station,
-		const std::string& weatherlinkId,
-		const std::map<int, CassUuid>& mapping,
-		const std::string& apiKey, const std::string& apiSecret,
-		DbConnectionObservations& db,
-		TimeOffseter&& to);
-	WeatherlinkApiv2Downloader(const CassUuid& station,
-		const std::string& weatherlinkId,
-		const std::map<int, CassUuid>& mapping,
-		const std::string& apiKey, const std::string& apiSecret,
-		DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz);
+	WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
+							   const std::map<int, CassUuid>& mapping, const std::string& apiKey,
+							   const std::string& apiSecret, DbConnectionObservations& db, TimeOffseter&& to);
+	WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
+							   const std::map<int, CassUuid>& mapping, const std::string& apiKey,
+							   const std::string& apiSecret, DbConnectionObservations& db,
+							   TimeOffseter::PredefinedTimezone tz);
 	void download(CurlWrapper& client, bool force = false);
 	void downloadRealTime(CurlWrapper& client);
-	static std::unordered_map<std::string, boost::property_tree::ptree> downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
+	static std::unordered_map<std::string, boost::property_tree::ptree>
+	downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
 
 private:
 	const std::string& _apiKey;

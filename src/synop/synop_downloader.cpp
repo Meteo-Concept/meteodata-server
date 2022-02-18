@@ -39,6 +39,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <utility>
 #include <dbconnection_observations.h>
 
 #include "synop_downloader.h"
@@ -48,27 +49,23 @@
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
-
+namespace meteodata
+{
 using namespace date;
 
-constexpr char SynopDownloader::GROUP_FR[];
-constexpr char SynopDownloader::GROUP_LU[];
-
-SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& group) :
-	AbstractSynopDownloader(ioService, db),
-	_group(group)
+SynopDownloader::SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, std::string group) :
+		AbstractSynopDownloader(ioService, db),
+		_group(std::move(group))
 {
 }
 
 void SynopDownloader::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	std::vector<std::tuple<CassUuid, std::string>> icaos;
 	_db.getAllIcaos(icaos);
 	for (auto&& icao : icaos)
@@ -92,19 +89,14 @@ void SynopDownloader::buildDownloadRequest(std::ostream& out)
 	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
 
 	// Obtain individual components as integers
-	auto y   = int(ymd.year());
-	auto m   = unsigned(ymd.month());
-	auto d   = unsigned(ymd.day());
-	auto h   = tod.hours().count();
+	auto y = int(ymd.year());
+	auto m = unsigned(ymd.month());
+	auto d = unsigned(ymd.day());
+	auto h = tod.hours().count();
 	auto min = 30;
 
-	out << "/cgi-bin/getsynop?begin=" << std::setfill('0')
-		<< std::setw(4) << y
-		<< std::setw(2) << m
-		<< std::setw(2) << d
-		<< std::setw(2) << h
-		<< std::setw(2) << min
-		<< "&block=" << _group;
+	out << "/cgi-bin/getsynop?begin=" << std::setfill('0') << std::setw(4) << y << std::setw(2) << m << std::setw(2)
+		<< d << std::setw(2) << h << std::setw(2) << min << "&block=" << _group;
 }
 
 }

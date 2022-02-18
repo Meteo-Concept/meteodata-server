@@ -49,21 +49,21 @@
 #include "../cassandra_utils.h"
 
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
 constexpr char AbstractSynopDownloader::HOST[];
 
 AbstractSynopDownloader::AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
-	_ioService(ioService),
-	_db(db),
-	_timer(_ioService)
+		_ioService(ioService),
+		_db(db),
+		_timer(_ioService)
 {
 }
 
@@ -71,20 +71,19 @@ void AbstractSynopDownloader::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
 	_timer.expires_from_now(computeWaitDuration());
-	_timer.async_wait(std::bind(&AbstractSynopDownloader::checkDeadline, self, args::_1));
+	_timer.async_wait([self, this](const sys::error_code& e) { checkDeadline(e); });
 }
 
 void AbstractSynopDownloader::stop()
 {
-    std::cout << SD_NOTICE << "[SYNOP] connection: "
-        << "Stopping activity" << std::endl;
+	std::cout << SD_NOTICE << "[SYNOP] connection: " << "Stopping activity" << std::endl;
 
-    /* signal that the downloader should not go to sleep after its
-     * current download (if any) but rather die */
-    _mustStop = true;
-    /* cancel the timer, this will let the downloader be destroyed since
-     * it will run out of activity in the checkDeadline() method below */
-    _timer.cancel();
+	/* signal that the downloader should not go to sleep after its
+	 * current download (if any) but rather die */
+	_mustStop = true;
+	/* cancel the timer, this will let the downloader be destroyed since
+	 * it will run out of activity in the checkDeadline() method below */
+	_timer.cancel();
 }
 
 void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
@@ -99,26 +98,24 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << SD_ERR << "[SYNOP] protocol: "
-			    << "Getting the SYNOP messages failed (" << e.what() << "), will retry"
-				<< std::endl;
+			std::cerr << SD_ERR << "[SYNOP] protocol: " << "Getting the SYNOP messages failed (" << e.what()
+					  << "), will retry" << std::endl;
 			// nothing more, just go back to sleep and retry next time
 		}
 		// Going back to sleep unless we're not supposed too
 		if (!_mustStop)
-            waitUntilNextDownload();
+			waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&AbstractSynopDownloader::checkDeadline, self, args::_1));
+		_timer.async_wait([self, this](const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 
 void AbstractSynopDownloader::download()
 {
-	std::cout << SD_INFO << "[SYNOP] measurement: "
-	    << "Now downloading SYNOP messages " << std::endl;
+	std::cout << SD_INFO << "[SYNOP] measurement: " << "Now downloading SYNOP messages " << std::endl;
 
 	std::ostringstream requestStream;
 	buildDownloadRequest(requestStream);
@@ -156,35 +153,36 @@ void AbstractSynopDownloader::download()
 
 					OgimetSynop synop{m, &timeOffseter};
 					_db.insertV2DataPoint(synop.getObservations(station));
-					std::cout << SD_DEBUG << "[SYNOP] measurement: "
-					    << "Inserted into database" << std::endl;
+					std::cout << SD_DEBUG << "[SYNOP] measurement: " << "Inserted into database" << std::endl;
 
 					std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 					std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
 					auto it = std::find_if(m._precipitation.begin(), m._precipitation.end(),
-							[](const auto& p) { return p._duration == 24; });
+										   [](const auto& p) { return p._duration == 24; });
 					if (it != m._precipitation.end())
 						rainfall24 = std::make_pair(true, it->_amount);
 					if (m._minutesOfSunshineLastDay)
 						insolationTime24 = std::make_pair(true, *m._minutesOfSunshineLastDay);
 					auto day = date::floor<date::days>(m._observationTime) - date::days(1);
-					_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+					_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24,
+												insolationTime24);
 					if (m._minTemperature)
-						_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
+						_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime),
+									   *m._minTemperature / 10.f);
 					if (m._maxTemperature)
-						_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
+						_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime),
+									   *m._maxTemperature / 10.f);
 				}
 			} else {
-				std::cerr << SD_WARNING << "[SYNOP] measurement: "
-				    << "Record looks invalid, discarding..." << std::endl;
+				std::cerr << SD_WARNING << "[SYNOP] measurement: " << "Record looks invalid, discarding..."
+						  << std::endl;
 			}
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "[SYNOP] protocol: "
-		    << "Failed to download SYNOPs: " << error << std::endl;
+		std::cerr << SD_ERR << "[SYNOP] protocol: " << "Failed to download SYNOPs: " << error << std::endl;
 	}
 }
 

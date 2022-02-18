@@ -34,7 +34,8 @@
 #include <observation.h>
 #include <date/date.h>
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -47,13 +48,15 @@ class MeteoFranceShipAndBuoy
 {
 public:
 	MeteoFranceShipAndBuoy(std::istream& entry, const std::vector<std::string>& fields);
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
-	inline const std::string& getIdentifier() {
+	inline const std::string& getIdentifier()
+	{
 		return _identifier;
 	}
 
-	inline operator bool() {
+	inline operator bool()
+	{
 		return _valid;
 	}
 

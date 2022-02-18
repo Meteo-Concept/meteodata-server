@@ -44,7 +44,8 @@
 #include "../davis/vantagepro2_archive_page.h"
 #include "mqtt_subscriber.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace meteodata;
 
@@ -53,8 +54,7 @@ using namespace meteodata;
 class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
-	VP2MqttSubscriber(MqttSubscriptionDetails details,
-		asio::io_service& ioService, DbConnectionObservations& db);
+	VP2MqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
@@ -63,7 +63,9 @@ private:
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
-	const char* getConnectorSuffix() override { return "vp2"; }
+
+	const char* getConnectorSuffix() override
+	{ return "vp2"; }
 };
 
 }

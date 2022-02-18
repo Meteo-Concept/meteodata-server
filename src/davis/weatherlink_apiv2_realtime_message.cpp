@@ -41,7 +41,8 @@
 #include "../time_offseter.h"
 #include "../cassandra_utils.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
@@ -49,56 +50,58 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2RealtimeMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2RealtimeMessage::DataStructureType;
 
-constexpr bool WeatherlinkApiv2RealtimeMessage::compareDataPackages(
-	const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-	const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2
-) {
+constexpr bool
+WeatherlinkApiv2RealtimeMessage::compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
+													 const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2)
+{
 	// Ingest first the ISS so that when reading the data from the aux. sensor suites,
 	// we can check for the missing data
 	// The ordering of the rest is irrelevant.
-	if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
-	    isMainStationType(std::get<0>(entry2)))
+	if (std::get<0>(entry1) == SensorType::SENSOR_SUITE && isMainStationType(std::get<0>(entry2)))
 		return false;
 
 	return true;
 }
 
-WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain) :
-	AbstractWeatherlinkApiMessage(timeOffseter),
-	WeatherlinkApiv2ParserTrait(),
-	_dayRain(dayRain)
+WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter,
+																 std::optional<float> dayRain) :
+		AbstractWeatherlinkApiMessage(timeOffseter),
+		WeatherlinkApiv2ParserTrait(),
+		_dayRain(dayRain)
 {}
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 {
-	doParse(input,
-			[this](auto&& entry) {
-				return acceptEntry(std::forward<decltype(entry)>(entry));
-			}
-	);
+	doParse(input, [this](auto&& entry) {
+		return acceptEntry(std::forward<decltype(entry)>(entry));
+	});
 }
 
-void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<int, CassUuid>& substations,
+											const CassUuid& station)
 {
-	doParse(input,
-			[this, substations, station](auto&& entry) {
-				return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
-			}
-	);
+	doParse(input, [this, substations, station](auto&& entry) {
+		return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
+	});
 }
 
-date::sys_seconds WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+date::sys_seconds
+WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations,
+														const CassUuid& station)
 {
 	Acceptor acceptable;
 	if (substations.empty())
 		acceptable = [this](auto&& entry) { return acceptEntry(std::forward<decltype(entry)>(entry)); };
 	else
-		acceptable = [this, substations, station](auto&& entry) { return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station); };
+		acceptable = [this, substations, station](auto&& entry) {
+			return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
+		};
 
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
-	std::vector<date::sys_seconds> updates = {date::floor<chrono::seconds>(chrono::system_clock::from_time_t(0))}; // put a default to simplify the logic of the max element
+	std::vector<date::sys_seconds> updates = {date::floor<chrono::seconds>(
+			chrono::system_clock::from_time_t(0))}; // put a default to simplify the logic of the max element
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		if (!acceptable(reading))
@@ -128,17 +131,20 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			continue;
 
 		auto dataIt = reading.second.find("data");
-        if (dataIt == reading.second.not_found() || dataIt->second.empty()) // no data?! it's happened before
-            continue;
+		if (dataIt == reading.second.not_found() || dataIt->second.empty()) // no data?! it's happened before
+			continue;
 
 		// we expect exactly one element, the current condition
 		auto data = dataIt->second.front().second;
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>(
+				"data_structure_type"));
 		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));
 	}
 
-	std::sort(entries.begin(), entries.end(), std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1, std::placeholders::_2));
+	std::sort(entries.begin(), entries.end(),
+			  std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1,
+						std::placeholders::_2));
 
 	for (const auto& entry : entries) {
 		SensorType sensorType;
@@ -146,10 +152,9 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		pt::ptree data;
 		std::tie(sensorType, dataStructureType, data) = entry;
 
-		if (isMainStationType(sensorType) &&
-		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+		if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
-			float hum = data.get<float>("hum", INVALID_FLOAT) ;
+			float hum = data.get<float>("hum", INVALID_FLOAT);
 			if (!isInvalid(hum))
 				_obs.humidity = static_cast<int>(hum);
 			_obs.temperatureF = data.get<float>("temp", INVALID_FLOAT);
@@ -169,13 +174,13 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (isMainStationType(sensorType) &&
-		    (dataStructureType == DataStructureType::WEATHERLINK_IP_CURRENT_READING_REVISION_B ||
-		     dataStructureType == DataStructureType::ENVIROMONITOR_ISS_CURRENT_READING)) {
+			(dataStructureType == DataStructureType::WEATHERLINK_IP_CURRENT_READING_REVISION_B ||
+			 dataStructureType == DataStructureType::ENVIROMONITOR_ISS_CURRENT_READING)) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.pressure = data.get<float>("bar", INVALID_FLOAT);
 			if (!isInvalid(_obs.pressure))
 				_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
-			float hum = data.get<float>("hum_out", INVALID_FLOAT) ;
+			float hum = data.get<float>("hum_out", INVALID_FLOAT);
 			if (!isInvalid(hum))
 				_obs.humidity = static_cast<int>(hum);
 			_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
@@ -219,10 +224,10 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (sensorType == SensorType::SENSOR_SUITE &&
-		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
-            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+			dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			if (isInvalid(_obs.humidity)) {
-				float hum = data.get<float>("hum", INVALID_FLOAT) ;
+				float hum = data.get<float>("hum", INVALID_FLOAT);
 				if (!isInvalid(hum))
 					_obs.humidity = static_cast<int>(hum);
 			}
@@ -258,16 +263,17 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			}
 		}
 
-		if (sensorType == SensorType::BAROMETER && dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
-            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+		if (sensorType == SensorType::BAROMETER &&
+			dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 			if (!isInvalid(_obs.pressure))
 				_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
 		}
 
 		if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
-			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
-            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+			dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			// The first two temperatures are put in both leaf and soil temperatures fields
 			// because we cannot know from the API where the user installed the sensors
 			// It's necessary to enable/disable the corresponding sensors from the administration
@@ -296,7 +302,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		}
 
 		if (sensorType == SensorType::ANEMOMETER) {
-            _obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
+			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			_obs.windDir = data.get<int>("wind_dir_prevail", INVALID_INT);
 			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);

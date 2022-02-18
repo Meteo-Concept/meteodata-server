@@ -31,7 +31,8 @@
 #include "./fieldclimate_archive_message.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 /**
  * @brief A parser able to receive and store a JSON file resulting from a call
@@ -83,10 +84,8 @@ public:
 	 * meteorological variables such as "temperature" and FieldClimate API
 	 * id such as "1_X_X_143" found in the JSON output)
 	 */
-	FieldClimateApiArchiveMessageCollection(
-		const TimeOffseter* timeOffseter,
-		const std::map<std::string, std::string>* sensors
-	);
+	FieldClimateApiArchiveMessageCollection(const TimeOffseter* timeOffseter,
+											const std::map<std::string, std::string>* sensors);
 
 	/**
 	 * @brief Parse the body of a FieldClimate API data response to create
@@ -106,16 +105,19 @@ public:
 	 * @return The begin() iterator of the list of messages succesfully
 	 * parsed
 	 */
-	inline auto begin() const {
+	inline auto begin() const
+	{
 		return _messages.cbegin();
 	}
+
 	/**
 	 * @brief Gets an iterator past-the-end of the list of messages
 	 *
 	 * @return The end() iterator of the list of messages succesfully
 	 * parsed
 	 */
-	inline auto end() const {
+	inline auto end() const
+	{
 		return _messages.cend();
 	}
 
@@ -129,7 +131,8 @@ public:
 	 * @return The most recent datetime which will be inserted in the
 	 * database thanks to this messages collection
 	 */
-	inline date::sys_seconds getNewestMessageTime() const {
+	inline date::sys_seconds getNewestMessageTime() const
+	{
 		return _messages.back()._obs.time;
 	}
 };

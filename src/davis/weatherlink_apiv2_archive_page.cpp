@@ -37,7 +37,8 @@
 #include "weatherlink_apiv2_archive_page.h"
 #include "weatherlink_apiv2_archive_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
@@ -45,20 +46,20 @@ namespace pt = boost::property_tree;
 using SensorType = WeatherlinkApiv2ArchiveMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2ArchiveMessage::DataStructureType;
 
-namespace {
-	constexpr bool compareMessages(
-		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry1,
-		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry2
-	) {
-		SensorType sensorType2 = std::get<0>(entry2);
-		// Inject first the aux. sensor suites and then the ISS to have the possibility to
-		// override the aux. sensor suites data with the ISS data.
-		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
-		    WeatherlinkApiv2ArchiveMessage::isMainStationType(sensorType2))
-			return true;
+namespace
+{
+constexpr bool compareMessages(const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry1,
+							   const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2ArchiveMessage>& entry2)
+{
+	SensorType sensorType2 = std::get<0>(entry2);
+	// Inject first the aux. sensor suites and then the ISS to have the possibility to
+	// override the aux. sensor suites data with the ISS data.
+	if (std::get<0>(entry1) == SensorType::SENSOR_SUITE &&
+		WeatherlinkApiv2ArchiveMessage::isMainStationType(sensorType2))
+		return true;
 
-		return false;
-	}
+	return false;
+}
 }
 
 void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
@@ -66,9 +67,11 @@ void WeatherlinkApiv2ArchivePage::parse(std::istream& input)
 	doParse(input, std::bind(&WeatherlinkApiv2ArchivePage::acceptEntry, this, std::placeholders::_1));
 }
 
-void WeatherlinkApiv2ArchivePage::parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station)
+void WeatherlinkApiv2ArchivePage::parse(std::istream& input, const std::map<int, CassUuid>& substations,
+										const CassUuid& station)
 {
-	doParse(input, std::bind(&WeatherlinkApiv2ArchivePage::acceptEntryWithSubstations, this, std::placeholders::_1, substations, station));
+	doParse(input, std::bind(&WeatherlinkApiv2ArchivePage::acceptEntryWithSubstations, this, std::placeholders::_1,
+							 substations, station));
 }
 
 
@@ -84,10 +87,11 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 			continue;
 
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
-        auto dataIt = reading.second.find("data");
-        if (dataIt == reading.second.not_found() || dataIt->second.empty())
-            continue;
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>(
+				"data_structure_type"));
+		auto dataIt = reading.second.find("data");
+		if (dataIt == reading.second.not_found() || dataIt->second.empty())
+			continue;
 		for (std::pair<const std::string, pt::ptree>& data : dataIt->second) {
 			WeatherlinkApiv2ArchiveMessage message(_timeOffseter);
 			message.ingest(data.second, sensorType, dataStructureType);
@@ -97,14 +101,10 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 		}
 	}
 	std::sort(entries.begin(), entries.end(), &compareMessages);
-	std::transform(
-		std::make_move_iterator(entries.begin()),
-		std::make_move_iterator(entries.end()),
-		std::back_inserter(_messages),
-		[](auto&& entry) {
-			return std::move(std::get<2>(entry));
-		}
-	);
+	std::transform(std::make_move_iterator(entries.begin()), std::make_move_iterator(entries.end()),
+				   std::back_inserter(_messages), [](auto&& entry) {
+				return std::move(std::get<2>(entry));
+			});
 }
 
 }

@@ -37,11 +37,11 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -55,7 +55,8 @@ class MileosImporter
 {
 public:
 	MileosImporter(const CassUuid& station, const std::string& timezone, DbConnectionObservations& db);
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = false);
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end,
+				bool updateLastArchiveDownloadTime = false);
 
 private:
 	CassUuid _station;

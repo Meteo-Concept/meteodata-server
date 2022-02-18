@@ -41,42 +41,48 @@
 #include "../time_offseter.h"
 #include "vantagepro2_archive_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
-	class VantagePro2HttpRequestHandler
+class VantagePro2HttpRequestHandler
+{
+public:
+	using Request = boost::beast::http::request<boost::beast::http::string_body>;
+	using Response = boost::beast::http::response<boost::beast::http::string_body>;
+
+	explicit VantagePro2HttpRequestHandler(DbConnectionObservations& db);
+
+	void processRequest(const Request& request, Response& response);
+
+private:
+	DbConnectionObservations& _db;
+
+	struct ClientInformation
 	{
-	public:
-		using Request = boost::beast::http::request<boost::beast::http::string_body>;
-		using Response = boost::beast::http::response<boost::beast::http::string_body>;
-
-		explicit VantagePro2HttpRequestHandler(DbConnectionObservations& db);
-
-		void processRequest(const Request& request, Response& response);
-
-	private:
-		DbConnectionObservations& _db;
-
-		struct ClientInformation {
-			std::string authorizedUser;
-			TimeOffseter::PredefinedTimezone timezone{TimeOffseter::PredefinedTimezone::UTC};
-		};
-
-		std::map<CassUuid, ClientInformation> _userAndTimezoneByStation;
-
-		bool getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid, const std::cmatch& url);
-
-		void getLastArchive(const Request& request, Response& response, std::cmatch&& url);
-
-		void postArchivePage(const Request& request, Response& response, std::cmatch&& url);
-
-		using Route = void (VantagePro2HttpRequestHandler::*)(const Request& request, Response& response, std::cmatch&& url);
-
-		const std::array<std::tuple<boost::beast::http::verb, std::regex, VantagePro2HttpRequestHandler::Route>, 2> routes = {
-				std::make_tuple( boost::beast::http::verb::get , std::regex{"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"} , &VantagePro2HttpRequestHandler::getLastArchive ),
-				std::make_tuple( boost::beast::http::verb::post, std::regex{"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/?"} , &VantagePro2HttpRequestHandler::postArchivePage )
-		};
-
+		std::string authorizedUser;
+		TimeOffseter::PredefinedTimezone timezone{TimeOffseter::PredefinedTimezone::UTC};
 	};
+
+	std::map<CassUuid, ClientInformation> _userAndTimezoneByStation;
+
+	bool getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid, const std::cmatch& url);
+
+	void getLastArchive(const Request& request, Response& response, std::cmatch&& url);
+
+	void postArchivePage(const Request& request, Response& response, std::cmatch&& url);
+
+	using Route = void (VantagePro2HttpRequestHandler::*)(const Request& request, Response& response,
+														  std::cmatch&& url);
+
+	const std::array<std::tuple<boost::beast::http::verb, std::regex, VantagePro2HttpRequestHandler::Route>, 2> routes = {
+			std::make_tuple(boost::beast::http::verb::get, std::regex{
+									"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
+							&VantagePro2HttpRequestHandler::getLastArchive),
+			std::make_tuple(boost::beast::http::verb::post, std::regex{
+									"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/?"},
+							&VantagePro2HttpRequestHandler::postArchivePage)};
+
+};
 
 }
 

@@ -41,7 +41,8 @@
 #include <dbconnection_observations.h>
 
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -58,7 +59,7 @@ class ShipAndBuoyDownloader : public std::enable_shared_from_this<ShipAndBuoyDow
 public:
 	ShipAndBuoyDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	void start();
-    void stop();
+	void stop();
 
 private:
 	asio::io_service& _ioService;

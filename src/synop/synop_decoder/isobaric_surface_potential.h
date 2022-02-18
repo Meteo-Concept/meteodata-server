@@ -5,12 +5,9 @@
 
 struct IsobaricSurfacePotential
 {
-	enum class StandardIsobaricSurface {
-		S_1000 = '1',
-		S_925  = '2',
-		S_500  = '5',
-		S_700  = '7',
-		S_850  = '8'
+	enum class StandardIsobaricSurface
+	{
+		S_1000 = '1', S_925 = '2', S_500 = '5', S_700 = '7', S_850 = '8'
 	};
 
 	/**

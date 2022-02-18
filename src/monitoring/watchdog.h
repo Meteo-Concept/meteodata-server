@@ -31,7 +31,8 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_service.hpp>
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;

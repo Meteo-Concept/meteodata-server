@@ -32,7 +32,8 @@
 
 using std::size_t;
 
-namespace {
+namespace
+{
 
 /**
  * Test whether two ASCII strings are equal, disregarding the case
@@ -48,7 +49,7 @@ inline bool compareAsciiCaseInsensitive(const std::string& str1, const std::stri
 	if (str1.size() != str2.size()) {
 		return false;
 	}
-	for (std::string::const_iterator c1 = str1.begin(), c2 = str2.begin(); c1 != str1.end(); ++c1, ++c2) {
+	for (std::string::const_iterator c1 = str1.begin(), c2 = str2.begin() ; c1 != str1.end() ; ++c1, ++c2) {
 		if (::tolower(*c1) != ::tolower(*c2)) {
 			return false;
 		}
@@ -71,15 +72,17 @@ inline std::string computeHMACWithSHA256(const std::string& str, const std::stri
 	unsigned int finalSize = EVP_MAX_MD_SIZE;
 	unsigned char rawOutput[EVP_MAX_MD_SIZE + 1];
 
-	unsigned char* result = HMAC(sha256, reinterpret_cast<const unsigned char*>(key.data()), key.length(), reinterpret_cast<const unsigned char*>(str.data()), str.length(), rawOutput, &finalSize);
+	unsigned char* result = HMAC(sha256, reinterpret_cast<const unsigned char*>(key.data()), key.length(),
+								 reinterpret_cast<const unsigned char*>(str.data()), str.length(), rawOutput,
+								 &finalSize);
 	if (!result)
 		throw std::runtime_error("OpenSSL failed to compute the HMAC for the string: " + str);
 	rawOutput[finalSize] = 0;
 
 	std::ostringstream output;
 	output << std::hex;
-	for (unsigned int i=0 ; i<finalSize ; i++)
-		output << std::setw(2) << std::setfill('0') << (int)rawOutput[i];
+	for (unsigned int i = 0 ; i < finalSize ; i++)
+		output << std::setw(2) << std::setfill('0') << (int) rawOutput[i];
 	return output.str();
 }
 

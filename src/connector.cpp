@@ -31,9 +31,9 @@ namespace meteodata
 {
 
 Connector::Connector(boost::asio::io_service& ioService, DbConnectionObservations& db) :
-	_sock(ioService),
-	_ioService(ioService),
-	_db(db)
+		_sock(ioService),
+		_ioService(ioService),
+		_db(db)
 {}
 
 }

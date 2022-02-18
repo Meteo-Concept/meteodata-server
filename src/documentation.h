@@ -34,4 +34,6 @@
 /**
  * @brief The namespace in which all the code base of this project goes
  */
-namespace meteodata {}
+namespace meteodata
+{
+}

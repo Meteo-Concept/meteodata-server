@@ -39,11 +39,11 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -55,16 +55,19 @@ using namespace meteodata;
  *
  * Individual lines are parsed by an instance of the parameter class Msg.
  */
-template <typename Msg, char separator=',', int headerLines=1> class CsvImporter
+template<typename Msg, char separator = ',', int headerLines = 1>
+class CsvImporter
 {
 public:
 	CsvImporter(const CassUuid& station, const std::string& timezone, DbConnectionObservations& db) :
-		_station{station},
-		_db{db},
-		_tz{TimeOffseter::getTimeOffseterFor(timezone)}
+			_station{station},
+			_db{db},
+			_tz{TimeOffseter::getTimeOffseterFor(timezone)}
 	{
 	}
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime = false)
+
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end,
+				bool updateLastArchiveDownloadTime = false)
 	{
 		std::string line;
 		std::getline(input, line);
@@ -80,7 +83,7 @@ public:
 			}
 		}
 
-		for (int h=headerLines-1 ; h>0 ; h--) {
+		for (int h = headerLines - 1 ; h > 0 ; h--) {
 			std::getline(input, line);
 			lineIterator = std::istringstream{line};
 			unsigned int i = 0;
@@ -109,13 +112,14 @@ public:
 		date::sys_seconds e;
 
 		int ret = 0;
-		for (unsigned int lineNumber=headerLines+1 ; std::getline(input, line) ; lineNumber++) {
+		for (unsigned int lineNumber = headerLines + 1 ; std::getline(input, line) ; lineNumber++) {
 			lineIterator = std::istringstream{line};
 			Msg m{lineIterator, _tz, _fields};
 			if (m) {
 				ret = _db.insertV2DataPoint(m.getObservation(_station));
 				if (!ret) {
-					std::cerr << SD_ERR << "[CsvImporter] measurement: failed to insert entry at line " << lineNumber << std::endl;
+					std::cerr << SD_ERR << "[CsvImporter] measurement: failed to insert entry at line " << lineNumber
+							  << std::endl;
 				} else {
 					valid = true;
 					date::sys_seconds newDate = m.getDateTime();
@@ -130,7 +134,8 @@ public:
 			end = e;
 			ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
 			if (!ret) {
-				std::cerr << SD_ERR << "[CsvImporter] management: failed to update the last archive download datetime" << std::endl;
+				std::cerr << SD_ERR << "[CsvImporter] management: failed to update the last archive download datetime"
+						  << std::endl;
 			}
 		}
 

@@ -39,9 +39,9 @@ namespace meteodata
 {
 WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields)
 {
-	unsigned int i=0;
+	unsigned int i = 0;
 	std::map<std::string, std::string> values;
-	for (std::string field ; std::getline(entry, field, '\t') && i<fields.size() ; i++) {
+	for (std::string field ; std::getline(entry, field, '\t') && i < fields.size() ; i++) {
 		size_t start = field.find_first_not_of(' ');
 		size_t end = field.find_last_not_of(" \r");
 		if (start == std::string::npos) {
@@ -165,28 +165,28 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 
 Observation WlkMessage::getObservation(const CassUuid station) const
 {
-    Observation result;
+	Observation result;
 
-    result.station = station;
-    result.day = date::floor<date::days>(_datetime);
-    result.time = date::floor<chrono::seconds>(_datetime);
-    result.barometer = { bool(_pressure), *_pressure };
-    if (_dewPoint) {
-        result.dewpoint = {true, *_dewPoint};
-    } else if (_airTemp && _humidity) {
-        result.dewpoint = { true, dew_point(*_airTemp, *_humidity) };
-    }
-    result.heatindex = { bool(_heatIndex), *_heatIndex };
-    result.outsidehum = { bool(_humidity), *_humidity };
-    result.outsidetemp = { bool(_airTemp), *_airTemp };
-    result.rainrate = { bool(_rainrate), *_rainrate };
-    result.rainfall = { bool(_rainfall), *_rainfall };
-    result.windchill = { bool(_windChill), *_windChill };
-    result.winddir = { bool(_windDir), *_windDir };
-    result.windgust = { bool(_gust), *_gust };
-    result.windspeed = { bool(_windSpeed), *_windSpeed };
+	result.station = station;
+	result.day = date::floor<date::days>(_datetime);
+	result.time = date::floor<chrono::seconds>(_datetime);
+	result.barometer = {bool(_pressure), *_pressure};
+	if (_dewPoint) {
+		result.dewpoint = {true, *_dewPoint};
+	} else if (_airTemp && _humidity) {
+		result.dewpoint = {true, dew_point(*_airTemp, *_humidity)};
+	}
+	result.heatindex = {bool(_heatIndex), *_heatIndex};
+	result.outsidehum = {bool(_humidity), *_humidity};
+	result.outsidetemp = {bool(_airTemp), *_airTemp};
+	result.rainrate = {bool(_rainrate), *_rainrate};
+	result.rainfall = {bool(_rainfall), *_rainfall};
+	result.windchill = {bool(_windChill), *_windChill};
+	result.winddir = {bool(_windDir), *_windDir};
+	result.windgust = {bool(_gust), *_gust};
+	result.windspeed = {bool(_windSpeed), *_windSpeed};
 
-    return result;
+	return result;
 }
 
 }

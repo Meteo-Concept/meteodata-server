@@ -49,44 +49,45 @@ namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 constexpr int FieldClimateApiDownloadScheduler::POLLING_PERIOD;
 
 
 using namespace date;
 
-FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(
-	asio::io_service& ioService, DbConnectionObservations& db,
-	const std::string& apiId, const std::string& apiSecret
-	) :
-	_ioService{ioService},
-	_db{db},
-	_apiId{apiId},
-	_apiSecret{apiSecret},
-	_timer{ioService}
+FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_service& ioService,
+																   DbConnectionObservations& db,
+																   const std::string& apiId,
+																   const std::string& apiSecret) :
+		_ioService{ioService},
+		_db{db},
+		_apiId{apiId},
+		_apiSecret{apiSecret},
+		_timer{ioService}
 {
 }
 
-void FieldClimateApiDownloadScheduler::add(
-	const CassUuid& station, const std::string& fieldClimateId,
-	TimeOffseter::PredefinedTimezone tz,
-	const std::map<std::string, std::string> sensors
-) {
-	_downloaders.emplace_back(std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret));
+void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
+										   TimeOffseter::PredefinedTimezone tz,
+										   const std::map<std::string, std::string> sensors)
+{
+	_downloaders.emplace_back(
+			std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret));
 }
 
 void FieldClimateApiDownloadScheduler::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	reloadStations();
 	waitUntilNextDownload();
 }
 
 void FieldClimateApiDownloadScheduler::stop()
 {
-    _mustStop = true;
-    _timer.cancel();
+	_mustStop = true;
+	_timer.cancel();
 }
 
 void FieldClimateApiDownloadScheduler::downloadArchives()
@@ -98,8 +99,8 @@ void FieldClimateApiDownloadScheduler::downloadArchives()
 			// (capped at 10 per second)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "[Pessl] protocol: "
-			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Pessl] protocol: " << "Runtime error, impossible to download " << e.what()
+					  << ", moving on..." << std::endl;
 		}
 	}
 }
@@ -109,7 +110,7 @@ void FieldClimateApiDownloadScheduler::waitUntilNextDownload()
 	auto self(shared_from_this());
 	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
 	auto tp = chrono::minutes(realTimePollingPeriod) -
-	       (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
+			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
 	_timer.expires_from_now(tp);
 	_timer.async_wait(std::bind(&FieldClimateApiDownloadScheduler::checkDeadline, self, args::_1));
 }
@@ -140,11 +141,8 @@ void FieldClimateApiDownloadScheduler::reloadStations()
 	std::vector<std::tuple<CassUuid, std::string, int, std::map<std::string, std::string>>> fieldClimateStations;
 	_db.getAllFieldClimateApiStations(fieldClimateStations);
 	for (const auto& station : fieldClimateStations) {
-		add(
-			std::get<0>(station), std::get<1>(station),
-			TimeOffseter::PredefinedTimezone(std::get<2>(station)),
-			std::get<3>(station)
-		);
+		add(std::get<0>(station), std::get<1>(station), TimeOffseter::PredefinedTimezone(std::get<2>(station)),
+			std::get<3>(station));
 	}
 }
 

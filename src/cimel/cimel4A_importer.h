@@ -40,7 +40,8 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -64,7 +65,8 @@ public:
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone, DbConnectionObservations& db);
+	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+					DbConnectionObservations& db);
 
 	/**
 	 * Constructs a Cimel4AImporter
@@ -74,9 +76,11 @@ public:
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db);
+	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+					DbConnectionObservations& db);
 
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year, bool updateLastArchiveDownloadTime = true);
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
+				bool updateLastArchiveDownloadTime = true);
 
 	template<typename T>
 	struct Parser
@@ -111,7 +115,8 @@ private:
 };
 
 template<typename T>
-std::istream& operator>>(std::istream& is, Cimel4AImporter::Parser<T>&& p) {
+std::istream& operator>>(std::istream& is, Cimel4AImporter::Parser<T>&& p)
+{
 	p.destination = 0;
 	for (int i = p.length ; i > 0 ; i--) {
 		auto c = is.get();

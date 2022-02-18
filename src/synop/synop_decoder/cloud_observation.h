@@ -9,7 +9,8 @@
 
 #include "nebulosity.h"
 
-enum class CloudGenus {
+enum class CloudGenus
+{
 	CIRRUS = '0',
 	CIRROCUMULUS,
 	CIRROSTRATUS,

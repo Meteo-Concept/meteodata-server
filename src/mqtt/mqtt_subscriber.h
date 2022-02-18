@@ -44,25 +44,27 @@
 #include "../time_offseter.h"
 #include "../davis/vantagepro2_archive_page.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 /**
  */
 class MqttSubscriber : public std::enable_shared_from_this<MqttSubscriber>
 {
 public:
-	struct MqttSubscriptionDetails {
+	struct MqttSubscriptionDetails
+	{
 		std::string host;
 		int port;
 		std::string user;
 		std::string password;
 
-		MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, const std::string& password);
+		MqttSubscriptionDetails(const std::string& host, int port, const std::string& user,
+								const std::string& password);
 		friend bool operator<(const MqttSubscriptionDetails& s1, const MqttSubscriptionDetails& s2);
 	};
 
-	MqttSubscriber(const MqttSubscriptionDetails& details,
-		asio::io_service& ioService, DbConnectionObservations& db);
+	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_service& ioService, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start();
 	void stop();
@@ -109,8 +111,11 @@ protected:
 	virtual bool handlePubRec(std::uint16_t packetId);
 	virtual bool handlePubComp(std::uint16_t packetId);
 	virtual bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results);
-	virtual bool handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id, mqtt::string_view topic_name, mqtt::string_view contents);
+	virtual bool
+	handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id, mqtt::string_view topic_name,
+				  mqtt::string_view contents);
 };
+
 bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2);
 
 }

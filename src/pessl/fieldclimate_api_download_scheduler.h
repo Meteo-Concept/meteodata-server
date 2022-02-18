@@ -41,7 +41,8 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -69,11 +70,8 @@ public:
 	 * @param apiId the public part of the FieldClimate API key
 	 * @param apiSecret the private part of the FieldClimate API key
 	 */
-	FieldClimateApiDownloadScheduler(
-		asio::io_service& ioService,
-		DbConnectionObservations& db,
-		const std::string& apiId, const std::string& apiSecret
-	);
+	FieldClimateApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
+									 const std::string& apiId, const std::string& apiSecret);
 
 	/**
 	 * @brief Start the periodic downloads
@@ -94,9 +92,8 @@ public:
 	 * @param sensors All the sensors registered for that station (see the
 	 * FieldClimateApiDownloader class for details)
 	 */
-	void add(const CassUuid& station, const std::string& fieldClimateId,
-		TimeOffseter::PredefinedTimezone tz,
-		const std::map<std::string, std::string> sensors);
+	void add(const CassUuid& station, const std::string& fieldClimateId, TimeOffseter::PredefinedTimezone tz,
+			 const std::map<std::string, std::string> sensors);
 
 private:
 	/**
@@ -143,7 +140,7 @@ public:
 	/**
 	 * @brief The type of the const iterators through the downloaders
 	 */
-	using DownloaderIterator =  decltype(_downloaders)::const_iterator;
+	using DownloaderIterator = decltype(_downloaders)::const_iterator;
 
 private:
 	/**

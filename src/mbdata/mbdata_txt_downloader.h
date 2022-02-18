@@ -37,7 +37,8 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -49,9 +50,10 @@ using namespace meteodata;
 class MBDataTxtDownloader : public std::enable_shared_from_this<MBDataTxtDownloader>
 {
 public:
-	MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
+	MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db,
+						const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 	void start();
-    void stop();
+	void stop();
 
 private:
 	asio::io_service& _ioService;

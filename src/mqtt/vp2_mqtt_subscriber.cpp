@@ -42,32 +42,34 @@
 
 namespace sys = boost::system;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
 constexpr char VP2MqttSubscriber::ARCHIVES_TOPIC[];
 
-VP2MqttSubscriber::VP2MqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
-		asio::io_service& ioService, DbConnectionObservations& db) :
-	MqttSubscriber(details, ioService, db)
+VP2MqttSubscriber::VP2MqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
+									 DbConnectionObservations& db) :
+		MqttSubscriber(details, ioService, db)
 {
 }
 
-bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
+{
 	for (auto const& e : results) { /* we are expecting only one */
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
-			std::cerr << SD_ERR << "[MQTT] protocol: "
-			    << "client " << _details.host << ": received an invalid subscription ack?!" << std::endl;
+			std::cerr << SD_ERR << "[MQTT] protocol: " << "client " << _details.host
+					  << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		const std::string& topic = subscriptionIt->second;
 		const auto& station = _stations[subscriptionIt->second];
 		if (!e) {
-			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: "
-                 << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
+			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: " << "subscription failed: "
+					  << mqtt::qos::to_str(*e) << std::endl;
 		} else {
 			const date::sys_seconds& lastArchive = std::get<3>(station);
 			int pollingPeriod = std::get<2>(station);
@@ -76,15 +78,10 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 				// to vp2/<client> to request the archives
 				if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
 					// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
-					_client->publish_at_least_once(
-							topic.substr(0, topic.size() - 7),
-							"GETTIME"
-					);
+					_client->publish_at_least_once(topic.substr(0, topic.size() - 7), "GETTIME");
 					// Fetch all the archives available right now, this will resync the scheduler at the same time
-					_client->publish_at_least_once(
-							topic.substr(0, topic.size() - 7),
-							date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive)
-					);
+					_client->publish_at_least_once(topic.substr(0, topic.size() - 7),
+												   date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive));
 				}
 			}
 		}
@@ -92,25 +89,24 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 	return true;
 }
 
-void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) {
+void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+{
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
-		std::cout << SD_NOTICE << "[MQTT protocol]: "
-				  << "Unknown topic " << topicName << std::endl;
+		std::cout << SD_NOTICE << "[MQTT protocol]: " << "Unknown topic " << topicName << std::endl;
 		return;
 	}
 
 	const CassUuid& station = std::get<0>(stationIt->second);
 	const std::string& stationName = std::get<1>(stationIt->second);
 	const TimeOffseter& timeOffseter = std::get<4>(stationIt->second);
-	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
-			  << "Now receiving for MQTT station " << stationName << std::endl;
+	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Now receiving for MQTT station "
+			  << stationName << std::endl;
 
 	std::size_t expectedSize = sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint);
 	std::size_t receivedSize = content.size();
 	if (receivedSize != expectedSize) {
-		std::cerr << SD_WARNING << "[MQTT " << station << "] protocol: "
-				  << "input from broker has an invalid size "
+		std::cerr << SD_WARNING << "[MQTT " << station << "] protocol: " << "input from broker has an invalid size "
 				  << "(" << receivedSize << " bytes instead of " << expectedSize << ")" << std::endl;
 		return;
 	}
@@ -128,16 +124,15 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	}
 
 	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: "
-				  << "Archive data stored" << std::endl;
+		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Archive data stored" << std::endl;
 		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
 					  << "Couldn't update last archive download time" << std::endl;
 	} else {
-		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: "
-				  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
+		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: " << "Failed to store archive for MQTT station "
+				  << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}
@@ -151,12 +146,9 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		std::string topic{topicName.substr(0, topicName.size() - 7)};
 		if (_clockResetTimes[topic] + chrono::hours(1) < now) {
 			date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
-			std::cerr << SD_INFO << "[MQTT " << station << "] protocol: "
-					  << "Setting the station clock to " << date::format("%Y-%m-%d %H:%M:%S", stationTime) << std::endl;
-			_client->publish_at_least_once(
-					topic,
-					date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime)
-			);
+			std::cerr << SD_INFO << "[MQTT " << station << "] protocol: " << "Setting the station clock to "
+					  << date::format("%Y-%m-%d %H:%M:%S", stationTime) << std::endl;
+			_client->publish_at_least_once(topic, date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime));
 		}
 		_clockResetTimes[topic] = now;
 	}

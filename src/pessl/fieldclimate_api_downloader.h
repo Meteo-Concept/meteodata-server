@@ -35,7 +35,8 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace meteodata;
 
@@ -61,12 +62,10 @@ public:
 	 * @param apiId the FieldClimate API key public part
 	 * @param apiSecret the FieldClimate API key private part
 	 */
-	FieldClimateApiDownloader(const CassUuid& station,
-		const std::string& fieldclimateId,
-		const std::map<std::string, std::string>& sensors,
-		DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz,
-		const std::string& apiId, const std::string& apiSecret);
+	FieldClimateApiDownloader(const CassUuid& station, const std::string& fieldclimateId,
+							  const std::map<std::string, std::string>& sensors, DbConnectionObservations& db,
+							  TimeOffseter::PredefinedTimezone tz, const std::string& apiId,
+							  const std::string& apiSecret);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored
@@ -179,9 +178,8 @@ private:
 	 * @return A tuple of two strings, the first one being the
 	 * Authorization: header and the second one the Date: header.
 	 */
-	std::tuple<std::string, std::string> computeAuthorizationAndDateFields(
-		const std::string& method, const std::string& route
-	);
+	std::tuple<std::string, std::string>
+	computeAuthorizationAndDateFields(const std::string& method, const std::string& route);
 
 	/**
 	 * @brief Get the datetime of the last datapoint available from the

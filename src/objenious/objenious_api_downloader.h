@@ -35,7 +35,8 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace meteodata;
 
@@ -58,11 +59,9 @@ public:
 	 * @param apiId the Objenious API key public part
 	 * @param apiSecret the Objenious API key private part
 	 */
-	ObjeniousApiDownloader(const CassUuid& station,
-		const std::string& objeniousId,
-		const std::map<std::string, std::string>& variables,
-		DbConnectionObservations& db,
-		const std::string& apiId);
+	ObjeniousApiDownloader(const CassUuid& station, const std::string& objeniousId,
+						   const std::map<std::string, std::string>& variables, DbConnectionObservations& db,
+						   const std::string& apiId);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored

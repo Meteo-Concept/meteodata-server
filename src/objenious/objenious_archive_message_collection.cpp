@@ -37,13 +37,15 @@
 #include "objenious_archive_message.h"
 #include "objenious_api_downloader.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-ObjeniousApiArchiveMessageCollection::ObjeniousApiArchiveMessageCollection(const std::map<std::string, std::string>* variables) :
-	_variables{variables}
+ObjeniousApiArchiveMessageCollection::ObjeniousApiArchiveMessageCollection(
+		const std::map<std::string, std::string>* variables) :
+		_variables{variables}
 {
 }
 

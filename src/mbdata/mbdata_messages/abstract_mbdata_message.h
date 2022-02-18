@@ -37,7 +37,8 @@
 
 #include "../../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -74,23 +75,24 @@ public:
 	 * @return An auto-managed shared pointer to the connector
 	 */
 	template<typename T>
-	static
-	typename std::enable_if<std::is_base_of<AbstractMBDataMessage,T>::value,
-			AbstractMBDataMessage::ptr>::type
-	create(date::sys_seconds datetime, const std::string& content, std::optional<float> rainfall, const TimeOffseter& timeOffseter)
+	static typename std::enable_if<std::is_base_of<AbstractMBDataMessage, T>::value, AbstractMBDataMessage::ptr>::type
+	create(date::sys_seconds datetime, const std::string& content, std::optional<float> rainfall,
+		   const TimeOffseter& timeOffseter)
 	{
 		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), rainfall, std::ref(timeOffseter)));
 	}
 
-	inline operator bool() const {
+	inline operator bool() const
+	{
 		return _valid;
 	}
 
-	inline date::sys_seconds getDateTime() const {
+	inline date::sys_seconds getDateTime() const
+	{
 		return _datetime;
 	}
 
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
 protected:
 	AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter);
@@ -101,19 +103,19 @@ protected:
 	const TimeOffseter& _timeOffseter;
 	constexpr static int POLLING_PERIOD = 10;
 
-    std::optional<float> _airTemp;
-    std::optional<float> _dewPoint;
-    std::optional<int> _humidity;
-    std::optional<int> _windDir;
-    std::optional<float> _wind;
-    std::optional<float> _pressure;
-    std::optional<float> _gust;
-    std::optional<float> _rainRate;
-    std::optional<int> _solarRad;
-    std::optional<float> _computedRainfall;
-    std::optional<float> _diffRainfall;
+	std::optional<float> _airTemp;
+	std::optional<float> _dewPoint;
+	std::optional<int> _humidity;
+	std::optional<int> _windDir;
+	std::optional<float> _wind;
+	std::optional<float> _pressure;
+	std::optional<float> _gust;
+	std::optional<float> _rainRate;
+	std::optional<int> _solarRad;
+	std::optional<float> _computedRainfall;
+	std::optional<float> _diffRainfall;
 
-    friend MBDataMessageFactory;
+	friend MBDataMessageFactory;
 };
 
 }

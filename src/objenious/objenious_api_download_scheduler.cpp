@@ -49,42 +49,41 @@ namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 constexpr int ObjeniousApiDownloadScheduler::POLLING_PERIOD;
 
 
 using namespace date;
 
-ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(
-	asio::io_service& ioService, DbConnectionObservations& db,
-	const std::string& apiKey
-	) :
-	_ioService{ioService},
-	_db{db},
-	_apiKey{apiKey},
-	_timer{ioService}
+ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
+															 const std::string& apiKey) :
+		_ioService{ioService},
+		_db{db},
+		_apiKey{apiKey},
+		_timer{ioService}
 {
 }
 
-void ObjeniousApiDownloadScheduler::add(
-	const CassUuid& station, const std::string& fieldClimateId,
-	const std::map<std::string, std::string> variables
-) {
-	_downloaders.emplace_back(std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey));
+void ObjeniousApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
+										const std::map<std::string, std::string> variables)
+{
+	_downloaders.emplace_back(
+			std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey));
 }
 
 void ObjeniousApiDownloadScheduler::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	reloadStations();
 	waitUntilNextDownload();
 }
 
 void ObjeniousApiDownloadScheduler::stop()
 {
-    _mustStop = true;
-    _timer.cancel();
+	_mustStop = true;
+	_timer.cancel();
 }
 
 void ObjeniousApiDownloadScheduler::downloadArchives()
@@ -96,8 +95,8 @@ void ObjeniousApiDownloadScheduler::downloadArchives()
 			// (10 per second looks fine)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "[Objenious] protocol: "
-			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Objenious] protocol: " << "Runtime error, impossible to download " << e.what()
+					  << ", moving on..." << std::endl;
 		}
 	}
 }
@@ -107,7 +106,7 @@ void ObjeniousApiDownloadScheduler::waitUntilNextDownload()
 	auto self(shared_from_this());
 	constexpr auto pollingPeriod = chrono::minutes(POLLING_PERIOD);
 	auto tp = chrono::minutes(pollingPeriod) -
-	       (chrono::system_clock::now().time_since_epoch() % chrono::minutes(pollingPeriod));
+			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(pollingPeriod));
 	_timer.expires_from_now(tp);
 	_timer.async_wait(std::bind(&ObjeniousApiDownloadScheduler::checkDeadline, self, args::_1));
 }
@@ -123,7 +122,7 @@ void ObjeniousApiDownloadScheduler::checkDeadline(const sys::error_code& e)
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		downloadArchives();
 		if (!_mustStop)
-            waitUntilNextDownload();
+			waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

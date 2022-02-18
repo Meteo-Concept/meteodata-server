@@ -34,7 +34,8 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 
@@ -46,13 +47,15 @@ class MileosMessage
 {
 public:
 	MileosMessage(std::istream& entry, const TimeOffseter& tz, const std::vector<std::string>& fields);
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
-	inline operator bool() {
+	inline operator bool()
+	{
 		return _valid;
 	}
 
-	inline date::sys_seconds getDateTime() {
+	inline date::sys_seconds getDateTime()
+	{
 		return _datetime;
 	}
 

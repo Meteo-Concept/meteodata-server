@@ -48,25 +48,26 @@
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-//as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
-DeferredSynopDownloader::DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao, const CassUuid& uuid) :
-	AbstractSynopDownloader(ioService, db),
-	_icao(icao)
+DeferredSynopDownloader::DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db,
+												 const std::string& icao, const CassUuid& uuid) :
+		AbstractSynopDownloader(ioService, db),
+		_icao(icao)
 {
 	_icaos.emplace(icao, uuid);
 }
 
 void DeferredSynopDownloader::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	waitUntilNextDownload();
 }
 
@@ -86,19 +87,14 @@ void DeferredSynopDownloader::buildDownloadRequest(std::ostream& out)
 	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
 
 	// Obtain individual components as integers
-	auto y   = int(ymd.year());
-	auto m   = unsigned(ymd.month());
-	auto d   = unsigned(ymd.day());
-	auto h   = tod.hours().count();
+	auto y = int(ymd.year());
+	auto m = unsigned(ymd.month());
+	auto d = unsigned(ymd.day());
+	auto h = tod.hours().count();
 	auto min = 0;
 
-	out << "/cgi-bin/getsynop?begin=" << std::setfill('0')
-		<< std::setw(4) << y
-		<< std::setw(2) << m
-		<< std::setw(2) << d
-		<< std::setw(2) << h
-		<< std::setw(2) << min
-		<< "&block=" << _icao;
+	out << "/cgi-bin/getsynop?begin=" << std::setfill('0') << std::setw(4) << y << std::setw(2) << m << std::setw(2)
+		<< d << std::setw(2) << h << std::setw(2) << min << "&block=" << _icao;
 }
 
 }

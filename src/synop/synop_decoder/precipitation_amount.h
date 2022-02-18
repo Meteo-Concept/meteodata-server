@@ -37,12 +37,9 @@ struct SnowDepth
 	 * Special codes for the depth of snow
 	 * @see table 3889, A-341
 	 */
-	enum class SnowCoverageCondition {
-		NO_SNOW,
-		COVER_MORE_THAN_5_MM,
-		COVER_LESS_THAN_5_MM,
-		DISCONTINUOUS_COVER,
-		NOT_MEASURED
+	enum class SnowCoverageCondition
+	{
+		NO_SNOW, COVER_MORE_THAN_5_MM, COVER_LESS_THAN_5_MM, DISCONTINUOUS_COVER, NOT_MEASURED
 	};
 
 	/**

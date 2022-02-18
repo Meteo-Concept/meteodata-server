@@ -42,12 +42,12 @@
 
 #include "abstract_synop_downloader.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -58,7 +58,8 @@ using namespace meteodata;
 class DeferredSynopDownloader : public AbstractSynopDownloader
 {
 public:
-	DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao, const CassUuid& uuid);
+	DeferredSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& icao,
+							const CassUuid& uuid);
 	void start() override;
 
 private:

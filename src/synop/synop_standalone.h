@@ -33,7 +33,8 @@
 #include <dbconnection_observations.h>
 
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace meteodata;
 

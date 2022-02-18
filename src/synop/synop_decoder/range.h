@@ -13,7 +13,8 @@ struct Range
 	bool _beginIncluded;
 	bool _endIncluded;
 
-	static std::experimental::optional<Numeric> unbound() {
+	static std::experimental::optional<Numeric> unbound()
+	{
 		return std::experimental::optional<Numeric>();
 	}
 };

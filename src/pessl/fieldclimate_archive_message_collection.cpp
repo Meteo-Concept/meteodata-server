@@ -36,16 +36,17 @@
 #include "fieldclimate_archive_message_collection.h"
 #include "fieldclimate_archive_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-FieldClimateApiArchiveMessageCollection::FieldClimateApiArchiveMessageCollection(
-		const TimeOffseter* timeOffseter,
-		const std::map<std::string, std::string>* sensors
-	) : _timeOffseter(timeOffseter),
-	    _sensors(sensors)
+FieldClimateApiArchiveMessageCollection::FieldClimateApiArchiveMessageCollection(const TimeOffseter* timeOffseter,
+																				 const std::map<std::string, std::string>* sensors)
+		:
+		_timeOffseter(timeOffseter),
+		_sensors(sensors)
 {
 }
 
@@ -58,7 +59,7 @@ void FieldClimateApiArchiveMessageCollection::parse(std::istream& input)
 	// index (one index = one date = one datapoint)
 	auto dates = jsonTree.get_child("dates");
 	int nb = dates.size();
-	for (int i=0 ; i<nb ; i++) {
+	for (int i = 0 ; i < nb ; i++) {
 		FieldClimateApiArchiveMessage message{_timeOffseter, _sensors};
 		message.ingest(jsonTree, i);
 		_messages.push_back(std::move(message));

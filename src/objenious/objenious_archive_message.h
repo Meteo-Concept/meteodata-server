@@ -38,11 +38,13 @@
 #include "../message.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace pt = boost::property_tree;
 
 class ObjeniousApiArchiveMessageCollection;
+
 class ObjeniousMqttSubscriber;
 
 /**
@@ -62,11 +64,12 @@ public:
 	 */
 	~ObjeniousApiArchiveMessage() = default;
 
-	inline date::sys_seconds getTimestamp() const {
-	    return _obs.time;
+	inline date::sys_seconds getTimestamp() const
+	{
+		return _obs.time;
 	}
 
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
 private:
 	/**
@@ -77,7 +80,8 @@ private:
 	 * integers). Given that the resolution is usually the unit or 0.1, this
 	 * shouldn't cause any major rounding issue.
 	 */
-	struct DataPoint {
+	struct DataPoint
+	{
 		date::sys_seconds time;
 		float pressure = INVALID_FLOAT; // hPa
 		float humidity = INVALID_FLOAT;     // %
@@ -113,7 +117,8 @@ private:
 	 * @return True if, and only if, the value is invalid (i.e. a missing
 	 * or bad sensor reading)
 	 */
-	constexpr static bool isInvalid(float v) {
+	constexpr static bool isInvalid(float v)
+	{
 		return std::isnan(v); // /!\ NaN never compares equal to itself
 	}
 
@@ -125,7 +130,8 @@ private:
 	 * @return True if, and only if, the value is invalid (i.e. a missing
 	 * or bad sensor reading)
 	 */
-	constexpr static bool isInvalid(int v) {
+	constexpr static bool isInvalid(int v)
+	{
 		return v == INVALID_INT;
 	}
 
@@ -137,7 +143,8 @@ private:
 	 *
 	 * @return An integer default invalid value
 	 */
-	constexpr static int invalidDefault(const int&) {
+	constexpr static int invalidDefault(const int&)
+	{
 		return INVALID_INT;
 	}
 
@@ -149,7 +156,8 @@ private:
 	 *
 	 * @return A float default invalid value
 	 */
-	constexpr static float invalidDefault(const float&) {
+	constexpr static float invalidDefault(const float&)
+	{
 		return INVALID_FLOAT;
 	}
 
@@ -169,19 +177,20 @@ private:
 	 */
 	ObjeniousApiArchiveMessage(const std::map<std::string, std::string>* variables);
 
-    /**
-     * @brief Parse the data output by the Objenious API to extract one
-     * datapoint (for a specific datetime)
-     *
-     * The API may answer with several datapoints. The second parameter (the
-     * index) indicates which datapoint has to be parsed.
-     *
-     * @param data The entire JSON object handed over by the API
-     * @param index The specific data index to consider
-     */
-    void ingest(const pt::ptree& data);
+	/**
+	 * @brief Parse the data output by the Objenious API to extract one
+	 * datapoint (for a specific datetime)
+	 *
+	 * The API may answer with several datapoints. The second parameter (the
+	 * index) indicates which datapoint has to be parsed.
+	 *
+	 * @param data The entire JSON object handed over by the API
+	 * @param index The specific data index to consider
+	 */
+	void ingest(const pt::ptree& data);
 
 	friend class ObjeniousApiArchiveMessageCollection;
+
 	friend class ObjeniousMqttSubscriber;
 };
 

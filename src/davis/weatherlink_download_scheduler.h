@@ -45,7 +45,8 @@
 #include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -58,16 +59,14 @@ using namespace std::placeholders;
 class WeatherlinkDownloadScheduler : public std::enable_shared_from_this<WeatherlinkDownloadScheduler>
 {
 public:
-	WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
-		const std::string& apiId, const std::string& apiSecret);
+	WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db, const std::string& apiId,
+								 const std::string& apiSecret);
 	void start();
-    void stop();
-	void add(const CassUuid& station, const std::string& auth,
-		const std::string& apiToken, TimeOffseter::PredefinedTimezone tz);
-	void addAPIv2(const CassUuid& station, bool archived,
-		const std::map<int, CassUuid>& substations,
-		const std::string& weatherlinkId,
-		TimeOffseter&& to);
+	void stop();
+	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
+			 TimeOffseter::PredefinedTimezone tz);
+	void addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
+				  const std::string& weatherlinkId, TimeOffseter&& to);
 
 private:
 	asio::io_service& _ioService;
@@ -81,15 +80,17 @@ private:
 	bool _mustStop = false;
 
 public:
-	using DownloaderIterator =  decltype(_downloaders)::const_iterator;
+	using DownloaderIterator = decltype(_downloaders)::const_iterator;
 	static constexpr char HOST[] = "weatherlink.com";
 	static constexpr char APIHOST[] = "api.weatherlink.com";
 
 private:
 	void reloadStations();
 	void waitUntilNextDownload();
+
 	template<typename Downloader>
-	void genericDownload(const Downloader& downloadMethod) {
+	void genericDownload(const Downloader& downloadMethod)
+	{
 		try {
 			downloadMethod(_client);
 
@@ -98,10 +99,11 @@ private:
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "[Weatherlink] protocol: "
-			    << "Runtime error, impossible to download " << e.what() << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[Weatherlink] protocol: " << "Runtime error, impossible to download " << e.what()
+					  << ", moving on..." << std::endl;
 		}
 	}
+
 	void downloadArchives();
 	void downloadRealTime();
 	void checkDeadline(const sys::error_code& e);

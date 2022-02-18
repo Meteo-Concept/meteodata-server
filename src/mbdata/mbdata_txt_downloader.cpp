@@ -50,24 +50,24 @@
 namespace asio = boost::asio;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
-MBDataTxtDownloader::MBDataTxtDownloader(
-		asio::io_service& ioService,
-		DbConnectionObservations& db,
-		const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails
-	) :
-	_ioService(ioService),
-	_db(db),
-	_timer(_ioService),
-	_station(std::get<0>(downloadDetails)),
-	_host(std::get<1>(downloadDetails)),
-	_url(std::get<2>(downloadDetails)),
-	_https(std::get<3>(downloadDetails)),
-	_type(std::get<5>(downloadDetails)),
-	_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db,
+										 const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
+		:
+		_ioService(ioService),
+		_db(db),
+		_timer(_ioService),
+		_station(std::get<0>(downloadDetails)),
+		_host(std::get<1>(downloadDetails)),
+		_url(std::get<2>(downloadDetails)),
+		_https(std::get<3>(downloadDetails)),
+		_type(std::get<5>(downloadDetails)),
+		_lastDownloadTime(chrono::seconds(
+				0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
 {
 	float latitude;
 	float longitude;
@@ -84,14 +84,14 @@ MBDataTxtDownloader::MBDataTxtDownloader(
 
 void MBDataTxtDownloader::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	waitUntilNextDownload();
 }
 
 void MBDataTxtDownloader::stop()
 {
-    _mustStop = true;
-    _timer.cancel();
+	_mustStop = true;
+	_timer.cancel();
 }
 
 void MBDataTxtDownloader::waitUntilNextDownload()
@@ -100,7 +100,8 @@ void MBDataTxtDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(chrono::minutes(10 - tod.minutes().count() % 10 + 2)- chrono::seconds(tod.seconds().count()));
+	_timer.expires_from_now(
+			chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
 	_timer.async_wait(std::bind(&MBDataTxtDownloader::checkDeadline, self, args::_1));
 }
 
@@ -116,7 +117,7 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << SD_ERR << "MBData file: Couldn't download from "  << _host << ": " << e.what() << std::endl;
+			std::cerr << SD_ERR << "MBData file: Couldn't download from " << _host << ": " << e.what() << std::endl;
 		}
 		// Going back to sleep
 		waitUntilNextDownload();
@@ -130,13 +131,11 @@ void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
 
 void MBDataTxtDownloader::download()
 {
-	std::cout << SD_INFO << "[MBData " << _station << "] measurement: "
-	    << "Downloading a MBData file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "[MBData " << _station << "] measurement: " << "Downloading a MBData file for station "
+			  << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
-	query << (_https ? "https://" : "http://")
-	      << _host
-	      << _url;
+	query << (_https ? "https://" : "http://") << _host << _url;
 
 	CurlWrapper client;
 
@@ -145,20 +144,20 @@ void MBDataTxtDownloader::download()
 
 		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
 		if (!m || !(*m)) {
-			std::cerr << SD_ERR << "[MBData " << _station << "] protocol: "
-			    << "Download failed for station " << _stationName << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] protocol: " << "Download failed for station "
+					  << _stationName << std::endl;
 			return;
 		}
 
 		// We are still reading the last file, discard it
 		if (m->getDateTime() <= _lastDownloadTime) {
-			std::cerr << SD_NOTICE << "[MBData " << _station << "] measurement: "
-			    << "File for station " << _stationName << " has not been updated" << std::endl;
+			std::cerr << SD_NOTICE << "[MBData " << _station << "] measurement: " << "File for station " << _stationName
+					  << " has not been updated" << std::endl;
 			return;
 		}
 		if (m->getDateTime() > chrono::system_clock::now() + chrono::minutes(1)) { // Allow for some clock deviation
-			std::cerr << SD_ERR << "[MBData " << _station << "] management: "
-			    << "Station " << _stationName << " has data in the future" << std::endl;
+			std::cerr << SD_ERR << "[MBData " << _station << "] management: " << "Station " << _stationName
+					  << " has data in the future" << std::endl;
 			return;
 		}
 
@@ -166,26 +165,26 @@ void MBDataTxtDownloader::download()
 		cass_uuid_string(_station, uuidStr);
 		bool ret = _db.insertV2DataPoint(m->getObservation(_station));
 		if (ret) {
-			std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: "
-			    << "Data from station " << _stationName << " inserted into database" << std::endl;
+			std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: " << "Data from station " << _stationName
+					  << " inserted into database" << std::endl;
 		} else {
 			std::cerr << SD_ERR << "[MBData " << _station << "] measurement: "
-			    << "Insertion into database failed for station " << _stationName << std::endl;
+					  << "Insertion into database failed for station " << _stationName << std::endl;
 			return;
 		}
 		_lastDownloadTime = m->getDateTime();
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(_lastDownloadTime));
 		if (!ret) {
 			std::cerr << SD_ERR << "[MBData " << _station << "] management: "
-			    << "Failed to update the last insertion time of station " << _stationName << std::endl;
+					  << "Failed to update the last insertion time of station " << _stationName << std::endl;
 			return;
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "[MBData " << _station << "] protocol: "
-		    << "Download failed for " << _stationName << ", bad response from " << _host << ": " << error;
+		std::cerr << SD_ERR << "[MBData " << _station << "] protocol: " << "Download failed for " << _stationName
+				  << ", bad response from " << _host << ": " << error;
 	}
 }
 

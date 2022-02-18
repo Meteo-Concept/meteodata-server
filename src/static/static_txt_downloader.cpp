@@ -50,19 +50,22 @@ namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
-StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station, const std::string& host, const std::string& url, bool https, int timezone) :
-	_ioService(ioService),
-	_db(db),
-	_timer(_ioService),
-	_station(station),
-	_host(host),
-	_url(url),
-	_https(https),
-	_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station,
+										 const std::string& host, const std::string& url, bool https, int timezone) :
+		_ioService(ioService),
+		_db(db),
+		_timer(_ioService),
+		_station(station),
+		_host(host),
+		_url(url),
+		_https(https),
+		_lastDownloadTime(chrono::seconds(
+				0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
 {
 	float latitude;
 	float longitude;
@@ -81,14 +84,14 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 
 void StatICTxtDownloader::start()
 {
-    _mustStop = false;
+	_mustStop = false;
 	waitUntilNextDownload();
 }
 
 void StatICTxtDownloader::stop()
 {
-    _mustStop = true;
-    _timer.cancel();
+	_mustStop = true;
+	_timer.cancel();
 }
 
 void StatICTxtDownloader::waitUntilNextDownload()
@@ -97,7 +100,8 @@ void StatICTxtDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
+	_timer.expires_from_now(
+			chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
 	_timer.async_wait(std::bind(&StatICTxtDownloader::checkDeadline, self, args::_1));
 }
 
@@ -113,29 +117,27 @@ void StatICTxtDownloader::checkDeadline(const sys::error_code& e)
 		try {
 			download();
 		} catch (std::exception& e) {
-			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
-			    << "StatIC file: Couldn't download from " << _host.data() << ": " << e.what() << std::endl;
+			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: " << "StatIC file: Couldn't download from "
+					  << _host.data() << ": " << e.what() << std::endl;
 		}
 		// Going back to sleep unless we shouldn't
 		if (!_mustStop)
-            waitUntilNextDownload();
+			waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&StatICTxtDownloader::checkDeadline, self, args::_1));
+		_timer.async_wait([self,this](const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 
 void StatICTxtDownloader::download()
 {
-	std::cout << SD_INFO << "[StatIC " << _station << "] measurement: "
-	    << "Now downloading a StatIC file for station " << _stationName << " (" << _host << ")" << std::endl;
+	std::cout << SD_INFO << "[StatIC " << _station << "] measurement: " << "Now downloading a StatIC file for station "
+			  << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
-	query << (_https ? "https://" : "http://")
-	      << _host
-	      << _url;
+	query << (_https ? "https://" : "http://") << _host << _url;
 
 	CurlWrapper client;
 
@@ -145,17 +147,15 @@ void StatICTxtDownloader::download()
 		StatICMessage m{responseStream, _timeOffseter};
 		if (!m) {
 			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
-			    << "StatIC file: Cannot parse response from: " << _host << std::endl;
+					  << "StatIC file: Cannot parse response from: " << _host << std::endl;
 			return;
 		}
 
 		if (m.getDateTime() == _lastDownloadTime) {
 			// We are still reading the last file, discard it in order
 			// not to pollute the cumulative rainfall value
-			std::cout << SD_NOTICE << "[StatIC " << _station << "] protocol: "
-			      << "previous message from " << _host
-				  << " has the same date: " << m.getDateTime() << "!"
-				  << std::endl;
+			std::cout << SD_NOTICE << "[StatIC " << _station << "] protocol: " << "previous message from " << _host
+					  << " has the same date: " << m.getDateTime() << "!" << std::endl;
 			return;
 		} else {
 			// The rain is given over the last hour but the file may be
@@ -175,22 +175,18 @@ void StatICTxtDownloader::download()
 
 		bool ret = _db.insertV2DataPoint(m.getObservation(_station));
 		if (ret) {
-			std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: "
-			    << "Data from StatIC file from " << _host
-				<< " inserted into database"
-				<< std::endl;
+			std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: " << "Data from StatIC file from "
+					  << _host << " inserted into database" << std::endl;
 		} else {
 			std::cerr << SD_ERR << "[StatIC " << _station << "] measurement: "
-			    << "Failed to insert data from StatIC file from " << _host
-				<< " into database"
-				<< std::endl;
+					  << "Failed to insert data from StatIC file from " << _host << " into database" << std::endl;
 		}
 	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
-		std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
-		    << "Download failed for " << _stationName << " Bad response from " << _host << ": " << error << std::endl;
+		std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: " << "Download failed for " << _stationName
+				  << " Bad response from " << _host << ": " << error << std::endl;
 	}
 }
 

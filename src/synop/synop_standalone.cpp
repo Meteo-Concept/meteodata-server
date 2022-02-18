@@ -41,10 +41,11 @@
 using namespace meteodata;
 namespace po = boost::program_options;
 
-namespace meteodata {
+namespace meteodata
+{
 
 SynopStandalone::SynopStandalone(DbConnectionObservations& db) :
-	_db(db)
+		_db(db)
 {
 }
 
@@ -96,17 +97,20 @@ void SynopStandalone::start(const std::string& file)
 				std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 				std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
 				auto it = std::find_if(m._precipitation.begin(), m._precipitation.end(),
-						[](const auto& p) { return p._duration == 24; });
+									   [](const auto& p) { return p._duration == 24; });
 				if (it != m._precipitation.end())
 					rainfall24 = std::make_pair(true, it->_amount);
 				if (m._minutesOfSunshineLastDay)
 					insolationTime24 = std::make_pair(true, *(m._minutesOfSunshineLastDay));
 				auto day = date::floor<date::days>(m._observationTime) - date::days(1);
-				_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24, insolationTime24);
+				_db.insertV2EntireDayValues(station, date::sys_seconds(day).time_since_epoch().count(), rainfall24,
+											insolationTime24);
 				if (m._minTemperature)
-					_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime), *m._minTemperature / 10.f);
+					_db.insertV2Tn(station, chrono::system_clock::to_time_t(m._observationTime),
+								   *m._minTemperature / 10.f);
 				if (m._maxTemperature)
-					_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime), *m._maxTemperature / 10.f);
+					_db.insertV2Tx(station, chrono::system_clock::to_time_t(m._observationTime),
+								   *m._maxTemperature / 10.f);
 			}
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
@@ -159,7 +163,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " file [-u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -174,11 +178,11 @@ int main(int argc, char** argv)
 		DbConnectionObservations db(address, user, password);
 
 		cass_log_set_level(CASS_LOG_INFO);
-		CassLogCallback logCallback =
-			[](const CassLogMessage *message, void*) -> void {
-				std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line " << message->line << ")" << std::endl;
-			};
-		cass_log_set_callback(logCallback, NULL);
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line "
+					  << message->line << ")" << std::endl;
+		};
+		cass_log_set_callback(logCallback, nullptr);
 
 		SynopStandalone synoper(db);
 		synoper.start(inputFile);

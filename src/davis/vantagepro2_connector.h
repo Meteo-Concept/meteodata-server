@@ -43,12 +43,12 @@
 #include "vantagepro2_archive_page.h"
 
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -77,7 +77,8 @@ private:
 	/**
 	 * @brief Represent a state in the state machine
 	 */
-	enum class State {
+	enum class State
+	{
 		STARTING,                       /*!< Initial state                                                      */
 		WAITING_NEXT_MEASURE_TICK,      /*!< Waiting for the timer to hit the deadline for the next measurement */
 		SENDING_WAKE_UP_STATION,        /*!< Waiting for the wake up request to be sent                         */
@@ -166,9 +167,8 @@ private:
 	 * @param restart a function to call to retry the current operation
 	 * (which is about to fail)
 	 */
-	template <typename Restarter>
-	void handleGenericErrors(const sys::error_code& e, State restartState,
-		Restarter restart);
+	template<typename Restarter>
+	void handleGenericErrors(const sys::error_code& e, State restartState, Restarter restart);
 
 	/**
 	 * @brief Transition function of the state machine
@@ -285,7 +285,7 @@ private:
 	 * @param buffer the buffer in which the answere must be stored, this
 	 * function will not send the success event until the buffer is full
 	 */
-	template <typename MutableBuffer>
+	template<typename MutableBuffer>
 	void recvData(const MutableBuffer& buffer);
 	/**
 	 * @brief Empty the communication buffer
@@ -297,7 +297,7 @@ private:
 	 * @param restart a function to call to retry the current operation
 	 * (which is about to fail)
 	 */
-	template <typename Restarter>
+	template<typename Restarter>
 	void flushSocketAndRetry(State restartState, Restarter restart);
 
 	/**

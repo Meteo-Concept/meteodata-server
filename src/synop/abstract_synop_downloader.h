@@ -41,12 +41,12 @@
 #include <dbconnection_observations.h>
 
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
-namespace sys = boost::system; //system() is a function, it cannot be redefined
-			       //as a namespace
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -60,7 +60,7 @@ public:
 	AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	virtual ~AbstractSynopDownloader() = default;
 	virtual void start() = 0;
-    virtual void stop();
+	virtual void stop();
 
 protected:
 	asio::io_service& _ioService;

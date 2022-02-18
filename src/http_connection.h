@@ -33,26 +33,26 @@
 
 namespace meteodata
 {
-	class HttpConnection : public std::enable_shared_from_this<HttpConnection>
-	{
-	public:
-		HttpConnection(boost::asio::ip::tcp::socket&& socket, DbConnectionObservations& db);
-		void start();
+class HttpConnection : public std::enable_shared_from_this<HttpConnection>
+{
+public:
+	HttpConnection(boost::asio::ip::tcp::socket&& socket, DbConnectionObservations& db);
+	void start();
 
 
-	private:
-		boost::asio::ip::tcp::socket _socket;
-		DbConnectionObservations& _db;
-		boost::beast::flat_buffer _buffer{4096};
-		boost::beast::http::request<boost::beast::http::string_body> _request;
-		boost::beast::http::response<boost::beast::http::string_body> _response;
-		boost::asio::steady_timer _timeout;
+private:
+	boost::asio::ip::tcp::socket _socket;
+	DbConnectionObservations& _db;
+	boost::beast::flat_buffer _buffer{4096};
+	boost::beast::http::request<boost::beast::http::string_body> _request;
+	boost::beast::http::response<boost::beast::http::string_body> _response;
+	boost::asio::steady_timer _timeout;
 
-		void readRequest();
-		void processRequest();
-		void writeResponse();
-		void checkDeadline(const boost::system::error_code& e);
-	};
+	void readRequest();
+	void processRequest();
+	void writeResponse();
+	void checkDeadline(const boost::system::error_code& e);
+};
 }
 
 #endif //HTTP_CONNECTION_H

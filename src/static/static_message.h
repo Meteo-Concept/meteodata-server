@@ -35,7 +35,8 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -49,21 +50,25 @@ class StatICMessage
 public:
 	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter);
 	void computeRainfall(float rainfall1h, float rainfallDay);
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
-	inline operator bool() const {
+	inline operator bool() const
+	{
 		return _valid;
 	}
 
-	inline std::optional<float> getHourRainfall() const {
+	inline std::optional<float> getHourRainfall() const
+	{
 		return _hourRainfall;
 	}
 
-	inline std::optional<float> getDayRainfall() const {
+	inline std::optional<float> getDayRainfall() const
+	{
 		return _dayRainfall;
 	}
 
-	inline date::sys_seconds getDateTime() const {
+	inline date::sys_seconds getDateTime() const
+	{
 		return _datetime;
 	}
 

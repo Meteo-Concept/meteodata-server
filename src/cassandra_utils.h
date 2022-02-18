@@ -34,7 +34,8 @@ inline bool operator==(const CassUuid& uuid1, const CassUuid& uuid2)
 
 inline bool operator<(const CassUuid& uuid1, const CassUuid& uuid2)
 {
-	return uuid1.time_and_version < uuid2.time_and_version || (uuid1.time_and_version == uuid2.time_and_version && uuid1.clock_seq_and_node < uuid2.clock_seq_and_node);
+	return uuid1.time_and_version < uuid2.time_and_version ||
+		   (uuid1.time_and_version == uuid2.time_and_version && uuid1.clock_seq_and_node < uuid2.clock_seq_and_node);
 }
 
 inline std::ostream& operator<<(std::ostream& os, const CassUuid& uuid)
@@ -44,4 +45,5 @@ inline std::ostream& operator<<(std::ostream& os, const CassUuid& uuid)
 	os << str;
 	return os;
 }
+
 #endif

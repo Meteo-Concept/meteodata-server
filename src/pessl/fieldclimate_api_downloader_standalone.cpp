@@ -69,28 +69,28 @@ int main(int argc, char** argv)
 	std::string apiSecret;
 
 	po::options_description config("Configuration");
-	config.add_options()
-		("user,u", po::value<std::string>(&user), "database username")
-		("password,p", po::value<std::string>(&password), "database password")
-		("host,h", po::value<std::string>(&address), "database IP address or domain name")
-		("fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")
-		("fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part")
-	;
+	config.add_options()("user,u", po::value<std::string>(&user), "database username")("password,p",
+																					   po::value<std::string>(
+																							   &password),
+																					   "database password")("host,h",
+																											po::value<std::string>(
+																													&address),
+																											"database IP address or domain name")(
+			"fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")(
+			"fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part");
 
 	po::options_description desc("Allowed options");
-	desc.add_options()
-		("help", "display the help message and exit")
-		("version", "display the version of Meteodata and exit")
-		("config-file", po::value<std::string>(), "alternative configuration file")
-		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations to get the data for (can be given multiple times, defaults to all stations)")
-	;
+	desc.add_options()("help", "display the help message and exit")("version",
+																	"display the version of Meteodata and exit")(
+			"config-file", po::value<std::string>(), "alternative configuration file")("station",
+																					   po::value<std::vector<std::string>>(
+																							   &namedStations)->multitoken(),
+																					   "the stations to get the data for (can be given multiple times, defaults to all stations)");
 	desc.add(config);
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -103,7 +103,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -128,17 +128,18 @@ int main(int argc, char** argv)
 
 	try {
 		cass_log_set_level(CASS_LOG_INFO);
-		CassLogCallback logCallback =
-			[](const CassLogMessage *message, void*) -> void {
-				std::string logLevel =
-					message->severity == CASS_LOG_CRITICAL ? "critical" :
-					message->severity == CASS_LOG_ERROR    ? "error" :
-					message->severity == CASS_LOG_WARN     ? "warning" :
-					message->severity == CASS_LOG_INFO     ? "info" :
-										 "debug";
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::string logLevel =
+					message->severity == CASS_LOG_CRITICAL ? "critical" : message->severity == CASS_LOG_ERROR ? "error"
+																											  :
+																		  message->severity == CASS_LOG_WARN ? "warning"
+																											 :
+																		  message->severity == CASS_LOG_INFO ? "info"
+																											 : "debug";
 
-				std::cerr << logLevel << ": " <<  message->message << " (from " << message->function << ", in " << message->file << ", line " << message->line << std::endl;
-			};
+			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
+					  << message->file << ", line " << message->line << std::endl;
+		};
 		cass_log_set_callback(logCallback, NULL);
 
 		// Start the FieldClimate downloaders workers (one per Pessl station)
@@ -160,11 +161,9 @@ int main(int argc, char** argv)
 			}
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
-			FieldClimateApiDownloader downloader{
-				std::get<0>(station), std::get<1>(station), std::get<3>(station),
-				db, TimeOffseter::PredefinedTimezone(std::get<2>(station)),
-				apiId, apiSecret
-			};
+			FieldClimateApiDownloader downloader{std::get<0>(station), std::get<1>(station), std::get<3>(station), db,
+												 TimeOffseter::PredefinedTimezone(std::get<2>(station)), apiId,
+												 apiSecret};
 			try {
 				downloader.download(client);
 				retry = 0;
@@ -174,7 +173,7 @@ int main(int argc, char** argv)
 				retry++;
 				if (retry >= 2) {
 					std::cerr << "Tried twice already, moving on..." << std::endl;
-					retry =  0;
+					retry = 0;
 					++it;
 				} else {
 					throw e;

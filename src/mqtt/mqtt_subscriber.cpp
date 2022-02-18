@@ -48,23 +48,25 @@ namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace date;
 
-MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port, const std::string& user, const std::string& password) :
-	host(host),
-	port(port),
-	user(user),
-	password(password)
+MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port,
+																 const std::string& user, const std::string& password) :
+		host(host),
+		port(port),
+		user(user),
+		password(password)
 {}
 
-MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-	asio::io_service& ioService, DbConnectionObservations& db) :
-	_ioService{ioService},
-	_db{db},
-	_details{details},
-	_timer{ioService}
+MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details, asio::io_service& ioService,
+							   DbConnectionObservations& db) :
+		_ioService{ioService},
+		_db{db},
+		_details{details},
+		_timer{ioService}
 {
 }
 
@@ -87,31 +89,38 @@ bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubs
 }
 
 
-void MqttSubscriber::addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz) {
-    std::string stationName;
-    int pollingPeriod;
-    time_t lastArchiveDownloadTime;
-    _db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime);
-    date::sys_seconds lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
+void MqttSubscriber::addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz)
+{
+	std::string stationName;
+	int pollingPeriod;
+	time_t lastArchiveDownloadTime;
+	_db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime);
+	date::sys_seconds lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 
-    float latitude;
-    float longitude;
-    int elevation;
-    std::string stationName2;
-    int pollingPeriod2;
-    _db.getStationCoordinates(station, latitude, longitude, elevation, stationName2, pollingPeriod2);
+	float latitude;
+	float longitude;
+	int elevation;
+	std::string stationName2;
+	int pollingPeriod2;
+	_db.getStationCoordinates(station, latitude, longitude, elevation, stationName2, pollingPeriod2);
 
-    TimeOffseter timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
-    timeOffseter.setLatitude(latitude);
-    timeOffseter.setLongitude(longitude);
-    timeOffseter.setElevation(elevation);
-    timeOffseter.setMeasureStep(pollingPeriod);
-    std::cout << SD_NOTICE << "[MQTT " << station << "] connection: "
-        << "Discovered MQTT station " << stationName << std::endl;
+	TimeOffseter timeOffseter = TimeOffseter::getTimeOffseterFor(tz);
+	timeOffseter.setLatitude(latitude);
+	timeOffseter.setLongitude(longitude);
+	timeOffseter.setElevation(elevation);
+	timeOffseter.setMeasureStep(pollingPeriod);
+	std::cout << SD_NOTICE << "[MQTT " << station << "] connection: " << "Discovered MQTT station " << stationName
+			  << std::endl;
 
-    _stations.emplace(topic, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>{station, stationName, pollingPeriod, lastArchive, timeOffseter});
+	_stations.emplace(topic,
+					  std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>{station, stationName,
+																							  pollingPeriod,
+																							  lastArchive,
+																							  timeOffseter});
 }
-bool MqttSubscriber::handleConnAck(bool, uint8_t) {
+
+bool MqttSubscriber::handleConnAck(bool, uint8_t)
+{
 	return true;
 }
 
@@ -133,52 +142,55 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 	}
 }
 
-void MqttSubscriber::handleClose() {
+void MqttSubscriber::handleClose()
+{
 	// wait a little and restart, up to three times
 	auto self{shared_from_this()};
 	if (_retries < MAX_RETRIES) {
 		_timer.expires_from_now(chrono::minutes(_retries));
 		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
 	} else {
-		std::cerr << SD_ERR << "[MQTT] protocol: "
-		    << "impossible to reconnect" << std::endl;
+		std::cerr << SD_ERR << "[MQTT] protocol: " << "impossible to reconnect" << std::endl;
 		// bail off
 	}
 }
 
-void MqttSubscriber::handleError(sys::error_code const&) {
+void MqttSubscriber::handleError(sys::error_code const&)
+{
 	// Retry connecting
 	handleClose();
 }
 
-bool MqttSubscriber::handlePubAck(uint16_t) {
+bool MqttSubscriber::handlePubAck(uint16_t)
+{
 	return true;
 }
 
-bool MqttSubscriber::handlePubRec(uint16_t) {
+bool MqttSubscriber::handlePubRec(uint16_t)
+{
 	return true;
 }
 
-bool MqttSubscriber::handlePubComp(uint16_t) {
+bool MqttSubscriber::handlePubComp(uint16_t)
+{
 	return true;
 }
 
-bool MqttSubscriber::handleSubAck(uint16_t, std::vector<boost::optional<std::uint8_t>>) {
+bool MqttSubscriber::handleSubAck(uint16_t, std::vector<boost::optional<std::uint8_t>>)
+{
 	return true;
 }
 
-bool MqttSubscriber::handlePublish(std::uint8_t,
-		boost::optional<std::uint16_t>,
-		mqtt::string_view topic,
-		mqtt::string_view contents) {
+bool MqttSubscriber::handlePublish(std::uint8_t, boost::optional<std::uint16_t>, mqtt::string_view topic,
+								   mqtt::string_view contents)
+{
 	processArchive(topic, contents);
 	return true;
 }
 
 void MqttSubscriber::start()
 {
-	std::cout << SD_DEBUG << "[MQTT] protocol: "
-	    << "About to start the MQTT client  "  << std::endl;
+	std::cout << SD_DEBUG << "[MQTT] protocol: " << "About to start the MQTT client  " << std::endl;
 	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
 
 	std::ostringstream clientId;
@@ -188,73 +200,55 @@ void MqttSubscriber::start()
 	_client->set_password(_details.password);
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */
 	_client->add_verify_path(DEFAULT_VERIFY_PATH);
-	std::cout << SD_DEBUG << "[MQTT] protocol: "
-	    << "Created the client" << std::endl;
+	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Created the client" << std::endl;
 
 	auto self{shared_from_this()};
-	_client->set_connack_handler(
-		[this,self](bool sp, std::uint8_t ret) {
-			std::cout << SD_DEBUG << "[MQTT] protocol: "
-			    << "Connection attempt to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
-			if (ret == mqtt::connect_return_code::accepted) {
-				_retries = 0;
-				std::cerr << SD_NOTICE << "[MQTT] protocol: "
-				    << "Connection established to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
-				for (auto&& station: _stations) {
-					_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
-				}
-				return handleConnAck(sp, ret);
-			} else {
-				std::cerr << SD_ERR << "[MQTT] protocol: "
-				    << "Failed to establish connection to " << _details.host  << ": " << mqtt::connect_return_code_to_str(ret) << std::endl;
+	_client->set_connack_handler([this, self](bool sp, std::uint8_t ret) {
+		std::cout << SD_DEBUG << "[MQTT] protocol: " << "Connection attempt to " << _details.host << ": "
+				  << mqtt::connect_return_code_to_str(ret) << std::endl;
+		if (ret == mqtt::connect_return_code::accepted) {
+			_retries = 0;
+			std::cerr << SD_NOTICE << "[MQTT] protocol: " << "Connection established to " << _details.host << ": "
+					  << mqtt::connect_return_code_to_str(ret) << std::endl;
+			for (auto&& station : _stations) {
+				_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
 			}
-			return true;
+			return handleConnAck(sp, ret);
+		} else {
+			std::cerr << SD_ERR << "[MQTT] protocol: " << "Failed to establish connection to " << _details.host << ": "
+					  << mqtt::connect_return_code_to_str(ret) << std::endl;
 		}
-	);
-	_client->set_close_handler(
-		[this,self]() {
-			std::cerr << SD_NOTICE << "[MQTT] protocol: "
-			    << "MQTT client " << _details.host << " disconnected" << std::endl;
-			handleClose();
-		}
-	);
-	_client->set_error_handler(
-		[this,self](sys::error_code const& ec) {
-			std::cerr << SD_ERR << "[MQTT] protocol: "
-			    << "MQTT client " << _details.host << ": unexpected disconnection " << ec.message() << std::endl;
-			handleError(ec);
-		}
-	);
-	_client->set_puback_handler(
-		[this,self]([[maybe_unused]] std::uint16_t packetId) {
-			return handlePubAck(packetId);
-		}
-	);
-	_client->set_pubrec_handler(
-		[this,self]([[maybe_unused]] std::uint16_t packetId) {
-			return handlePubRec(packetId);
-		}
-	);
-	_client->set_pubcomp_handler(
-		[this,self]([[maybe_unused]] std::uint16_t packetId) {
-			return handlePubComp(packetId);
-		}
-	);
+		return true;
+	});
+	_client->set_close_handler([this, self]() {
+		std::cerr << SD_NOTICE << "[MQTT] protocol: " << "MQTT client " << _details.host << " disconnected"
+				  << std::endl;
+		handleClose();
+	});
+	_client->set_error_handler([this, self](sys::error_code const& ec) {
+		std::cerr << SD_ERR << "[MQTT] protocol: " << "MQTT client " << _details.host << ": unexpected disconnection "
+				  << ec.message() << std::endl;
+		handleError(ec);
+	});
+	_client->set_puback_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+		return handlePubAck(packetId);
+	});
+	_client->set_pubrec_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+		return handlePubRec(packetId);
+	});
+	_client->set_pubcomp_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+		return handlePubComp(packetId);
+	});
 	_client->set_suback_handler(
-		[this,self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
-			return handleSubAck(packetId, std::move(results));
-		}
-	);
+			[this, self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+				return handleSubAck(packetId, std::move(results));
+			});
 	_client->set_publish_handler(
-		[this,self](std::uint8_t header,
-			boost::optional<std::uint16_t> packetId,
-			mqtt::string_view topic,
-			mqtt::string_view contents) {
-			return handlePublish(header, packetId, topic, contents);
-		}
-	);
-	std::cout << SD_DEBUG << "[MQTT] protocol: "
-	    << "Set the handlers" << std::endl;
+			[this, self](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
+						 mqtt::string_view contents) {
+				return handlePublish(header, packetId, topic, contents);
+			});
+	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Set the handlers" << std::endl;
 
 	_retries++;
 	_client->connect();

@@ -23,7 +23,7 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 	// Timestamp
 	std::istringstream timestamp{*it};
 	timestamp >> date::parse("%Y,%m,%d,%H,%M", _message._observationTime);
-        ++it;
+	++it;
 
 	// Station type
 	if (*it != "AAXX") {
@@ -65,10 +65,11 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 	return true;
 }
 
-std::experimental::optional<int> parseInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
+std::experimental::optional<int>
+parseInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
 {
 	int n = 0;
-	for (auto i=pos ; i<s.length() && i <= endpos ; i++) {
+	for (auto i = pos ; i < s.length() && i <= endpos ; i++) {
 		if (s[i] == '/')
 			return std::experimental::optional<int>();
 		n = (n * 10) + (s[i] - '0');
@@ -76,12 +77,13 @@ std::experimental::optional<int> parseInt(const std::string& s, std::string::siz
 	return std::experimental::optional<int>(n);
 }
 
-std::experimental::optional<int> parseSInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
+std::experimental::optional<int>
+parseSInt(const std::string& s, std::string::size_type pos, std::string::size_type endpos = std::string::npos)
 {
 	int n = 0;
 	if (s[pos] == '/')
 		return std::experimental::optional<int>();
-	for (auto i=pos+1 ; i<s.length() && i <= endpos ; i++) {
+	for (auto i = pos + 1 ; i < s.length() && i <= endpos ; i++) {
 		if (s[i] == '/')
 			return std::experimental::optional<int>();
 		n = (n * 10) + (s[i] - '0');
@@ -107,15 +109,14 @@ std::experimental::optional<PrecipitationAmount> parseRain(const std::string& s)
 			pr._trace = false;
 		}
 		pr._duration =
-			s[4] == '1' ? 6 :
-			s[4] == '2' ? 12 :
-			s[4] == '3' ? 18 :
-			s[4] == '4' ? 24 :
-			s[4] == '5' ? 1  :
-			s[4] == '6' ? 2  :
-			s[4] == '7' ? 3  :
-			s[4] == '8' ? 9  :
-			s[4] == '9' ? 15 : 0;
+				s[4] == '1' ? 6 : s[4] == '2' ? 12 : s[4] == '3' ? 18 : s[4] == '4' ? 24 : s[4] == '5' ? 1 : s[4] == '6'
+																											 ? 2 :
+																											 s[4] == '7'
+																											 ? 3 :
+																											 s[4] == '8'
+																											 ? 9 :
+																											 s[4] == '9'
+																											 ? 15 : 0;
 		return pr;
 	} else {
 		return std::experimental::optional<PrecipitationAmount>();
@@ -280,19 +281,15 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 				 * and give pressure at the station level instead
 				 */
 				_message._isobaricSurfacePotential = IsobaricSurfacePotential{
-					static_cast<IsobaricSurfacePotential::StandardIsobaricSurface>(s[1]),
-					parseInt(s, 2).value()
-				};
+						static_cast<IsobaricSurfacePotential::StandardIsobaricSurface>(s[1]), parseInt(s, 2).value()};
 			} else {
 				_message._pressureAtSeaLevel = parseInt(s, 1);
 				if (_message._pressureAtSeaLevel && *_message._pressureAtSeaLevel < 5000)
 					*_message._pressureAtSeaLevel = *_message._pressureAtSeaLevel + 10000;
 			}
 		} else if (s[0] == '5') {
-			_message._pressureTendency = PressureTendency{
-				static_cast<PressureTendency::Description>(s[1]),
-				parseInt(s, 2).value()
-			};
+			_message._pressureTendency = PressureTendency{static_cast<PressureTendency::Description>(s[1]),
+														  parseInt(s, 2).value()};
 		} else if (s[0] == '6') {
 			std::experimental::optional<PrecipitationAmount> pr = parseRain(s);
 
@@ -324,7 +321,7 @@ bool Parser::parseSection2(decltype(_groups)::iterator& it)
 	++it;
 
 	// Do not parse this section
-	while(it->length() != 3 && it != _groups.end())
+	while (it->length() != 3 && it != _groups.end())
 		++it;
 	return true;
 }
@@ -424,18 +421,13 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				_message._mediumCloudsDrift = static_cast<Direction>(s[3]);
 				_message._highCloudsDrift = static_cast<Direction>(s[4]);
 			} else if (s[1] == '7') {
-				_message._clouds.push_back(CloudElevation{
-					static_cast<CloudGenus>(s[2]),
-					static_cast<Direction>(s[3]),
-					static_cast<CloudElevation::ElevationAngle>(s[4])
-				});
+				_message._clouds.push_back(CloudElevation{static_cast<CloudGenus>(s[2]), static_cast<Direction>(s[3]),
+														  static_cast<CloudElevation::ElevationAngle>(s[4])});
 			} else {
 				std::experimental::optional<int> eee = parseInt(s, 1, 3);
 				if (eee) {
 					_message._evapoMaybeTranspiRation = EvapoMaybeTranspiRation{
-						static_cast<EvapoMaybeTranspiRation::Instrumentation>(s[4]),
-						*eee
-					};
+							static_cast<EvapoMaybeTranspiRation::Instrumentation>(s[4]), *eee};
 				}
 			}
 		} else if (s[0] == '6') {
@@ -490,12 +482,9 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				} else if (*hshs == 99) {
 					height = Range<int>{2500, Range<int>::unbound(), true, false};
 				}
-				_message._heightOfBaseOfClouds.push_back(CloudObservation{
-					static_cast<CloudGenus>(s[2]),
-					Direction::ALL_DIRECTIONS,
-					height,
-					static_cast<Nebulosity>(s[1])
-				});
+				_message._heightOfBaseOfClouds.push_back(
+						CloudObservation{static_cast<CloudGenus>(s[2]), Direction::ALL_DIRECTIONS, height,
+										 static_cast<Nebulosity>(s[1])});
 			}
 		} else if (s[0] == '9') {
 			if (s[1] == '1' && s[2] == '0') {
@@ -541,7 +530,7 @@ bool Parser::parseSection4(decltype(_groups)::iterator& it)
 	++it;
 
 	// Do not parse this section
-	while(it->length() != 3 && it != _groups.end())
+	while (it->length() != 3 && it != _groups.end())
 		++it;
 	return true;
 }

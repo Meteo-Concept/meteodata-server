@@ -36,7 +36,8 @@
 #include "../time_offseter.h"
 
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -49,11 +50,9 @@ using namespace meteodata;
 class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<AbstractWeatherlinkDownloader>
 {
 public:
-	AbstractWeatherlinkDownloader(const CassUuid& station,
-		DbConnectionObservations& db,
-		TimeOffseter&& to) :
-		_db(db),
-		_station(station)
+	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db, TimeOffseter&& to) :
+			_db(db),
+			_station(station)
 	{
 		time_t lastArchiveDownloadTime;
 		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -68,11 +67,10 @@ public:
 		_timeOffseter.setMeasureStep(_pollingPeriod);
 	}
 
-	AbstractWeatherlinkDownloader(const CassUuid& station,
-		DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz) :
-		_db(db),
-		_station(station)
+	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
+								  TimeOffseter::PredefinedTimezone tz) :
+			_db(db),
+			_station(station)
 	{
 		time_t lastArchiveDownloadTime;
 		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -114,7 +112,8 @@ protected:
 	TimeOffseter _timeOffseter;
 
 public:
-	inline int getPollingPeriod() { return _pollingPeriod; };
+	inline int getPollingPeriod()
+	{ return _pollingPeriod; };
 };
 
 }

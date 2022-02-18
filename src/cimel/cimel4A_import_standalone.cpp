@@ -39,8 +39,9 @@
 using namespace meteodata;
 namespace po = boost::program_options;
 
-template <typename Importer> bool doImport(Importer& importer, const std::string& inputFile,
-	date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
+template<typename Importer>
+bool doImport(Importer& importer, const std::string& inputFile, date::sys_seconds& start, date::sys_seconds& end,
+			  bool updateLastArchiveDownloadTime)
 {
 	std::ifstream input{inputFile};
 	return importer.import(input, start, end, updateLastArchiveDownloadTime);
@@ -100,7 +101,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " file station timezone [-u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -120,7 +121,8 @@ int main(int argc, char** argv)
 	date::year y = date::year_month_day{date::floor<date::days>(std::chrono::system_clock::now())}.year();
 	if (vm.count("year")) {
 		if (date::year{year} > y || year < 1900) {
-			std::cout << "The year " << year << " looks awfully suspicious, proceed anyway with Enter, or abort the program." << std::endl;
+			std::cout << "The year " << year
+					  << " looks awfully suspicious, proceed anyway with Enter, or abort the program." << std::endl;
 
 			std::cin.ignore(std::numeric_limits<std::streamsize>::max());
 			std::string dummy;

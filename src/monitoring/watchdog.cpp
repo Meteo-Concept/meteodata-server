@@ -36,13 +36,15 @@ namespace asio = boost::asio;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
-namespace meteodata {
+namespace meteodata
+{
 
 Watchdog::Watchdog(asio::io_service& ioService) :
-	_ioService{ioService},
-	_timer{ioService}
+		_ioService{ioService},
+		_timer{ioService}
 {
 }
+
 void Watchdog::start()
 {
 	const char* watchdogusec = getenv("WATCHDOG_USEC");

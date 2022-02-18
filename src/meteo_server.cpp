@@ -52,17 +52,15 @@ using namespace boost::asio::ip;
 namespace meteodata
 {
 
-MeteoServer::MeteoServer(boost::asio::io_service& ioService,
-						 MeteoServer::MeteoServerConfiguration&& config) :
-	_ioService{ioService},
-	_acceptor{ioService},
-	_db{config.address, config.user, config.password},
-	_configuration{config}
+MeteoServer::MeteoServer(boost::asio::io_service& ioService, MeteoServer::MeteoServerConfiguration&& config) :
+		_ioService{ioService},
+		_acceptor{ioService},
+		_db{config.address, config.user, config.password},
+		_configuration{config}
 {
 	_configuration.password.clear();
 
-	std::cerr << SD_INFO << "[Server] management: "
-	    << "Meteodata has started succesfully" << std::endl;
+	std::cerr << SD_INFO << "[Server] management: " << "Meteodata has started succesfully" << std::endl;
 }
 
 void MeteoServer::start()
@@ -76,12 +74,10 @@ void MeteoServer::start()
 		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getMqttStations(mqttStations);
 		for (auto&& station : mqttStations) {
-			MqttSubscriber::MqttSubscriptionDetails details{
-				std::get<1>(station),
-				std::get<2>(station),
-				std::get<3>(station),
-				std::string(std::get<4>(station).get(), std::get<5>(station))
-			};
+			MqttSubscriber::MqttSubscriptionDetails details{std::get<1>(station), std::get<2>(station),
+															std::get<3>(station),
+															std::string(std::get<4>(station).get(),
+																		std::get<5>(station))};
 
 			const CassUuid& uuid = std::get<0>(station);
 			const std::string& topic = std::get<6>(station);
@@ -89,8 +85,9 @@ void MeteoServer::start()
 			if (topic.substr(0, 4) == "vp2/") {
 				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
 				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
-					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
-						details, _ioService, _db);
+					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(details,
+																										_ioService,
+																										_db);
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
 				mqttSubscribersIt->second->addStation(topic, uuid, tz);
@@ -98,20 +95,18 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
 				if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
 					std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
-						details, _ioService, _db
-					);
+							details, _ioService, _db);
 					mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
 				}
 
 				auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
-						[&uuid](auto&& objSt){ return uuid == std::get<0>(objSt); });
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
 			} else {
-				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: "
-					<< "Unrecognized topic " << topic
-					<< " for MQTT station " << std::get<0>(station) << std::endl;
+				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
+						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
 			}
 		}
 
@@ -133,12 +128,9 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
 		_db.getDeferredSynops(deferredSynops);
 		for (auto&& synop : deferredSynops) {
-			auto deferredSynopDownloader =
-				std::make_shared<DeferredSynopDownloader>(
-						_ioService, _db,
-						std::get<1>(synop),
-						std::get<0>(synop)
-						);
+			auto deferredSynopDownloader = std::make_shared<DeferredSynopDownloader>(_ioService, _db,
+																					 std::get<1>(synop),
+																					 std::get<0>(synop));
 			deferredSynopDownloader->start();
 		}
 	}
@@ -154,15 +146,9 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int>> statICTxtStations;
 		_db.getStatICTxtStations(statICTxtStations);
 		for (auto&& station : statICTxtStations) {
-			auto subscriber =
-				std::make_shared<StatICTxtDownloader>(
-						_ioService, _db,
-						std::get<0>(station),
-						std::get<1>(station),
-						std::get<2>(station),
-						std::get<3>(station),
-						std::get<4>(station)
-						);
+			auto subscriber = std::make_shared<StatICTxtDownloader>(_ioService, _db, std::get<0>(station),
+																	std::get<1>(station), std::get<2>(station),
+																	std::get<3>(station), std::get<4>(station));
 			subscriber->start();
 		}
 	}
@@ -188,11 +174,7 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
 		_db.getMBDataTxtStations(mbDataTxtStations);
 		for (auto&& station : mbDataTxtStations) {
-			auto subscriber =
-					std::make_shared<MBDataTxtDownloader>(
-							_ioService, _db,
-							station
-					);
+			auto subscriber = std::make_shared<MBDataTxtDownloader>(_ioService, _db, station);
 			subscriber->start();
 		}
 	}
@@ -215,16 +197,13 @@ void MeteoServer::start()
 
 void MeteoServer::startAccepting()
 {
-	Connector::ptr newConnector =
-		Connector::create<VantagePro2Connector>(_ioService, _db);
-	_acceptor.async_accept(
-			newConnector->socket(),
-			[this, newConnector](const boost::system::error_code& error) { runNewConnector(newConnector, error); }
-			);
+	Connector::ptr newConnector = Connector::create<VantagePro2Connector>(_ioService, _db);
+	_acceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
+		runNewConnector(newConnector, error);
+	});
 }
 
-void MeteoServer::runNewConnector(Connector::ptr c,
-		const boost::system::error_code& error)
+void MeteoServer::runNewConnector(Connector::ptr c, const boost::system::error_code& error)
 {
 	if (!error) {
 		startAccepting();

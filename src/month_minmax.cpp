@@ -54,7 +54,7 @@ using namespace std::chrono;
 namespace po = boost::program_options;
 
 template<typename T1, typename T2>
-inline std::ostream& operator<<(std::ostream& os, const std::pair<T1,T2>& pair)
+inline std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& pair)
 {
 	os << "(" << pair.first << ", " << pair.second << ")";
 	return os;
@@ -71,29 +71,29 @@ inline constexpr bool operator<(CassUuid u1, CassUuid u2)
 void compareMinmaxWithNormals(DbConnectionMonthMinmax::Values& values, const DbConnectionNormals::Values& normals)
 {
 	if (values.outsideTemp_avg.first && normals.tm.first)
-		values.diff_outsideTemp_avg = { true, values.outsideTemp_avg.second - normals.tm.second };
+		values.diff_outsideTemp_avg = {true, values.outsideTemp_avg.second - normals.tm.second};
 	else
-		values.diff_outsideTemp_avg = { false, .0f };
+		values.diff_outsideTemp_avg = {false, .0f};
 
 	if (values.outsideTemp_min_min.first && normals.tn.first)
-		values.diff_outsideTemp_min_min = { true, values.outsideTemp_min_min.second - normals.tn.second };
+		values.diff_outsideTemp_min_min = {true, values.outsideTemp_min_min.second - normals.tn.second};
 	else
-		values.diff_outsideTemp_min_min = { false, .0f };
+		values.diff_outsideTemp_min_min = {false, .0f};
 
 	if (values.outsideTemp_max_max.first && normals.tx.first)
-		values.diff_outsideTemp_max_max = { true, values.outsideTemp_max_max.second - normals.tx.second };
+		values.diff_outsideTemp_max_max = {true, values.outsideTemp_max_max.second - normals.tx.second};
 	else
-		values.diff_outsideTemp_max_max = { false, .0f };
+		values.diff_outsideTemp_max_max = {false, .0f};
 
 	if (values.rainfall.first && normals.rainfall.first)
-		values.diff_rainfall = { true, values.rainfall.second - normals.rainfall.second };
+		values.diff_rainfall = {true, values.rainfall.second - normals.rainfall.second};
 	else
-		values.diff_rainfall = { false, .0f };
+		values.diff_rainfall = {false, .0f};
 
 	if (values.insolationTime.first && normals.insolationTime.first)
-		values.diff_insolationTime = { true, values.insolationTime.second - normals.insolationTime.second };
+		values.diff_insolationTime = {true, values.insolationTime.second - normals.insolationTime.second};
 	else
-		values.diff_insolationTime = { false, .0f };
+		values.diff_insolationTime = {false, .0f};
 }
 
 /**
@@ -144,9 +144,7 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -157,11 +155,11 @@ int main(int argc, char** argv)
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
 		std::cout << "Usage: " << argv[0]
-			<< " [--stations_host=sql_host --stations_user=sql_user --stations_password=sql_password --stations_database=sql_database]"
-			<< " [--host=cassandra_host --user=cassandra_user --password=cassandra_password ]\n";
+				  << " [--stations_host=sql_host --stations_user=sql_user --stations_password=sql_password --stations_database=sql_database]"
+				  << " [--host=cassandra_host --user=cassandra_user --password=cassandra_password ]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -227,17 +225,17 @@ int main(int argc, char** argv)
 		DbConnectionNormals::Values normals;
 
 		cass_log_set_level(CASS_LOG_INFO);
-		CassLogCallback logCallback =
-			[](const CassLogMessage *message, void*) -> void {
-				std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line " << message->line << ")" << std::endl;
-			};
-		cass_log_set_callback(logCallback, NULL);
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line "
+					  << message->line << ")" << std::endl;
+		};
+		cass_log_set_callback(logCallback, nullptr);
 
 
 		std::vector<CassUuid> allStations;
-		std::cerr << "Fetching the list of stations" <<std::endl;
+		std::cerr << "Fetching the list of stations" << std::endl;
 		db.getAllStations(allStations);
-		std::cerr << allStations.size() << " stations identified\n" <<std::endl;
+		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
 		if (userSelection.empty()) {
@@ -246,7 +244,8 @@ int main(int argc, char** argv)
 			std::sort(allStations.begin(), allStations.end());
 			std::sort(userSelection.begin(), userSelection.end());
 			std::vector<CassUuid> unknown;
-			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(), std::back_inserter(unknown));
+			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(),
+								std::back_inserter(unknown));
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
@@ -256,10 +255,10 @@ int main(int argc, char** argv)
 				}
 				std::cerr << std::endl;
 			}
-			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(), userSelection.cend(), std::back_inserter(stations));
+			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(),
+								  userSelection.cend(), std::back_inserter(stations));
 		}
 
-		const auto today = system_clock::now();
 		year_month selectedDate = beginDate;
 		while (selectedDate <= endDate) {
 			for (const CassUuid& station : stations) {
@@ -269,10 +268,10 @@ int main(int argc, char** argv)
 				std::cerr << "Getting daily values (all except wind)" << std::endl;
 				db.getDailyValues(station, y, m, values);
 
-				auto day = sys_days{year_month_day{year{y}/m/1}};
-				auto end = sys_days{year_month_day{year{y}/m/last}};
+				auto day = sys_days{year_month_day{year{y} / m / 1}};
+				auto end = sys_days{year_month_day{year{y} / m / last}};
 
-				std::vector<std::pair<int,float>> winds;
+				std::vector<std::pair<int, float>> winds;
 				while (day <= end && day <= today) {
 					std::cerr << "Getting wind values for day " << day << std::endl;
 					db.getWindValues(station, day, winds);
@@ -280,7 +279,7 @@ int main(int argc, char** argv)
 				}
 
 				int count = 0;
-				std::array<int,16> dirs = {0};
+				std::array<int, 16> dirs = {0};
 				for (auto&& w : winds) {
 					if (w.second / 3.6 >= 2.0) {
 						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
@@ -289,7 +288,7 @@ int main(int argc, char** argv)
 					}
 				}
 				values.winddir.second.resize(16);
-				for (int i=0 ; i<16 ; i++) {
+				for (int i = 0 ; i < 16 ; i++) {
 					int v = dirs[i];
 					std::cerr << "v = " << v << " | count = " << count << std::endl;
 					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;

@@ -32,38 +32,38 @@
 #include "abstract_mbdata_message.h"
 #include "mbdata_wswin_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter) :
-	AbstractMBDataMessage(datetime, content, timeOffseter)
+MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime, const std::string& content,
+									   std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter) :
+		AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
 
-    _diffRainfall = rainfallOver50Min;
+	_diffRainfall = rainfallOver50Min;
 
-	const std::regex mandatoryPart{
-		"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
-		"([^\\|]*)\\|" // temperature
-		"([^\\|]*)\\|" // humidite
-		"([^\\|]*)\\|" // dew point
-		"([^\\|]*)\\|" // pressure
-		"([^\\|]*)\\|" // pressure variation, should be null
-		"([^\\|]*)\\|" // rainfall over 1 hour
-		"([^\\|]*)\\|" // wind
-		"([^\\|]*)\\|" // wind direction
-		"([^\\|]*)\\|" // wind gusts
-		"([^\\|]*)\\|" // windchill
-		"([^\\|]*)(?:\\||$)" // HEATINDEX
+	const std::regex mandatoryPart{"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
+								   "([^\\|]*)\\|" // temperature
+								   "([^\\|]*)\\|" // humidite
+								   "([^\\|]*)\\|" // dew point
+								   "([^\\|]*)\\|" // pressure
+								   "([^\\|]*)\\|" // pressure variation, should be null
+								   "([^\\|]*)\\|" // rainfall over 1 hour
+								   "([^\\|]*)\\|" // wind
+								   "([^\\|]*)\\|" // wind direction
+								   "([^\\|]*)\\|" // wind gusts
+								   "([^\\|]*)\\|" // windchill
+								   "([^\\|]*)(?:\\||$)" // HEATINDEX
 	};
 
-	const std::regex optionalPart{
-		"([^\\|]*)\\|" // Tx since midnight
-		"([^\\|]*)\\|" // Tn since midnight
-		"([^\\|]*)\\|" // rainrate
-		"([^\\|]*)\\|?" // solar radiation
+	const std::regex optionalPart{"([^\\|]*)\\|" // Tx since midnight
+								  "([^\\|]*)\\|" // Tn since midnight
+								  "([^\\|]*)\\|" // rainrate
+								  "([^\\|]*)\\|?" // solar radiation
 	};
 
 	std::smatch baseMatch;
@@ -125,7 +125,8 @@ MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime, const std::st
 	}
 
 	std::smatch supplementaryMatch;
-	if (std::regex_search(baseMatch[0].second, _content.cend(), supplementaryMatch, optionalPart) && supplementaryMatch.size() == 5) {
+	if (std::regex_search(baseMatch[0].second, _content.cend(), supplementaryMatch, optionalPart) &&
+		supplementaryMatch.size() == 5) {
 		// skip Tx and Tn
 		if (supplementaryMatch[3].length()) {
 			try {

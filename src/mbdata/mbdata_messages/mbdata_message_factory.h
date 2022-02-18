@@ -37,14 +37,16 @@
 #include "mbdata_wswin_message.h"
 #include "mbdata_weatherdisplay_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 
 class MBDataMessageFactory
 {
 private:
-	static inline std::tuple<date::sys_seconds,date::sys_seconds> parseDatetime(std::istream& entry, const std::string& format, const TimeOffseter& timeOffseter)
+	static inline std::tuple<date::sys_seconds, date::sys_seconds>
+	parseDatetime(std::istream& entry, const std::string& format, const TimeOffseter& timeOffseter)
 	{
 		using namespace date;
 
@@ -52,27 +54,23 @@ private:
 		entry >> parse(format, unzonedDatetime);
 		auto midnight = local_seconds(floor<days>(unzonedDatetime));
 		return {floor<chrono::seconds>(timeOffseter.convertFromLocalTime(unzonedDatetime)),
-			timeOffseter.convertFromLocalTime(midnight)};
+				timeOffseter.convertFromLocalTime(midnight)};
 	}
 
-	static std::string cleanInput(std::istream& entry) {
-		std::string content = std::string{
-			std::istreambuf_iterator<char>(entry),
-			std::istreambuf_iterator<char>()
-		};
+	static std::string cleanInput(std::istream& entry)
+	{
+		std::string content = std::string{std::istreambuf_iterator<char>(entry), std::istreambuf_iterator<char>()};
 
-		std::tuple<std::regex, std::string> regexps[] = {
-			{std::regex{"\\&#124;"}, "|"},
-			{std::regex{"\\%[0-9a-zA-Z\\_\\[\\]\\.]+\\%"}, ""},
-			{std::regex{"\\s+"}, ""},
-			{std::regex{","}, "."},
-			{std::regex{"<!--.+?-->"}, ""},
-			{std::regex{"\\+"}, ""},
-			{std::regex{"---"}, ""},
-			{std::regex{"--"}, ""},
-			{std::regex{"\\[[^\\]]*\\]"}, ""},
-			{std::regex{"-99"}, ""}
-		};
+		std::tuple<std::regex, std::string> regexps[] = {{std::regex{"\\&#124;"},                       "|"},
+														 {std::regex{"\\%[0-9a-zA-Z\\_\\[\\]\\.]+\\%"}, ""},
+														 {std::regex{"\\s+"},                           ""},
+														 {std::regex{","},                              "."},
+														 {std::regex{"<!--.+?-->"},                     ""},
+														 {std::regex{"\\+"},                            ""},
+														 {std::regex{"---"},                            ""},
+														 {std::regex{"--"},                             ""},
+														 {std::regex{"\\[[^\\]]*\\]"},                  ""},
+														 {std::regex{"-99"},                            ""}};
 
 		for (auto&& r : regexps) {
 			content = std::regex_replace(content, std::get<0>(r), std::get<1>(r));
@@ -82,7 +80,9 @@ private:
 
 
 public:
-	static inline AbstractMBDataMessage::ptr chose(DbConnectionObservations& db, const CassUuid& station, const std::string& type, std::istream& entry, const TimeOffseter& timeOffseter)
+	static inline AbstractMBDataMessage::ptr
+	chose(DbConnectionObservations& db, const CassUuid& station, const std::string& type, std::istream& entry,
+		  const TimeOffseter& timeOffseter)
 	{
 		using namespace date;
 
@@ -93,7 +93,7 @@ public:
 		std::optional<float> rainfall;
 		if (type == "weatherlink") {
 			sys_seconds datetime, midnight;
-			std::tie(datetime,midnight) = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
+			std::tie(datetime, midnight) = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
 			auto begin = chrono::system_clock::to_time_t(midnight);
 			auto end = chrono::system_clock::to_time_t(datetime);
 			float f;
@@ -110,7 +110,7 @@ public:
 				rainfall = f;
 			return AbstractMBDataMessage::create<MBDataMeteohubMessage>(datetime, content, rainfall, timeOffseter);
 		} else if (type == "weathercat") {
-			sys_seconds datetime,midnight;
+			sys_seconds datetime, midnight;
 			std::tie(datetime, midnight) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
 			auto begin = chrono::system_clock::to_time_t(midnight);
 			auto end = chrono::system_clock::to_time_t(datetime);
@@ -135,7 +135,8 @@ public:
 			float f;
 			if (db.getRainfall(station, begin, end, f))
 				rainfall = f;
-			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall, timeOffseter);
+			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall,
+																			  timeOffseter);
 		} else {
 			throw std::invalid_argument("Unknown message type");
 		}

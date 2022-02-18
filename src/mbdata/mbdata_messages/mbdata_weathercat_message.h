@@ -35,7 +35,8 @@
 #include "../../time_offseter.h"
 #include "abstract_mbdata_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -47,7 +48,8 @@ namespace chrono = std::chrono;
 class MBDataWeathercatMessage : public AbstractMBDataMessage
 {
 public:
-	MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+	MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content,
+							std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
 };
 
 }

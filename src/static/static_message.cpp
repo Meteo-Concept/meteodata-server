@@ -37,8 +37,8 @@
 namespace meteodata
 {
 StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffseter) :
-	_valid(false),
-	_timeOffseter(timeOffseter)
+		_valid(false),
+		_timeOffseter(timeOffseter)
 {
 	using namespace date;
 	std::string st;
@@ -49,7 +49,7 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 	const std::regex normalLine{"\\s*([^#=]+)=(\\s?\\S*)\\s*"};
 	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d?\\d?\\d\\d).*"};
 	const std::regex timeRegex{"([0-9 ]\\d).(\\d\\d).*"};
-	int year=0, month=0, day=0, h=0, min=0;
+	int year = 0, month = 0, day = 0, h = 0, min = 0;
 
 	while (std::getline(file, st)) {
 		std::smatch baseMatch;
@@ -115,7 +115,8 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 }
 
 
-void StatICMessage::computeRainfall(float previousHourRainfall, float previousDayRainfall) {
+void StatICMessage::computeRainfall(float previousHourRainfall, float previousDayRainfall)
+{
 	if (_dayRainfall && !_computedRainfall) {
 		_computedRainfall = *_dayRainfall - previousDayRainfall;
 		if (*_computedRainfall < 0)
@@ -130,37 +131,33 @@ void StatICMessage::computeRainfall(float previousHourRainfall, float previousDa
 
 Observation StatICMessage::getObservation(const CassUuid station) const
 {
-    Observation result;
+	Observation result;
 
-    result.station = station;
-    result.day = date::floor<date::days>(_datetime);
-    result.time = date::floor<chrono::seconds>(_datetime);
-    result.barometer = { bool(_pressure), *_pressure };
-    if (_dewPoint) {
-        result.dewpoint = {true, *_dewPoint};
-    } else if (_airTemp && _humidity) {
-        result.dewpoint = { true, dew_point(*_airTemp, *_humidity) };
-    }
-    result.outsidehum = { bool(_humidity), *_humidity };
-    result.outsidetemp = { bool(_airTemp), *_airTemp };
-    result.rainrate = { bool(_rainRate), *_rainRate };
-    result.rainfall = { bool(_computedRainfall), *_computedRainfall };
-    result.winddir = { bool(_windDir), *_windDir };
-    result.windgust = { bool(_gust), *_gust };
-    result.windspeed = { bool(_wind), *_wind };
-    result.solarrad = { bool(_solarRad), *_solarRad };
-    result.uv = { bool(_uv), *_uv };
-    if (_solarRad) {
-        bool ins = insolated(
-                *_solarRad,
-                _timeOffseter.getLatitude(),
-                _timeOffseter.getLongitude(),
-                date::floor<chrono::seconds>(_datetime).time_since_epoch().count()
-        );
-        result.insolation_time = { true, ins ? _timeOffseter.getMeasureStep() : 0 };
-    }
+	result.station = station;
+	result.day = date::floor<date::days>(_datetime);
+	result.time = date::floor<chrono::seconds>(_datetime);
+	result.barometer = {bool(_pressure), *_pressure};
+	if (_dewPoint) {
+		result.dewpoint = {true, *_dewPoint};
+	} else if (_airTemp && _humidity) {
+		result.dewpoint = {true, dew_point(*_airTemp, *_humidity)};
+	}
+	result.outsidehum = {bool(_humidity), *_humidity};
+	result.outsidetemp = {bool(_airTemp), *_airTemp};
+	result.rainrate = {bool(_rainRate), *_rainRate};
+	result.rainfall = {bool(_computedRainfall), *_computedRainfall};
+	result.winddir = {bool(_windDir), *_windDir};
+	result.windgust = {bool(_gust), *_gust};
+	result.windspeed = {bool(_wind), *_wind};
+	result.solarrad = {bool(_solarRad), *_solarRad};
+	result.uv = {bool(_uv), *_uv};
+	if (_solarRad) {
+		bool ins = insolated(*_solarRad, _timeOffseter.getLatitude(), _timeOffseter.getLongitude(),
+							 date::floor<chrono::seconds>(_datetime).time_since_epoch().count());
+		result.insolation_time = {true, ins ? _timeOffseter.getMeasureStep() : 0};
+	}
 
-    return result;
+	return result;
 }
 
 }

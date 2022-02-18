@@ -36,7 +36,8 @@
 #include "weatherlink_apiv2_archive_message.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
@@ -45,7 +46,7 @@ using SensorType = WeatherlinkApiv2ArchiveMessage::SensorType;
 using DataStructureType = WeatherlinkApiv2ArchiveMessage::DataStructureType;
 
 WeatherlinkApiv2ArchiveMessage::WeatherlinkApiv2ArchiveMessage(const TimeOffseter* timeOffseter) :
-	AbstractWeatherlinkApiMessage(timeOffseter)
+		AbstractWeatherlinkApiMessage(timeOffseter)
 {}
 
 float WeatherlinkApiv2ArchiveMessage::extractRainFall(const pt::ptree& data)
@@ -85,23 +86,24 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>(
+				"data_structure_type"));
 
-        auto dataIt = reading.second.find("data");
-        if (dataIt == reading.second.not_found() || dataIt->second.empty())
-            continue;
+		auto dataIt = reading.second.find("data");
+		if (dataIt == reading.second.not_found() || dataIt->second.empty())
+			continue;
 		// Only parse the last (most recent) element of the collection of data
 		auto data = dataIt->second.back().second;
 		ingest(data, sensorType, dataStructureType);
 	}
 }
 
-void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType)
+void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType,
+											DataStructureType dataStructureType)
 {
-	if (isMainStationType(sensorType) &&
-	    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+	if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
-		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;
+		float hum = data.get<float>("hum_last", INVALID_FLOAT);
 		if (!isInvalid(hum))
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
@@ -119,10 +121,10 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (isMainStationType(sensorType) &&
-	    (dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
-	     dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
+			   (dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
+				dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
-		float hum = data.get<float>("hum_out", INVALID_FLOAT) ;
+		float hum = data.get<float>("hum_out", INVALID_FLOAT);
 		if (!isInvalid(hum))
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
@@ -162,10 +164,10 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.soilTemperature[2] = data.get<float>("temp_soil_3", INVALID_FLOAT);
 		_obs.soilTemperature[3] = data.get<float>("temp_soil_4", INVALID_FLOAT);
 	} else if (sensorType == SensorType::SENSOR_SUITE &&
-		    dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		// This data package must be ingested after the ISS data
-		float hum = data.get<float>("hum_last", INVALID_FLOAT) ;
+		float hum = data.get<float>("hum_last", INVALID_FLOAT);
 		if (!isInvalid(hum))
 			_obs.humidity = static_cast<int>(hum);
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
@@ -183,13 +185,13 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
-		   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
+			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
 			_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
 	} else if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
-		   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
+			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		// The first two temperatures are put in both leaf and soil temperatures fields
 		// because we cannot know from the API where the user installed the sensors

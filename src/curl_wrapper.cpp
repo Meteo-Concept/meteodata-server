@@ -31,12 +31,13 @@
 
 #include "curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 CurlWrapper::CurlWrapper() :
-	_handle{curl_easy_init(), &curl_easy_cleanup},
-	_headers{nullptr, &curl_slist_free_all},
-	_errorBuffer{}
+		_handle{curl_easy_init(), &curl_easy_cleanup},
+		_headers{nullptr, &curl_slist_free_all},
+		_errorBuffer{}
 {
 	curl_easy_setopt(_handle.get(), CURLOPT_ERRORBUFFER, _errorBuffer);
 	curl_easy_setopt(_handle.get(), CURLOPT_WRITEFUNCTION, &CurlWrapper::receiveData);
@@ -96,8 +97,8 @@ std::string_view CurlWrapper::getLastError()
 
 long CurlWrapper::getLastRequestCode()
 {
-    long code;
-    curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
+	long code;
+	curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
 	return code;
 }
 

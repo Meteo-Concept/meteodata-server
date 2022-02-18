@@ -53,7 +53,7 @@ using namespace std::chrono;
 namespace po = boost::program_options;
 
 template<typename T1, typename T2>
-inline std::ostream& operator<<(std::ostream& os, const std::pair<T1,T2>& pair)
+inline std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& pair)
 {
 	os << "(" << pair.first << ", " << pair.second << ")";
 	return os;
@@ -107,9 +107,7 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -122,7 +120,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -185,17 +183,17 @@ int main(int argc, char** argv)
 		DbConnectionRecords db(address, user, password);
 
 		cass_log_set_level(CASS_LOG_INFO);
-		CassLogCallback logCallback =
-			[](const CassLogMessage *message, void*) -> void {
-				std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line " << message->line << ")" << std::endl;
-			};
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line "
+					  << message->line << ")" << std::endl;
+		};
 		cass_log_set_callback(logCallback, NULL);
 
 
 		std::vector<CassUuid> allStations;
-		std::cerr << "Fetching the list of stations" <<std::endl;
+		std::cerr << "Fetching the list of stations" << std::endl;
 		db.getAllStations(allStations);
-		std::cerr << allStations.size() << " stations identified\n" <<std::endl;
+		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
 		if (userSelection.empty()) {
@@ -204,7 +202,8 @@ int main(int argc, char** argv)
 			std::sort(allStations.begin(), allStations.end());
 			std::sort(userSelection.begin(), userSelection.end());
 			std::vector<CassUuid> unknown;
-			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(), std::back_inserter(unknown));
+			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(),
+								std::back_inserter(unknown));
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
@@ -214,7 +213,8 @@ int main(int argc, char** argv)
 				}
 				std::cerr << std::endl;
 			}
-			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(), userSelection.cend(), std::back_inserter(stations));
+			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(),
+								  userSelection.cend(), std::back_inserter(stations));
 		}
 
 		year_month selectedDate = beginDate;
@@ -223,7 +223,8 @@ int main(int argc, char** argv)
 				MonthlyRecords records;
 				records.setMonth(selectedDate.month());
 				db.getCurrentRecords(station, selectedDate.month(), records);
-				db.getValuesForAllDaysInMonth(station, int(selectedDate.year()), unsigned(selectedDate.month()), records);
+				db.getValuesForAllDaysInMonth(station, int(selectedDate.year()), unsigned(selectedDate.month()),
+											  records);
 				try {
 					records.prepareRecords();
 

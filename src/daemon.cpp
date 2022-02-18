@@ -101,9 +101,7 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -113,10 +111,11 @@ int main(int argc, char** argv)
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password -k weatherlink-apiv2-key -s weatherlink-apiv2-secret]\n";
+		std::cout << "Usage: " << argv[0]
+				  << " [-h cassandra_host -u user -p password -k weatherlink-apiv2-key -s weatherlink-apiv2-secret]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -128,30 +127,28 @@ int main(int argc, char** argv)
 
 	daemonized = !vm.count("no-daemon");
 
-	serverConfig.startMqtt         = !vm.count("no-mqtt");
-	serverConfig.startSynop        = !vm.count("no-synop");
-	serverConfig.startShip         = !vm.count("no-ship");
-	serverConfig.startStatic       = !vm.count("no-static");
-	serverConfig.startWeatherlink  = !vm.count("no-weatherlink");
+	serverConfig.startMqtt = !vm.count("no-mqtt");
+	serverConfig.startSynop = !vm.count("no-synop");
+	serverConfig.startShip = !vm.count("no-ship");
+	serverConfig.startStatic = !vm.count("no-static");
+	serverConfig.startWeatherlink = !vm.count("no-weatherlink");
 	serverConfig.startFieldclimate = !vm.count("no-fieldclimate");
-	serverConfig.startMbdata       = !vm.count("no-mbdata");
-	serverConfig.startRest         = !vm.count("no-rest");
-	serverConfig.startVp2          = !vm.count("no-vp2");
+	serverConfig.startMbdata = !vm.count("no-mbdata");
+	serverConfig.startRest = !vm.count("no-rest");
+	serverConfig.startVp2 = !vm.count("no-vp2");
 
-	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") ||
-		vm.count("only-static") || vm.count("only-weatherlink") ||
-		vm.count("only-fieldclimate") || vm.count("only-mbdata") ||
-		vm.count("only-rest") || vm.count("only-vp2")
-	) {
-		serverConfig.startMqtt         = false;
-		serverConfig.startSynop        = false;
-		serverConfig.startShip         = false;
-		serverConfig.startStatic       = false;
-		serverConfig.startWeatherlink  = false;
+	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") || vm.count("only-static") ||
+		vm.count("only-weatherlink") || vm.count("only-fieldclimate") || vm.count("only-mbdata") ||
+		vm.count("only-rest") || vm.count("only-vp2")) {
+		serverConfig.startMqtt = false;
+		serverConfig.startSynop = false;
+		serverConfig.startShip = false;
+		serverConfig.startStatic = false;
+		serverConfig.startWeatherlink = false;
 		serverConfig.startFieldclimate = false;
-		serverConfig.startMbdata       = false;
-		serverConfig.startRest         = false;
-		serverConfig.startVp2          = false;
+		serverConfig.startMbdata = false;
+		serverConfig.startRest = false;
+		serverConfig.startVp2 = false;
 
 		if (vm.count("only-mqtt"))
 			serverConfig.startMqtt = true;
@@ -183,13 +180,9 @@ int main(int argc, char** argv)
 				message->severity == CASS_LOG_INFO     ? SD_INFO :
 									 SD_DEBUG;
 
-			std::cerr << logLevel << "[Cassandra] database: " << message->message
-				  << "(from " << message->function
-				  << ", in " << message->file
-				  << ", line " << message->line
-				  << ")"
-				  << std::endl;
-		};
+		std::cerr << logLevel << "[Cassandra] database: " << message->message << "(from " << message->function
+				  << ", in " << message->file << ", line " << message->line << ")" << std::endl;
+	};
 	cass_log_set_callback(logCallback, nullptr);
 
 	try {
@@ -206,13 +199,13 @@ int main(int argc, char** argv)
 
 		std::vector<std::thread> workers;
 		// start all the workers
-		for (unsigned long i=0 ; i<threads ; i++) {
+		for (unsigned long i = 0 ; i < threads ; i++) {
 			workers.emplace_back([&]() { ioService.run(); });
 		}
 		if (daemonized)
 			sd_notifyf(0, "READY=1\n" "STATUS=Data collection started\n" "MAINPID=%d", getpid());
 		// and wait for them to die
-		for (unsigned long i=0 ; i<threads ; i++) {
+		for (unsigned long i = 0 ; i < threads ; i++) {
 			workers[i].join();
 		}
 	} catch (std::exception& e) {

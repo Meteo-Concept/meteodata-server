@@ -41,7 +41,8 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -68,21 +69,17 @@ public:
 	 * @param db the Météodata observations database connector
 	 * @param apiKey the Objenious API key
 	 */
-	ObjeniousApiDownloadScheduler(
-		asio::io_service& ioService,
-		DbConnectionObservations& db,
-		const std::string& apiKey
-	);
+	ObjeniousApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db, const std::string& apiKey);
 
 	/**
 	 * @brief Start the periodic downloads
 	 */
 	void start();
 
-    /**
-     * @brief Stop the periodic downloads
-     */
-    void stop();
+	/**
+	 * @brief Stop the periodic downloads
+	 */
+	void stop();
 
 	/**
 	 * @brief Add a station to download the data for
@@ -92,8 +89,8 @@ public:
 	 * @param variables All the variables registered for that station (see
 	 * the ObjeniousApiDownloader class for details)
 	 */
-	void add(const CassUuid& station, const std::string& fieldClimateId,
-		const std::map<std::string, std::string> variables);
+	void
+	add(const CassUuid& station, const std::string& fieldClimateId, const std::map<std::string, std::string> variables);
 
 private:
 	/**
@@ -132,7 +129,7 @@ public:
 	/**
 	 * @brief The type of the const iterators through the downloaders
 	 */
-	using DownloaderIterator =  decltype(_downloaders)::const_iterator;
+	using DownloaderIterator = decltype(_downloaders)::const_iterator;
 
 private:
 	/**

@@ -10,7 +10,8 @@ struct EvapoMaybeTranspiRation
 	 * type of crop for which evapotranspiration is reported
 	 * @see table 1806, A-294
 	 */
-	enum class Instrumentation {
+	enum class Instrumentation
+	{
 		USA_EVAPORIMETER_WITHOUT_COVER = '0',
 		USA_EVAPORIMETER_MESH_COVERED,
 		GGI_3000_EVAPORIMENTER_SUNKEN,

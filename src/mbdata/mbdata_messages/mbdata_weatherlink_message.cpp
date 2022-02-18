@@ -34,35 +34,37 @@
 #include "abstract_mbdata_message.h"
 #include "mbdata_weatherlink_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
-	AbstractMBDataMessage(datetime, content, timeOffseter)
+MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content,
+												   std::optional<float> previousRainfall,
+												   const TimeOffseter& timeOffseter) :
+		AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
 
-    _diffRainfall = previousRainfall;
+	_diffRainfall = previousRainfall;
 
-	const std::regex mandatoryPart{
-		"^\\d+/\\d+/\\d+;\\d+:\\d+;" // date: already parsed
-		"([^\\|]*)\\|" // temperature
-		"([^\\|]*)\\|" // humidite
-		"([^\\|]*)\\|" // dew point
-		"([^\\|]*)\\|" // pressure
-		"([^\\|]*)\\|" // pressure variation
-		"([^\\|]*)\\|" // rainfall since 0h
-		"([^\\|]*)\\|" // wind
-		"([^\\|]*)\\|" // wind direction
-		"([^\\|]*)\\|" // wind gusts
-		"([^\\|]*)\\|" // windchill
-		"([^\\|]*)\\|" // HEATINDEX
-		"([^\\|]*)\\|" // Tx over 24h
-		"([^\\|]*)\\|" // Tn over 24h
-		"([^\\|]*)\\|" // rainrate
-		"([^\\|]*)\\|?" // solar radiation
+	const std::regex mandatoryPart{"^\\d+/\\d+/\\d+;\\d+:\\d+;" // date: already parsed
+								   "([^\\|]*)\\|" // temperature
+								   "([^\\|]*)\\|" // humidite
+								   "([^\\|]*)\\|" // dew point
+								   "([^\\|]*)\\|" // pressure
+								   "([^\\|]*)\\|" // pressure variation
+								   "([^\\|]*)\\|" // rainfall since 0h
+								   "([^\\|]*)\\|" // wind
+								   "([^\\|]*)\\|" // wind direction
+								   "([^\\|]*)\\|" // wind gusts
+								   "([^\\|]*)\\|" // windchill
+								   "([^\\|]*)\\|" // HEATINDEX
+								   "([^\\|]*)\\|" // Tx over 24h
+								   "([^\\|]*)\\|" // Tn over 24h
+								   "([^\\|]*)\\|" // rainrate
+								   "([^\\|]*)\\|?" // solar radiation
 	};
 
 	std::smatch baseMatch;
@@ -93,11 +95,11 @@ MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, c
 		}
 		// skip pressure tendency
 		if (baseMatch[6].length() && _diffRainfall) {
-			try{
+			try {
 				float f = std::stof(baseMatch[6].str()) - *_diffRainfall;
 				if (f >= 0 && f < 100)
 					_computedRainfall = f;
-			} catch(std::exception&) {
+			} catch (std::exception&) {
 			}
 		}
 		if (baseMatch[7].length()) {

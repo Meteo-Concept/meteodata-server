@@ -86,9 +86,7 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -101,7 +99,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -135,8 +133,9 @@ int main(int argc, char** argv)
 					message->severity == CASS_LOG_INFO     ? "info" :
 										 "debug";
 
-				std::cerr << logLevel << ": " <<  message->message << " (from " << message->function << ", in " << message->file << ", line " << message->line << std::endl;
-			};
+			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
+					  << message->file << ", line " << message->line << std::endl;
+		};
 		cass_log_set_callback(logCallback, NULL);
 
 		// Start the Objenious downloaders workers (one per Objenious station)
@@ -158,10 +157,8 @@ int main(int argc, char** argv)
 			}
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
-			ObjeniousApiDownloader downloader{
-				std::get<0>(station), std::get<1>(station), std::get<2>(station),
-				db, apiKey
-			};
+			ObjeniousApiDownloader downloader{std::get<0>(station), std::get<1>(station), std::get<2>(station), db,
+											  apiKey};
 			try {
 				downloader.download(client);
 				retry = 0;
@@ -171,7 +168,7 @@ int main(int argc, char** argv)
 				retry++;
 				if (retry >= 2) {
 					std::cerr << "Tried twice already, moving on..." << std::endl;
-					retry =  0;
+					retry = 0;
 					++it;
 				} else {
 					throw e;

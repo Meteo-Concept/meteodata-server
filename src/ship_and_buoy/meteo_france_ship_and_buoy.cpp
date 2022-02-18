@@ -36,9 +36,9 @@ namespace meteodata
 {
 MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::vector<std::string>& fields)
 {
-	unsigned int i=0;
+	unsigned int i = 0;
 	std::map<std::string, std::string> values;
-	for (std::string field ; std::getline(entry, field, ';') && i<fields.size() ; i++) {
+	for (std::string field ; std::getline(entry, field, ';') && i < fields.size() ; i++) {
 		values.emplace(std::make_pair(fields[i], field));
 	}
 
@@ -111,24 +111,25 @@ MeteoFranceShipAndBuoy::MeteoFranceShipAndBuoy(std::istream& entry, const std::v
 	_valid = true;
 }
 
-Observation MeteoFranceShipAndBuoy::getObservation(const CassUuid station) const {
-    Observation result;
+Observation MeteoFranceShipAndBuoy::getObservation(const CassUuid station) const
+{
+	Observation result;
 
-    result.station = station;
-    result.day = date::floor<date::days>(_datetime);
-    result.time = _datetime;
-    result.barometer = {bool(_pressure), *_pressure};
-    result.outsidehum = {bool(_humidity), *_humidity};
-    result.outsidetemp = {bool(_airTemp), *_airTemp};
-    if (_dewPoint) {
-        result.dewpoint = {true, *_dewPoint};
-    } else if (_airTemp && _humidity) {
-        result.dewpoint = {true, dew_point(*_airTemp, *_humidity)};
-    }
-    result.winddir = { bool(_windDir), *_windDir };
-    result.windgust = { bool(_gust), *_gust };
-    result.windspeed = { bool(_wind), *_wind };
-    return result;
+	result.station = station;
+	result.day = date::floor<date::days>(_datetime);
+	result.time = _datetime;
+	result.barometer = {bool(_pressure), *_pressure};
+	result.outsidehum = {bool(_humidity), *_humidity};
+	result.outsidetemp = {bool(_airTemp), *_airTemp};
+	if (_dewPoint) {
+		result.dewpoint = {true, *_dewPoint};
+	} else if (_airTemp && _humidity) {
+		result.dewpoint = {true, dew_point(*_airTemp, *_humidity)};
+	}
+	result.winddir = {bool(_windDir), *_windDir};
+	result.windgust = {bool(_gust), *_gust};
+	result.windspeed = {bool(_wind), *_wind};
+	return result;
 }
 
 }

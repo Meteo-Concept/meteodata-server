@@ -95,9 +95,7 @@ int main(int argc, char** argv)
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
-	std::string configFileName = vm.count("config-file") ?
-		vm["config-file"].as<std::string>() :
-		DEFAULT_CONFIG_FILE;
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
 	std::ifstream configFile(configFileName);
 	if (configFile) {
 		po::store(po::parse_config_file(configFile, config, true), vm);
@@ -107,10 +105,11 @@ int main(int argc, char** argv)
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password -k weatherlink-apiv2-key -s weatherlink-apiv2-secret]\n";
+		std::cout << "Usage: " << argv[0]
+				  << " [-h cassandra_host -u user -p password -k weatherlink-apiv2-key -s weatherlink-apiv2-secret]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -144,18 +143,20 @@ int main(int argc, char** argv)
 					message->severity == CASS_LOG_INFO     ? "info" :
 										 "debug";
 
-				std::cerr << logLevel << ": " <<  message->message << " (from " << message->function << ", in " << message->file << ", line " << message->line << std::endl;
-			};
+			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
+					  << message->file << ", line " << message->line << std::endl;
+		};
 		cass_log_set_callback(logCallback, nullptr);
 
 		// Start the Weatherlink downloaders workers (one per Weatherlink station)
-		std::vector<std::tuple<CassUuid, bool, std::map<int,CassUuid>, std::string>> weatherlinkStations;
+		std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkStations;
 		DbConnectionObservations db{address, user, password};
 		db.getAllWeatherlinkAPIv2Stations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		CurlWrapper client;
-		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key, weatherlinkApiV2Secret);
+		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key,
+																			 weatherlinkApiV2Secret);
 		bool forceDownload = vm.count("force");
 
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
@@ -168,20 +169,20 @@ int main(int argc, char** argv)
 			}
 
 			if (allDiscovered.find(std::get<3>(station)) == allDiscovered.cend()) {
-				std::cerr << "Station absent from the API list: " << std::get<3>(station) << "," << std::get<0>(station) << std::endl;
+				std::cerr << "Station absent from the API list: " << std::get<3>(station) << "," << std::get<0>(station)
+						  << std::endl;
 				++it;
 				continue;
 			}
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
-			WeatherlinkApiv2Downloader downloader{
-				std::get<0>(station), std::get<3>(station), std::get<2>(station),
-				weatherlinkApiV2Key, weatherlinkApiV2Secret,
-				db, TimeOffseter::PredefinedTimezone(0)
-			};
+			WeatherlinkApiv2Downloader downloader{std::get<0>(station), std::get<3>(station), std::get<2>(station),
+												  weatherlinkApiV2Key, weatherlinkApiV2Secret, db,
+												  TimeOffseter::PredefinedTimezone(0)};
 			try {
 				if (!std::get<1>(station)) {
-					std::cerr << "No access to archives for station " << std::get<0>(station) << ", downloading the last datapoint" << std::endl;
+					std::cerr << "No access to archives for station " << std::get<0>(station)
+							  << ", downloading the last datapoint" << std::endl;
 					downloader.downloadRealTime(client);
 				} else {
 					downloader.download(client, forceDownload);

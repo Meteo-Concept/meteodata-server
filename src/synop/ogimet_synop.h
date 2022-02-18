@@ -37,7 +37,8 @@
 
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -55,7 +56,7 @@ public:
 	 * @param data A SYNOP messgae obtained from Ogimet and decoded
 	 */
 	OgimetSynop(const SynopMessage& data, const TimeOffseter* timeOffseter);
-    Observation getObservations(const CassUuid station) const;
+	Observation getObservations(const CassUuid station) const;
 
 private:
 	/**

@@ -45,7 +45,8 @@ using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;

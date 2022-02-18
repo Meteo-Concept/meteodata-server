@@ -34,35 +34,37 @@
 #include "abstract_mbdata_message.h"
 #include "mbdata_weathercat_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content, std::optional<float> previousRainfall, const TimeOffseter& timeOffseter) :
-	AbstractMBDataMessage(datetime, content, timeOffseter)
+MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content,
+												 std::optional<float> previousRainfall,
+												 const TimeOffseter& timeOffseter) :
+		AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
 
-    _diffRainfall = previousRainfall;
+	_diffRainfall = previousRainfall;
 
-	const std::regex mandatoryPart{
-		"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
-		"([^\\|]*)\\|" // temperature
-		"([^\\|]*)\\|" // humidite
-		"([^\\|]*)\\|" // dew point
-		"([^\\|]*)\\|" // pressure
-		"([^\\|]*)\\|" // pressure variation, should be null
-		"([^\\|]*)\\|" // rainfall since 0h
-		"([^\\|]*)\\|" // wind
-		"([^\\|]*)\\|" // wind direction
-		"([^\\|]*)\\|" // wind gusts
-		"([^\\|]*)\\|" // windchill
-		"([^\\|]*)\\|" // HEATINDEX
-		"([^\\|]*)\\|" // Tx over 24h
-		"([^\\|]*)\\|" // Tn over 24h
-		"([^\\|]*)\\|" // rainrate
-		"([^\\|]*)\\|?" // solar radiation
+	const std::regex mandatoryPart{"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
+								   "([^\\|]*)\\|" // temperature
+								   "([^\\|]*)\\|" // humidite
+								   "([^\\|]*)\\|" // dew point
+								   "([^\\|]*)\\|" // pressure
+								   "([^\\|]*)\\|" // pressure variation, should be null
+								   "([^\\|]*)\\|" // rainfall since 0h
+								   "([^\\|]*)\\|" // wind
+								   "([^\\|]*)\\|" // wind direction
+								   "([^\\|]*)\\|" // wind gusts
+								   "([^\\|]*)\\|" // windchill
+								   "([^\\|]*)\\|" // HEATINDEX
+								   "([^\\|]*)\\|" // Tx over 24h
+								   "([^\\|]*)\\|" // Tn over 24h
+								   "([^\\|]*)\\|" // rainrate
+								   "([^\\|]*)\\|?" // solar radiation
 	};
 
 	std::smatch baseMatch;

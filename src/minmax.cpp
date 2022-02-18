@@ -54,7 +54,7 @@ using namespace std::chrono;
 namespace po = boost::program_options;
 
 template<typename T1, typename T2>
-inline std::ostream& operator<<(std::ostream& os, const std::pair<T1,T2>& pair)
+inline std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& pair)
 {
 	os << "(" << pair.first << ", " << pair.second << ")";
 	return os;
@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -186,16 +186,16 @@ int main(int argc, char** argv)
 		DbConnectionMinmax::Values values;
 
 		cass_log_set_level(CASS_LOG_INFO);
-		CassLogCallback logCallback =
-			[](const CassLogMessage *message, void*) -> void {
-				std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line " << message->line << ")" << std::endl;
-			};
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line "
+					  << message->line << ")" << std::endl;
+		};
 		cass_log_set_callback(logCallback, NULL);
 
 		std::vector<CassUuid> allStations;
-		std::cerr << "Fetching the list of stations" <<std::endl;
+		std::cerr << "Fetching the list of stations" << std::endl;
 		db.getAllStations(allStations);
-		std::cerr << allStations.size() << " stations identified\n" <<std::endl;
+		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
 		if (userSelection.empty()) {
@@ -204,7 +204,8 @@ int main(int argc, char** argv)
 			std::sort(allStations.begin(), allStations.end());
 			std::sort(userSelection.begin(), userSelection.end());
 			std::vector<CassUuid> unknown;
-			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(), std::back_inserter(unknown));
+			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(),
+								std::back_inserter(unknown));
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
@@ -214,7 +215,8 @@ int main(int argc, char** argv)
 				}
 				std::cerr << std::endl;
 			}
-			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(), userSelection.cend(), std::back_inserter(stations));
+			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(),
+								  userSelection.cend(), std::back_inserter(stations));
 		}
 
 		sys_days selectedDate = beginDate;
@@ -231,9 +233,7 @@ int main(int argc, char** argv)
 				std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
 
 				std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
-				std::pair<bool, float>  rainToday,      etToday,
-					rainYesterday,  etYesterday,
-					rainBeginMonth, etBeginMonth;
+				std::pair<bool, float> rainToday, etToday, rainYesterday, etYesterday, rainBeginMonth, etBeginMonth;
 
 				auto ymd = date::year_month_day(selectedDate);
 				if (unsigned(ymd.month()) == 1 && unsigned(ymd.day()) == 1) {
@@ -241,36 +241,36 @@ int main(int argc, char** argv)
 					etToday = values.et;
 				} else {
 					db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
-					compute(rainToday, values.rainfall, rainYesterday, std::plus<float>());
-					compute(etToday, values.et, etYesterday, std::plus<float>());
+					compute(rainToday, values.rainfall, rainYesterday, std::plus<>());
+					compute(etToday, values.et, etYesterday, std::plus<>());
 				}
 
 				if (unsigned(ymd.month()) == 1) {
-					values.monthRain  = rainToday;
-					values.monthEt    = etToday;
+					values.monthRain = rainToday;
+					values.monthEt = etToday;
 				} else {
 					date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
 					db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
-					compute(values.monthRain, rainToday, rainBeginMonth, std::minus<float>());
-					compute(values.monthEt, etToday, etBeginMonth, std::minus<float>());
+					compute(values.monthRain, rainToday, rainBeginMonth, std::minus<>());
+					compute(values.monthEt, etToday, etBeginMonth, std::minus<>());
 				}
 
-				values.dayRain  = values.rainfall;
+				values.dayRain = values.rainfall;
 				values.yearRain = rainToday;
-				values.dayEt    = values.et;
-				values.yearEt   = etToday;
+				values.dayEt = values.et;
+				values.yearEt = etToday;
 
 				computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
 				computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
 
-				for (int i=0 ; i<2 ; i++)
+				for (int i = 0 ; i < 2 ; i++)
 					computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
-				for (int i=0 ; i<4 ; i++)
+				for (int i = 0 ; i < 4 ; i++)
 					computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
-				for (int i=0 ; i<3 ; i++)
+				for (int i = 0 ; i < 3 ; i++)
 					computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
 
-				std::vector<std::pair<int,float>> winds;
+				std::vector<std::pair<int, float>> winds;
 				std::cerr << "Getting wind values for day " << selectedDate << std::endl;
 				db.getWindValues(station, selectedDate, winds);
 
@@ -285,7 +285,7 @@ int main(int argc, char** argv)
 				}
 
 				values.winddir.second.resize(16);
-				for (int i=0 ; i<16 ; i++) {
+				for (int i = 0 ; i < 16 ; i++) {
 					int v = dirs[i];
 					std::cerr << "v = " << v << " | count = " << count << std::endl;
 					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;

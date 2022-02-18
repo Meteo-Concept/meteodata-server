@@ -27,40 +27,37 @@
 
 #include "rest_web_server.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
-	namespace http = boost::beast::http;
-	namespace asio = boost::asio;
-	using tcp = boost::asio::ip::tcp;
+namespace http = boost::beast::http;
+namespace asio = boost::asio;
+using tcp = boost::asio::ip::tcp;
 
-	RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db) :
+RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db) :
 		_io{io},
 		_acceptor{io, tcp::endpoint{tcp::v4(), 5887}},
 		_socket{_io},
 		_db{db}
-	{}
+{}
 
-	void RestWebServer::start()
-	{
-		auto self = shared_from_this();
-		_acceptor.async_accept(
-				_socket,
-				[self, this](const boost::system::error_code& error) {
-					serveHttpConnection(std::move(_socket), error);
-					_socket = tcp::socket{_io};
-				}
-		);
-	}
+void RestWebServer::start()
+{
+	auto self = shared_from_this();
+	_acceptor.async_accept(_socket, [self, this](const boost::system::error_code& error) {
+		serveHttpConnection(std::move(_socket), error);
+		_socket = tcp::socket{_io};
+	});
+}
 
-	void RestWebServer::serveHttpConnection(boost::asio::ip::tcp::socket&& socket,
-											const boost::system::error_code& error)
-	{
-		if (!error) {
-			start();
-			auto connection = std::make_shared<HttpConnection>(std::forward<boost::asio::ip::tcp::socket>(socket), _db);
-			connection->start();
-		}
+void RestWebServer::serveHttpConnection(boost::asio::ip::tcp::socket&& socket, const boost::system::error_code& error)
+{
+	if (!error) {
 		start();
+		auto connection = std::make_shared<HttpConnection>(std::forward<boost::asio::ip::tcp::socket>(socket), _db);
+		connection->start();
 	}
+	start();
+}
 
 }

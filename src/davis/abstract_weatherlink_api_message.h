@@ -44,7 +44,8 @@ using std::uint32_t;
 using std::uint64_t;
 using std::size_t;
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
@@ -62,7 +63,8 @@ public:
 	Observation getObservation(const CassUuid station) const;
 	constexpr static size_t MAXSIZE = (2 << 20);
 
-	enum class SensorType {
+	enum class SensorType
+	{
 		GRO_WEATHER_FAN_CABLED = 2,
 		VANTAGE_PRO_2_CABLED = 23,
 		VANTAGE_PRO_2_PLUS_CABLED = 24,
@@ -103,7 +105,8 @@ public:
 		LEAF_SOIL_SUBSTATION = 56
 	};
 
-	enum class DataStructureType {
+	enum class DataStructureType
+	{
 		WEATHERLINK_IP_CURRENT_READING_REVISION_B = 2,
 		WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B = 4,
 		ENVIROMONITOR_ISS_CURRENT_READING = 6,
@@ -117,57 +120,51 @@ public:
 
 	constexpr static bool isMainStationType(SensorType sensorType)
 	{
-		return
-			sensorType == SensorType::GRO_WEATHER_FAN_CABLED ||
-			sensorType == SensorType::VANTAGE_PRO_2_CABLED ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED ||
-			sensorType == SensorType::GRO_WEATHER_FAN_CABLED_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_CABLED_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED_METRIC ||
-			sensorType == SensorType::GRO_WEATHER_CABLED_METRIC ||
-			sensorType == SensorType::GRO_WEATHER_PLUS_CABLED_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO ||
-			sensorType == SensorType::VANTAGE_PRO_PLUS ||
-			sensorType == SensorType::VANTAGE_PRO_2 ||
-			sensorType == SensorType::VANTAGE_PRO_2_FAN ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN ||
-			sensorType == SensorType::VANTAGE_PRO_2_ISS ||
-			sensorType == SensorType::VANTAGE_PRO_2_FAN_ISS ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_ISS ||
-			sensorType == SensorType::VANTAGE_PRO_2_DAYTIME_FAN_ISS ||
-			sensorType == SensorType::VANTAGE_VUE_ISS ||
-			sensorType == SensorType::GRO_WEATHER_WIRELESS ||
-			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS ||
-			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_METRIC ||
-			sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_OV ||
-			sensorType == SensorType::GRO_WEATHER_WIRELESS_METRIC ||
-			sensorType == SensorType::GRO_WEATHER_WIRELESS_OV ||
-			sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_OV ||
-			sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_OV ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
-			sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
+		return sensorType == SensorType::GRO_WEATHER_FAN_CABLED || sensorType == SensorType::VANTAGE_PRO_2_CABLED ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED ||
+			   sensorType == SensorType::GRO_WEATHER_FAN_CABLED_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_CABLED_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_CABLED_METRIC ||
+			   sensorType == SensorType::GRO_WEATHER_CABLED_METRIC ||
+			   sensorType == SensorType::GRO_WEATHER_PLUS_CABLED_METRIC || sensorType == SensorType::VANTAGE_PRO ||
+			   sensorType == SensorType::VANTAGE_PRO_PLUS || sensorType == SensorType::VANTAGE_PRO_2 ||
+			   sensorType == SensorType::VANTAGE_PRO_2_FAN || sensorType == SensorType::VANTAGE_PRO_2_PLUS ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN || sensorType == SensorType::VANTAGE_PRO_2_ISS ||
+			   sensorType == SensorType::VANTAGE_PRO_2_FAN_ISS || sensorType == SensorType::VANTAGE_PRO_2_PLUS_ISS ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_ISS ||
+			   sensorType == SensorType::VANTAGE_PRO_2_DAYTIME_FAN_ISS || sensorType == SensorType::VANTAGE_VUE_ISS ||
+			   sensorType == SensorType::GRO_WEATHER_WIRELESS || sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS ||
+			   sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_METRIC ||
+			   sensorType == SensorType::GRO_WEATHER_FAN_WIRELESS_OV ||
+			   sensorType == SensorType::GRO_WEATHER_WIRELESS_METRIC ||
+			   sensorType == SensorType::GRO_WEATHER_WIRELESS_OV ||
+			   sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_FAN_WIRELESS_OV ||
+			   sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_WIRELESS_OV ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
 	}
 
 protected:
 	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
 	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();
 
-	constexpr static bool isInvalid(float v) {
+	constexpr static bool isInvalid(float v)
+	{
 		return std::isnan(v); // /!\ NaN never compares equal to itself
 	}
 
-	constexpr static bool isInvalid(int v) {
+	constexpr static bool isInvalid(int v)
+	{
 		return v == INVALID_INT;
 	}
 
 
-	struct DataPoint {
+	struct DataPoint
+	{
 		date::sys_time<chrono::milliseconds> time;
 		float pressure = INVALID_FLOAT;
 		int humidity = INVALID_INT;
@@ -180,12 +177,12 @@ protected:
 		float rainFall = INVALID_FLOAT;
 		int solarRad = INVALID_INT;
 		float uvIndex = INVALID_FLOAT;
-		int extraHumidity[2] = { INVALID_INT, INVALID_INT };
-		float extraTemperature[3] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
-		float leafTemperature[2] = { INVALID_FLOAT, INVALID_FLOAT };
-		int leafWetness[2] = { INVALID_INT, INVALID_INT };
-		int soilMoisture[4] = { INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT };
-		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT };
+		int extraHumidity[2] = {INVALID_INT, INVALID_INT};
+		float extraTemperature[3] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT};
+		float leafTemperature[2] = {INVALID_FLOAT, INVALID_FLOAT};
+		int leafWetness[2] = {INVALID_INT, INVALID_INT};
+		int soilMoisture[4] = {INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT};
+		float soilTemperature[4] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT};
 	};
 	DataPoint _obs;
 

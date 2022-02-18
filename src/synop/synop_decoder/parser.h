@@ -22,7 +22,9 @@ public:
 	Parser();
 
 	bool parse(std::istream& in);
-	const SynopMessage& getDecodedMessage() {
+
+	const SynopMessage& getDecodedMessage()
+	{
 		return _message;
 	}
 };

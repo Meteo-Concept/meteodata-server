@@ -43,7 +43,8 @@ using std::uint64_t;
 
 namespace chrono = std::chrono;
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 
@@ -61,7 +62,8 @@ public:
 	 * @return a reference to the buffer in which the VantagePro2Message can
 	 * store data from the station
 	 */
-	std::array<asio::mutable_buffer, 2>& getBuffer() {
+	std::array<asio::mutable_buffer, 2>& getBuffer()
+	{
 		return _messageBuffer;
 	}
 
@@ -147,9 +149,9 @@ private:
 		/** The month the current storm started */
 		unsigned int monthStartDateCurrentStorm : 4;
 		/** The day the current storm started */
-		unsigned int dayStartDateCurrentStorm   : 5;
+		unsigned int dayStartDateCurrentStorm : 5;
 		/** The year the current storm started */
-		unsigned int yearStartDateCurrentStorm  : 7;
+		unsigned int yearStartDateCurrentStorm : 7;
 		uint16_t dayRain; /**< Today's rain volume */
 		uint16_t monthRain; /**< The current month's rain volume */
 		uint16_t yearRain; /**< The current year's rain volume */
@@ -227,9 +229,9 @@ private:
 		/** The month the current storm started */
 		unsigned int monthStartDateCurrentStorm : 4;
 		/** The day the current storm started */
-		unsigned int dayStartDateCurrentStorm   : 5;
+		unsigned int dayStartDateCurrentStorm : 5;
 		/** The year the current storm started */
-		unsigned int yearStartDateCurrentStorm  : 7;
+		unsigned int yearStartDateCurrentStorm : 7;
 		uint16_t dayRain; /**< Today's amount of rain */
 		uint16_t last15MinRain; /**< The amount of rain over the last
 					     fifteen minutes */
@@ -295,41 +297,32 @@ private:
 	/**
 	 * @brief The constants necessary to compute the VantagePro2 CRCs
 	 */
-	static constexpr int CRC_VALUES[] =
-	{
-		0x0, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
-		0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef,
-		0x1231, 0x210, 0x3273, 0x2252, 0x52b5, 0x4294, 0x72f7, 0x62d6,
-		0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c, 0xf3ff, 0xe3de,
-		0x2462, 0x3443, 0x420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485,
-		0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d,
-		0x3653, 0x2672, 0x1611, 0x630, 0x76d7, 0x66f6, 0x5695, 0x46b4,
-		0xb75b, 0xa77a, 0x9719, 0x8738, 0xf7df, 0xe7fe, 0xd79d, 0xc7bc,
-		0x48c4, 0x58e5, 0x6886, 0x78a7, 0x840, 0x1861, 0x2802, 0x3823,
-		0xc9cc, 0xd9ed, 0xe98e, 0xf9af, 0x8948, 0x9969, 0xa90a, 0xb92b,
-		0x5af5, 0x4ad4, 0x7ab7, 0x6a96, 0x1a71, 0xa50, 0x3a33, 0x2a12,
-		0xdbfd, 0xcbdc, 0xfbbf, 0xeb9e, 0x9b79, 0x8b58, 0xbb3b, 0xab1a,
-		0x6ca6, 0x7c87, 0x4ce4, 0x5cc5, 0x2c22, 0x3c03, 0xc60, 0x1c41,
-		0xedae, 0xfd8f, 0xcdec, 0xddcd, 0xad2a, 0xbd0b, 0x8d68, 0x9d49,
-		0x7e97, 0x6eb6, 0x5ed5, 0x4ef4, 0x3e13, 0x2e32, 0x1e51, 0xe70,
-		0xff9f, 0xefbe, 0xdfdd, 0xcffc, 0xbf1b, 0xaf3a, 0x9f59, 0x8f78,
-		0x9188, 0x81a9, 0xb1ca, 0xa1eb, 0xd10c, 0xc12d, 0xf14e, 0xe16f,
-		0x1080, 0xa1, 0x30c2, 0x20e3, 0x5004, 0x4025, 0x7046, 0x6067,
-		0x83b9, 0x9398, 0xa3fb, 0xb3da, 0xc33d, 0xd31c, 0xe37f, 0xf35e,
-		0x2b1, 0x1290, 0x22f3, 0x32d2, 0x4235, 0x5214, 0x6277, 0x7256,
-		0xb5ea, 0xa5cb, 0x95a8, 0x8589, 0xf56e, 0xe54f, 0xd52c, 0xc50d,
-		0x34e2, 0x24c3, 0x14a0, 0x481, 0x7466, 0x6447, 0x5424, 0x4405,
-		0xa7db, 0xb7fa, 0x8799, 0x97b8, 0xe75f, 0xf77e, 0xc71d, 0xd73c,
-		0x26d3, 0x36f2, 0x691, 0x16b0, 0x6657, 0x7676, 0x4615, 0x5634,
-		0xd94c, 0xc96d, 0xf90e, 0xe92f, 0x99c8, 0x89e9, 0xb98a, 0xa9ab,
-		0x5844, 0x4865, 0x7806, 0x6827, 0x18c0, 0x8e1, 0x3882, 0x28a3,
-		0xcb7d, 0xdb5c, 0xeb3f, 0xfb1e, 0x8bf9, 0x9bd8, 0xabbb, 0xbb9a,
-		0x4a75, 0x5a54, 0x6a37, 0x7a16, 0xaf1, 0x1ad0, 0x2ab3, 0x3a92,
-		0xfd2e, 0xed0f, 0xdd6c, 0xcd4d, 0xbdaa, 0xad8b, 0x9de8, 0x8dc9,
-		0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0xcc1,
-		0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
-		0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0
-	};
+	static constexpr int CRC_VALUES[] = {0x0, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 0x8108, 0x9129,
+										 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef, 0x1231, 0x210, 0x3273, 0x2252,
+										 0x52b5, 0x4294, 0x72f7, 0x62d6, 0x9339, 0x8318, 0xb37b, 0xa35a, 0xd3bd, 0xc39c,
+										 0xf3ff, 0xe3de, 0x2462, 0x3443, 0x420, 0x1401, 0x64e6, 0x74c7, 0x44a4, 0x5485,
+										 0xa56a, 0xb54b, 0x8528, 0x9509, 0xe5ee, 0xf5cf, 0xc5ac, 0xd58d, 0x3653, 0x2672,
+										 0x1611, 0x630, 0x76d7, 0x66f6, 0x5695, 0x46b4, 0xb75b, 0xa77a, 0x9719, 0x8738,
+										 0xf7df, 0xe7fe, 0xd79d, 0xc7bc, 0x48c4, 0x58e5, 0x6886, 0x78a7, 0x840, 0x1861,
+										 0x2802, 0x3823, 0xc9cc, 0xd9ed, 0xe98e, 0xf9af, 0x8948, 0x9969, 0xa90a, 0xb92b,
+										 0x5af5, 0x4ad4, 0x7ab7, 0x6a96, 0x1a71, 0xa50, 0x3a33, 0x2a12, 0xdbfd, 0xcbdc,
+										 0xfbbf, 0xeb9e, 0x9b79, 0x8b58, 0xbb3b, 0xab1a, 0x6ca6, 0x7c87, 0x4ce4, 0x5cc5,
+										 0x2c22, 0x3c03, 0xc60, 0x1c41, 0xedae, 0xfd8f, 0xcdec, 0xddcd, 0xad2a, 0xbd0b,
+										 0x8d68, 0x9d49, 0x7e97, 0x6eb6, 0x5ed5, 0x4ef4, 0x3e13, 0x2e32, 0x1e51, 0xe70,
+										 0xff9f, 0xefbe, 0xdfdd, 0xcffc, 0xbf1b, 0xaf3a, 0x9f59, 0x8f78, 0x9188, 0x81a9,
+										 0xb1ca, 0xa1eb, 0xd10c, 0xc12d, 0xf14e, 0xe16f, 0x1080, 0xa1, 0x30c2, 0x20e3,
+										 0x5004, 0x4025, 0x7046, 0x6067, 0x83b9, 0x9398, 0xa3fb, 0xb3da, 0xc33d, 0xd31c,
+										 0xe37f, 0xf35e, 0x2b1, 0x1290, 0x22f3, 0x32d2, 0x4235, 0x5214, 0x6277, 0x7256,
+										 0xb5ea, 0xa5cb, 0x95a8, 0x8589, 0xf56e, 0xe54f, 0xd52c, 0xc50d, 0x34e2, 0x24c3,
+										 0x14a0, 0x481, 0x7466, 0x6447, 0x5424, 0x4405, 0xa7db, 0xb7fa, 0x8799, 0x97b8,
+										 0xe75f, 0xf77e, 0xc71d, 0xd73c, 0x26d3, 0x36f2, 0x691, 0x16b0, 0x6657, 0x7676,
+										 0x4615, 0x5634, 0xd94c, 0xc96d, 0xf90e, 0xe92f, 0x99c8, 0x89e9, 0xb98a, 0xa9ab,
+										 0x5844, 0x4865, 0x7806, 0x6827, 0x18c0, 0x8e1, 0x3882, 0x28a3, 0xcb7d, 0xdb5c,
+										 0xeb3f, 0xfb1e, 0x8bf9, 0x9bd8, 0xabbb, 0xbb9a, 0x4a75, 0x5a54, 0x6a37, 0x7a16,
+										 0xaf1, 0x1ad0, 0x2ab3, 0x3a92, 0xfd2e, 0xed0f, 0xdd6c, 0xcd4d, 0xbdaa, 0xad8b,
+										 0x9de8, 0x8dc9, 0x7c26, 0x6c07, 0x5c64, 0x4c45, 0x3ca2, 0x2c83, 0x1ce0, 0xcc1,
+										 0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8, 0x6e17, 0x7e36,
+										 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0xed1, 0x1ef0};
 
 	/**
 	 * @brief The first half of the data point
@@ -344,14 +337,13 @@ private:
 	 * station is to be received
 	 */
 	std::array<asio::mutable_buffer, 2> _messageBuffer = {
-		{ asio::buffer(&_l1, sizeof(Loop1)),
-		  asio::buffer(&_l2, sizeof(Loop2)) }
-	};
+			{asio::buffer(&_l1, sizeof(Loop1)), asio::buffer(&_l2, sizeof(Loop2))}};
 };
 
 }
 
-namespace {
+namespace
+{
 
 /**
  * @brief Convert a date to a value that can be entered in a Cassandra column
@@ -366,7 +358,7 @@ namespace {
  */
 inline uint32_t from_daymonthyear_to_CassandraDate(int d, int m, int y)
 {
-	date::sys_time<chrono::seconds> tp = date::sys_days(date::day(d)/m/y);
+	date::sys_time<chrono::seconds> tp = date::sys_days(date::day(d) / m / y);
 	return cass_date_from_epoch(tp.time_since_epoch().count());
 }
 
@@ -536,31 +528,18 @@ inline float dew_point(float t_celsius, int hum)
 // Formula of NWS (See http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml)
 inline float heat_index(float t_farenheight, int hum)
 {
-	float hi_farenheight =
-		0.5 * (t_farenheight + 61.0 +
-			(t_farenheight - 68.0) * 1.2 +
-			hum * 0.094);
+	float hi_farenheight = 0.5 * (t_farenheight + 61.0 + (t_farenheight - 68.0) * 1.2 + hum * 0.094);
 
 	if ((hi_farenheight + t_farenheight) / 2 > 80.0f) {
-		hi_farenheight =
-			-42.379 +
-			2.04901523 * t_farenheight +
-			10.14333127 * hum +
-			-0.22475541 * t_farenheight * hum +
-			-0.00683783 * std::pow(t_farenheight, 2) +
-			-0.05481717 * std::pow(hum, 2) +
-			0.00122874  * std::pow(t_farenheight, 2) * hum +
-			0.00085282  * t_farenheight * std::pow(hum, 2) +
-			-0.00000199 * std::pow(t_farenheight, 2) * std::pow(hum, 2);
+		hi_farenheight = -42.379 + 2.04901523 * t_farenheight + 10.14333127 * hum + -0.22475541 * t_farenheight * hum +
+						 -0.00683783 * std::pow(t_farenheight, 2) + -0.05481717 * std::pow(hum, 2) +
+						 0.00122874 * std::pow(t_farenheight, 2) * hum + 0.00085282 * t_farenheight * std::pow(hum, 2) +
+						 -0.00000199 * std::pow(t_farenheight, 2) * std::pow(hum, 2);
 
 		if (hum < 13 && hi_farenheight >= 80.0f && hi_farenheight <= 112.0f)
-			hi_farenheight -=
-				((13 - hum) / 4.0) *
-					std::sqrt(17.0 - std::abs(t_farenheight - 95.0) / 17.0);
+			hi_farenheight -= ((13 - hum) / 4.0) * std::sqrt(17.0 - std::abs(t_farenheight - 95.0) / 17.0);
 		else if (hum > 85 && hi_farenheight >= 80.0f && hi_farenheight <= 87.0f)
-			hi_farenheight +=
-				((hum - 85) / 10.0) *
-					((87.0 - hi_farenheight) / 5.0);
+			hi_farenheight += ((hum - 85) / 10.0) * ((87.0 - hi_farenheight) / 5.0);
 	}
 	return from_Farenheit_to_Celsius(hi_farenheight);
 }
@@ -572,9 +551,8 @@ inline float wind_chill(float t_farenheight, float wind_mph)
 	if (wind_mph < 5.0 || t_farenheight >= 91.4)
 		rc = t_farenheight;
 	else
-		rc = 35.74 + 0.6215 * t_farenheight
-			 - 35.75 * std::pow(wind_mph, 0.16)
-			 + 0.4275 * t_farenheight * std::pow(wind_mph, 0.16);
+		rc = 35.74 + 0.6215 * t_farenheight - 35.75 * std::pow(wind_mph, 0.16) +
+			 0.4275 * t_farenheight * std::pow(wind_mph, 0.16);
 
 	return from_Farenheit_to_Celsius(std::min(rc, t_farenheight));
 }
@@ -582,23 +560,14 @@ inline float wind_chill(float t_farenheight, float wind_mph)
 // Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))
 inline float thsw_index(float t_celsius, int hum, float wind_ms, float netRad)
 {
-	float waterVaporPressure = (hum / 100.0f) * 6.105
-		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
-	return t_celsius
-	     + 0.348 * waterVaporPressure
-	     - 0.70 * wind_ms
-	     + 0.70 * netRad / (wind_ms + 10.0)
-	     - 4.25;
+	float waterVaporPressure = (hum / 100.0f) * 6.105 * std::exp(17.27 * t_celsius / (237.7 + t_celsius));
+	return t_celsius + 0.348 * waterVaporPressure - 0.70 * wind_ms + 0.70 * netRad / (wind_ms + 10.0) - 4.25;
 }
 
 inline float thsw_index(float t_celsius, int hum, float wind_ms)
 {
-	float waterVaporPressure = (hum / 100.0f) * 6.105
-		* std::exp(17.27 * t_celsius / (237.7 + t_celsius));
-	return t_celsius
-	     + 0.33 * waterVaporPressure
-	     - 0.70 * wind_ms
-	     - 4.0;
+	float waterVaporPressure = (hum / 100.0f) * 6.105 * std::exp(17.27 * t_celsius / (237.7 + t_celsius));
+	return t_celsius + 0.33 * waterVaporPressure - 0.70 * wind_ms - 4.0;
 }
 
 inline bool insolated(float solarRad, float latitude, float longitude, time_t timestamp)
@@ -612,7 +581,7 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 	longitude *= raddeg;
 
 	auto time = sys_seconds{seconds{timestamp}};
-	double fDays = duration<double, days::period>(time - sys_days{year{2000}/1/1} - 12h).count();
+	double fDays = duration<double, days::period>(time - sys_days{year{2000} / 1 / 1} - 12h).count();
 	int secondsSinceMidnight = floor<seconds>(time - floor<days>(time)).count();
 
 	// Mean longitude of the sun
@@ -620,7 +589,9 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 	// Mean anomaly of the sun
 	double m = (357.52911 + 0.985600281 * fDays) * raddeg;
 	// Difference between the mean and true longitude of the sun
-	double c = ((1.914602 - 0.00000013188 * fDays) * std::sin(m) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m)) * raddeg;
+	double c =
+			((1.914602 - 0.00000013188 * fDays) * std::sin(m) + (0.019993 - 0.000000002765 * fDays) * std::sin(2 * m)) *
+			raddeg;
 	// Obliquity of the Earth (approximation correct for the next century)
 	double epsilon = 23.43929 * raddeg;
 	// Sine of tqe solar declination angle
@@ -637,22 +608,24 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 	// pi / (12. * 3600.) is the coefficient to convert a timestamp in seconds to a value in radians
 	double h = secondsSinceMidnight * PI / (12. * 3600.) + eq + longitude;
 	// Sine of the solar altitude
-	double sin_alpha = std::cos(PI - h) * std::cos(latitude) * std::cos(std::asin(sin_delta))
-		+ std::sin(latitude) * sin_delta;
+	double sin_alpha =
+			std::cos(PI - h) * std::cos(latitude) * std::cos(std::asin(sin_delta)) + std::sin(latitude) * sin_delta;
 
 	if (sin_alpha >= -1. && sin_alpha <= 1.) {
 		double alpha = std::asin(sin_alpha);
 		if (alpha < 3. * raddeg)
 			return false;
 
-		double threshold = (0.73 + 0.06 * std::cos(2 * PI * fDays/365)) * 1080 * std::pow(sin_alpha, 1.25);
+		double threshold = (0.73 + 0.06 * std::cos(2 * PI * fDays / 365)) * 1080 * std::pow(sin_alpha, 1.25);
 		return solarRad > threshold;
 	}
 	return false;
 }
 
 // Formula of Penman-Monteith, from the methodology by the FAO http://www.fao.org/3/X0490E/x0490e04.htm
-inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiation, float latitude, float longitude, int elevation, time_t timestamp, int polling_period)
+inline float
+evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiation, float latitude, float longitude,
+				   int elevation, time_t timestamp, int polling_period)
 {
 	using namespace date;
 	using namespace chrono;
@@ -665,7 +638,8 @@ inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float s
 
 
 	// Slope of the saturation pressure curve
-	double Delta = 4098 * (0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3))) / std::pow(t_celsius + 237.3, 2.);
+	double Delta =
+			4098 * (0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3))) / std::pow(t_celsius + 237.3, 2.);
 	// Average atmospheric pressure at the altitude of the station
 	double P = 101.3 * std::pow((293. - 0.0065 * elevation) / 293., 5.26);
 	// Psychometric constant
@@ -689,14 +663,16 @@ inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float s
 	// sunset hour angle
 	//double omega_s = std::acos(-std::tan(latitude) * std::tan(delta));
 	// true solar angle at half the polling period
-	double omega = (t - (polling_period / 120)  + S_c) * PI / 12 - longitude - PI;
+	double omega = (t - (polling_period / 120) + S_c) * PI / 12 - longitude - PI;
 	double omega_2 = omega + (PI / 12) * (polling_period / 120.);
 	double omega_1 = omega - (PI / 12) * (polling_period / 120.);
 	//bool daytime = omega > - omega_s && omega < omega_s;
 
 	// Extraterrestrial radiation
 	double G_sc = 0.0820; // solar constant
-	double R_a = (12 / PI) * G_sc * d_r * ((omega_2 - omega_1) * std::sin(latitude) * std::sin(delta) + std::cos(latitude) * std::cos(delta) * (std::sin(omega_2) - std::sin(omega_1)));
+	double R_a = (12 / PI) * G_sc * d_r * ((omega_2 - omega_1) * std::sin(latitude) * std::sin(delta) +
+										   std::cos(latitude) * std::cos(delta) *
+										   (std::sin(omega_2) - std::sin(omega_1)));
 	if (R_a < 0)
 		R_a = 0;
 
@@ -719,7 +695,8 @@ inline float evapotranspiration(float t_celsius, int hum, float wind_ms, float s
 	double G = 0.; //R_n * (daytime ? 0.1 : 0.5);
 
 	// Evapotranspiration
-	double ET_0 = (0.408 * Delta * (R_n - G) + gamma * (37 / (t_celsius + 273.16)) * wind_ms * (e_s - e_a)) / (Delta + gamma * (1 + 0.34 * wind_ms));
+	double ET_0 = (0.408 * Delta * (R_n - G) + gamma * (37 / (t_celsius + 273.16)) * wind_ms * (e_s - e_a)) /
+				  (Delta + gamma * (1 + 0.34 * wind_ms));
 	if (ET_0 < 0)
 		ET_0 = 0;
 

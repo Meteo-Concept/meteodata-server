@@ -38,7 +38,8 @@
 #include "../davis/vantagepro2_archive_page.h"
 #include "mqtt_subscriber.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 using namespace meteodata;
 
@@ -46,13 +47,12 @@ using namespace meteodata;
 */
 class ObjeniousMqttSubscriber : public MqttSubscriber
 {
-	public:
-	ObjeniousMqttSubscriber(MqttSubscriptionDetails details,
-			asio::io_service& ioService, DbConnectionObservations& db);
+public:
+	ObjeniousMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
-			const std::string& objeniousId, const std::map<std::string, std::string>& variables);
+					const std::string& objeniousId, const std::map<std::string, std::string>& variables);
 
-	private:
+private:
 	/**
 	 * @brief The suffix of the topic instances of this class will receive data at
 	 */
@@ -70,10 +70,12 @@ class ObjeniousMqttSubscriber : public MqttSubscriber
 	std::map<std::string, std::string> _variables;
 
 
-	protected:
+protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
-	const char* getConnectorSuffix() override { return "objenious"; }
+
+	const char* getConnectorSuffix() override
+	{ return "objenious"; }
 };
 
 }

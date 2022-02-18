@@ -38,7 +38,8 @@
 #include "../message.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace pt = boost::property_tree;
 
@@ -61,7 +62,7 @@ public:
 	 */
 	~FieldClimateApiArchiveMessage() = default;
 
-    Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid station) const;
 
 private:
 	/**
@@ -94,7 +95,8 @@ private:
 	 * @return True if, and only if, the value is invalid (i.e. a missing
 	 * or bad sensor reading)
 	 */
-	constexpr static bool isInvalid(float v) {
+	constexpr static bool isInvalid(float v)
+	{
 		return std::isnan(v); // /!\ NaN never compares equal to itself
 	}
 
@@ -106,7 +108,8 @@ private:
 	 * @return True if, and only if, the value is invalid (i.e. a missing
 	 * or bad sensor reading)
 	 */
-	constexpr static bool isInvalid(int v) {
+	constexpr static bool isInvalid(int v)
+	{
 		return v == INVALID_INT;
 	}
 
@@ -118,7 +121,8 @@ private:
 	 *
 	 * @return An integer default invalid value
 	 */
-	constexpr static int invalidDefault(const int&) {
+	constexpr static int invalidDefault(const int&)
+	{
 		return INVALID_INT;
 	}
 
@@ -130,7 +134,8 @@ private:
 	 *
 	 * @return A float default invalid value
 	 */
-	constexpr static float invalidDefault(const float&) {
+	constexpr static float invalidDefault(const float&)
+	{
 		return INVALID_FLOAT;
 	}
 
@@ -138,7 +143,8 @@ private:
 	 * @brief A struct used to store observation values to then populate the
 	 * DB insertion query
 	 */
-	struct DataPoint {
+	struct DataPoint
+	{
 		date::sys_seconds time;
 		float pressure = INVALID_FLOAT; // hPa
 		float humidity = INVALID_FLOAT;     // %
@@ -152,13 +158,13 @@ private:
 		float rainFall = INVALID_FLOAT; // mm
 		int solarRad = INVALID_INT; // W/m2
 		float uvIndex = INVALID_FLOAT; // no unit
-		float extraHumidity[2] = { INVALID_FLOAT, INVALID_FLOAT }; // %
-		float extraTemperature[3] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT }; // °C
-		float leafTemperature[2] = { INVALID_FLOAT, INVALID_FLOAT }; // °C
-		int leafWetness[2] = { INVALID_INT, INVALID_INT }; // index
-		int soilMoisture[4] = { INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT }; // kPa
-		float soilTemperature[4] = { INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT }; // °C
-		int leafWetnessTimeRatio[1] = { INVALID_INT }; // min
+		float extraHumidity[2] = {INVALID_FLOAT, INVALID_FLOAT}; // %
+		float extraTemperature[3] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT}; // °C
+		float leafTemperature[2] = {INVALID_FLOAT, INVALID_FLOAT}; // °C
+		int leafWetness[2] = {INVALID_INT, INVALID_INT}; // index
+		int soilMoisture[4] = {INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT}; // kPa
+		float soilTemperature[4] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT}; // °C
+		int leafWetnessTimeRatio[1] = {INVALID_INT}; // min
 	};
 
 	/**
@@ -178,8 +184,7 @@ private:
 	 * @param sensors The sensors registered for the station (also shared by
 	 * many messages)
 	 */
-	FieldClimateApiArchiveMessage(const TimeOffseter* timeOffseter,
-		const std::map<std::string, std::string>* sensors);
+	FieldClimateApiArchiveMessage(const TimeOffseter* timeOffseter, const std::map<std::string, std::string>* sensors);
 
 	/**
 	 * @brief Parse the data output by the FieldClimate API to extract one
@@ -193,7 +198,7 @@ private:
 	 */
 	void ingest(const pt::ptree& data, int index);
 
-    friend FieldClimateApiArchiveMessageCollection;
+	friend FieldClimateApiArchiveMessageCollection;
 };
 
 }

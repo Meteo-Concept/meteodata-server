@@ -40,7 +40,8 @@
 #include "abstract_weatherlink_api_message.h"
 #include "../time_offseter.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace pt = boost::property_tree;
 
@@ -61,7 +62,7 @@ private:
 	float extractRainFall(const pt::ptree& data);
 	float extractRainRate(const pt::ptree& data);
 
-friend WeatherlinkApiv2ArchivePage;
+	friend WeatherlinkApiv2ArchivePage;
 };
 
 }

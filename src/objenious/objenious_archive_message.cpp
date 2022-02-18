@@ -37,24 +37,23 @@
 #include "objenious_archive_message.h"
 #include "../davis/vantagepro2_message.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-const std::map<std::string, float ObjeniousApiArchiveMessage::DataPoint::*> ObjeniousApiArchiveMessage::FIELDS = {
-	{"temperature", &ObjeniousApiArchiveMessage::DataPoint::temperature},
-	{"humidity", &ObjeniousApiArchiveMessage::DataPoint::humidity},
-	{"wind", &ObjeniousApiArchiveMessage::DataPoint::windSpeed},
-	{"gust", &ObjeniousApiArchiveMessage::DataPoint::windGustSpeed},
-	{"direction", &ObjeniousApiArchiveMessage::DataPoint::windDir},
-	{"rainrate", &ObjeniousApiArchiveMessage::DataPoint::rainRate},
-	{"rainfall", &ObjeniousApiArchiveMessage::DataPoint::rainFall},
-	{"uv", &ObjeniousApiArchiveMessage::DataPoint::uvIndex}
-};
+const std::map<std::string, float ObjeniousApiArchiveMessage::DataPoint::*> ObjeniousApiArchiveMessage::FIELDS = {{"temperature", &ObjeniousApiArchiveMessage::DataPoint::temperature},
+																												  {"humidity",    &ObjeniousApiArchiveMessage::DataPoint::humidity},
+																												  {"wind",        &ObjeniousApiArchiveMessage::DataPoint::windSpeed},
+																												  {"gust",        &ObjeniousApiArchiveMessage::DataPoint::windGustSpeed},
+																												  {"direction",   &ObjeniousApiArchiveMessage::DataPoint::windDir},
+																												  {"rainrate",    &ObjeniousApiArchiveMessage::DataPoint::rainRate},
+																												  {"rainfall",    &ObjeniousApiArchiveMessage::DataPoint::rainFall},
+																												  {"uv",          &ObjeniousApiArchiveMessage::DataPoint::uvIndex}};
 
 ObjeniousApiArchiveMessage::ObjeniousApiArchiveMessage(const std::map<std::string, std::string>* variables) :
-	_variables{variables}
+		_variables{variables}
 {
 }
 
@@ -64,7 +63,7 @@ void ObjeniousApiArchiveMessage::ingest(const pt::ptree& data)
 
 	std::istringstream rawDate{data.get<std::string>("timestamp", std::string{})};
 	rawDate >> parse("%FT%T%Z", _obs.time);
-	for (auto&& [mdVar, objVar] : *_variables) {
+	for (auto&&[mdVar, objVar] : *_variables) {
 		// is this ungodly?
 		_obs.*(FIELDS.at(mdVar)) = data.get("data." + objVar, INVALID_FLOAT);
 	}
@@ -72,50 +71,37 @@ void ObjeniousApiArchiveMessage::ingest(const pt::ptree& data)
 
 Observation ObjeniousApiArchiveMessage::getObservation(const CassUuid station) const
 {
-    Observation result;
+	Observation result;
 
-    result.station = station;
-    result.day = date::floor<date::days>(_obs.time);
-    result.time = date::floor<chrono::seconds>(_obs.time);
-    result.barometer = { !isInvalid(_obs.pressure), _obs.pressure };
-    if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity)) {
-        result.dewpoint = { true, dew_point(_obs.temperature, _obs.humidity) };
-        result.heatindex = { true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity) };
-    }
-    result.outsidehum = { !isInvalid(_obs.humidity), _obs.humidity };
-    result.outsidetemp = { !isInvalid(_obs.temperature), _obs.temperature };
-    result.rainrate = { !isInvalid(_obs.rainRate), _obs.rainRate };
-    result.rainfall = { !isInvalid(_obs.rainFall), _obs.rainFall };
-    result.winddir = { !isInvalid(_obs.windDir), _obs.windDir };
-    result.windgust = { !isInvalid(_obs.windGustSpeed), _obs.windGustSpeed };
-    result.windspeed = { !isInvalid(_obs.windSpeed), _obs.windSpeed };
-    result.solarrad = { !isInvalid(_obs.solarRad), _obs.solarRad };
-    // TODO insolation time ? it requires the time offseter
-    result.uv = { !isInvalid(_obs.uvIndex), _obs.uvIndex };
+	result.station = station;
+	result.day = date::floor<date::days>(_obs.time);
+	result.time = date::floor<chrono::seconds>(_obs.time);
+	result.barometer = {!isInvalid(_obs.pressure), _obs.pressure};
+	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.humidity)) {
+		result.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
+		result.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
+	}
+	result.outsidehum = {!isInvalid(_obs.humidity), _obs.humidity};
+	result.outsidetemp = {!isInvalid(_obs.temperature), _obs.temperature};
+	result.rainrate = {!isInvalid(_obs.rainRate), _obs.rainRate};
+	result.rainfall = {!isInvalid(_obs.rainFall), _obs.rainFall};
+	result.winddir = {!isInvalid(_obs.windDir), _obs.windDir};
+	result.windgust = {!isInvalid(_obs.windGustSpeed), _obs.windGustSpeed};
+	result.windspeed = {!isInvalid(_obs.windSpeed), _obs.windSpeed};
+	result.solarrad = {!isInvalid(_obs.solarRad), _obs.solarRad};
+	// TODO insolation time ? it requires the time offseter
+	result.uv = {!isInvalid(_obs.uvIndex), _obs.uvIndex};
 
-    if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
-        && !isInvalid(_obs.humidity) && !isInvalid(_obs.solarRad)) {
-        result.thswindex = {
-                true,
-                thsw_index(
-                from_Celsius_to_Farenheit(_obs.temperature),
-                        _obs.humidity,
-                        _obs.windSpeed,
-                        _obs.solarRad
-                )
-        };
-    } else if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed)
-             && !isInvalid(_obs.humidity) && isInvalid(_obs.solarRad)) {
-        result.thswindex = {
-                true,
-                thsw_index(
-                from_Celsius_to_Farenheit(_obs.temperature),
-                        _obs.humidity,
-                        _obs.windSpeed
-                )
-        };
-    }
-    return result;
+	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed) && !isInvalid(_obs.humidity) &&
+		!isInvalid(_obs.solarRad)) {
+		result.thswindex = {true, thsw_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity, _obs.windSpeed,
+											 _obs.solarRad)};
+	} else if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed) && !isInvalid(_obs.humidity) &&
+			   isInvalid(_obs.solarRad)) {
+		result.thswindex = {true,
+							thsw_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity, _obs.windSpeed)};
+	}
+	return result;
 }
 
 }

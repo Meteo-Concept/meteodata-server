@@ -42,7 +42,8 @@
 
 #include "abstract_synop_downloader.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -68,7 +69,7 @@ public:
 	 * be an entire SYNOP to download just one station, or a country prefix
 	 * like 07 for France)
 	 */
-	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, const std::string& group);
+	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, std::string group);
 	void start() override;
 
 	/**

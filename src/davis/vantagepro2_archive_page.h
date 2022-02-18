@@ -38,7 +38,8 @@ using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -62,7 +63,7 @@ public:
 	 * @return a reference to the buffer in which the
 	 * VantagePro2ArchivePage can store data from the station
 	 */
-	inline std::array<asio::mutable_buffer,1>& getBuffer()
+	inline std::array<asio::mutable_buffer, 1>& getBuffer()
 	{
 		return _pageBuffer;
 	}
@@ -160,7 +161,7 @@ private:
 	 * @brief The Boost::Asio buffer in which the raw data point from the
 	 * station is to be received
 	 */
-	std::array<asio::mutable_buffer,1> _pageBuffer = { {asio::buffer(&_page, sizeof(ArchivePage))} };
+	std::array<asio::mutable_buffer, 1> _pageBuffer = {{asio::buffer(&_page, sizeof(ArchivePage))}};
 
 	/**
 	 * @brief Tell whether an archive entry should be inserted into the

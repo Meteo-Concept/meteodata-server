@@ -40,8 +40,9 @@
 using namespace meteodata;
 namespace po = boost::program_options;
 
-template <typename Importer> bool doImport(Importer& importer, const std::string& inputFile,
-	date::sys_seconds& start, date::sys_seconds& end, bool updateLastArchiveDownloadTime)
+template<typename Importer>
+bool doImport(Importer& importer, const std::string& inputFile, date::sys_seconds& start, date::sys_seconds& end,
+			  bool updateLastArchiveDownloadTime)
 {
 	std::ifstream input{inputFile};
 	return importer.import(input, start, end, updateLastArchiveDownloadTime);
@@ -60,16 +61,21 @@ int main(int argc, char** argv)
 	std::string format;
 
 	po::options_description desc("Allowed options");
-	desc.add_options()
-		("help", "display the help message and exit")
-		("version", "display the version of Meteodata and exit")
-		("config-file", po::value<std::string>(&fileName), "alternative configuration file")
-		("input-file", po::value<std::string>(&inputFile), "input data file")
-		("format", po::value<std::string>(&format), R"(file format ("wlk" or "mileos"))")
-		("station", po::value<std::string>(&uuid), "station UUID")
-		("timezone", po::value<std::string>(&tz), R"(timezone identifier (like "UTC" or "Europe/Paris"))")
-		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
-	;
+	desc.add_options()("help", "display the help message and exit")("version",
+																	"display the version of Meteodata and exit")(
+			"config-file", po::value<std::string>(&fileName), "alternative configuration file")("input-file",
+																								po::value<std::string>(
+																										&inputFile),
+																								"input data file")(
+			"format", po::value<std::string>(&format), R"(file format ("wlk" or "mileos"))")("station",
+																							 po::value<std::string>(
+																									 &uuid),
+																							 "station UUID")("timezone",
+																											 po::value<std::string>(
+																													 &tz),
+																											 R"(timezone identifier (like "UTC" or "Europe/Paris"))")(
+			"update-last-download-time,t",
+			"update the last archive download time of the station to the most recent datetime in the imported data");
 
 	po::positional_options_description pd;
 	pd.add("input-file", 1);
@@ -77,11 +83,13 @@ int main(int argc, char** argv)
 	pd.add("timezone", 1);
 
 	po::options_description config("Configuration");
-	config.add_options()
-		("user,u", po::value<std::string>(&user), "database username")
-		("password,p", po::value<std::string>(&password), "database password")
-		("host,h", po::value<std::string>(&address), "database IP address or domain name")
-	;
+	config.add_options()("user,u", po::value<std::string>(&user), "database username")("password,p",
+																					   po::value<std::string>(
+																							   &password),
+																					   "database password")("host,h",
+																											po::value<std::string>(
+																													&address),
+																											"database IP address or domain name");
 	desc.add(config);
 
 	po::variables_map vm;
@@ -98,7 +106,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " file station timezone [-u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-			"password or none of them." << std::endl;
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -136,16 +144,10 @@ int main(int argc, char** argv)
 		}
 
 		if (importResult) {
-			std::cout << "Consider recomputing the climatology: \n"
-				  << "\tmeteodata-minmax --station " << uuid
-					<< " --begin " << date::format("%Y-%m-%d", start)
-					<< " --end " << date::format("%Y-%m-%d", end)
-					<< "\n"
-				  << "\tmeteodata-month-minmax --station " << uuid
-					<< " --begin " << date::format("%Y-%m", start)
-					<< " --end " << date::format("%Y-%m", end)
-					<< "\n"
-				 << std::endl;
+			std::cout << "Consider recomputing the climatology: \n" << "\tmeteodata-minmax --station " << uuid
+					  << " --begin " << date::format("%Y-%m-%d", start) << " --end " << date::format("%Y-%m-%d", end)
+					  << "\n" << "\tmeteodata-month-minmax --station " << uuid << " --begin "
+					  << date::format("%Y-%m", start) << " --end " << date::format("%Y-%m", end) << "\n" << std::endl;
 		} else {
 			std::cout << "Failed to parse any entry" << std::endl;
 			return 2;

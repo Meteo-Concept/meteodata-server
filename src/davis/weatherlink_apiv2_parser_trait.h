@@ -38,7 +38,8 @@
 #include "abstract_weatherlink_api_message.h"
 #include "../cassandra_utils.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
 /**
  * @brief An abstract Message for the Weatherlink APIv2 observations route
@@ -55,7 +56,8 @@ protected:
 	using Reading = std::pair<const std::string, pt::ptree>;
 	using Acceptor = std::function<bool(Reading&)>;
 
-	inline bool acceptEntryWithSubstations(const Reading& reading, const std::map<int, CassUuid>& substations, const CassUuid& station)
+	inline bool acceptEntryWithSubstations(const Reading& reading, const std::map<int, CassUuid>& substations,
+										   const CassUuid& station)
 	{
 		// lsid should not be missing, but even if it is, the entry will be rejected
 		// by the test below (no lsid can be negative)

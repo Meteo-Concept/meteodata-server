@@ -36,7 +36,8 @@ using std::uint16_t;
 using std::uint32_t;
 using std::uint64_t;
 
-namespace meteodata {
+namespace meteodata
+{
 
 namespace chrono = std::chrono;
 
@@ -83,9 +84,7 @@ public:
 
 	enum class PredefinedTimezone
 	{
-		UTC = 0,
-		FRANCE = 1,
-		NEW_CALEDONIA = 2
+		UTC = 0, FRANCE = 1, NEW_CALEDONIA = 2
 	};
 
 	/**
@@ -119,12 +118,12 @@ public:
 	date::sys_time<Duration> convertFromLocalTime(int d, int m, int y, int h, int min) const
 	{
 		if (_byTimezone) {
-			date::local_time<Duration> local = date::local_days(date::day(d)/m/y) +
-				chrono::hours(h) + chrono::minutes(min);
+			date::local_time<Duration> local =
+					date::local_days(date::day(d) / m / y) + chrono::hours(h) + chrono::minutes(min);
 			return date::make_zoned(_timezoneInfo.timezone, local, date::choose::latest).get_sys_time();
 		} else {
-			date::sys_time<Duration> local = date::sys_days(date::day(d)/m/y) +
-				chrono::hours(h) + chrono::minutes(min);
+			date::sys_time<Duration> local =
+					date::sys_days(date::day(d) / m / y) + chrono::hours(h) + chrono::minutes(min);
 			return local - _timezoneInfo.timeOffset;
 		}
 	}
@@ -169,20 +168,35 @@ public:
 		}
 	}
 
-	inline float getLatitude() const { return _latitude; }
-	inline void setLatitude(float lat) {
+	inline float getLatitude() const
+	{ return _latitude; }
+
+	inline void setLatitude(float lat)
+	{
 		_latitude = lat;
 	}
-	inline float getLongitude() const { return _longitude; }
-	inline void setLongitude(float lon) {
+
+	inline float getLongitude() const
+	{ return _longitude; }
+
+	inline void setLongitude(float lon)
+	{
 		_longitude = lon;
 	}
-	inline int getElevation() const { return _elevation; }
-	inline void setElevation(int elevation) {
+
+	inline int getElevation() const
+	{ return _elevation; }
+
+	inline void setElevation(int elevation)
+	{
 		_elevation = elevation;
 	}
-	inline int getMeasureStep() const { return _measureStep; }
-	inline void setMeasureStep(int step) {
+
+	inline int getMeasureStep() const
+	{ return _measureStep; }
+
+	inline void setMeasureStep(int step)
+	{
 		_measureStep = step;
 	}
 
