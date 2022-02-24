@@ -98,6 +98,8 @@ public:
 		VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV = 81,
 		VANTAGE_PRO_2_PLUS_WIRELESS_METRIC = 82,
 		VANTAGE_PRO_2_PLUS_WIRELESS_OV = 83,
+		VANTAGE_VUE_METRIC = 84,
+		VANTAGE_VUE_OV = 85,
 		SENSOR_SUITE = 55,
 		VANTAGE_VUE_ISS = 37,
 		ANEMOMETER = 196,
@@ -145,7 +147,10 @@ public:
 			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_METRIC ||
 			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_FAN_WIRELESS_OV ||
 			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_METRIC ||
-			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV;
+			   sensorType == SensorType::VANTAGE_PRO_2_PLUS_WIRELESS_OV ||
+			   sensorType == SensorType::VANTAGE_VUE_METRIC ||
+			   sensorType == SensorType::VANTAGE_VUE_OV
+		;
 	}
 
 protected:
