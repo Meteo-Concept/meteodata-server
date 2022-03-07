@@ -137,14 +137,14 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		return;
 	}
 
-	// about once per hour, set the clock (it seems very frequent, but it doesn't matter)
+	// about twice a day, set the clock (it seems very frequent, but it doesn't matter)
 	using namespace date;
 	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
 	// The topic name ought to be vp2/<client>/dmpaft, we can write
 	// to vp2/<client> to send the SETTIME command
 	if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
 		std::string topic{topicName.substr(0, topicName.size() - 7)};
-		if (_clockResetTimes[topic] + chrono::hours(1) < now) {
+		if (_clockResetTimes[topic] + chrono::hours(12) < now) {
 			date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
 			std::cerr << SD_INFO << "[MQTT " << station << "] protocol: " << "Setting the station clock to "
 				<< date::format("%Y-%m-%d %H:%M:%S", stationTime) << std::endl;
