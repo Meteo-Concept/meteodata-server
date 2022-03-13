@@ -90,24 +90,23 @@ Observation OgimetSynop::getObservations(const CassUuid station) const
 		result.et = {true, (*_data._evapoMaybeTranspiRation)._amount};
 	} else if (_data._meanTemperature && _wind_mps && _humidity && _data._globalSolarRadiationLastHour) {
 		float etp = evapotranspiration(*_data._meanTemperature / 10., *_humidity, *_wind_mps,
-									   *_data._globalSolarRadiationLastHour, _timeOffseter->getLatitude(),
-									   _timeOffseter->getLongitude(), _timeOffseter->getElevation(),
-									   date::round<chrono::seconds>(_data._observationTime).time_since_epoch().count(),
-									   _timeOffseter->getMeasureStep());
+			*_data._globalSolarRadiationLastHour, _timeOffseter->getLatitude(),
+			_timeOffseter->getLongitude(), _timeOffseter->getElevation(),
+			date::round<chrono::seconds>(_data._observationTime).time_since_epoch().count(),
+			_timeOffseter->getMeasureStep());
 		result.et = {true, etp};
 	}
 	result.solarrad = {bool(_data._globalSolarRadiationLastHour), *_data._globalSolarRadiationLastHour / 3.6};
 
 	if (_data._meanTemperature && _wind_mps && _humidity && _data._globalSolarRadiationLastHour) {
 		result.thswindex = {true, thsw_index(*_data._meanTemperature / 10., *_humidity, *_wind_mps,
-											 *_data._globalSolarRadiationLastHour / 3.6)};
+			*_data._globalSolarRadiationLastHour / 3.6)};
 	} else if (_data._meanTemperature && _wind_mps && _humidity) {
 		result.thswindex = {true, thsw_index(*_data._meanTemperature / 10., *_humidity, *_wind_mps)};
 	}
 
 	if (_data._meanTemperature && _wind_mps) {
-		result.windchill = {true,
-							wind_chill(from_Celsius_to_Farenheit(*_data._meanTemperature / 10.), *_wind_mps * 3.6)};
+		result.windchill = {true, wind_chill(from_Celsius_to_Farenheit(*_data._meanTemperature / 10.), *_wind_mps * 3.6)};
 	}
 
 	result.winddir = {bool(_data._meanWindDirection), *_data._meanWindDirection};

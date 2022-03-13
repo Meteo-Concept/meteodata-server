@@ -19,17 +19,23 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 	// ICAO
 	// Also present in the message later on
 	++it;
+	if (it == _groups.end())
+		return false;
 
 	// Timestamp
 	std::istringstream timestamp{*it};
 	timestamp >> date::parse("%Y,%m,%d,%H,%M", _message._observationTime);
 	++it;
+	if (it == _groups.end())
+		return false;
 
 	// Station type
 	if (*it != "AAXX") {
 		return false;
 	}
 	++it;
+	if (it == _groups.end())
+		return false;
 
 	// Date
 	//no-op
@@ -57,6 +63,8 @@ bool Parser::parseSection0(decltype(_groups)::iterator& it)
 			break;
 	}
 	++it;
+	if (it == _groups.end())
+		return false;
 
 	// ICAO
 	_message._stationIcao = *it;
@@ -109,14 +117,16 @@ std::experimental::optional<PrecipitationAmount> parseRain(const std::string& s)
 			pr._trace = false;
 		}
 		pr._duration =
-				s[4] == '1' ? 6 : s[4] == '2' ? 12 : s[4] == '3' ? 18 : s[4] == '4' ? 24 : s[4] == '5' ? 1 : s[4] == '6'
-																											 ? 2 :
-																											 s[4] == '7'
-																											 ? 3 :
-																											 s[4] == '8'
-																											 ? 9 :
-																											 s[4] == '9'
-																											 ? 15 : 0;
+			s[4] == '1' ? 6 :
+			s[4] == '2' ? 12 :
+			s[4] == '3' ? 18 :
+			s[4] == '4' ? 24 :
+			s[4] == '5' ? 1 :
+			s[4] == '6' ? 2 :
+			s[4] == '7' ? 3 :
+			s[4] == '8' ? 9 :
+			s[4] == '9' ? 15 :
+			              0;
 		return pr;
 	} else {
 		return std::experimental::optional<PrecipitationAmount>();
@@ -289,7 +299,7 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 			}
 		} else if (s[0] == '5') {
 			_message._pressureTendency = PressureTendency{static_cast<PressureTendency::Description>(s[1]),
-														  parseInt(s, 2).value()};
+				parseInt(s, 2).value()};
 		} else if (s[0] == '6') {
 			std::experimental::optional<PrecipitationAmount> pr = parseRain(s);
 
@@ -321,7 +331,7 @@ bool Parser::parseSection2(decltype(_groups)::iterator& it)
 	++it;
 
 	// Do not parse this section
-	while (it->length() != 3 && it != _groups.end())
+	while (it != _groups.end() && it->length() != 3)
 		++it;
 	return true;
 }
@@ -370,21 +380,31 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 		} else if (s[0] == '5') {
 			if (s == "55407") {
 				++it;
+				if (it == _groups.end())
+					break;
 				_message._shortWaveRadiationLastHour = parseInt(*it, 1);
 			} else if (s == "55408") {
 				++it;
+				if (it == _groups.end())
+					break;
 				_message._directSolarRadiationLastHour = parseInt(*it, 1);
 			} else if (s == "55507") {
 				++it;
+				if (it == _groups.end())
+					break;
 				_message._shortWaveRadiationLast24Hours = parseInt(*it, 1);
 			} else if (s == "55508") {
 				++it;
+				if (it == _groups.end())
+					break;
 				_message._directSolarRadiationLast24Hours = parseInt(*it, 1);
 			} else if (s[1] == '5' && s[2] == '3') {
 				std::experimental::optional<int> time = parseInt(s, 3);
 				if (time)
 					_message._minutesOfSunshineLastHour = *time * 6; // conversion from tenths of hours to minutes
 				++it;
+				if (it == _groups.end())
+					break;
 				if (it->at(0) == '0' || it->at(0) == '1')
 					_message._netRadiationLastHour = parseSInt(*it, 1);
 				else if (it->at(0) == '2')
@@ -402,6 +422,8 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				if (time)
 					_message._minutesOfSunshineLastDay = *time * 6; // conversion from tenths of hours to minutes
 				++it;
+				if (it == _groups.end())
+					break;
 				if (it->at(0) == '0' || it->at(0) == '1')
 					_message._netRadiationLast24Hours = parseSInt(*it, 0);
 				else if (it->at(0) == '2')
@@ -422,12 +444,14 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				_message._highCloudsDrift = static_cast<Direction>(s[4]);
 			} else if (s[1] == '7') {
 				_message._clouds.push_back(CloudElevation{static_cast<CloudGenus>(s[2]), static_cast<Direction>(s[3]),
-														  static_cast<CloudElevation::ElevationAngle>(s[4])});
+					static_cast<CloudElevation::ElevationAngle>(s[4])});
 			} else {
 				std::experimental::optional<int> eee = parseInt(s, 1, 3);
 				if (eee) {
 					_message._evapoMaybeTranspiRation = EvapoMaybeTranspiRation{
-							static_cast<EvapoMaybeTranspiRation::Instrumentation>(s[4]), *eee};
+						static_cast<EvapoMaybeTranspiRation::Instrumentation>(s[4]),
+						*eee
+					};
 				}
 			}
 		} else if (s[0] == '6') {
@@ -484,7 +508,7 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 				}
 				_message._heightOfBaseOfClouds.push_back(
 						CloudObservation{static_cast<CloudGenus>(s[2]), Direction::ALL_DIRECTIONS, height,
-										 static_cast<Nebulosity>(s[1])});
+								 static_cast<Nebulosity>(s[1])});
 			}
 		} else if (s[0] == '9') {
 			if (s[1] == '1' && s[2] == '0') {
@@ -494,11 +518,15 @@ bool Parser::parseSection3(decltype(_groups)::iterator& it)
 			} else if (s[1] == '0' && s[2] == '7') {
 				auto duration = parseInt(s, 3);
 				++it;
+				if (it == _groups.end())
+					break;
 				if (duration && *duration <= 60) {
 					if ((*it)[1] == '1' && (*it)[2] == '1') {
 						std::experimental::optional<int> gust;
 						if ((*it)[3] == '9' && (*it)[4] == '9') {
 							++it;
+							if (it == _groups.end())
+								break;
 							if ((*it)[0] == '0' && (*it)[1] == '0')
 								gust = parseInt(*it, 2);
 						} else {
@@ -553,11 +581,15 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 			if (s[1] == '0' && s[2] == '7') {
 				auto duration = parseInt(s, 3);
 				++it;
+				if (it == _groups.end())
+					break;
 				if (duration && *duration <= 60) {
 					if ((*it)[1] == '1' && (*it)[2] == '1') {
 						std::experimental::optional<int> gust;
 						if ((*it)[3] == '9' && (*it)[4] == '9') {
 							++it;
+							if (it == _groups.end())
+								break;
 							if ((*it)[0] == '0' && (*it)[1] == '0')
 								gust = parseInt(*it, 2);
 						} else {
@@ -571,6 +603,8 @@ bool Parser::parseSection5(decltype(_groups)::iterator& it)
 			} else if (s[1] == '0' && (s[2] == '2' || s[2] == '4')) {
 				// Current group is a duration and is attached to the next group, not handled here
 				++it;
+				if (it == _groups.end())
+					break;
 			}
 		}
 

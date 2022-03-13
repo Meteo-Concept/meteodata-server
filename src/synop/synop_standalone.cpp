@@ -56,12 +56,22 @@ void SynopStandalone::start(const std::string& file)
 	for (auto&& icao : icaos)
 		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
 
+	std::cerr << "List of stations: ";
+	for (auto&& s : _icaos) {
+		char uuidStr[CASS_UUID_STRING_LENGTH];
+		cass_uuid_string(s.second, uuidStr);
+		std::cerr << s.first << ": " << uuidStr << "\n";
+	}
+
 	std::cerr << "Now parsing SYNOP messages " << std::endl;
+
+	std::size_t lineCount = 0;
 
 	std::ifstream input{file};
 	while (input) {
 		std::string line;
 		std::getline(input, line);
+		lineCount++;
 
 		// Deal with the annoying case as early as possible
 		if (line.empty() || line.find("NIL") != std::string::npos)
@@ -77,7 +87,7 @@ void SynopStandalone::start(const std::string& file)
 				const CassUuid& station = uuidIt->second;
 				char uuidStr[CASS_UUID_STRING_LENGTH];
 				cass_uuid_string(station, uuidStr);
-				std::cerr << "UUID identified: " << uuidStr << std::endl;
+				std::cerr << "Line " << lineCount << ", UUID identified for ICAO " << m._stationIcao << ": " << uuidStr << std::endl;
 
 				std::string stationName;
 				int pollingPeriod;
