@@ -64,6 +64,27 @@ using namespace date;
 const std::string WeatherlinkApiv2Downloader::BASE_URL =
 		std::string{"https://"} + WeatherlinkDownloadScheduler::APIHOST;
 
+void WeatherlinkApiv2Downloader::initialize() {
+	for (const auto& s : _substations) {
+		_uuids.insert(s.second);
+		_lastDayRainfall[s.second] = getDayRainfall(s.second);
+	}
+	_uuids.insert(_station);
+	_lastDayRainfall[_station] = getDayRainfall(_station);
+}
+
+float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
+	float rainfall;
+	auto now = chrono::system_clock::now();
+	date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
+	date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
+	std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
+	if (_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
+		return rainfall;
+	else
+		return 0.f;
+}
+
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
 													   const std::map<int, CassUuid>& mapping,
 													   const std::string& apiKey, const std::string& apiSecret,
@@ -74,9 +95,7 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 		_weatherlinkId(weatherlinkId),
 		_substations(mapping)
 {
-	for (const auto& s : _substations)
-		_uuids.insert(s.second);
-	_uuids.insert(station);
+	initialize();
 }
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
@@ -90,9 +109,7 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 		_weatherlinkId(weatherlinkId),
 		_substations(mapping)
 {
-	for (const auto& s : _substations)
-		_uuids.insert(s.second);
-	_uuids.insert(station);
+	initialize();
 }
 
 std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params, const std::string& apiSecret)
@@ -158,18 +175,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 		for (const auto& u : _uuids) {
 			std::istringstream contentStream(content); // rewind
 
-			// If there are no substations, there's a unique UUID equal to _station in the set
-			float rainfall;
-			std::optional<float> maybeRainfall{
-					0.f}; // force rainfall to 0 to store all the rain for the day at the moment of the observation in the worst case
-			auto now = chrono::system_clock::now();
-			date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
-			date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
-			std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-			if (_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
-				maybeRainfall = rainfall;
-
-			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, maybeRainfall);
+			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, _lastDayRainfall[u]);
 			if (_substations.empty())
 				obs.parse(contentStream);
 			else
@@ -224,11 +230,12 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			std::vector<date::sys_seconds> lastUpdates;
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
-				WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, std::nullopt);
+				float dummyRainfall = 0.f;
+				WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, dummyRainfall);
 				lastUpdates.push_back(obs.getLastUpdateTimestamp(contentStream, _substations, u));
 			}
 			stationIsDisconnected = std::all_of(lastUpdates.begin(), lastUpdates.end(),
-												[this](auto&& ts) { return ts <= _lastArchive; });
+				[this](auto&& ts) { return ts <= _lastArchive; });
 			if (!lastUpdates.empty()) {
 				end = *std::max_element(lastUpdates.begin(), lastUpdates.end());
 				std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] management: "

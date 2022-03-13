@@ -55,17 +55,17 @@ namespace pt = boost::property_tree;
 class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, public WeatherlinkApiv2ParserTrait
 {
 public:
-	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, std::optional<float> dayRain);
+	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, float& dayRain);
 	void parse(std::istream& input) override;
 	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
 	date::sys_seconds
 	getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
 
 private:
-	std::optional<float> _dayRain;
+	float& _dayRain;
 	void doParse(std::istream& input, const Acceptor& acceptable);
 	constexpr bool compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-									   const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2);
+		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2);
 };
 
 }

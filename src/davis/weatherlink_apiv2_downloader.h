@@ -94,6 +94,12 @@ private:
 	 */
 	std::set<CassUuid> _uuids;
 
+	std::map<CassUuid, float> _lastDayRainfall;
+
+	void initialize();
+
+	float getDayRainfall(const CassUuid& uuid);
+
 	static std::string computeApiSignature(const Params& params, const std::string& apiSecret);
 
 	void logAndThrowCurlError(CurlWrapper& client);

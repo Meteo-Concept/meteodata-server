@@ -64,7 +64,7 @@ WeatherlinkApiv2RealtimeMessage::compareDataPackages(const std::tuple<SensorType
 }
 
 WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter,
-																 std::optional<float> dayRain) :
+			 float& dayRain) :
 		AbstractWeatherlinkApiMessage(timeOffseter),
 		WeatherlinkApiv2ParserTrait(),
 		_dayRain(dayRain)
@@ -193,8 +193,10 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			if (!isInvalid(rainRate))
 				_obs.rainRate = from_rainrate_to_mm(rainRate);
 			auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
-			if (!isInvalid(rainFall) && _dayRain) {
-				_obs.rainFall = from_rainrate_to_mm(rainFall) - *_dayRain;
+			if (!isInvalid(rainFall)) {
+				float lastRecordedDayRain = _dayRain;
+				_dayRain = _obs.rainFall;
+				_obs.rainFall = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
 				if (_obs.rainFall < -0.1) { // don't compare with exactly 0 because of rouding errors
 					// Either the station clock is off or we
 					// are not looking at the correct reset
