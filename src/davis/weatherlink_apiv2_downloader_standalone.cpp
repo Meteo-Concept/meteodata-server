@@ -159,11 +159,10 @@ int main(int argc, char** argv)
 																			 weatherlinkApiV2Secret);
 		bool forceDownload = vm.count("force");
 
-		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ;) {
+		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ; ++it) {
 			const auto& station = *it;
 			if (!userSelection.empty()) {
 				if (userSelection.find(std::get<0>(station)) == userSelection.cend()) {
-					++it;
 					continue;
 				}
 			}
@@ -171,7 +170,6 @@ int main(int argc, char** argv)
 			if (allDiscovered.find(std::get<3>(station)) == allDiscovered.cend()) {
 				std::cerr << "Station absent from the API list: " << std::get<3>(station) << "," << std::get<0>(station)
 						  << std::endl;
-				++it;
 				continue;
 			}
 
@@ -187,12 +185,9 @@ int main(int argc, char** argv)
 				} else {
 					downloader.download(client, forceDownload);
 				}
-				++it;
 			} catch (std::runtime_error& e) {
 				std::cerr << "Getting the data failed: " << e.what() << std::endl;
 			}
-
-			++it;
 		}
 	} catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
