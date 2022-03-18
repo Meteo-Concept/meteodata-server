@@ -33,7 +33,9 @@
 #include "../cassandra.h"
 #include "../cassandra_utils.h"
 #include "../time_offseter.h"
+#include "cimel_importer.h"
 #include "cimel4A_importer.h"
+#include "cimel440204_importer.h"
 #include "cimel_http_request_handler.h"
 
 namespace meteodata
@@ -44,8 +46,7 @@ CimelHttpRequestHandler::CimelHttpRequestHandler(DbConnectionObservations& db) :
 	std::vector<std::tuple<CassUuid, std::string, int>> cimelStations;
 	_db.getAllCimelStations(cimelStations);
 	for (auto&& s : cimelStations) {
-		_stations[std::get<0>(s)] = StationInformation{std::get<1>(s),
-													   TimeOffseter::PredefinedTimezone{std::get<2>(s)}};
+		_stations[std::get<0>(s)] = StationInformation{std::get<1>(s), TimeOffseter::PredefinedTimezone{std::get<2>(s)}};
 	}
 }
 
@@ -65,15 +66,13 @@ void CimelHttpRequestHandler::processRequest(const Request& request, Response& r
 		}
 	}
 
-	response.result(
-			targetFound ? boost::beast::http::status::method_not_allowed : boost::beast::http::status::not_found);
+	response.result(targetFound ? boost::beast::http::status::method_not_allowed : boost::beast::http::status::not_found);
 }
 
 
-bool CimelHttpRequestHandler::getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid,
-													const std::cmatch& url)
+bool CimelHttpRequestHandler::getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid, const std::cmatch& url)
 {
-	cass_uuid_from_string(url[1].str().c_str(), &uuid);
+	cass_uuid_from_string(url[2].str().c_str(), &uuid);
 	if (_stations.count(uuid) == 0) {
 		response.result(boost::beast::http::status::forbidden);
 		return false;
@@ -119,12 +118,18 @@ void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& 
 		timeOffseter.setElevation(elevation);
 
 		date::sys_seconds start, end;
-		Cimel4AImporter cimel4AImporter(uuid, info.cimelId, std::move(timeOffseter), _db);
+		auto importer = makeImporter(url, uuid, info.cimelId, std::move(timeOffseter), _db);
+		if (!importer) {
+			std::cerr << SD_ERR << "[CIMEL HTTP " << uuid << "] protocol: " << "Unsupported station "
+				  << name << "! Aborting. Please check the station type." << std::endl;
+			response.result(boost::beast::http::status::not_acceptable);
+			return;
+		}
 
-		date::year year{std::stoi(url[2].str())};
+		date::year year{std::stoi(url[3].str())};
 
 		response.body() = "";
-		if (cimel4AImporter.import(stream, start, end, year, true)) {
+		if (importer->import(stream, start, end, year, true)) {
 			std::cerr << SD_INFO << "[CIMEL HTTP " << uuid << "] measurement: " << "stored archive for station " << name
 					  << std::endl;
 
@@ -135,9 +140,27 @@ void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& 
 			response.result(boost::beast::http::status::ok);
 		} else {
 			std::cerr << SD_ERR << "[CIMEL HTTP " << uuid << "] measurement: " << "failed to store archive for station "
-					  << name << "! Aborting" << std::endl;
+				  << name << "! Aborting" << std::endl;
 			response.result(boost::beast::http::status::internal_server_error);
 		}
 	}
 }
+
+std::unique_ptr<CimelImporter> CimelHttpRequestHandler::makeImporter(const std::cmatch& url,
+	const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+	DbConnectionObservations& db)
+{
+	std::string type = url[1].str();
+
+	if (type == "4A") {
+		return std::make_unique<Cimel4AImporter>(station, cimelId,
+			std::forward<TimeOffseter&&>(timeOffseter), db);
+	} else if (type == "440204") {
+		return std::make_unique<Cimel440204Importer>(station, cimelId,
+			std::forward<TimeOffseter&&>(timeOffseter), db);
+	} else {
+		return std::unique_ptr<CimelImporter>();
+	}
+}
+
 }

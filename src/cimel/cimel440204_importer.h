@@ -1,11 +1,11 @@
 /**
- * @file cimel4A_importer.h
- * @brief Definition of the Cimel4AImporter class
+ * @file cimel440204_importer.h
+ * @brief Definition of the Cimel440204Importer class
  * @author Laurent Georget
- * @date 2021-12-21
+ * @date 2022-03-18
  */
 /*
- * Copyright (C) 2021  JD Environnement <contact@meteo-concept.fr>
+ * Copyright (C) 2022  JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CIMEL4A_IMPORTER_H
-#define CIMEL4A_IMPORTER_H
+#ifndef CIMEL440204_IMPORTER_H
+#define CIMEL440204_IMPORTER_H
 
 #include <iostream>
 #include <vector>
@@ -51,14 +51,14 @@ namespace chrono = std::chrono;
 using namespace std::placeholders;
 
 /**
- * A Cimel4AImporter instance is able to parse weather data file exported
- * by the CIMEL software for a type 4A station
+ * A Cimel440204Importer instance is able to parse weather data file exported
+ * by the CIMEL software for a type 440204 station
  */
-class Cimel4AImporter : public CimelImporter
+class Cimel440204Importer : public CimelImporter
 {
 public:
 	/**
-	 * Constructs a Cimel4AImporter
+	 * Constructs a Cimel440204Importer
 	 * @param station The station identifier in Meteodata
 	 * @param cimelId The CIMEL identifier of the station (to check for mixed up files), the CIMEL id is defined as
 	 * the INSEE code of the city followed by the station number (it's also the prefix of export filenames)
@@ -66,18 +66,18 @@ public:
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+	Cimel440204Importer(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
 					DbConnectionObservations& db);
 
 	/**
-	 * Constructs a Cimel4AImporter
+	 * Constructs a Cimel440204Importer
 	 * @param station The station identifier in Meteodata
 	 * @param cimelId The CIMEL identifier of the station (to check for mixed up files), the CIMEL id is defined as
 	 * the INSEE code of the city followed by the station number (it's also the prefix of export filenames)
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+	Cimel440204Importer(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
 					DbConnectionObservations& db);
 
 	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,

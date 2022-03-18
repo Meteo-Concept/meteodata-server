@@ -1,11 +1,11 @@
 /**
- * @file cimel4A_importer.h
- * @brief Definition of the Cimel4AImporter class
+ * @file cimel_importer.h
+ * @brief Definition of the abstract CimelImporter class
  * @author Laurent Georget
- * @date 2021-12-21
+ * @date 2022-03-18
  */
 /*
- * Copyright (C) 2021  JD Environnement <contact@meteo-concept.fr>
+ * Copyright (C) 2022  JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CIMEL4A_IMPORTER_H
-#define CIMEL4A_IMPORTER_H
+#ifndef CIMEL_IMPORTER_H
+#define CIMEL_IMPORTER_H
 
 #include <iostream>
 #include <vector>
@@ -39,7 +39,6 @@
 #include <message.h>
 
 #include "../time_offseter.h"
-#include "cimel_importer.h"
 
 namespace meteodata
 {
@@ -51,10 +50,10 @@ namespace chrono = std::chrono;
 using namespace std::placeholders;
 
 /**
- * A Cimel4AImporter instance is able to parse weather data file exported
- * by the CIMEL software for a type 4A station
+ * A CimelImporter instance is able to parse weather data file exported
+ * by the CIMEL software for a station
  */
-class Cimel4AImporter : public CimelImporter
+class CimelImporter
 {
 public:
 	/**
@@ -66,7 +65,7 @@ public:
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+	CimelImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
 					DbConnectionObservations& db);
 
 	/**
@@ -77,12 +76,67 @@ public:
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
 	 */
-	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+	CimelImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
 					DbConnectionObservations& db);
 
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-				bool updateLastArchiveDownloadTime = true) override;
+	virtual ~CimelImporter() = default;
+
+	virtual bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
+				bool updateLastArchiveDownloadTime = true) = 0;
+
+	template<typename T>
+	struct Parser
+	{
+		int length = 2;
+		int base = 10;
+
+		T& destination;
+	};
+
+	template<typename T>
+	static Parser<T> parse(T& destination, int length, int base)
+	{
+		return Parser<T>{length, base, destination};
+	}
+
+	struct Ignorer
+	{
+		std::streamsize length;
+	};
+
+	static Ignorer ignore(std::streamsize length)
+	{
+		return Ignorer{length};
+	}
+
+protected:
+	CassUuid _station;
+	std::string _cimelId;
+	DbConnectionObservations& _db;
+	TimeOffseter _tz;
 };
+
+template<typename T>
+std::istream& operator>>(std::istream& is, CimelImporter::Parser<T>&& p)
+{
+	p.destination = 0;
+	for (int i = p.length ; i > 0 ; i--) {
+		auto c = is.get();
+		if (std::isspace(c)) {
+			i++; // do as if the blank character was not there at all
+			continue;
+		}
+		if (c >= '0' && c <= '9') {
+			p.destination = p.destination * p.base + c - '0';
+		} else if (c >= 'A' && c <= 'F') {
+			p.destination = p.destination * p.base + c - 'A' + 10;
+		}
+	}
+
+	return is;
+}
+
+std::istream& operator>>(std::istream& is, const CimelImporter::Ignorer& ignorer);
 
 }
 

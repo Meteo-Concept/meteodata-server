@@ -1,11 +1,11 @@
 /**
- * @file cimel4A_import_standalone.cpp
+ * @file cimel_import_standalone.cpp
  * @brief Implementation of the importer program for CIMEL stations
  * @author Laurent Georget
- * @date 2021-12-21
+ * @date 2022-03-18
  */
 /*
- * Copyright (C) 2021  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2022  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,9 @@
 #include <boost/program_options.hpp>
 
 #include "../time_offseter.h"
+#include "cimel_importer.h"
 #include "cimel4A_importer.h"
+#include "cimel440204_importer.h"
 #include "config.h"
 
 #define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
@@ -59,6 +61,7 @@ int main(int argc, char** argv)
 	std::string tz;
 	std::string format;
 	std::string cimelId;
+	std::string type;
 	int year;
 
 	po::options_description desc("Allowed options");
@@ -72,6 +75,7 @@ int main(int argc, char** argv)
 		("timezone", po::value<std::string>(&tz), R"(timezone identifier (like "UTC" or "Europe/Paris"))")
 		("update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data")
 		("year", po::value<int>(&year), "the year the observations were collected (defaults to the current year, it cannot be deduced from the content)")
+		("type", po::value<std::string>(&type), "The station type, indicating how to decode the data (must be 4A or 440204)")
 	;
 
 	po::positional_options_description pd;
@@ -135,11 +139,21 @@ int main(int argc, char** argv)
 		DbConnectionObservations db(address, user, password);
 		CassUuid station;
 		cass_uuid_from_string(uuid.c_str(), &station);
+
+		std::unique_ptr<CimelImporter> importer;
+		if (type == "4A") {
+			importer = std::make_unique<Cimel4AImporter>(station, cimelId, tz, db);
+		} else if (type == "440204") {
+			importer = std::make_unique<Cimel440204Importer>(station, cimelId, tz, db);
+		} else {
+			std::cout << "This station type \"" << type << "\" is not supported." << std::endl;
+			return 1;
+		}
+
 		std::ifstream fileStream(inputFile);
 		date::sys_seconds start, end;
 
-		Cimel4AImporter cimel4AImporter(station, cimelId, tz, db);
-		bool importResult = cimel4AImporter.import(fileStream, start, end, y, updateLastArchiveDownloadTime);
+		bool importResult = importer->import(fileStream, start, end, y, updateLastArchiveDownloadTime);
 
 		if (importResult) {
 			std::cout << "Consider recomputing the climatology: \n"

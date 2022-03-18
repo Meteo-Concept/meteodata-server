@@ -31,6 +31,7 @@
 #include <date.h>
 
 #include <map>
+#include <memory>
 #include <vector>
 #include <tuple>
 #include <regex>
@@ -39,6 +40,7 @@
 #include "../cassandra.h"
 #include "../cassandra_utils.h"
 #include "../time_offseter.h"
+#include "cimel_importer.h"
 
 namespace meteodata
 {
@@ -68,16 +70,23 @@ private:
 
 	void getLastArchive(const Request& request, Response& response, std::cmatch&& url);
 	void postArchiveFile(const Request& request, Response& response, std::cmatch&& url);
+	std::unique_ptr<CimelImporter> makeImporter(const std::cmatch& url, const CassUuid& station,
+		const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db);
 
 	using Route = void (CimelHttpRequestHandler::*)(const Request& request, Response& response, std::cmatch&& url);
 
 	const std::array<std::tuple<boost::beast::http::verb, std::regex, CimelHttpRequestHandler::Route>, 2> routes = {
-			std::make_tuple(boost::beast::http::verb::get, std::regex{
-									"/imports/cimel/4A/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
-							&CimelHttpRequestHandler::getLastArchive), std::make_tuple(boost::beast::http::verb::post,
-																					   std::regex{
-																							   "/imports/cimel/4A/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/((?:19|20)[0-9]{2})/?"},
-																					   &CimelHttpRequestHandler::postArchiveFile)};
+			std::make_tuple(
+				boost::beast::http::verb::get,
+				std::regex{"/imports/cimel/([0-9A-F]+)/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
+				&CimelHttpRequestHandler::getLastArchive
+			),
+			std::make_tuple(
+				boost::beast::http::verb::post,
+				std::regex{"/imports/cimel/([0-9A-F]+)/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/((?:19|20)[0-9]{2})/?"},
+				&CimelHttpRequestHandler::postArchiveFile
+			)
+	};
 
 };
 

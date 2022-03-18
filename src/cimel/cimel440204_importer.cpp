@@ -1,11 +1,11 @@
 /**
- * @file cimel4A_importer.cpp
- * @brief Implementation of the Cimel4AImporter class
+ * @file cimel440204_importer.cpp
+ * @brief Implementation of the Cimel440204Importer class
  * @author Laurent Georget
- * @date 2021-12-21
+ * @date 2022-03-18
  */
 /*
- * Copyright (C) 2021  JD Environnement <contact@meteo-concept.fr>
+ * Copyright (C) 2022  JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@
 #include "../time_offseter.h"
 #include "../cassandra.h"
 #include "../cassandra_utils.h"
-#include "./cimel4A_importer.h"
+#include "./cimel440204_importer.h"
 
 namespace meteodata
 {
@@ -43,42 +43,42 @@ namespace chrono = std::chrono;
 using namespace std::placeholders;
 using namespace meteodata;
 
-Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+Cimel440204Importer::Cimel440204Importer(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
 								 DbConnectionObservations& db) :
 		CimelImporter{station, cimelId, timezone, db}
 {
 }
 
-Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+Cimel440204Importer::Cimel440204Importer(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
 								 DbConnectionObservations& db) :
 		CimelImporter{station, cimelId, std::forward<TimeOffseter&&>(timeOffseter), db}
 {
 }
 
-bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
+bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
 							 bool updateLastArchiveDownloadTime)
 {
 	// Parse header "S0\s+"
 	char header[4];
 	input >> header[0] >> header[1] >> std::ws >> header[2] >> header[3];
 	if (header[0] != 'S' || header[1] != '0') {
-		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong header \"" << header[0] << header[1]
+		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong header \"" << header[0] << header[1]
 				  << "\" (expected \"S0\")" << std::endl;
 		return false;
 	}
 
-	if (header[2] != '4' || header[3] != 'A') {
-		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station type \"" << header[2] << header[3]
-				  << "\" (expected \"4A\")" << std::endl;
+	if (header[2] != '4' || header[3] != '4') {
+		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong station type \"" << header[2] << header[3]
+				  << "\" (expected \"44\")" << std::endl;
 		return false;
 	}
 
 	int dept, city, nb;
-	input >> parse(dept, 2, 16) >> parse(city, 4, 16) >> ignore(1) >> parse(nb, 1, 16);
+	input >> parse(dept, 2, 16) >> parse(city, 4, 16) >> parse(nb, 2, 16);
 
 	std::string detectedId = std::to_string(dept * 10000 + city * 10 + nb);
 	if (detectedId != _cimelId) {
-		std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong station id \"" << detectedId << "\" (expected \""
+		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong station id \"" << detectedId << "\" (expected \""
 				  << _cimelId << "\")" << std::endl;
 		return false;
 	}
@@ -95,7 +95,7 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 		input.unget();
 		input >> header[0] >> header[1] >> std::ws;
 		if (header[0] != 'S' || header[1] != '0') {
-			std::cerr << SD_ERR << "[Cimel4AImporter] protocol: wrong daily value header \"" << header[0] << header[1]
+			std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong daily value header \"" << header[0] << header[1]
 					  << "\" (expected \"S0\")" << std::endl;
 			return false;
 		}
@@ -104,8 +104,8 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 
 		unsigned int day, month;
 		int tn, tx, rainfall;
-		input >> parse(day, 2, 10) >> parse(month, 2, 10) >> parse(tn, 4, 16) >> parse(tx, 4, 16) >> ignore(24)
-			  >> parse(rainfall, 4, 16) >> ignore(88);
+		input >> parse(day, 2, 10) >> parse(month, 2, 10) >> parse(tn, 4, 16) >> parse(tx, 4, 16) >> ignore(26)
+			  >> parse(rainfall, 4, 16) >> ignore(86);
 
 		date::year_month_day ymd{year, date::month{month}, date::day{day}};
 		date::sys_days date{ymd};
@@ -142,7 +142,7 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 
 			bool ret = _db.insertV2DataPoint(o);
 			if (!ret) {
-				std::cerr << SD_ERR << "[Cimel4A " << _station << "] measurement: failed to insert datapoint"
+				std::cerr << SD_ERR << "[Cimel440204 " << _station << "] measurement: failed to insert datapoint"
 						  << std::endl;
 			}
 		};
@@ -151,7 +151,7 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 	if (updateLastArchiveDownloadTime) {
 		bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
 		if (!ret) {
-			std::cerr << SD_ERR << "[Cimel4A " << _station
+			std::cerr << SD_ERR << "[Cimel440204 " << _station
 					  << "] management: failed to update the last archive download datetime" << std::endl;
 		}
 	}
