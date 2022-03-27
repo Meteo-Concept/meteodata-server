@@ -26,12 +26,13 @@
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <date/date.h>
+#include <date.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
 #include "../cassandra.h"
 #include "../cassandra_utils.h"
+#include "../hex_parser.h"
 #include "./cimel440204_importer.h"
 
 namespace meteodata
@@ -56,8 +57,10 @@ Cimel440204Importer::Cimel440204Importer(const CassUuid& station, const std::str
 }
 
 bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-							 bool updateLastArchiveDownloadTime)
+	 bool updateLastArchiveDownloadTime)
 {
+	using namespace hex_parser;
+
 	// Parse header "S0\s+"
 	char header[4];
 	input >> header[0] >> header[1] >> std::ws >> header[2] >> header[3];
@@ -72,6 +75,7 @@ bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, 
 				  << "\" (expected \"44\")" << std::endl;
 		return false;
 	}
+
 
 	int dept, city, nb;
 	input >> parse(dept, 2, 16) >> parse(city, 4, 16) >> parse(nb, 2, 16);

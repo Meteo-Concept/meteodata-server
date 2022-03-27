@@ -25,8 +25,8 @@
 #include <chrono>
 #include <algorithm>
 
-#include <date/date.h>
-#include <date/tz.h>
+#include <date.h>
+#include <tz.h>
 #include <observation.h>
 
 #include "ogimet_synop.h"

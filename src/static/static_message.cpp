@@ -27,7 +27,7 @@
 #include <regex>
 #include <stdexcept>
 
-#include <date/date.h>
+#include <date.h>
 #include <message.h>
 
 #include "../time_offseter.h"

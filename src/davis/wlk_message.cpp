@@ -27,7 +27,7 @@
 #include <map>
 #include <chrono>
 
-#include <date/date.h>
+#include <date.h>
 #include <message.h>
 
 #include "wlk_message.h"

@@ -26,7 +26,7 @@
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <date/date.h>
+#include <date.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
@@ -59,18 +59,6 @@ CimelImporter::CimelImporter(const CassUuid& station, const std::string& cimelId
 		_db{db},
 		_tz{timeOffseter}
 {
-}
-
-std::istream& operator>>(std::istream& is, const CimelImporter::Ignorer& ignorer)
-{
-	std::streamsize i = ignorer.length;
-	while (i > 0) {
-		auto c = is.get();
-		if (!std::isspace(c)) {
-			i--; // do not count blank characters
-		}
-	}
-	return is;
 }
 
 }

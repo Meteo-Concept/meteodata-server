@@ -31,7 +31,7 @@
 #include <cmath>
 
 #include <boost/property_tree/ptree.hpp>
-#include <date/date.h>
+#include <date.h>
 #include <observation.h>
 #include <cassandra.h>
 

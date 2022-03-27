@@ -32,7 +32,7 @@
 #include <cassandra.h>
 #include <boost/asio.hpp>
 #include <observation.h>
-#include <date/date.h>
+#include <date.h>
 
 namespace meteodata
 {

@@ -28,7 +28,7 @@
 #include <chrono>
 #include <systemd/sd-daemon.h>
 
-#include <date/date.h>
+#include <date.h>
 #include <observation.h>
 
 #include "mileos_message.h"

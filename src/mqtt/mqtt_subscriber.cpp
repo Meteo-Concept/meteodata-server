@@ -194,7 +194,7 @@ void MqttSubscriber::start()
 	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
 
 	std::ostringstream clientId;
-	clientId << MqttSubscriber::CLIENT_ID << "." << getConnectorSuffix();
+	clientId << MqttSubscriber::CLIENT_ID << ":" << getConnectorSuffix();
 	_client->set_client_id(clientId.str());
 	_client->set_user_name(_details.user);
 	_client->set_password(_details.password);

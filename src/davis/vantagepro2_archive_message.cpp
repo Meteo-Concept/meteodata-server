@@ -24,8 +24,8 @@
 #include <iostream>
 #include <chrono>
 
-#include <date/date.h>
-#include <date/tz.h>
+#include <date.h>
+#include <tz.h>
 #include <observation.h>
 
 #include "vantagepro2_archive_message.h"

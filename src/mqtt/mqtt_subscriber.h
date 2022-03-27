@@ -36,8 +36,8 @@
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <date/date.h>
-#include <date/tz.h>
+#include <date.h>
+#include <tz.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
