@@ -74,21 +74,31 @@ void WeatherlinkApiv2Downloader::initialize() {
 }
 
 float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
+	time_t lastUpdateTimestamp;
 	float rainfall;
+
 	auto now = chrono::system_clock::now();
 	date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
 	date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
 	std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-	if (_db.getRainfall(u, beginDay, chrono::system_clock::to_time_t(now), rainfall))
+	std::time_t currentTime = chrono::system_clock::to_time_t(now);
+
+	if (_db.getCachedFloat(u, RAINFALL_SINCE_MIDNIGHT, lastUpdateTimestamp, rainfall)) {
+		auto lastUpdate = chrono::system_clock::from_time_t(lastUpdateTimestamp);
+		if (lastUpdate > localMidnightInUTC)
+			return rainfall;
+	}
+
+	if (_db.getRainfall(u, beginDay, currentTime, rainfall))
 		return rainfall;
 	else
 		return 0.f;
 }
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-													   const std::map<int, CassUuid>& mapping,
-													   const std::string& apiKey, const std::string& apiSecret,
-													   DbConnectionObservations& db, TimeOffseter&& to) :
+	const std::map<int, CassUuid>& mapping,
+	const std::string& apiKey, const std::string& apiSecret,
+	DbConnectionObservations& db, TimeOffseter&& to) :
 		AbstractWeatherlinkDownloader(station, db, std::forward<TimeOffseter&&>(to)),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
@@ -99,10 +109,10 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 }
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-													   const std::map<int, CassUuid>& mapping,
-													   const std::string& apiKey, const std::string& apiSecret,
-													   DbConnectionObservations& db,
-													   TimeOffseter::PredefinedTimezone tz) :
+	const std::map<int, CassUuid>& mapping,
+	const std::string& apiKey, const std::string& apiSecret,
+	DbConnectionObservations& db,
+	TimeOffseter::PredefinedTimezone tz) :
 		AbstractWeatherlinkDownloader(station, db, tz),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
@@ -124,9 +134,10 @@ std::unordered_map<std::string, pt::ptree>
 WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::string& apiId,
 												const std::string& apiSecret)
 {
-	WeatherlinkApiv2Downloader::Params params = {{"t",       std::to_string(
-			chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-												 {"api-key", apiId}};
+	WeatherlinkApiv2Downloader::Params params = {
+		{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
+		{"api-key", apiId}
+	};
 	params.emplace("api-signature", computeApiSignature(params, apiSecret));
 	std::ostringstream query;
 	query << "/v2/stations" << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
@@ -157,10 +168,11 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
 			  << "downloading real-time data for station " << _stationName << std::endl;
 
-	WeatherlinkApiv2Downloader::Params params = {{"t",          std::to_string(
-			chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-												 {"station-id", _weatherlinkId},
-												 {"api-key",    _apiKey}};
+	WeatherlinkApiv2Downloader::Params params = {
+		{"t", std::to_string( chrono::system_clock::to_time_t(chrono::system_clock::now()))},
+		{"station-id", _weatherlinkId},
+		{"api-key",    _apiKey}
+	};
 	params.emplace("api-signature", computeApiSignature(params, _apiSecret));
 	std::ostringstream query;
 	query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
@@ -175,15 +187,23 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 		for (const auto& u : _uuids) {
 			std::istringstream contentStream(content); // rewind
 
+			// get the last rainfall from cache
+			_lastDayRainfall[u] = getDayRainfall(u);
 			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, _lastDayRainfall[u]);
 			if (_substations.empty())
 				obs.parse(contentStream);
 			else
 				obs.parse(contentStream, _substations, u);
+
 			int ret = _db.insertV2DataPoint(obs.getObservation(u));
 			if (!ret) {
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 						  << "Failed to insert real-time observation for substation " << u << std::endl;
+			}
+			ret = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(obs.getObservation(u).time), _lastDayRainfall[u]);
+			if (!ret) {
+				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
+						  << "Failed to cache the rainfall for substation " << u << std::endl;
 			}
 		}
 	});
@@ -215,10 +235,11 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	bool stationIsDisconnected = false;
 	if (days.count() > 1) {
-		WeatherlinkApiv2Downloader::Params params = {{"t",          std::to_string(
-				chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-													 {"station-id", _weatherlinkId},
-													 {"api-key",    _apiKey}};
+		WeatherlinkApiv2Downloader::Params params = {
+			{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
+			{"station-id", _weatherlinkId},
+			{"api-key",    _apiKey}
+		};
 		params.emplace("api-signature", computeApiSignature(params, _apiSecret));
 		std::ostringstream query;
 		query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
@@ -262,14 +283,13 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	while (date < end) {
 		auto datePlus24Hours = date + chrono::hours{24};
-		WeatherlinkApiv2Downloader::Params params = {{"t",               std::to_string(
-				chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-													 {"station-id",      _weatherlinkId},
-													 {"api-key",         _apiKey},
-													 {"start-timestamp", std::to_string(
-															 chrono::system_clock::to_time_t(date))},
-													 {"end-timestamp",   std::to_string(
-															 chrono::system_clock::to_time_t(datePlus24Hours))}};
+		WeatherlinkApiv2Downloader::Params params = {
+			{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
+			{"station-id",      _weatherlinkId},
+			{"api-key",         _apiKey},
+			{"start-timestamp", std::to_string(chrono::system_clock::to_time_t(date))},
+			{"end-timestamp",   std::to_string(chrono::system_clock::to_time_t(datePlus24Hours))}
+		};
 		params.emplace("api-signature", computeApiSignature(params, _apiSecret));
 		std::ostringstream query;
 		query << "/v2/historic/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="

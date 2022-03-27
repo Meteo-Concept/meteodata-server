@@ -107,6 +107,8 @@ private:
 	static const std::string BASE_URL;
 
 	static constexpr int MAX_DISCONNECTION_DAYS = 30;
+
+	static constexpr char RAINFALL_SINCE_MIDNIGHT[] = "rainfall_midnight";
 };
 
 }

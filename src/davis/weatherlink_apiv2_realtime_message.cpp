@@ -52,7 +52,7 @@ using DataStructureType = WeatherlinkApiv2RealtimeMessage::DataStructureType;
 
 constexpr bool
 WeatherlinkApiv2RealtimeMessage::compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-													 const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2)
+	 const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2)
 {
 	// Ingest first the ISS so that when reading the data from the aux. sensor suites,
 	// we can check for the missing data
