@@ -39,6 +39,7 @@
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
+#include "mqtt/lorain_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_txt_downloader.h"
 #include "synop/deferred_synop_downloader.h"
@@ -70,14 +71,13 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LorainMqttSubscriber>> lorainMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getMqttStations(mqttStations);
 		for (auto&& station : mqttStations) {
 			MqttSubscriber::MqttSubscriptionDetails details{std::get<1>(station), std::get<2>(station),
-															std::get<3>(station),
-															std::string(std::get<4>(station).get(),
-																		std::get<5>(station))};
+				std::get<3>(station), std::string(std::get<4>(station).get(), std::get<5>(station))};
 
 			const CassUuid& uuid = std::get<0>(station);
 			const std::string& topic = std::get<6>(station);
@@ -85,9 +85,7 @@ void MeteoServer::start()
 			if (topic.substr(0, 4) == "vp2/") {
 				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
 				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
-					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(details,
-																										_ioService,
-																										_db);
+					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(details, _ioService, _db);
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
 				mqttSubscribersIt->second->addStation(topic, uuid, tz);
@@ -104,6 +102,13 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
+			} else if (topic.substr(0, 11) == "fifo/Lorain") {
+				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
+				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {
+					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioService, _db);
+					mqttSubscribersIt = lorainMqttSubscribers.emplace(details, subscriber).first;
+				}
+				mqttSubscribersIt->second->addStation(topic, uuid, tz);
 			} else {
 				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
 						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
@@ -113,6 +118,8 @@ void MeteoServer::start()
 		for (auto&& mqttSubscriber : vp2MqttSubscribers)
 			mqttSubscriber.second->start();
 		for (auto&& mqttSubscriber : objeniousMqttSubscribers)
+			mqttSubscriber.second->start();
+		for (auto&& mqttSubscriber : lorainMqttSubscribers)
 			mqttSubscriber.second->start();
 	}
 

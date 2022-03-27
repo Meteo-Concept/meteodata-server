@@ -26,6 +26,7 @@ meteodata_SOURCES = \
 		    rest_web_server.h\
 		    time_offseter.cpp\
 		    time_offseter.h\
+		    hex_parser.h\
 		    cimel/cimel_importer.cpp\
 		    cimel/cimel_importer.h\
 		    cimel/cimel4A_importer.cpp\
@@ -83,6 +84,8 @@ meteodata_SOURCES = \
 		    mqtt/vp2_mqtt_subscriber.h\
 		    mqtt/objenious_mqtt_subscriber.cpp\
 		    mqtt/objenious_mqtt_subscriber.h\
+		    mqtt/lorain_mqtt_subscriber.cpp\
+		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
 		    ship_and_buoy/meteo_france_ship_and_buoy.h\
 		    ship_and_buoy/ship_and_buoy_downloader.cpp\
@@ -121,6 +124,8 @@ meteodata_SOURCES = \
 		    pessl/fieldclimate_archive_message_collection.h\
 		    pessl/fieldclimate_archive_message.cpp\
 		    pessl/fieldclimate_archive_message.h\
+		    pessl/lorain_message.cpp\
+		    pessl/lorain_message.h\
 		    objenious/objenious_api_downloader.cpp\
 		    objenious/objenious_api_downloader.h\
 		    objenious/objenious_api_download_scheduler.cpp\
@@ -272,6 +277,7 @@ meteodata_objenious_api_standalone_SOURCES = \
 meteodata_cimel_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
+		    hex_parser.h\
 		    cimel/cimel_importer.cpp\
 		    cimel/cimel_importer.h\
 		    cimel/cimel4A_importer.cpp\
