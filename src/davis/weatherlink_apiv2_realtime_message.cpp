@@ -64,10 +64,10 @@ WeatherlinkApiv2RealtimeMessage::compareDataPackages(const std::tuple<SensorType
 }
 
 WeatherlinkApiv2RealtimeMessage::WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter,
-			 float& dayRain) :
-		AbstractWeatherlinkApiMessage(timeOffseter),
-		WeatherlinkApiv2ParserTrait(),
-		_dayRain(dayRain)
+		 float& dayRain) :
+	AbstractWeatherlinkApiMessage(timeOffseter),
+	WeatherlinkApiv2ParserTrait(),
+	_dayRain(dayRain)
 {}
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
@@ -77,8 +77,9 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 	});
 }
 
-void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<int, CassUuid>& substations,
-											const CassUuid& station)
+void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input,
+	const std::map<int, CassUuid>& substations,
+	const CassUuid& station)
 {
 	doParse(input, [this, substations, station](auto&& entry) {
 		return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
@@ -86,8 +87,9 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input, const std::map<
 }
 
 date::sys_seconds
-WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations,
-														const CassUuid& station)
+WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input,
+	const std::map<int, CassUuid>& substations,
+	const CassUuid& station)
 {
 	Acceptor acceptable;
 	if (substations.empty())
@@ -137,14 +139,13 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 		// we expect exactly one element, the current condition
 		auto data = dataIt->second.front().second;
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>(
-				"data_structure_type"));
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));
 	}
 
 	std::sort(entries.begin(), entries.end(),
-			  std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1,
-						std::placeholders::_2));
+		  std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1, std::placeholders::_2)
+	);
 
 	for (const auto& entry : entries) {
 		SensorType sensorType;
@@ -195,7 +196,7 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
 			if (!isInvalid(rainFall)) {
 				float lastRecordedDayRain = _dayRain;
-				_dayRain = _obs.rainFall;
+				_dayRain = from_rainrate_to_mm(rainFall);
 				_obs.rainFall = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
 				if (_obs.rainFall < -0.1) { // don't compare with exactly 0 because of rouding errors
 					// Either the station clock is off or we

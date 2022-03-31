@@ -85,7 +85,7 @@ float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
 
 	if (_db.getCachedFloat(u, RAINFALL_SINCE_MIDNIGHT, lastUpdateTimestamp, rainfall)) {
 		auto lastUpdate = chrono::system_clock::from_time_t(lastUpdateTimestamp);
-		if (lastUpdate > localMidnightInUTC)
+		if (!std::isnan(rainfall) && lastUpdate > localMidnightInUTC)
 			return rainfall;
 	}
 
@@ -132,7 +132,7 @@ std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params
 
 std::unordered_map<std::string, pt::ptree>
 WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::string& apiId,
-												const std::string& apiSecret)
+	const std::string& apiSecret)
 {
 	WeatherlinkApiv2Downloader::Params params = {
 		{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
