@@ -288,6 +288,9 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.soilTemperature[1] = data.get<float>("temp_2", INVALID_FLOAT);
 			_obs.soilTemperature[2] = data.get<float>("temp_3", INVALID_FLOAT);
 			_obs.soilTemperature[3] = data.get<float>("temp_4", INVALID_FLOAT);
+			_obs.extraTemperature[0] = data.get<float>("temp_1", INVALID_FLOAT);
+			_obs.extraTemperature[1] = data.get<float>("temp_2", INVALID_FLOAT);
+			_obs.extraTemperature[2] = data.get<float>("temp_3", INVALID_FLOAT);
 			// The APIv2 returns a float for leaf wetness and soil moisture but we store an int
 			float temp;
 			temp = data.get<float>("wet_leaf_1", INVALID_FLOAT);
