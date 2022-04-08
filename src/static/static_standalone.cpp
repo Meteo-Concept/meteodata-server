@@ -71,7 +71,7 @@ int main(int argc, char** argv)
 	try {
 		auto timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(0));
 		std::ifstream fileStream(inputFile);
-		StatICMessage m{fileStream, timeOffseter};
+		StatICMessage m{fileStream, timeOffseter, std::map<std::string, std::string>{}};
 		if (!m)
 			std::cerr << "Impossible to parse the message" << std::endl;
 	} catch (std::exception& e) {

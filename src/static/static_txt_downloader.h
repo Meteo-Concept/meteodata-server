@@ -27,6 +27,7 @@
 #include <iostream>
 #include <experimental/optional>
 #include <string>
+#include <map>
 
 #include <unistd.h>
 
@@ -52,7 +53,8 @@ class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloa
 {
 public:
 	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station,
-						const std::string& host, const std::string& url, bool _https, int timezone);
+						const std::string& host, const std::string& url, bool _https, int timezone,
+						std::map<std::string, std::string> sensors);
 	void start();
 	void stop();
 
@@ -69,6 +71,7 @@ private:
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
 	bool _mustStop = false;
+	std::map<std::string, std::string> _sensors;
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();

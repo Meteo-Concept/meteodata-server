@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <regex>
 #include <stdexcept>
+#include <string>
 
 #include <date.h>
 #include <message.h>
@@ -36,9 +37,11 @@
 
 namespace meteodata
 {
-StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffseter) :
+StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffseter,
+							 std::map<std::string, std::string> sensors) :
 		_valid(false),
-		_timeOffseter(timeOffseter)
+		_timeOffseter(timeOffseter),
+		_sensors(std::move(sensors))
 {
 	using namespace date;
 	std::string st;
@@ -46,9 +49,9 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 	chrono::seconds hour;
 	bool hasDate = false;
 	bool hasHour = false;
-	const std::regex normalLine{"\\s*([^#=]+)=(\\s?\\S*)\\s*"};
-	const std::regex dateRegex{"(\\d\\d).(\\d\\d).(\\d?\\d?\\d\\d).*"};
-	const std::regex timeRegex{"([0-9 ]\\d).(\\d\\d).*"};
+	const std::regex normalLine{R"(\s*([^#=]+)=(\s?\S*)\s*)"};
+	const std::regex dateRegex{R"((\d\d).(\d\d).(\d?\d?\d\d).*)"};
+	const std::regex timeRegex{R"(([0-9 ]\d).(\d\d).*)"};
 	int year = 0, month = 0, day = 0, h = 0, min = 0;
 
 	while (std::getline(file, st)) {
@@ -61,6 +64,7 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 				value = "0";
 
 			try {
+				auto it = _sensors.find(var);
 				if (var == "date_releve") {
 					std::smatch dateMatch;
 					if (std::regex_match(value, dateMatch, dateRegex) && dateMatch.size() == 4) {
@@ -77,6 +81,12 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 						h = std::atoi(timeMatch[1].str().data());
 						min = std::atoi(timeMatch[2].str().data());
 						hasHour = true;
+					}
+				} else if (it != _sensors.end()) {
+					if (Observation::isValidIntVariable(var)) {
+						_additionalValuesInt[it->second] = std::atoi(value.data());
+					} else if (Observation::isValidFloatVariable(var)) {
+						_additionalValuesFloat[it->second] = std::stof(value);
 					}
 				} else if (var == "temperature") {
 					_airTemp = std::stof(value);
@@ -155,6 +165,14 @@ Observation StatICMessage::getObservation(const CassUuid station) const
 		bool ins = insolated(*_solarRad, _timeOffseter.getLatitude(), _timeOffseter.getLongitude(),
 							 date::floor<chrono::seconds>(_datetime).time_since_epoch().count());
 		result.insolation_time = {true, ins ? _timeOffseter.getMeasureStep() : 0};
+	}
+
+	for (auto&& [s,v] : _additionalValuesInt) {
+		result.set(s, v);
+	}
+
+	for (auto&& [s,v] : _additionalValuesFloat) {
+		result.set(s, v);
 	}
 
 	return result;

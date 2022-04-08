@@ -56,7 +56,8 @@ namespace meteodata
 using namespace date;
 
 StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station,
-										 const std::string& host, const std::string& url, bool https, int timezone) :
+										 const std::string& host, const std::string& url, bool https, int timezone,
+										 std::map<std::string, std::string> sensors) :
 		_ioService(ioService),
 		_db(db),
 		_timer(_ioService),
@@ -64,8 +65,8 @@ StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnecti
 		_host(host),
 		_url(url),
 		_https(https),
-		_lastDownloadTime(chrono::seconds(
-				0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+		_lastDownloadTime(chrono::seconds(0)), // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+		_sensors(sensors)
 {
 	float latitude;
 	float longitude;
@@ -100,8 +101,7 @@ void StatICTxtDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(
-			chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
+	_timer.expires_from_now(chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
 	_timer.async_wait(std::bind(&StatICTxtDownloader::checkDeadline, self, args::_1));
 }
 
@@ -144,7 +144,7 @@ void StatICTxtDownloader::download()
 	CURLcode ret = client.download(query.str(), [&](const std::string& body) {
 		std::istringstream responseStream{body};
 
-		StatICMessage m{responseStream, _timeOffseter};
+		StatICMessage m{responseStream, _timeOffseter, _sensors};
 		if (!m) {
 			std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: "
 					  << "StatIC file: Cannot parse response from: " << _host << std::endl;

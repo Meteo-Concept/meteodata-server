@@ -28,6 +28,7 @@
 #include <array>
 #include <chrono>
 #include <optional>
+#include <map>
 
 #include <boost/asio.hpp>
 #include <observation.h>
@@ -48,7 +49,7 @@ namespace chrono = std::chrono;
 class StatICMessage
 {
 public:
-	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter);
+	StatICMessage(std::istream& entry, const TimeOffseter& timeOffseter, std::map<std::string, std::string> sensors);
 	void computeRainfall(float rainfall1h, float rainfallDay);
 	Observation getObservation(const CassUuid station) const;
 
@@ -92,6 +93,9 @@ private:
 	std::optional<float> _computedRainfall;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;
+	std::map<std::string, int> _additionalValuesInt;
+	std::map<std::string, float> _additionalValuesFloat;
+	std::map<std::string, std::string> _sensors;
 };
 
 }
