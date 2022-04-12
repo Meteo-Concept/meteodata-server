@@ -83,9 +83,9 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 						hasHour = true;
 					}
 				} else if (it != _sensors.end()) {
-					if (Observation::isValidIntVariable(var)) {
+					if (Observation::isValidIntVariable(it->second)) {
 						_additionalValuesInt[it->second] = std::atoi(value.data());
-					} else if (Observation::isValidFloatVariable(var)) {
+					} else if (Observation::isValidFloatVariable(it->second)) {
 						_additionalValuesFloat[it->second] = std::stof(value);
 					}
 				} else if (var == "temperature") {
