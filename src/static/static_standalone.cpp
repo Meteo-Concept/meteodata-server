@@ -28,36 +28,58 @@
 #include <fstream>
 
 #include <boost/program_options.hpp>
+#include <cassandra.h>
 
 #include "../time_offseter.h"
+#include "../cassandra_utils.h"
 #include "static_message.h"
+#include "static_txt_downloader.h"
 #include "config.h"
+
+#define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
 
 using namespace meteodata;
 namespace po = boost::program_options;
 
 int main(int argc, char** argv)
 {
-	std::string inputFile;
+	std::string user;
+	std::string password;
+	std::string address;
+	std::vector<std::string> namedStations;
+
+	po::options_description config("Configuration");
+	config.add_options()
+		("user,u", po::value<std::string>(&user), "database username")
+		("password,p", po::value<std::string>(&password), "database password")
+		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+	;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
-		("input-file", po::value<std::string>(&inputFile), "input StatIC file")
+		("config-file", po::value<std::string>(), "alternative configuration file")
+		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations to get the data for (can be given multiple times, defaults to all stations)")
 	;
-
-	po::positional_options_description pd;
-	pd.add("input-file", 1);
+	desc.add(config);
 
 	po::variables_map vm;
-	po::store(po::command_line_parser(argc, argv).options(desc).allow_unregistered().positional(pd).run(), vm);
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	std::string configFileName = vm.count("config-file") ? vm["config-file"].as<std::string>() : DEFAULT_CONFIG_FILE;
+	std::ifstream configFile(configFileName);
+	if (configFile) {
+		po::store(po::parse_config_file(configFile, config, true), vm);
+		configFile.close();
+	}
 	po::notify(vm);
 
 	if (vm.count("help")) {
 		std::cout << PACKAGE_STRING"\n";
-		std::cout << "Usage: " << argv[0] << " file\n";
+		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
+		std::cout << "You must give either both the username and "
+					 "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -67,17 +89,71 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-
-	try {
-		auto timeOffseter = TimeOffseter::getTimeOffseterFor(TimeOffseter::PredefinedTimezone(0));
-		std::ifstream fileStream(inputFile);
-		StatICMessage m{fileStream, timeOffseter, std::map<std::string, std::string>{}};
-		if (!m)
-			std::cerr << "Impossible to parse the message" << std::endl;
-	} catch (std::exception& e) {
-		std::cerr << "Meteodata-static-standalone met a critical error: " << e.what() << std::endl;
-		return 255;
+	std::set<CassUuid> userSelection;
+	if (vm.count("station")) {
+		for (const auto& st : namedStations) {
+			CassUuid uuid;
+			CassError res = cass_uuid_from_string(st.c_str(), &uuid);
+			if (res != CASS_OK) {
+				std::cerr << "'" << st << "' does not look like a valid UUID, ignoring" << std::endl;
+				continue;
+			}
+			userSelection.emplace(uuid);
+		}
 	}
 
-	return 0;
+	try {
+		cass_log_set_level(CASS_LOG_INFO);
+		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
+			std::string logLevel =
+					message->severity == CASS_LOG_CRITICAL ? "critical" :
+					message->severity == CASS_LOG_ERROR ? "error" :
+					message->severity == CASS_LOG_WARN ? "warning" :
+					message->severity == CASS_LOG_INFO ? "info" : "debug";
+
+			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
+					  << message->file << ", line " << message->line << std::endl;
+		};
+		cass_log_set_callback(logCallback, nullptr);
+
+		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::map<std::string, std::string>>> statICTxtStations;
+		DbConnectionObservations db{address, user, password};
+		db.getStatICTxtStations(statICTxtStations);
+		std::cerr << "Got the list of stations from the db" << std::endl;
+
+		int retry = 0;
+		for (auto it = statICTxtStations.cbegin() ; it != statICTxtStations.cend() ;) {
+			const auto& station = *it;
+			if (!userSelection.empty()) {
+				if (userSelection.find(std::get<0>(station)) == userSelection.cend()) {
+					++it;
+					continue;
+				}
+			}
+
+			boost::asio::io_service ioService;
+			StatICTxtDownloader downloader{ioService, db, std::get<0>(station),
+										   std::get<1>(station), std::get<2>(station),
+										   std::get<3>(station), std::get<4>(station),
+										   std::get<5>(station)};
+			try {
+				downloader.download();
+				retry = 0;
+				++it;
+				std::this_thread::sleep_for(chrono::milliseconds(100));
+			} catch (const std::runtime_error& e) {
+				retry++;
+				if (retry >= 2) {
+					std::cerr << "Tried twice already, moving on..." << std::endl;
+					retry = 0;
+					++it;
+				} else {
+					throw e;
+				}
+			}
+		}
+	} catch (std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		return 255;
+	}
 }

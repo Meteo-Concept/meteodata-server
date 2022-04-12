@@ -57,6 +57,7 @@ public:
 						std::map<std::string, std::string> sensors);
 	void start();
 	void stop();
+	void download();
 
 private:
 	asio::io_service& _ioService;
@@ -75,7 +76,6 @@ private:
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
-	void download();
 };
 
 }

@@ -227,7 +227,13 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 meteodata_static_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
+		    cassandra_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
 		    static/static_message.cpp\
+		    static/static_message.h\
+		    static/static_txt_downloader.cpp\
+		    static/static_txt_downloader.h\
 		    static/static_standalone.cpp
 
 meteodata_fieldclimate_api_standalone_SOURCES = \
