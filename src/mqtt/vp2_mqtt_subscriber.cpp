@@ -41,6 +41,7 @@
 #include "../davis/vantagepro2_archive_page.h"
 
 namespace sys = boost::system;
+namespace chrono = std::chrono;
 
 namespace meteodata
 {
@@ -49,9 +50,9 @@ using namespace date;
 
 constexpr char VP2MqttSubscriber::ARCHIVES_TOPIC[];
 
-VP2MqttSubscriber::VP2MqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
-									 DbConnectionObservations& db) :
-		MqttSubscriber(details, ioService, db)
+VP2MqttSubscriber::VP2MqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
+		asio::io_service& ioService, DbConnectionObservations& db) :
+	MqttSubscriber(details, ioService, db)
 {
 }
 
@@ -73,15 +74,17 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 		} else {
 			const date::sys_seconds& lastArchive = std::get<3>(station);
 			int pollingPeriod = std::get<2>(station);
-			if (chrono::system_clock::now() - lastArchive > chrono::minutes(pollingPeriod)) {
-				// The topic name ought to be vp2/<client>/dmpaft, we can write
-				// to vp2/<client> to request the archives
-				if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
-					// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
-					_client->publish_at_least_once(topic.substr(0, topic.size() - 7), "GETTIME");
+			// The topic name ought to be vp2/<client>/dmpaft, we can write
+			// to vp2/<client> to request the archives
+			if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
+				// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
+				_client->publish_at_least_once(topic.substr(0, topic.size() - 7), "GETTIME");
+				if (chrono::system_clock::now() - lastArchive > chrono::minutes(pollingPeriod)) {
 					// Fetch all the archives available right now, this will resync the scheduler at the same time
+					// The 2h offset is somewhat arbitrary, it prevents missing observations in case of multiple
+					// disconnections over short periods of time
 					_client->publish_at_least_once(topic.substr(0, topic.size() - 7),
-							date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive));
+							date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive - chrono::hours(2)));
 				}
 			}
 		}
