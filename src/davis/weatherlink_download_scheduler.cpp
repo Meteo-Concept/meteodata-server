@@ -63,7 +63,7 @@ constexpr int WeatherlinkDownloadScheduler::UNPRIVILEGED_POLLING_PERIOD;
 using namespace date;
 
 WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
-														   const std::string& apiId, const std::string& apiSecret) :
+							   const std::string& apiId, const std::string& apiSecret) :
 		_ioService{ioService},
 		_db{db},
 		_apiId{apiId},
@@ -73,19 +73,20 @@ WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioS
 }
 
 void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
-									   TimeOffseter::PredefinedTimezone tz)
+				       TimeOffseter::PredefinedTimezone tz)
 {
 	_downloaders.emplace_back(std::make_shared<WeatherlinkDownloader>(station, auth, apiToken, _db, tz));
 }
 
 void
 WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& mapping,
-									   const std::string& weatherlinkId, TimeOffseter&& to)
+				       const std::string& weatherlinkId, TimeOffseter&& to)
 {
 	_downloadersAPIv2.emplace_back(archived,
-								   std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, _apiId,
-																				_apiSecret, _db,
-																				std::forward<TimeOffseter&&>(to)));
+		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, _apiId,
+		_apiSecret, _db,
+		std::forward<TimeOffseter&&>(to))
+	);
 }
 
 void WeatherlinkDownloadScheduler::start()
@@ -211,9 +212,8 @@ void WeatherlinkDownloadScheduler::reloadStations()
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
 
 	CurlWrapper client;
-	std::unordered_map<std::string, pt::ptree> stations = WeatherlinkApiv2Downloader::downloadAllStations(client,
-																										  _apiId,
-																										  _apiSecret);
+	std::unordered_map<std::string, pt::ptree> stations =
+		WeatherlinkApiv2Downloader::downloadAllStations(client, _apiId, _apiSecret);
 
 	for (const auto& station : weatherlinkAPIv2Stations) {
 		auto st = stations.find(std::get<3>(station));
@@ -224,7 +224,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 			continue;
 		}
 		addAPIv2(std::get<0>(station), std::get<1>(station), std::get<2>(station), std::get<3>(station),
-				 TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})));
+			 TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})));
 	}
 }
 
