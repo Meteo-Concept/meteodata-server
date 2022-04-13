@@ -72,6 +72,7 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: " << "subscription failed: "
 				<< mqtt::qos::to_str(*e) << std::endl;
 		} else {
+			const TimeOffseter& timeOffseter = std::get<4>(station);
 			const date::sys_seconds& lastArchive = std::get<3>(station);
 			int pollingPeriod = std::get<2>(station);
 			// The topic name ought to be vp2/<client>/dmpaft, we can write
@@ -83,8 +84,9 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 					// Fetch all the archives available right now, this will resync the scheduler at the same time
 					// The 2h offset is somewhat arbitrary, it prevents missing observations in case of multiple
 					// disconnections over short periods of time
+					date::local_seconds archiveTime = timeOffseter.convertToLocalTime(lastArchive - chrono::hours(2));
 					_client->publish_at_least_once(topic.substr(0, topic.size() - 7),
-							date::format("DMPAFT %Y-%m-%d %H:%M", lastArchive - chrono::hours(2)));
+						date::format("DMPAFT %Y-%m-%d %H:%M", archiveTime));
 				}
 			}
 		}
