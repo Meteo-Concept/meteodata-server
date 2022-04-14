@@ -115,8 +115,11 @@ public:
 	inline date::sys_seconds getTimestamp() const
 	{
 		return date::floor<chrono::seconds>(
-				_timeOffseter->convertFromLocalTime(_data.day, _data.month, _data.year + 2000, _data.time / 100,
-													_data.time % 100));
+			_timeOffseter->convertFromLocalTime(
+				_data.day, _data.month, _data.year + 2000,
+				_data.time / 100, _data.time % 100
+			)
+		);
 	}
 
 	/**

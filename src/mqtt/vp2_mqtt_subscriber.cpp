@@ -150,10 +150,15 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
 		std::string topic{topicName.substr(0, topicName.size() - 7)};
 		if (_clockResetTimes[topic] + chrono::hours(12) < now) {
-			date::local_seconds stationTime = timeOffseter.convertToLocalTime(now);
-			std::cerr << SD_INFO << "[MQTT " << station << "] protocol: " << "Setting the station clock to "
-				<< date::format("%Y-%m-%d %H:%M:%S", stationTime) << std::endl;
-			_client->publish_at_least_once(topic, date::format("SETTIME %Y-%m-%d %H:%M:%S", stationTime));
+			if (timeOffseter.usesUTC()) {
+				std::cerr << SD_INFO << "[MQTT " << station << "] protocol: " << "Setting the station clock to "
+					  << date::format("%Y-%m-%d %H:%M:%S+0000", now) << std::endl;
+				_client->publish_at_least_once(topic, date::format("SETTIME %Y-%m-%d %H:%M:%S", now));
+			} else {
+				std::cerr << SD_INFO << "[MQTT " << station << "] protocol: "
+					  << "Setting the station clock to the Raspberry Pi current time" << std::endl;
+				_client->publish_at_least_once(topic, "SETTIME");
+			}
 		}
 		_clockResetTimes[topic] = now;
 	}

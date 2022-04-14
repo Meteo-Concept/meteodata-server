@@ -46,12 +46,11 @@ Observation VantagePro2ArchiveMessage::getObservation(CassUuid station) const
 {
 	Observation result;
 
-	auto timestamp = _timeOffseter->convertFromLocalTime(_data.day, _data.month, _data.year + 2000, _data.time / 100,
-														 _data.time % 100);
+	auto timestamp = getTimestamp();
 
 	result.station = station;
 	result.day = date::floor<date::days>(timestamp);
-	result.time = date::floor<chrono::seconds>(timestamp);
+	result.time = timestamp;
 	result.barometer = {_data.barometer != 0, from_inHg_to_bar(_data.barometer)};
 	result.dewpoint = {_data.outsideTemp != 32767 && _data.outsideHum != 255,
 					   dew_point(from_Farenheit_to_Celsius(_data.outsideTemp / 10), _data.outsideHum)};

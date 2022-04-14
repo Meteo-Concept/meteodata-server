@@ -200,6 +200,12 @@ public:
 		_measureStep = step;
 	}
 
+	inline bool usesUTC() const
+	{
+		return (_byTimezone && _timezoneInfo.timezone == date::locate_zone("UTC")) ||
+		       (!_byTimezone && _timezoneInfo.timeOffset.count() == 0);
+	}
+
 private:
 	/**
 	 * @brief Describe how the \a TimeOffseter should perform time

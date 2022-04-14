@@ -44,10 +44,11 @@ using namespace std::literals::chrono_literals;
  */
 chrono::minutes vantageTimezoneIndex2Offet(int index)
 {
-	constexpr chrono::minutes timeOffsets[47] = {-12h, -11h, -10h, -9h, -8h, -7h, -6h, -6h, -6h, -5h, -5h, -4h, -4h,
-												 -3h - 30min, -3h, -3h, -2h, -1h, 0min, 0min, 1h, 1h, 1h, 2h, 2h, 2h,
-												 2h, 2h, 3h, 3h, 3h + 30min, 4h, 4h + 30min, 5h, 5h + 30min, 6h, 7h, 8h,
-												 8h, 9h, 9h + 30min, 9h + 30min, 10h, 10h, 11h, 12h, 12h};
+	constexpr chrono::minutes timeOffsets[47] = {-12h, -11h, -10h, -9h, -8h,
+		-7h, -6h, -6h, -6h, -5h, -5h, -4h, -4h, -3h - 30min, -3h, -3h,
+		-2h, -1h, 0min, 0min, 1h, 1h, 1h, 2h, 2h, 2h, 2h, 2h, 3h, 3h,
+		3h + 30min, 4h, 4h + 30min, 5h, 5h + 30min, 6h, 7h, 8h, 8h,
+		9h, 9h + 30min, 9h + 30min, 10h, 10h, 11h, 12h, 12h};
 
 	return timeOffsets[index];
 }

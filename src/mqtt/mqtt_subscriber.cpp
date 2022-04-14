@@ -112,11 +112,7 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 	std::cout << SD_NOTICE << "[MQTT " << station << "] connection: " << "Discovered MQTT station " << stationName
 			  << std::endl;
 
-	_stations.emplace(topic,
-					  std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>{station, stationName,
-																							  pollingPeriod,
-																							  lastArchive,
-																							  timeOffseter});
+	_stations.emplace(topic, std::make_tuple(station, stationName, pollingPeriod, lastArchive, timeOffseter));
 }
 
 bool MqttSubscriber::handleConnAck(bool, uint8_t)
