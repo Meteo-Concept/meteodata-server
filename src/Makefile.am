@@ -78,12 +78,15 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_messages/mbdata_wswin_message.h\
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h\
+		    mqtt/liveobjects_message.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
 		    mqtt/vp2_mqtt_subscriber.cpp\
 		    mqtt/vp2_mqtt_subscriber.h\
 		    mqtt/objenious_mqtt_subscriber.cpp\
 		    mqtt/objenious_mqtt_subscriber.h\
+		    mqtt/liveobjects_mqtt_subscriber.cpp\
+		    mqtt/liveobjects_mqtt_subscriber.h\
 		    mqtt/lorain_mqtt_subscriber.cpp\
 		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\

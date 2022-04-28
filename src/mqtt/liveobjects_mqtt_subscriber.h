@@ -1,8 +1,8 @@
 /**
- * @file lorain_mqtt_subscriber.h
- * @brief Definition of the LorainMqttSubscriber class
+ * @file liveobjects_mqtt_subscriber.h
+ * @brief Definition of the LiveobjectsMqttSubscriber class
  * @author Laurent Georget
- * @date 2022-03-24
+ * @date 2022-04-28
  */
 /*
  * Copyright (C) 2022  SAS JD Environnement <contact@meteo-concept.fr>
@@ -20,49 +20,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-#ifndef LORAIN_MQTT_SUBSCRIBER_H
-#define LORAIN_MQTT_SUBSCRIBER_H
+#ifndef METEODATA_SERVER_LIVEOBJECTS_MQTT_SUBSCRIBER_H
+#define METEODATA_SERVER_LIVEOBJECTS_MQTT_SUBSCRIBER_H
 
 #include <vector>
-
 #include <boost/asio/io_service.hpp>
 #include <boost/optional.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
-
 #include "../pessl/lorain_message.h"
 #include "mqtt_subscriber.h"
-#include "liveobjects_mqtt_subscriber.h"
 
 namespace meteodata
 {
 
-using namespace meteodata;
-
-class LiveobjectsMessage;
-
-/**
- */
-class LorainMqttSubscriber : public LiveobjectsMqttSubscriber
+class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
-	static constexpr char LORAIN_RAINFALL_CACHE_KEY[] = "rainfall_clicks";
-
-	LorainMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	LiveobjectsMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
 
 protected:
-	const char* getConnectorSuffix() override
-	{
-		return "lorain";
-	}
+	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
+	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
 
-	void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) override;
-	std::unique_ptr<LiveobjectsMessage> buildMessage(const mqtt::string_view& content, const CassUuid& station, date::sys_seconds& timestamp) override;
+	virtual void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) = 0;
+	virtual std::unique_ptr<LiveobjectsMessage> buildMessage(const mqtt::string_view& content, const CassUuid& station, date::sys_seconds& timestamp) = 0;
 };
 
 }
 
-#endif
 
+#endif //METEODATA_SERVER_LIVEOBJECTS_MQTT_SUBSCRIBER_H

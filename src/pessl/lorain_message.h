@@ -36,7 +36,7 @@
 #include <observation.h>
 #include <cassandra.h>
 
-#include "../message.h"
+#include "mqtt/liveobjects_message.h"
 
 namespace meteodata
 {
@@ -47,20 +47,10 @@ namespace pt = boost::property_tree;
  * @brief A Message able to receive and store a Lorain IoT payload from a
  * low-power connection (LoRa, NB-IoT, etc.)
  */
-class LorainMessage
+class LorainMessage : public LiveobjectsMessage
 {
 public:
-	/**
-	 * @brief Construct a message
-	 */
-	LorainMessage() = default;
-
-	/**
-	 * @brief Destruct the message
-	 */
-	~LorainMessage() = default;
-
-	Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid& station) const override;
 
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
@@ -74,7 +64,7 @@ public:
 
 	inline int getRainfallClicks() const { return _obs.rainfallClicks; }
 
-	inline bool looksValid() const { return _obs.valid; }
+	inline bool looksValid() const override { return _obs.valid; }
 
 private:
 	/**

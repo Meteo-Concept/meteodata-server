@@ -71,8 +71,6 @@ void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& 
 
 	std::istringstream is{payload};
 
-	// TODO: WRONG! this device uses little-endian so the parsing is wrong
-
 	int tm, tn, tx;
 	int rhm, rhn, rhx;
 	int deltaTm, deltaTn, deltaTx;
@@ -131,7 +129,7 @@ void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& 
 	}
 }
 
-Observation LorainMessage::getObservation(const CassUuid station) const
+Observation LorainMessage::getObservation(const CassUuid& station) const
 {
 	Observation result;
 

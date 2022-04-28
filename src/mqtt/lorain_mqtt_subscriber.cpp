@@ -35,12 +35,14 @@
 #include <date.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
+#include <utility>
 
 #include "../time_offseter.h"
 #include "../cassandra_utils.h"
 #include "mqtt_subscriber.h"
 #include "lorain_mqtt_subscriber.h"
 #include "../pessl/lorain_message.h"
+#include "liveobjects_mqtt_subscriber.h"
 
 namespace sys = boost::system;
 namespace chrono = std::chrono;
@@ -50,54 +52,35 @@ namespace meteodata
 
 LorainMqttSubscriber::LorainMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
 	 DbConnectionObservations& db) :
-		MqttSubscriber(details, ioService, db)
+		LiveobjectsMqttSubscriber(std::move(details), ioService, db)
 {
 }
 
-bool LorainMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
-{
-	for (auto const& e : results) { /* we are expecting only one */
-		auto subscriptionIt = _subscriptions.find(packetId);
-		if (subscriptionIt == _subscriptions.end()) {
-			std::cerr << SD_ERR << "[MQTT Lorain] protocol: " << "client " << _details.host
-				<< ": received an invalid subscription ack?!" << std::endl;
-			continue;
-		}
 
-		const std::string& topic = subscriptionIt->second;
-		const auto& station = _stations[topic];
-		if (!e) {
-			std::cerr << SD_ERR << "[MQTT Lorain " << std::get<1>(station) << "] connection: " << "subscription failed: "
-				<< mqtt::qos::to_str(*e) << std::endl;
-		}
+void LorainMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
+{
+	// always safe, the pointer is constructed by the method buildMessage below
+	auto* m = dynamic_cast<LorainMessage*>(msg.get());
+	if (m) {
+		int ret = MqttSubscriber::_db.cacheInt(station, LorainMqttSubscriber::LORAIN_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(m->getObservation(station).time), m->getRainfallClicks());
+		if (!ret)
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+					  << std::endl;
 	}
-	return true;
 }
 
-void LorainMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessage(const mqtt::string_view& content, const CassUuid& station,
+																								  date::sys_seconds& timestamp)
 {
 	using namespace std::chrono;
 	using date::operator<<;
 
-	auto stationIt = _stations.find(topicName.to_string());
-	if (stationIt == _stations.end()) {
-		std::cout << SD_NOTICE << "[MQTT Lorain protocol]: " << "Unknown topic " << topicName << std::endl;
-		return;
-	}
-
-	const CassUuid& station = std::get<0>(stationIt->second);
-	const std::string& stationName = std::get<1>(stationIt->second);
-	std::cout << SD_DEBUG << "[MQTT Lorain " << station << "] measurement: " << "Now receiving for MQTT station "
-		<< stationName << std::endl;
-
-
 	time_t lastUpdate;
 	int previousClicks;
 	bool result = _db.getCachedInt(station, LORAIN_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-
-	LorainMessage msg;
 	std::optional<int> prev = std::nullopt;
-	if (result && system_clock::from_time_t(lastUpdate) > system_clock::now() - 24h) {
+	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
 		// the last rainfall datapoint is not too old, we can use
 		// it as a reference for the current number of clicks recorded
 		// by the pluviometer
@@ -107,8 +90,6 @@ void LorainMqttSubscriber::processArchive(const mqtt::string_view& topicName, co
 	pt::ptree jsonTree;
 	std::istringstream jsonStream{std::string{content}};
 	pt::read_json(jsonStream, jsonTree);
-
-	date::sys_seconds timestamp;
 	std::string t = jsonTree.get<std::string>("timestamp");
 	std::istringstream is{t};
 	// don't bother parsing the seconds and subseconds
@@ -117,37 +98,9 @@ void LorainMqttSubscriber::processArchive(const mqtt::string_view& topicName, co
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Data received for timestamp " << timestamp << " (" << t << ")" << std::endl;
 	std::string payload = jsonTree.get<std::string>("value.payload");
 
-	msg.ingest(payload, timestamp, prev);
-
-	int ret = false;
-	if (msg.looksValid()) {
-		ret = _db.insertV2DataPoint(msg.getObservation(station));
-	} else {
-		std::cerr << SD_WARNING << "[MQTT " << station << "] measurement: "
-			<< "Record looks invalid, discarding " << std::endl;
-	}
-
-	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Archive data stored for timestamp " << timestamp << std::endl;
-		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
-		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
-		if (!ret)
-			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-				<< "Couldn't update last archive download time" << std::endl;
-
-
-		ret = _db.cacheInt(station, LORAIN_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(timestamp), msg.getRainfallClicks());
-		if (!ret)
-			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-				<< "Couldn't update the rainfall number of clicks, accumulation error possible" << std::endl;
-
-
-	} else {
-		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: " << "Failed to store archive for MQTT station "
-			<< stationName << "! Aborting" << std::endl;
-		// will retry...
-		return;
-	}
+	std::unique_ptr<LorainMessage> msg = std::make_unique<LorainMessage>();
+	msg->ingest(payload, timestamp, prev);
+	return msg;
 }
 
 }
