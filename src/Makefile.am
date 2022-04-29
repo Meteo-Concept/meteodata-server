@@ -87,6 +87,8 @@ meteodata_SOURCES = \
 		    mqtt/objenious_mqtt_subscriber.h\
 		    mqtt/liveobjects_mqtt_subscriber.cpp\
 		    mqtt/liveobjects_mqtt_subscriber.h\
+		    mqtt/barani_anemometer_mqtt_subscriber.cpp\
+		    mqtt/barani_anemometer_mqtt_subscriber.h\
 		    mqtt/lorain_mqtt_subscriber.cpp\
 		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
@@ -119,6 +121,8 @@ meteodata_SOURCES = \
 		    synop/synop_decoder/synop_message.h\
 		    synop/synop_downloader.cpp\
 		    synop/synop_downloader.h\
+		    barani/barani_anemometer_message.cpp\
+		    barani/barani_anemometer_message.h\
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\
 		    pessl/fieldclimate_api_download_scheduler.cpp\

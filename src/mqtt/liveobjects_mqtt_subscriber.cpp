@@ -114,5 +114,9 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	}
 }
 
+void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
+{
+	// no-op
+}
 
 }
