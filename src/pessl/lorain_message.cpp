@@ -46,23 +46,10 @@ void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& 
 {
 	using namespace hex_parser;
 
-	if (payload.length() != 94) {
-		_obs.valid = false;
-		std::cerr << SD_ERR << "[MQTT Lorain] protocol: "
-			  << "Invalid size " << payload.length() << " for payload " << payload << ", should be 94"
-			  << std::endl;
-		return;
-	}
-
-	if (!std::all_of(payload.cbegin(), payload.cend(),
-		[](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); })) {
-		std::cerr << SD_ERR << "[MQTT Lorain] protocol: "
-			  << "Payload " << payload << " contains invalid characters"
-			  << std::endl;
+	if (!validateInput(payload, 94))  {
 		_obs.valid = false;
 		return;
 	}
-
 
 	_obs.time = datetime;
 

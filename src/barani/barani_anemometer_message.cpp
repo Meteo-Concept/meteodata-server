@@ -21,9 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iostream>
 #include <string>
-#include <systemd/sd-daemon.h>
+#include <sstream>
+#include <vector>
 #include <cmath>
 
 #include <cassandra.h>
@@ -42,23 +42,10 @@ void BaraniAnemometerMessage::ingest(const std::string& payload, const date::sys
 {
 	using namespace hex_parser;
 
-	if (payload.length() != 20) {
-		_obs.valid = false;
-		std::cerr << SD_ERR << "[MQTT BaraniAnemometer] protocol: "
-			  << "Invalid size " << payload.length() << " for payload " << payload << ", should be 20"
-			  << std::endl;
-		return;
-	}
-
-	if (!std::all_of(payload.cbegin(), payload.cend(),
-		[](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'); })) {
-		std::cerr << SD_ERR << "[MQTT BaraniAnemometer] protocol: "
-			  << "Payload " << payload << " contains invalid characters"
-			  << std::endl;
+	if (!validateInput(payload, 20)) {
 		_obs.valid = false;
 		return;
 	}
-
 
 	_obs.time = datetime;
 

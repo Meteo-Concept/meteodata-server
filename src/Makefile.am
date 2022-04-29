@@ -78,6 +78,7 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_messages/mbdata_wswin_message.h\
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h\
+		    mqtt/liveobjects_message.cpp\
 		    mqtt/liveobjects_message.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
@@ -89,6 +90,8 @@ meteodata_SOURCES = \
 		    mqtt/liveobjects_mqtt_subscriber.h\
 		    mqtt/barani_anemometer_mqtt_subscriber.cpp\
 		    mqtt/barani_anemometer_mqtt_subscriber.h\
+		    mqtt/barani_rain_gauge_mqtt_subscriber.cpp\
+		    mqtt/barani_rain_gauge_mqtt_subscriber.h\
 		    mqtt/lorain_mqtt_subscriber.cpp\
 		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
@@ -123,6 +126,8 @@ meteodata_SOURCES = \
 		    synop/synop_downloader.h\
 		    barani/barani_anemometer_message.cpp\
 		    barani/barani_anemometer_message.h\
+		    barani/barani_rain_gauge_message.cpp\
+		    barani/barani_rain_gauge_message.h\
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\
 		    pessl/fieldclimate_api_download_scheduler.cpp\

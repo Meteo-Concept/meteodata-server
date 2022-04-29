@@ -1,6 +1,6 @@
 /**
  * @file liveobjects_message.h
- * @brief Definition of the LiveobjectsMessage interface
+ * @brief Definition of the LiveobjectsMessage class
  * @author Laurent Georget
  * @date 2022-04-28
  */
@@ -24,12 +24,17 @@
 #ifndef LIVEOBJECTS_MESSAGE_H
 #define LIVEOBJECTS_MESSAGE_H
 
+#include <cassandra.h>
+#include <observation.h>
+
 namespace meteodata {
 
 class LiveobjectsMessage
 {
 public:
 	virtual ~LiveobjectsMessage() = default;
+
+	virtual bool validateInput(const std::string& payload, int expectedSize);
 
 	virtual Observation getObservation(const CassUuid& station) const = 0;
 
