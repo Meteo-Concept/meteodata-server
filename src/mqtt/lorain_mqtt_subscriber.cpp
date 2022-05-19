@@ -56,7 +56,6 @@ LorainMqttSubscriber::LorainMqttSubscriber(MqttSubscriber::MqttSubscriptionDetai
 {
 }
 
-
 void LorainMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
 {
 	// always safe, the pointer is constructed by the method buildMessage below
@@ -70,8 +69,8 @@ void LorainMqttSubscriber::postInsert(const CassUuid& station, const std::unique
 	}
 }
 
-std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessage(const mqtt::string_view& content, const CassUuid& station,
-																								  date::sys_seconds& timestamp)
+std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessage(const pt::ptree& json, const CassUuid& station,
+																				  date::sys_seconds& timestamp)
 {
 	using namespace std::chrono;
 	using date::operator<<;
@@ -87,16 +86,13 @@ std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessag
 		prev = previousClicks;
 	}
 
-	pt::ptree jsonTree;
-	std::istringstream jsonStream{std::string{content}};
-	pt::read_json(jsonStream, jsonTree);
-	std::string t = jsonTree.get<std::string>("timestamp");
+	std::string t = json.get<std::string>("timestamp");
 	std::istringstream is{t};
 	// don't bother parsing the seconds and subseconds
 	is >> date::parse("%Y-%m-%dT%H:%M:", timestamp);
 
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Data received for timestamp " << timestamp << " (" << t << ")" << std::endl;
-	std::string payload = jsonTree.get<std::string>("value.payload");
+	std::string payload = json.get<std::string>("value.payload");
 
 	std::unique_ptr<LorainMessage> msg = std::make_unique<LorainMessage>();
 	msg->ingest(payload, timestamp, prev);

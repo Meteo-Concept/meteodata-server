@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <boost/asio/io_service.hpp>
-#include <boost/optional.hpp>
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
@@ -59,7 +59,7 @@ protected:
 	}
 
 	void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) override;
-	std::unique_ptr<LiveobjectsMessage> buildMessage(const mqtt::string_view& content, const CassUuid& station, date::sys_seconds& timestamp) override;
+	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& content, const CassUuid& station, date::sys_seconds& timestamp) override;
 };
 
 }

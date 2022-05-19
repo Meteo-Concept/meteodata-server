@@ -73,9 +73,14 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 {
 	using date::operator<<;
 
+	pt::ptree jsonTree;
+	std::istringstream jsonStream{std::string{content}};
+	pt::read_json(jsonStream, jsonTree);
+	std::string streamId = jsonTree.get<std::string>("streamId");
+
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
-		std::cout << SD_NOTICE << "[MQTT Liveobjects protocol]: " << "Unknown topic " << topicName << std::endl;
+		std::cout << SD_NOTICE << "[MQTT Liveobjects] protocol: " << "Unknown stream id " << streamId << std::endl;
 		return;
 	}
 
@@ -86,7 +91,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 
 
 	date::sys_seconds timestamp;
-	std::unique_ptr<LiveobjectsMessage> msg = buildMessage(content, station, timestamp);
+	std::unique_ptr<LiveobjectsMessage> msg = buildMessage(jsonTree, station, timestamp);
 
 	int ret = false;
 	if (msg->looksValid()) {
