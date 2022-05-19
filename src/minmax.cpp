@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 			std::cerr << message->message << " (from " << message->function << ", in " << message->function << ", line "
 					  << message->line << ")" << std::endl;
 		};
-		cass_log_set_callback(logCallback, NULL);
+		cass_log_set_callback(logCallback, nullptr);
 
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
