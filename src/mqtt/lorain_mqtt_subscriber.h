@@ -32,7 +32,6 @@
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
-#include "../pessl/lorain_message.h"
 #include "mqtt_subscriber.h"
 #include "liveobjects_mqtt_subscriber.h"
 

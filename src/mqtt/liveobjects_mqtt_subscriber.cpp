@@ -21,11 +21,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "../pessl/lorain_message.h"
-#include "lorain_mqtt_subscriber.h"
-#include "mqtt_subscriber.h"
-#include "../cassandra_utils.h"
-#include "../time_offseter.h"
+#include <chrono>
+#include <map>
+#include <iterator>
+#include <functional>
+#include <memory>
+#include <iostream>
+
 #include <mqtt_client_cpp.hpp>
 #include <dbconnection_observations.h>
 #include <date.h>
@@ -33,18 +35,16 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <systemd/sd-daemon.h>
-#include <chrono>
-#include <map>
-#include <iterator>
-#include <functional>
-#include <memory>
-#include <iostream>
+
+#include "mqtt_subscriber.h"
 #include "liveobjects_mqtt_subscriber.h"
+#include "../cassandra_utils.h"
 
-namespace meteodata {
+namespace meteodata
+{
 
-LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
-	 DbConnectionObservations& db) :
+LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
+													 asio::io_service& ioService, DbConnectionObservations& db) :
 		MqttSubscriber(details, ioService, db)
 {
 }
@@ -55,15 +55,15 @@ bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
 			std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "client " << _details.host
-				<< ": received an invalid subscription ack?!" << std::endl;
+					  << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		const std::string& topic = subscriptionIt->second;
 		const auto& station = _stations[topic];
 		if (!e) {
-			std::cerr << SD_ERR << "[MQTT Liveobjects " << std::get<1>(station) << "] connection: " << "subscription failed: "
-				<< mqtt::qos::to_str(*e) << std::endl;
+			std::cerr << SD_ERR << "[MQTT Liveobjects " << std::get<1>(station) << "] connection: "
+					  << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
 		}
 	}
 	return true;
@@ -87,7 +87,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	const CassUuid& station = std::get<0>(stationIt->second);
 	const std::string& stationName = std::get<1>(stationIt->second);
 	std::cout << SD_DEBUG << "[MQTT Liveobjects " << station << "] measurement: " << "Now receiving for MQTT station "
-		<< stationName << std::endl;
+			  << stationName << std::endl;
 
 
 	date::sys_seconds timestamp;
@@ -98,22 +98,23 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 		ret = _db.insertV2DataPoint(msg->getObservation(station));
 	} else {
 		std::cerr << SD_WARNING << "[MQTT Liveobjects " << station << "] measurement: "
-			<< "Record looks invalid, discarding " << std::endl;
+				  << "Record looks invalid, discarding " << std::endl;
 	}
 
 	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT Liveobjects " << station << "] measurement: " << "Archive data stored for timestamp " << timestamp << std::endl;
+		std::cout << SD_DEBUG << "[MQTT Liveobjects " << station << "] measurement: "
+				  << "Archive data stored for timestamp " << timestamp << std::endl;
 		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] management: "
-				<< "Couldn't update last archive download time" << std::endl;
+					  << "Couldn't update last archive download time" << std::endl;
 
 
 		postInsert(station, msg);
 	} else {
-		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] measurement: " << "Failed to store archive for MQTT station "
-			<< stationName << "! Aborting" << std::endl;
+		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] measurement: "
+				  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}

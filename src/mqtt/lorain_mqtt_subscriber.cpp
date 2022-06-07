@@ -23,9 +23,7 @@
 
 #include <iostream>
 #include <memory>
-#include <functional>
 #include <iterator>
-#include <map>
 #include <chrono>
 #include <systemd/sd-daemon.h>
 
