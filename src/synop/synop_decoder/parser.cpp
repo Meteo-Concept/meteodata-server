@@ -237,6 +237,11 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 	it++;
 
 	// # Second group, mandatory
+	if (it == _groups.end()) {
+		// if it's not present, that's a bad input
+		return false;
+	}
+
 	// Nebulosity, N
 	_message._cloudCover = static_cast<Nebulosity>(it->at(0));
 
@@ -251,6 +256,9 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 		//special case first
 		if (*ff == 99) {
 			it++;
+			if (it == _groups.end())
+				return false;
+
 			if (it->at(0) != '0' || it->at(1) != '0')
 				return false;
 			if (it->at(2) != '/' && it->at(3) != '/' && it->at(4) != '/')
@@ -326,6 +334,9 @@ bool Parser::parseSection1(decltype(_groups)::iterator& it)
 
 bool Parser::parseSection2(decltype(_groups)::iterator& it)
 {
+	if (it == _groups.end())
+		return false;
+
 	if (it->at(0) != '2' && it->at(1) != '2' && it->at(2) != '2')
 		return false;
 	++it;
