@@ -228,8 +228,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	if (days.count() > MAX_DISCONNECTION_DAYS && !force) {
 		std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connection: " << "Station " << _stationName
-				  << " has been disconnected for more than " << MAX_DISCONNECTION_DAYS
-				  << " days, not downloading without --force, " << "please reset the station manually" << std::endl;
+				  << " has been disconnected for " << days.count() << " (more than " << MAX_DISCONNECTION_DAYS << "),"
+				  << " not downloading without --force, " << "please reset the station manually" << std::endl;
 		return;
 	}
 

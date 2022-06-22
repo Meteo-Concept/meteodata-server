@@ -136,8 +136,8 @@ void MeteoServer::start()
 		_db.getDeferredSynops(deferredSynops);
 		for (auto&& synop : deferredSynops) {
 			auto deferredSynopDownloader = std::make_shared<DeferredSynopDownloader>(_ioService, _db,
-																					 std::get<1>(synop),
-																					 std::get<0>(synop));
+				std::get<1>(synop),
+				std::get<0>(synop));
 			deferredSynopDownloader->start();
 		}
 	}
@@ -154,9 +154,9 @@ void MeteoServer::start()
 		_db.getStatICTxtStations(statICTxtStations);
 		for (auto&& station : statICTxtStations) {
 			auto subscriber = std::make_shared<StatICTxtDownloader>(_ioService, _db, std::get<0>(station),
-																	std::get<1>(station), std::get<2>(station),
-																	std::get<3>(station), std::get<4>(station),
-																	std::get<5>(station));
+				std::get<1>(station), std::get<2>(station),
+				std::get<3>(station), std::get<4>(station),
+				std::get<5>(station));
 			subscriber->start();
 		}
 	}
