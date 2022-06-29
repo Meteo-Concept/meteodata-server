@@ -149,31 +149,39 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 
 		bool ret = true;
 		auto start = _lastArchive;
+		auto end = _lastArchive;
 
-		for (; dataPoint < pastLastDataPoint && ret ; ++dataPoint) {
+		std::vector<VantagePro2ArchiveMessage> messages;
+
+		// Find the timestamp of the last valid data point (and constructs the messages while we are at it)
+		for (; dataPoint < pastLastDataPoint ; ++dataPoint) {
 			VantagePro2ArchiveMessage message{*dataPoint, &_timeOffseter};
 
 			if (message.looksValid()) {
-				_lastArchive = message.getTimestamp();
-				auto end = _lastArchive;
-				auto day = date::floor<date::days>(start);
-				auto lastDay = date::floor<date::days>(end);
-				while (day <= lastDay) {
-					ret = _db.deleteDataPoints(_station, day, start, end);
-
-					if (!ret)
-						std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
-								  << "couldn't delete temporary realtime observations" << std::endl;
-					day += date::days(1);
-				}
-
-				start = end;
-				ret = _db.insertV2DataPoint(message.getObservation(_station));
+				end = message.getTimestamp();
+				messages.emplace_back(message);
 			} else {
 				std::cerr << SD_WARNING << "[Weatherlink_v1 " << _station << "] measurement: "
 						  << "record looks invalid, discarding..." << std::endl;
 			}
-			//Otherwise, just discard
+		}
+
+		auto day = date::floor<date::days>(start);
+		auto lastDay = date::floor<date::days>(end);
+		while (day <= lastDay) {
+			ret = _db.deleteDataPoints(_station, day, start, end);
+
+			if (!ret)
+				std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
+						  << "couldn't delete temporary realtime observations" << std::endl;
+			day += date::days(1);
+		}
+
+		for (auto it = messages.begin() ; it != messages.end() && ret ; ++it) {
+			VantagePro2ArchiveMessage& message = *it;
+
+			_lastArchive = message.getTimestamp();
+			ret = _db.insertV2DataPoint(message.getObservation(_station));
 		}
 
 		if (ret) {
