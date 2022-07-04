@@ -167,9 +167,19 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			auto rainRate = data.get<int>("rain_rate_hi_clicks", INVALID_INT);
 			if (!isInvalid(rainRate))
 				_obs.rainRate = from_rainrate_to_mm(rainRate);
-			auto rainFall = data.get<int>("rainfall_last_15_min_clicks", INVALID_INT);
-			if (!isInvalid(rainFall))
-				_obs.rainFall = from_rainrate_to_mm(rainFall);
+			auto rainFall = data.get<int>("rainfall_daily_clicks", INVALID_INT);
+			if (!isInvalid(rainFall)) {
+				float lastRecordedDayRain = _dayRain;
+				_dayRain = from_rainrate_to_mm(rainFall);
+				float diff = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
+				if (diff > -0.1) { // don't compare with exactly 0 because of rouding errors
+					// If the diff is negative,
+					// either the station clock is off or we
+					// are not looking at the correct reset
+					// time to compute _dayRain.
+					_obs.rainFall = diff;
+				}
+			}
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 			_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
 		}
@@ -197,12 +207,9 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			if (!isInvalid(rainFall)) {
 				float lastRecordedDayRain = _dayRain;
 				_dayRain = from_rainrate_to_mm(rainFall);
-				_obs.rainFall = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
-				if (_obs.rainFall < -0.1) { // don't compare with exactly 0 because of rouding errors
-					// Either the station clock is off or we
-					// are not looking at the correct reset
-					// time to compute _dayRain
-					_obs.rainFall = from_rainrate_to_mm(rainFall);
+				float diff = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
+				if (diff > -0.1) {
+					_obs.rainFall = diff;
 				}
 			}
 			_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
