@@ -27,7 +27,6 @@
 #include <iterator>
 #include <map>
 #include <chrono>
-#include <sstream>
 #include <systemd/sd-daemon.h>
 
 #include <cassandra.h>
@@ -38,7 +37,6 @@
 #include "../cassandra_utils.h"
 #include "mqtt_subscriber.h"
 #include "vp2_mqtt_subscriber.h"
-#include "../davis/vantagepro2_archive_page.h"
 
 namespace sys = boost::system;
 namespace chrono = std::chrono;

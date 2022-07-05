@@ -111,9 +111,8 @@ protected:
 	virtual bool handlePubRec(std::uint16_t packetId);
 	virtual bool handlePubComp(std::uint16_t packetId);
 	virtual bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results);
-	virtual bool
-	handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id, mqtt::string_view topic_name,
-				  mqtt::string_view contents);
+	virtual bool handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id,
+							   mqtt::string_view topic_name, mqtt::string_view contents);
 };
 
 bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2);
