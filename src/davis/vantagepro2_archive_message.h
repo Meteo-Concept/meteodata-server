@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
+#include <optional>
 
 #include <boost/asio.hpp>
 
@@ -129,9 +130,12 @@ public:
 	 * It's not entirely foolproof but cover all known cases of uninitialized
 	 * archive records.
 	 */
-	inline bool looksValid() const
+	inline bool looksValid(std::optional<date::sys_seconds> notBefore = std::nullopt) const
 	{
-		return memcmp(&_data, "\0\0\0\0", 4) != 0 && getTimestamp() < chrono::system_clock::now();
+		auto t = getTimestamp();
+		return  memcmp(&_data, "\0\0\0\0", 4) != 0 &&
+			    t < chrono::system_clock::now() &&
+				(!notBefore || t > *notBefore);
 	}
 
 private:

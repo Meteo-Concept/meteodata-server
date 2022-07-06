@@ -46,7 +46,7 @@ bool VantagePro2ArchivePage::isValid() const
 	return VantagePro2Message::validateCRC(&_page, sizeof(ArchivePage));
 }
 
-bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point, bool v2)
+bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point)
 {
 	if (*reinterpret_cast<const uint32_t*>(&point) == 0xFFFFFFFF) // dash value
 		return false;
@@ -54,7 +54,7 @@ bool VantagePro2ArchivePage::isRelevant(const VantagePro2ArchiveMessage::Archive
 	auto time = _timeOffseter->convertFromLocalTime(point.day, point.month, point.year + 2000, point.time / 100,
 													point.time % 100);
 	auto now = chrono::system_clock::now();
-	if ((time > _beginning || v2) && time <= now) {
+	if (time > _beginning && time <= now) {
 		if (time > _mostRecent)
 			_mostRecent = date::floor<chrono::seconds>(time);
 		return true;
@@ -66,9 +66,9 @@ bool VantagePro2ArchivePage::store(DbConnectionObservations& db, const CassUuid&
 {
 	bool ret = true;
 	for (int i = 0 ; i < NUMBER_OF_DATA_POINTS_PER_PAGE && ret ; i++) {
-		if (isRelevant(_page.points[i], true)) {
+		if (isRelevant(_page.points[i])) {
 			VantagePro2ArchiveMessage msg{_page.points[i], _timeOffseter};
-			if (msg.looksValid())
+			if (msg.looksValid(_beginning))
 				ret = db.insertV2DataPoint(msg.getObservation(station));
 		}
 	}

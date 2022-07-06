@@ -172,12 +172,11 @@ private:
 	 * timestamp (not newer than current time).
 	 *
 	 * @param point The archive entry
-	 * @param v2 Whether we are considering the v1 or v2 database
 	 *
 	 * @return True if, and only if, \a point should be inserted in the
 	 * database
 	 */
-	bool isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point, bool v2);
+	bool isRelevant(const VantagePro2ArchiveMessage::ArchiveDataPoint& point);
 };
 
 }
