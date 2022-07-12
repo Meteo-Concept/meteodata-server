@@ -38,14 +38,18 @@ class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
 	LiveobjectsMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
+					const std::string& streamId);
 
 protected:
+	bool handleConnAck(bool res, uint8_t packetId) override;
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
 
 	virtual void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg);
 	virtual std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp) = 0;
 
+	virtual const char* getTopic() const = 0;
 };
 
 }

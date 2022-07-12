@@ -49,6 +49,15 @@ LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(MqttSubscriber::MqttSubscri
 {
 }
 
+bool LiveobjectsMqttSubscriber::handleConnAck(bool res, uint8_t)
+{
+	if (res) {
+		std::string topic = getTopic();
+		_subscriptions[_client->subscribe(topic, mqtt::qos::at_least_once)] = topic;
+	}
+	return res;
+}
+
 bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
 {
 	for (auto const& e : results) { /* we are expecting only one */
@@ -59,10 +68,8 @@ bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector
 			continue;
 		}
 
-		const std::string& topic = subscriptionIt->second;
-		const auto& station = _stations[topic];
 		if (!e) {
-			std::cerr << SD_ERR << "[MQTT Liveobjects " << std::get<1>(station) << "] connection: "
+			std::cerr << SD_ERR << "[MQTT Liveobjects " << getTopic() << "] connection: "
 					  << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
 		}
 	}
@@ -76,9 +83,9 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	pt::ptree jsonTree;
 	std::istringstream jsonStream{std::string{content}};
 	pt::read_json(jsonStream, jsonTree);
-	std::string streamId = jsonTree.get<std::string>("streamId");
+	const std::string& streamId = jsonTree.get<std::string>("streamId");
 
-	auto stationIt = _stations.find(topicName.to_string());
+	auto stationIt = _stations.find(streamId);
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT Liveobjects] protocol: " << "Unknown stream id " << streamId << std::endl;
 		return;
@@ -123,6 +130,13 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
 {
 	// no-op
+}
+
+void LiveobjectsMqttSubscriber::addStation(const std::string& topic, const CassUuid& station,
+										   TimeOffseter::PredefinedTimezone tz, const std::string& streamId)
+{
+	// Use the stream id instead of the topic, all the stations message go to the same topic
+	MqttSubscriber::addStation(streamId, station, tz);
 }
 
 }

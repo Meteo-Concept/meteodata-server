@@ -60,6 +60,11 @@ protected:
 
 	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp) override;
 
+	const char* getTopic() const override
+	{
+		return "fifo/Barani_rain";
+	}
+
 private:
 	static constexpr float BARANI_RAIN_GAUGE_RESOLUTION = 0.2f;
 	static constexpr char BARANI_RAINFALL_CACHE_KEY[] = "barani_rainfall_clicks";

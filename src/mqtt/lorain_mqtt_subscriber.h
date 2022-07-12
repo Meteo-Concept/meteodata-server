@@ -59,6 +59,11 @@ protected:
 
 	void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) override;
 	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& content, const CassUuid& station, date::sys_seconds& timestamp) override;
+
+	const char* getTopic() const override
+	{
+		return "fifo/Lorain";
+	}
 };
 
 }

@@ -40,6 +40,8 @@
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
 #include "mqtt/lorain_mqtt_subscriber.h"
+#include "mqtt/barani_rain_gauge_mqtt_subscriber.h"
+#include "mqtt/barani_anemometer_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_txt_downloader.h"
 #include "synop/deferred_synop_downloader.h"
@@ -70,11 +72,15 @@ void MeteoServer::start()
 		// Start the MQTT subscribers (one per station)
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
+		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LorainMqttSubscriber>> lorainMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniAnemometerMqttSubscriber>> baraniAnemometerMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniRainGaugeMqttSubscriber>> baraniRainGaugeMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
-		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getMqttStations(mqttStations);
+		_db.getAllObjeniousApiStations(objeniousStations);
+		_db.getAllLiveobjectsStations(liveobjectsStations);
 		for (auto&& station : mqttStations) {
 			MqttSubscriber::MqttSubscriptionDetails details{std::get<1>(station), std::get<2>(station),
 				std::get<3>(station), std::string(std::get<4>(station).get(), std::get<5>(station))};
@@ -102,13 +108,33 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
-			} else if (topic.substr(0, 11) == "fifo/Lorain") {
+			} else if (topic == "fifo/Lorain") {
 				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
 				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {
 					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioService, _db);
 					mqttSubscribersIt = lorainMqttSubscribers.emplace(details, subscriber).first;
 				}
-				mqttSubscribersIt->second->addStation(topic, uuid, tz);
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
+			} else if (topic == "fifo/Barani_rain") {
+				auto mqttSubscribersIt = baraniRainGaugeMqttSubscribers.find(details);
+				if (mqttSubscribersIt == baraniRainGaugeMqttSubscribers.end()) {
+					std::shared_ptr<BaraniRainGaugeMqttSubscriber> subscriber = std::make_shared<BaraniRainGaugeMqttSubscriber>(details, _ioService, _db);
+					mqttSubscribersIt = baraniRainGaugeMqttSubscribers.emplace(details, subscriber).first;
+				}
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
+			} else if (topic == "fifo/Barani_anemo") {
+				auto mqttSubscribersIt = baraniAnemometerMqttSubscribers.find(details);
+				if (mqttSubscribersIt == baraniAnemometerMqttSubscribers.end()) {
+					std::shared_ptr<BaraniAnemometerMqttSubscriber> subscriber = std::make_shared<BaraniAnemometerMqttSubscriber>(details, _ioService, _db);
+					mqttSubscribersIt = baraniAnemometerMqttSubscribers.emplace(details, subscriber).first;
+				}
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
 			} else {
 				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
 						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
@@ -120,6 +146,10 @@ void MeteoServer::start()
 		for (auto&& mqttSubscriber : objeniousMqttSubscribers)
 			mqttSubscriber.second->start();
 		for (auto&& mqttSubscriber : lorainMqttSubscribers)
+			mqttSubscriber.second->start();
+		for (auto&& mqttSubscriber : baraniRainGaugeMqttSubscribers)
+			mqttSubscriber.second->start();
+		for (auto&& mqttSubscriber : baraniAnemometerMqttSubscribers)
 			mqttSubscriber.second->start();
 	}
 

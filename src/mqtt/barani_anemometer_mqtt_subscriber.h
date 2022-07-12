@@ -56,6 +56,11 @@ protected:
 		return "barani_anemo";
 	}
 
+	const char* getTopic() const override
+	{
+		return "fifo/Barani_anemo";
+	}
+
 	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp) override;
 };
 

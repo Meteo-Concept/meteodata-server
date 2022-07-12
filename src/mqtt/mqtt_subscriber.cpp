@@ -117,6 +117,10 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 
 bool MqttSubscriber::handleConnAck(bool, uint8_t)
 {
+	for (auto&& station : _stations) {
+		_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
+	}
+
 	return true;
 }
 
@@ -206,9 +210,7 @@ void MqttSubscriber::start()
 			_retries = 0;
 			std::cerr << SD_NOTICE << "[MQTT] protocol: " << "Connection established to " << _details.host << ": "
 					  << mqtt::connect_return_code_to_str(ret) << std::endl;
-			for (auto&& station : _stations) {
-				_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
-			}
+
 			return handleConnAck(sp, ret);
 		} else {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "Failed to establish connection to " << _details.host << ": "
