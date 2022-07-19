@@ -51,11 +51,9 @@ LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(MqttSubscriber::MqttSubscri
 
 bool LiveobjectsMqttSubscriber::handleConnAck(bool res, uint8_t)
 {
-	if (res) {
-		std::string topic = getTopic();
-		_subscriptions[_client->subscribe(topic, mqtt::qos::at_least_once)] = topic;
-	}
-	return res;
+	std::string topic = getTopic();
+	_subscriptions[_client->subscribe(topic, mqtt::qos::at_least_once)] = topic;
+	return true;
 }
 
 bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
@@ -133,7 +131,7 @@ void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::u
 }
 
 void LiveobjectsMqttSubscriber::addStation(const std::string& topic, const CassUuid& station,
-										   TimeOffseter::PredefinedTimezone tz, const std::string& streamId)
+	TimeOffseter::PredefinedTimezone tz, const std::string& streamId)
 {
 	// Use the stream id instead of the topic, all the stations message go to the same topic
 	MqttSubscriber::addStation(streamId, station, tz);

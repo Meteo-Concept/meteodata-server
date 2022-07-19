@@ -116,7 +116,8 @@ void MeteoServer::start()
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
+				if (it != liveobjectsStations.end())
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else if (topic == "fifo/Barani_rain") {
 				auto mqttSubscribersIt = baraniRainGaugeMqttSubscribers.find(details);
 				if (mqttSubscribersIt == baraniRainGaugeMqttSubscribers.end()) {
@@ -125,7 +126,8 @@ void MeteoServer::start()
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
+				if (it != liveobjectsStations.end())
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else if (topic == "fifo/Barani_anemo") {
 				auto mqttSubscribersIt = baraniAnemometerMqttSubscribers.find(details);
 				if (mqttSubscribersIt == baraniAnemometerMqttSubscribers.end()) {
@@ -134,7 +136,8 @@ void MeteoServer::start()
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<2>(*it));
+				if (it != liveobjectsStations.end())
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else {
 				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
 						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
