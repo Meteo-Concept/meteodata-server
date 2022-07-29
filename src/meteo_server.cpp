@@ -69,7 +69,7 @@ MeteoServer::MeteoServer(boost::asio::io_service& ioService, MeteoServer::MeteoS
 void MeteoServer::start()
 {
 	if (_configuration.startMqtt) {
-		// Start the MQTT subscribers (one per station)
+		// Start the MQTT subscribers (one per server and station type/API)
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
 		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;

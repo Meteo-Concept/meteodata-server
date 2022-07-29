@@ -49,7 +49,7 @@ VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObserva
 		std::smatch match;
 		if (std::regex_search(topic, match, userName)) {
 			_userAndTimezoneByStation[std::get<0>(s)] = {match[1].str(),
-														 TimeOffseter::PredefinedTimezone(std::get<7>(s))};
+			TimeOffseter::PredefinedTimezone(std::get<7>(s))};
 		}
 	}
 }
@@ -70,13 +70,12 @@ void VantagePro2HttpRequestHandler::processRequest(const Request& request, Respo
 		}
 	}
 
-	response.result(
-			targetFound ? boost::beast::http::status::method_not_allowed : boost::beast::http::status::not_found);
+	response.result(targetFound ? boost::beast::http::status::method_not_allowed : boost::beast::http::status::not_found);
 }
 
 
 bool VantagePro2HttpRequestHandler::getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid,
-														  const std::cmatch& url)
+		const std::cmatch& url)
 {
 	cass_uuid_from_string(url[1].str().c_str(), &uuid);
 	const boost::beast::string_view httpUser = request.base()["X-Authenticated-User"];

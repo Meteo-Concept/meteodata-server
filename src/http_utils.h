@@ -73,8 +73,8 @@ inline std::string computeHMACWithSHA256(const std::string& str, const std::stri
 	unsigned char rawOutput[EVP_MAX_MD_SIZE + 1];
 
 	unsigned char* result = HMAC(sha256, reinterpret_cast<const unsigned char*>(key.data()), key.length(),
-								 reinterpret_cast<const unsigned char*>(str.data()), str.length(), rawOutput,
-								 &finalSize);
+		reinterpret_cast<const unsigned char*>(str.data()), str.length(), rawOutput,
+		&finalSize);
 	if (!result)
 		throw std::runtime_error("OpenSSL failed to compute the HMAC for the string: " + str);
 	rawOutput[finalSize] = 0;
