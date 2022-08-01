@@ -3,6 +3,8 @@ Description = Meteodata server
 After = network.target network-online.target
 Wants = network-online.target
 Requires =
+StartLimitIntervalSec = 60
+StartLimitBurst = 10
 
 [Service]
 User = meteodata
@@ -10,8 +12,6 @@ Group = meteodata
 Type = notify
 ExecStart = /usr/local/bin/meteodata
 Restart = on-abnormal
-StartLimitInterval = 60
-StartLimitBurst = 10
 WatchdogSec = 60
 NotifyAccess = all
 

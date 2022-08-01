@@ -10,7 +10,7 @@ Group = dialout
 Type = exec
 ExecStart = /usr/local/bin/vantage
 Restart = always
-RestartSec=5min
+RestartSec = 5min
 
 [Install]
 WantedBy = multi-user.target
