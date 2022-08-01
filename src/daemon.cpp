@@ -152,21 +152,21 @@ int main(int argc, char** argv)
 
 		if (vm.count("only-mqtt"))
 			serverConfig.startMqtt = true;
-		else if (vm.count("only-synop"))
+		if (vm.count("only-synop"))
 			serverConfig.startSynop = true;
-		else if (vm.count("only-ship"))
+		if (vm.count("only-ship"))
 			serverConfig.startShip = true;
-		else if (vm.count("only-static"))
+		if (vm.count("only-static"))
 			serverConfig.startStatic = true;
-		else if (vm.count("only-weatherlink"))
+		if (vm.count("only-weatherlink"))
 			serverConfig.startWeatherlink = true;
-		else if (vm.count("only-fieldclimate"))
+		if (vm.count("only-fieldclimate"))
 			serverConfig.startFieldclimate = true;
-		else if (vm.count("only-mbdata"))
+		if (vm.count("only-mbdata"))
 			serverConfig.startMbdata = true;
-		else if (vm.count("only-rest"))
+		if (vm.count("only-rest"))
 			serverConfig.startRest = true;
-		else if (vm.count("only-vp2"))
+		if (vm.count("only-vp2"))
 			serverConfig.startVp2 = true;
 	}
 
