@@ -90,6 +90,13 @@ void FieldClimateApiDownloadScheduler::stop()
 	_timer.cancel();
 }
 
+void FieldClimateApiDownloadScheduler::reload()
+{
+	_timer.cancel();
+	reloadStations();
+	waitUntilNextDownload();
+}
+
 void FieldClimateApiDownloadScheduler::downloadArchives()
 {
 	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {

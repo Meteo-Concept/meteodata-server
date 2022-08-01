@@ -70,10 +70,7 @@ ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_service& ioService, DbConn
 void ShipAndBuoyDownloader::start()
 {
 	_mustStop = false;
-	std::vector<std::tuple<CassUuid, std::string>> icaos;
-	_db.getAllIcaos(icaos);
-	for (auto&& icao : icaos)
-		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
+	reloadStations();
 	download();
 	waitUntilNextDownload();
 }
@@ -82,6 +79,13 @@ void ShipAndBuoyDownloader::stop()
 {
 	_mustStop = true;
 	_timer.cancel();
+}
+
+void ShipAndBuoyDownloader::reload()
+{
+	_timer.cancel();
+	reloadStations();
+	waitUntilNextDownload();
 }
 
 void ShipAndBuoyDownloader::waitUntilNextDownload()
@@ -164,6 +168,15 @@ void ShipAndBuoyDownloader::download()
 		std::string_view error = client.getLastError();
 		std::cerr << SD_ERR << "[SHIP] protocol: " << "Failed to download SHIP and BUOY data: " << error << std::endl;
 	}
+}
+
+void ShipAndBuoyDownloader::reloadStations()
+{
+	_icaos.clear();
+	std::vector<std::tuple<CassUuid, std::string>> icaos;
+	_db.getAllIcaos(icaos);
+	for (auto&& icao : icaos)
+		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
 }
 
 }

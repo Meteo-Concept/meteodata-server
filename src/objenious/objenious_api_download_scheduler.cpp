@@ -86,6 +86,13 @@ void ObjeniousApiDownloadScheduler::stop()
 	_timer.cancel();
 }
 
+void ObjeniousApiDownloadScheduler::reload()
+{
+	_timer.cancel();
+	reloadStations();
+	waitUntilNextDownload();
+}
+
 void ObjeniousApiDownloadScheduler::downloadArchives()
 {
 	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {

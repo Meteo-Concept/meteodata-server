@@ -68,6 +68,7 @@ public:
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start();
 	void stop();
+	void reload();
 
 protected:
 	asio::io_service& _ioService;

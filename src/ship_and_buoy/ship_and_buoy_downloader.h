@@ -60,6 +60,7 @@ public:
 	ShipAndBuoyDownloader(asio::io_service& ioService, DbConnectionObservations& db);
 	void start();
 	void stop();
+	void reload();
 
 private:
 	asio::io_service& _ioService;
@@ -74,6 +75,7 @@ private:
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
 	void download();
+	void reloadStations();
 };
 
 }

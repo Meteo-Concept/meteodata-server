@@ -82,6 +82,11 @@ public:
 	void stop();
 
 	/**
+	 * @brief Reload the configuration
+	 */
+	 void reload();
+
+	/**
 	 * @brief Add a station to download the data for
 	 *
 	 * @param station The station Météodata UUID

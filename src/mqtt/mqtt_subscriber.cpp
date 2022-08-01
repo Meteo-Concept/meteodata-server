@@ -144,6 +144,11 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 
 void MqttSubscriber::handleClose()
 {
+	// do nothing
+}
+
+void MqttSubscriber::handleError(sys::error_code const&)
+{
 	// wait a little and restart, up to three times
 	auto self{shared_from_this()};
 	if (_retries < MAX_RETRIES) {
@@ -153,12 +158,6 @@ void MqttSubscriber::handleClose()
 		std::cerr << SD_ERR << "[MQTT] protocol: " << "impossible to reconnect" << std::endl;
 		// bail off
 	}
-}
-
-void MqttSubscriber::handleError(sys::error_code const&)
-{
-	// Retry connecting
-	handleClose();
 }
 
 bool MqttSubscriber::handlePubAck(uint16_t)
@@ -254,6 +253,15 @@ void MqttSubscriber::start()
 
 void MqttSubscriber::stop()
 {
+	_client->disconnect();
+}
+
+void MqttSubscriber::reload()
+{
+	auto self{shared_from_this()};
+	_client->set_close_handler([this, self]() {
+		start();
+	});
 	_client->disconnect();
 }
 
