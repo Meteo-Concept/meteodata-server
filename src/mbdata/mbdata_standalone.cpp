@@ -1,8 +1,8 @@
 /**
- * @file static_standalone.cpp
- * @brief One-off download from StatIC stations
+ * @file mbdata_standalone.cpp
+ * @brief One-off downloads from MBData stations
  * @author Laurent Georget
- * @date 2018-08-20
+ * @date 2022-08-01
  */
 /*
  * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
@@ -33,8 +33,8 @@
 #include "../time_offseter.h"
 #include "../cassandra_utils.h"
 #include "../curl_wrapper.h"
-#include "static_message.h"
-#include "static_txt_downloader.h"
+#include "mbdata_messages/mbdata_message_factory.h"
+#include "mbdata_txt_downloader.h"
 #include "config.h"
 
 #define DEFAULT_CONFIG_FILE "/etc/meteodata/db_credentials"
@@ -117,16 +117,16 @@ int main(int argc, char** argv)
 		};
 		cass_log_set_callback(logCallback, nullptr);
 
-		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::map<std::string, std::string>>> statICTxtStations;
+		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
 		DbConnectionObservations db{address, user, password};
-		db.getStatICTxtStations(statICTxtStations);
+		db.getMBDataTxtStations(mbDataTxtStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		curl_global_init(CURL_GLOBAL_SSL);
 		CurlWrapper client;
 
 		int retry = 0;
-		for (auto it = statICTxtStations.cbegin() ; it != statICTxtStations.cend() ;) {
+		for (auto it = mbDataTxtStations.cbegin() ; it != mbDataTxtStations.cend() ;) {
 			const auto& station = *it;
 			if (!userSelection.empty()) {
 				if (userSelection.find(std::get<0>(station)) == userSelection.cend()) {
@@ -136,10 +136,7 @@ int main(int argc, char** argv)
 			}
 
 			boost::asio::io_service ioService;
-			StatICTxtDownloader downloader{ioService, db, std::get<0>(station),
-										   std::get<1>(station), std::get<2>(station),
-										   std::get<3>(station), std::get<4>(station),
-										   std::get<5>(station)};
+			MBDataTxtDownloader downloader{ioService, db, station};
 			try {
 				downloader.download(client);
 				retry = 0;

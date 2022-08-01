@@ -36,6 +36,7 @@
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
+#include "../curl_wrapper.h"
 
 namespace meteodata
 {
@@ -54,6 +55,7 @@ public:
 						const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 	void start();
 	void stop();
+	void download(CurlWrapper& client);
 
 private:
 	asio::io_service& _ioService;
@@ -61,17 +63,14 @@ private:
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	CassUuid _station;
 	std::string _stationName;
-	std::string _host;
-	std::string _url;
-	bool _https;
+	std::string _query;
 	std::string _type;
 	date::sys_seconds _lastDownloadTime;
-	TimeOffseter _timeOffseter;
+	TimeOffseter _timeOffseter{};
 	bool _mustStop = false;
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
-	void download();
 };
 
 }

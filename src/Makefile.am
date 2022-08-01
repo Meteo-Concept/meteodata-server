@@ -5,6 +5,7 @@ bin_PROGRAMS = \
 	       meteodata-synop-standalone \
 	       meteodata-weatherlink-oldxml-standalone \
 	       meteodata-weatherlink-apiv2-standalone \
+	       meteodata-mbdata-standalone \
 	       meteodata-static-standalone \
 	       meteodata-fieldclimate-api-standalone\
 	       meteodata-csv-standalone\
@@ -79,6 +80,8 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_messages/mbdata_wswin_message.h\
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h\
+		    mbdata/mbdata_download_scheduler.cpp\
+		    mbdata/mbdata_download_scheduler.h\
 		    mqtt/liveobjects_message.cpp\
 		    mqtt/liveobjects_message.h\
 		    mqtt/mqtt_subscriber.cpp\
@@ -103,6 +106,8 @@ meteodata_SOURCES = \
 		    static/static_message.h\
 		    static/static_txt_downloader.cpp\
 		    static/static_txt_downloader.h\
+		    static/static_download_scheduler.cpp\
+		    static/static_download_scheduler.h\
 		    synop/abstract_synop_downloader.cpp\
 		    synop/abstract_synop_downloader.h\
 		    synop/deferred_synop_downloader.cpp\
@@ -237,6 +242,29 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    davis/weatherlink_apiv2_downloader.h\
 		    davis/weatherlink_apiv2_downloader_standalone.cpp
 
+meteodata_mbdata_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    mbdata/mbdata_standalone.cpp\
+		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
+		    mbdata/mbdata_messages/abstract_mbdata_message.h\
+		    mbdata/mbdata_messages/mbdata_message_factory.h\
+		    mbdata/mbdata_messages/mbdata_meteohub_message.cpp\
+		    mbdata/mbdata_messages/mbdata_meteohub_message.h\
+		    mbdata/mbdata_messages/mbdata_weathercat_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weathercat_message.h\
+		    mbdata/mbdata_messages/mbdata_weatherdisplay_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weatherdisplay_message.h\
+		    mbdata/mbdata_messages/mbdata_weatherlink_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weatherlink_message.h\
+		    mbdata/mbdata_messages/mbdata_wswin_message.cpp\
+		    mbdata/mbdata_messages/mbdata_wswin_message.h\
+		    mbdata/mbdata_txt_downloader.cpp\
+		    mbdata/mbdata_txt_downloader.h
+
 meteodata_static_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -352,6 +380,11 @@ meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(basecppflags)
 meteodata_weatherlink_apiv2_standalone_CXXFLAGS =
 meteodata_weatherlink_apiv2_standalone_LDFLAGS = $(baseldflags)
 meteodata_weatherlink_apiv2_standalone_LDADD = $(baselibs)
+
+meteodata_mbdata_standalone_CPPFLAGS = $(basecppflags)
+meteodata_mbdata_standalone_CXXFLAGS =
+meteodata_mbdata_standalone_LDFLAGS = $(baseldflags)
+meteodata_mbdata_standalone_LDADD = $(baselibs)
 
 meteodata_static_standalone_CPPFLAGS = $(basecppflags)
 meteodata_static_standalone_CXXFLAGS =

@@ -62,12 +62,8 @@ MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnecti
 		_db(db),
 		_timer(_ioService),
 		_station(std::get<0>(downloadDetails)),
-		_host(std::get<1>(downloadDetails)),
-		_url(std::get<2>(downloadDetails)),
-		_https(std::get<3>(downloadDetails)),
 		_type(std::get<5>(downloadDetails)),
-		_lastDownloadTime(chrono::seconds(
-				0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+		_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
 {
 	float latitude;
 	float longitude;
@@ -80,66 +76,19 @@ MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnecti
 	_timeOffseter.setLongitude(longitude);
 	_timeOffseter.setElevation(elevation);
 	_timeOffseter.setMeasureStep(pollingPeriod);
-}
-
-void MBDataTxtDownloader::start()
-{
-	_mustStop = false;
-	waitUntilNextDownload();
-}
-
-void MBDataTxtDownloader::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void MBDataTxtDownloader::waitUntilNextDownload()
-{
-	auto self(shared_from_this());
-	auto target = chrono::steady_clock::now();
-	auto daypoint = date::floor<date::days>(target);
-	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(
-			chrono::minutes(10 - tod.minutes().count() % 10 + 2) - chrono::seconds(tod.seconds().count()));
-	_timer.async_wait(std::bind(&MBDataTxtDownloader::checkDeadline, self, args::_1));
-}
-
-void MBDataTxtDownloader::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		try {
-			download();
-		} catch (std::exception& e) {
-			std::cerr << SD_ERR << "MBData file: Couldn't download from " << _host << ": " << e.what() << std::endl;
-		}
-		// Going back to sleep
-		waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&MBDataTxtDownloader::checkDeadline, self, args::_1));
-	}
-}
-
-void MBDataTxtDownloader::download()
-{
-	std::cout << SD_INFO << "[MBData " << _station << "] measurement: " << "Downloading a MBData file for station "
-			  << _stationName << " (" << _host << ")" << std::endl;
 
 	std::ostringstream query;
-	query << (_https ? "https://" : "http://") << _host << _url;
+	query << (std::get<3>(downloadDetails) ? "https://" : "http://") << std::get<1>(downloadDetails) << std::get<2>(downloadDetails);
+	_query = query.str();
+}
 
-	CurlWrapper client;
+void MBDataTxtDownloader::download(CurlWrapper& client)
+{
+	std::cout << SD_INFO << "[MBData " << _station << "] measurement: " << "Downloading a MBData file for station "
+			  << _stationName << " (" << _query << ")" << std::endl;
 
-	CURLcode ret = client.download(query.str(), [&](const std::string& body) {
+
+	CURLcode ret = client.download(_query, [&](const std::string& body) {
 		std::istringstream fileStream{body};
 
 		auto m = MBDataMessageFactory::chose(_db, _station, _type, fileStream, _timeOffseter);
@@ -184,7 +133,7 @@ void MBDataTxtDownloader::download()
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();
 		std::cerr << SD_ERR << "[MBData " << _station << "] protocol: " << "Download failed for " << _stationName
-				  << ", bad response from " << _host << ": " << error;
+				  << ", bad response from " << _query << ": " << error;
 	}
 }
 

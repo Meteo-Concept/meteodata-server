@@ -29,13 +29,14 @@
 #include <vector>
 
 #include <boost/asio.hpp>
+#include <static/static_download_scheduler.h>
 
 #include "connector.h"
 #include "meteo_server.h"
 #include "time_offseter.h"
 #include "davis/vantagepro2_connector.h"
 #include "davis/weatherlink_download_scheduler.h"
-#include "mbdata/mbdata_txt_downloader.h"
+#include "mbdata/mbdata_download_scheduler.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
@@ -43,7 +44,6 @@
 #include "mqtt/barani_rain_gauge_mqtt_subscriber.h"
 #include "mqtt/barani_anemometer_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
-#include "static/static_txt_downloader.h"
 #include "synop/deferred_synop_downloader.h"
 #include "synop/synop_downloader.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
@@ -182,16 +182,8 @@ void MeteoServer::start()
 	}
 
 	if (_configuration.startStatic) {
-		// Start the StatIC stations downloaders (one per station)
-		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::map<std::string, std::string>>> statICTxtStations;
-		_db.getStatICTxtStations(statICTxtStations);
-		for (auto&& station : statICTxtStations) {
-			auto subscriber = std::make_shared<StatICTxtDownloader>(_ioService, _db, std::get<0>(station),
-				std::get<1>(station), std::get<2>(station),
-				std::get<3>(station), std::get<4>(station),
-				std::get<5>(station));
-			subscriber->start();
-		}
+		auto statICDownloadScheduler = std::make_shared<StatICDownloadScheduler>(_ioService, _db);
+		statICDownloadScheduler->start();
 	}
 
 	if (_configuration.startWeatherlink) {
@@ -211,13 +203,8 @@ void MeteoServer::start()
 	}
 
 	if (_configuration.startMbdata) {
-		// Start the MBData txt downloaders workers (one per station)
-		std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;
-		_db.getMBDataTxtStations(mbDataTxtStations);
-		for (auto&& station : mbDataTxtStations) {
-			auto subscriber = std::make_shared<MBDataTxtDownloader>(_ioService, _db, station);
-			subscriber->start();
-		}
+		auto mbdataDownloadScheduler = std::make_shared<MBDataDownloadScheduler>(_ioService, _db);
+		mbdataDownloadScheduler->start();
 	}
 
 	if (_configuration.startRest) {

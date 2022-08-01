@@ -40,6 +40,7 @@ src/meteodata-minmax
 src/meteodata-month-minmax
 src/meteodata-objenious-api-standalone
 src/meteodata-records
+src/meteodata-mbdata-standalone
 src/meteodata-static-standalone
 src/meteodata-synop-standalone
 src/meteodata-weatherlink-apiv2-standalone
