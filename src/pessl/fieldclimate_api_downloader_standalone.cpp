@@ -69,23 +69,19 @@ int main(int argc, char** argv)
 	std::string apiSecret;
 
 	po::options_description config("Configuration");
-	config.add_options()("user,u", po::value<std::string>(&user), "database username")("password,p",
-																					   po::value<std::string>(
-																							   &password),
-																					   "database password")("host,h",
-																											po::value<std::string>(
-																													&address),
-																											"database IP address or domain name")(
-			"fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")(
-			"fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part");
+	config.add_options()
+		("user,u", po::value<std::string>(&user), "database username")
+		("password,p", po::value<std::string>(&password), "database password")
+		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")
+		("fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part");
 
 	po::options_description desc("Allowed options");
-	desc.add_options()("help", "display the help message and exit")("version",
-																	"display the version of Meteodata and exit")(
-			"config-file", po::value<std::string>(), "alternative configuration file")("station",
-																					   po::value<std::vector<std::string>>(
-																							   &namedStations)->multitoken(),
-																					   "the stations to get the data for (can be given multiple times, defaults to all stations)");
+	desc.add_options()
+		("help", "display the help message and exit")
+		("version", "display the version of Meteodata and exit")
+		("config-file", po::value<std::string>(), "alternative configuration file")
+		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations to get the data for (can be given multiple times, defaults to all stations)");
 	desc.add(config);
 
 	po::variables_map vm;
@@ -142,12 +138,13 @@ int main(int argc, char** argv)
 		};
 		cass_log_set_callback(logCallback, NULL);
 
-		// Start the FieldClimate downloaders workers (one per Pessl station)
+		// Start the FieldClimate downloaders workers (one per Pessl station, but all sharing the same Curl client)
 		std::vector<std::tuple<CassUuid, std::string, int, std::map<std::string, std::string>>> fieldClimateStations;
 		DbConnectionObservations db{address, user, password};
 		db.getAllFieldClimateApiStations(fieldClimateStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
+		curl_global_init(CURL_GLOBAL_SSL);
 		CurlWrapper client;
 
 		int retry = 0;
@@ -182,6 +179,9 @@ int main(int argc, char** argv)
 		}
 	} catch (std::exception& e) {
 		std::cerr << e.what() << std::endl;
+		curl_global_cleanup();
 		return 255;
 	}
+
+	curl_global_cleanup();
 }

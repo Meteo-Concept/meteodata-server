@@ -149,6 +149,7 @@ int main(int argc, char** argv)
 		db.getAllWeatherlinkStations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
+		curl_global_init(CURL_GLOBAL_SSL);
 		CurlWrapper client;
 
 		int retry = 0;
@@ -181,8 +182,10 @@ int main(int argc, char** argv)
 			}
 		}
 	} catch (std::exception& e) {
-		// exit on error, and let systemd restart the daemon
 		std::cerr << e.what() << std::endl;
+		curl_global_cleanup();
 		return 255;
 	}
+
+	curl_global_cleanup();
 }
