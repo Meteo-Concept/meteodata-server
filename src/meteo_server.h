@@ -29,6 +29,9 @@
 
 #include "meteo_server.h"
 #include "connector.h"
+#include "davis/vantagepro2_connector.h"
+
+#define CONTROL_SOCKET_PATH "/var/run/meteodata/control.sock"
 
 namespace meteodata
 {
@@ -72,7 +75,7 @@ public:
 	 * network operations done by the MeteoServer
 	 * @param config the credentials and other configuration to use
 	 */
-	MeteoServer(boost::asio::io_service& io, MeteoServerConfiguration&& config);
+	MeteoServer(boost::asio::io_context& io, MeteoServerConfiguration&& config);
 	/**
 	 * @brief Launch all operations: start the SYNOP messages
 	 * downloader, the Weatherlink archive downloader and listen
@@ -81,18 +84,24 @@ public:
 	void start();
 
 private:
-	boost::asio::io_service& _ioService;
+	boost::asio::io_context& _ioContext;
 	/**
 	 * @brief The Boost::Asio object that handles the accept()
 	 * operations
 	 */
-	boost::asio::ip::tcp::acceptor _acceptor;
+	boost::asio::ip::tcp::acceptor _vp2DirectConnectAcceptor;
 	/**
 	 * @brief The connection to the database
 	 */
 	DbConnectionObservations _db;
 
 	MeteoServerConfiguration _configuration;
+
+	/**
+	 * @brief The Boost::Asio object representing the endpoint receiving commands
+	 * from the meteodatactl program
+	 */
+	boost::asio::local::stream_protocol::acceptor _controlAcceptor;
 
 	/**
 	 * @brief Start listening on the port, construct a connector,
@@ -109,16 +118,32 @@ private:
 	 * discover the type of station, start the real connector and
 	 * pass it over the socket.
 	 */
-	void startAccepting();
+	void startAcceptingVp2DirectConnect();
+
 	/**
-	 * @brief Dispatch a new connector and resume listening on the
-	 * port
+	 * @brief Dispatch a new VP2 connector and resume listening on the port
 	 *
 	 * @param c the connector to start
 	 * @param error an error code returned from the accept()
 	 * operation
 	 */
-	void runNewConnector(Connector::ptr c, const boost::system::error_code& error);
+	void runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Connector>& c, const boost::system::error_code& error);
+
+	/**
+	 * @brief Start listening on a UNIX socket to receive control queries (such
+	 * as reloading a connector, asking for the status of a station, etc.)
+	 */
+	void startAcceptingControlConnection();
+
+	/**
+	 * @brief Dispatch a new control connector and resume listening on the socket
+	 *
+	 * @param error an error code returned from the accept()
+	 * operation
+	 */
+	void runNewControlConnector(const boost::system::error_code& error);
+
+	std::map<std::string, std::weak_ptr<Connector>> _connectors;
 };
 }
 

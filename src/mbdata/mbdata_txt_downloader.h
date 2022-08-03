@@ -30,7 +30,7 @@
 #include <string>
 
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <date.h>
 #include <dbconnection_observations.h>
@@ -51,14 +51,14 @@ using namespace meteodata;
 class MBDataTxtDownloader : public std::enable_shared_from_this<MBDataTxtDownloader>
 {
 public:
-	MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db,
+	MBDataTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
 						const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 	void start();
 	void stop();
 	void download(CurlWrapper& client);
 
 private:
-	asio::io_service& _ioService;
+	asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	CassUuid _station;

@@ -55,7 +55,7 @@ using namespace meteodata;
 class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
-	VP2MqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	VP2MqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";

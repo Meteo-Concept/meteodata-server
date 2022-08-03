@@ -54,17 +54,15 @@ namespace meteodata
 
 using namespace date;
 
-MBDataDownloadScheduler::MBDataDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db) :
-		_ioService{ioService},
-		_db{db},
-		_timer{ioService}
+MBDataDownloadScheduler::MBDataDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
+	Connector{ioContext, db},
+	_timer{ioContext}
 {
 }
 
-void
-MBDataDownloadScheduler::add(const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
+void MBDataDownloadScheduler::add(const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
 {
-	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_ioService, _db, downloadDetails));
+	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_ioContext, _db, downloadDetails));
 }
 
 void MBDataDownloadScheduler::start()
@@ -89,7 +87,7 @@ void MBDataDownloadScheduler::reload()
 
 void MBDataDownloadScheduler::downloadArchives()
 {
-	for (const auto & _downloader : _downloaders) {
+	for (const auto& _downloader : _downloaders) {
 		try {
 			_downloader->download(_client);
 		} catch (const std::runtime_error& e) {
@@ -109,7 +107,7 @@ void MBDataDownloadScheduler::waitUntilNextDownload()
 	auto tp = chrono::minutes(realTimePollingPeriod) -
 			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
 	_timer.expires_from_now(tp);
-	_timer.async_wait(std::bind(&MBDataDownloadScheduler::checkDeadline, self, args::_1));
+	_timer.async_wait([this,self] (const sys::error_code& e) { checkDeadline(e); });
 }
 
 void MBDataDownloadScheduler::checkDeadline(const sys::error_code& e)
@@ -127,7 +125,7 @@ void MBDataDownloadScheduler::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&MBDataDownloadScheduler::checkDeadline, self, args::_1));
+		_timer.async_wait([this,self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

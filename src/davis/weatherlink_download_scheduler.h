@@ -44,6 +44,7 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
+#include "../connector.h"
 
 namespace meteodata
 {
@@ -56,21 +57,20 @@ using namespace std::placeholders;
 
 /**
  */
-class WeatherlinkDownloadScheduler : public std::enable_shared_from_this<WeatherlinkDownloadScheduler>
+class WeatherlinkDownloadScheduler : public Connector
 {
 public:
-	WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db, const std::string& apiId,
+	WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, const std::string& apiId,
 								 const std::string& apiSecret);
-	void start();
-	void stop();
+	void start() override;
+	void stop() override;
+	void reload() override;
 	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
 			 TimeOffseter::PredefinedTimezone tz);
 	void addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
 				  const std::string& weatherlinkId, TimeOffseter&& to);
 
 private:
-	asio::io_service& _ioService;
-	DbConnectionObservations& _db;
 	const std::string _apiId;
 	const std::string _apiSecret;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;

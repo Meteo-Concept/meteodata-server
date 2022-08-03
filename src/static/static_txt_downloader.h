@@ -31,7 +31,7 @@
 
 #include <unistd.h>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date.h>
@@ -53,13 +53,13 @@ using namespace meteodata;
 class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloader>
 {
 public:
-	StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station,
+	StatICTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db, CassUuid station,
 						const std::string& host, const std::string& url, bool _https, int timezone,
 						std::map<std::string, std::string> sensors);
 	void download(CurlWrapper& client);
 
 private:
-	asio::io_service& _ioService;
+	asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
 	CassUuid _station;
 	std::string _stationName;

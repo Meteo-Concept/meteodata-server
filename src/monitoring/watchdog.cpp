@@ -28,7 +28,7 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 
 #include "watchdog.h"
 
@@ -39,9 +39,9 @@ namespace args = std::placeholders;
 namespace meteodata
 {
 
-Watchdog::Watchdog(asio::io_service& ioService) :
-		_ioService{ioService},
-		_timer{ioService}
+Watchdog::Watchdog(asio::io_context& ioContext) :
+		_ioContext{ioContext},
+		_timer{ioContext}
 {
 }
 

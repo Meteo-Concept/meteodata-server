@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
@@ -49,7 +49,7 @@ class LorainMqttSubscriber : public LiveobjectsMqttSubscriber
 public:
 	static constexpr char LORAIN_RAINFALL_CACHE_KEY[] = "rainfall_clicks";
 
-	LorainMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	LorainMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 
 protected:
 	const char* getConnectorSuffix() override

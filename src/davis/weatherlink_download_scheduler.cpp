@@ -24,15 +24,11 @@
 #include <iostream>
 #include <memory>
 #include <functional>
-#include <iterator>
 #include <chrono>
 #include <unordered_map>
-#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <date.h>
 #include <cassandra.h>
@@ -42,7 +38,6 @@
 #include "weatherlink_download_scheduler.h"
 #include "weatherlink_downloader.h"
 #include "../http_utils.h"
-#include "../curl_wrapper.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -53,22 +48,14 @@ namespace pt = boost::property_tree;
 
 namespace meteodata
 {
-
-constexpr char WeatherlinkDownloadScheduler::HOST[];
-constexpr char WeatherlinkDownloadScheduler::APIHOST[];
-constexpr int WeatherlinkDownloadScheduler::POLLING_PERIOD;
-constexpr int WeatherlinkDownloadScheduler::UNPRIVILEGED_POLLING_PERIOD;
-
-
 using namespace date;
 
-WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
+WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
 							   const std::string& apiId, const std::string& apiSecret) :
-		_ioService{ioService},
-		_db{db},
+		Connector{ioContext, db},
 		_apiId{apiId},
 		_apiSecret{apiSecret},
-		_timer{ioService}
+		_timer{ioContext}
 {
 }
 
@@ -83,9 +70,8 @@ WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, c
 				       const std::string& weatherlinkId, TimeOffseter&& to)
 {
 	_downloadersAPIv2.emplace_back(archived,
-		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, _apiId,
-		_apiSecret, _db,
-		std::forward<TimeOffseter&&>(to))
+		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping,_apiId, _apiSecret, _db,
+				std::forward<TimeOffseter&&>(to))
 	);
 }
 
@@ -102,37 +88,44 @@ void WeatherlinkDownloadScheduler::stop()
 	_timer.cancel();
 }
 
+void WeatherlinkDownloadScheduler::reload()
+{
+	_timer.cancel();
+	reloadStations();
+	waitUntilNextDownload();
+}
+
 void WeatherlinkDownloadScheduler::downloadRealTime()
 {
 	auto now = date::floor<chrono::minutes>(chrono::system_clock::now()).time_since_epoch().count();
 
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
-		if ((*it)->getPollingPeriod() <= POLLING_PERIOD || now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
-			genericDownload([it](auto& client) { (*it)->downloadRealTime(client); });
+	for (const auto& downloader : _downloaders) {
+		if (downloader->getPollingPeriod() <= POLLING_PERIOD || now % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
+			genericDownload([&downloader](auto& client) { downloader->downloadRealTime(client); });
 	}
 
-	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
+	for (const auto& it : _downloadersAPIv2) {
 		// This function is called every POLLING_PERIOD minutes but
 		// stations have varying polling periods of their own, and we
 		// shouldn't download every POLLING_PERIOD minutes in some
 		// cases.
 
-		bool shouldDownload = false;
-		if (it->first) {
+		bool shouldDownload;
+		if (it.first) {
 			// If the station has access to archives, only download
 			// the realtime data if it doesn't make us download more
 			// frequently than the station polling period (e.g.
 			// stations programmed with a polling period of 1h
 			// meanwhile realtime data is normally downloaded every
 			// UNPRIVILEGED_POLLING_PERIOD minutes).
-			shouldDownload = it->second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD;
+			shouldDownload = it.second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD;
 
 			// Also, take care of not downloading more frequently
 			// than the station polling period (e.g. if the station
 			// has a polling period of 10min, only download during
 			// the first POLLING_PERIOD minutes of every period of
 			// 10 minutes).
-			shouldDownload = shouldDownload && now % it->second->getPollingPeriod() < POLLING_PERIOD;
+			shouldDownload = shouldDownload && now % it.second->getPollingPeriod() < POLLING_PERIOD;
 		} else {
 			// If the station doesn't have access to archives, only
 			// download data at the basic rate of
@@ -143,31 +136,31 @@ void WeatherlinkDownloadScheduler::downloadRealTime()
 		}
 
 		if (shouldDownload)
-			genericDownload([it](auto& client) { (it->second)->downloadRealTime(client); });
+			genericDownload([&it](auto& client) { (it.second)->downloadRealTime(client); });
 	}
 }
 
 void WeatherlinkDownloadScheduler::downloadArchives()
 {
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
-		genericDownload([it](auto& client) { (*it)->download(client); });
+	for (const auto& downloader : _downloaders) {
+		genericDownload([&downloader](auto& client) { downloader->download(client); });
 	}
 
-	for (auto it = _downloadersAPIv2.cbegin() ; it != _downloadersAPIv2.cend() ; ++it) {
-		if (it->first) { // only download archives from archived stations
-			genericDownload([it](auto& client) { (it->second)->download(client); });
+	for (const auto& it : _downloadersAPIv2) {
+		if (it.first) { // only download archives from archived stations
+			genericDownload([&it](auto& client) { (it.second)->download(client); });
 		}
 	}
 }
 
 void WeatherlinkDownloadScheduler::waitUntilNextDownload()
 {
-	auto self(shared_from_this());
+	auto self = shared_from_this();
 	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
 	auto tp = realTimePollingPeriod - (chrono::system_clock::now().time_since_epoch() % realTimePollingPeriod) +
 			  chrono::minutes(API_DELAY);
 	_timer.expires_from_now(tp);
-	_timer.async_wait(std::bind(&WeatherlinkDownloadScheduler::checkDeadline, self, args::_1));
+	_timer.async_wait([self,this](const sys::error_code& e) { checkDeadline(e); });
 }
 
 void WeatherlinkDownloadScheduler::checkDeadline(const sys::error_code& e)
@@ -192,7 +185,7 @@ void WeatherlinkDownloadScheduler::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&WeatherlinkDownloadScheduler::checkDeadline, self, args::_1));
+		_timer.async_wait([self,this](const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

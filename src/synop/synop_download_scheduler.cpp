@@ -27,26 +27,23 @@
 #include <iterator>
 #include <chrono>
 #include <map>
-#include <sstream>
+#include <vector>
 #include <iomanip>
 #include <exception>
 
-#include <cstring>
-#include <cctype>
-#include <unistd.h>
 #include <systemd/sd-daemon.h>
 
 #include <boost/system/error_code.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
+#include <boost/asio/io_context.hpp>
 #include <dbconnection_observations.h>
 
-#include "synop_downloader.h"
 #include "ogimet_synop.h"
+#include "synop_download_scheduler.h"
 #include "synop_decoder/parser.h"
 #include "../http_utils.h"
 #include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
+
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -55,26 +52,35 @@ namespace args = std::placeholders;
 
 namespace meteodata
 {
-
 using namespace date;
 
-constexpr char AbstractSynopDownloader::HOST[];
-
-AbstractSynopDownloader::AbstractSynopDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
-		_ioService(ioService),
-		_db(db),
-		_timer(_ioService)
+SynopDownloadScheduler::SynopDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
+	Connector{ioContext, db},
+	_timer(_ioContext)
 {
 }
 
-void AbstractSynopDownloader::waitUntilNextDownload()
+void SynopDownloadScheduler::waitUntilNextDownload()
 {
 	auto self(shared_from_this());
-	_timer.expires_from_now(computeWaitDuration());
+
+	auto time = chrono::system_clock::now();
+	auto daypoint = date::floor<date::days>(time);
+	auto tod = date::make_time(time - daypoint);
+	auto wait = chrono::minutes(MINIMAL_PERIOD_MINUTES - tod.minutes().count() % MINIMAL_PERIOD_MINUTES + DELAY_MINUTES);
+
+	_timer.expires_from_now(wait);
 	_timer.async_wait([self, this](const sys::error_code& e) { checkDeadline(e); });
 }
 
-void AbstractSynopDownloader::stop()
+void SynopDownloadScheduler::start()
+{
+	_mustStop = false;
+	reloadStations();
+	waitUntilNextDownload();
+}
+
+void SynopDownloadScheduler::stop()
 {
 	std::cout << SD_NOTICE << "[SYNOP] connection: " << "Stopping activity" << std::endl;
 
@@ -86,7 +92,22 @@ void AbstractSynopDownloader::stop()
 	_timer.cancel();
 }
 
-void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
+void SynopDownloadScheduler::reload()
+{
+	_timer.cancel();
+	reloadStations();
+	waitUntilNextDownload();
+}
+
+void SynopDownloadScheduler::reloadStations()
+{
+	std::vector<std::tuple<CassUuid, std::string>> icaos;
+	_db.getAllIcaos(icaos);
+	for (auto&& icao : icaos)
+		_icaos.emplace(std::get<1>(icao), std::get<0>(icao));
+}
+
+void SynopDownloadScheduler::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
@@ -96,7 +117,13 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		try {
-			download();
+			for (const SynopGroup& group : _groups) {
+				auto now = chrono::system_clock::now();
+				auto time = date::floor<chrono::minutes>(now - date::floor<date::days>(now));
+				if (time.count() % group.period.count() < MINIMAL_PERIOD_MINUTES) {
+					download(group.prefix, group.backlog);
+				}
+			}
 		} catch (std::exception& e) {
 			std::cerr << SD_ERR << "[SYNOP] protocol: " << "Getting the SYNOP messages failed (" << e.what()
 					  << "), will retry" << std::endl;
@@ -113,12 +140,12 @@ void AbstractSynopDownloader::checkDeadline(const sys::error_code& e)
 	}
 }
 
-void AbstractSynopDownloader::download()
+void SynopDownloadScheduler::download(const std::string& group, const chrono::hours& backlog)
 {
 	std::cout << SD_INFO << "[SYNOP] measurement: " << "Now downloading SYNOP messages " << std::endl;
 
 	std::ostringstream requestStream;
-	buildDownloadRequest(requestStream);
+	buildDownloadRequest(requestStream, group, backlog);
 
 	CurlWrapper client;
 
@@ -184,6 +211,30 @@ void AbstractSynopDownloader::download()
 		std::string_view error = client.getLastError();
 		std::cerr << SD_ERR << "[SYNOP] protocol: " << "Failed to download SYNOPs: " << error << std::endl;
 	}
+}
+
+void SynopDownloadScheduler::add(const std::string& group, const chrono::minutes& period, const chrono::hours& backlog)
+{
+	_groups.push_back({ group, period, backlog });
+}
+
+
+void SynopDownloadScheduler::buildDownloadRequest(std::ostream& out, const std::string& group, const chrono::hours& backlog)
+{
+	auto time = chrono::system_clock::now() - backlog;
+	auto daypoint = date::floor<date::days>(time);
+	auto ymd = date::year_month_day(daypoint);   // calendar date
+	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
+
+	// Obtain individual components as integers
+	auto y = int(ymd.year());
+	auto m = unsigned(ymd.month());
+	auto d = unsigned(ymd.day());
+	auto h = tod.hours().count();
+	auto min = 30;
+
+	out << "/cgi-bin/getsynop?begin=" << std::setfill('0') << std::setw(4) << y << std::setw(2) << m << std::setw(2)
+		<< d << std::setw(2) << h << std::setw(2) << min << "&block=" << group;
 }
 
 }

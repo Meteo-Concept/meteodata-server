@@ -64,12 +64,12 @@ public:
 	/**
 	 * @brief Construct the download scheduler
 	 *
-	 * @param ioService the Boost object used to process asynchronous
+	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
 	 * @param db the Météodata observations database connector
 	 * @param apiKey the Objenious API key
 	 */
-	ObjeniousApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db, const std::string& apiKey);
+	ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, const std::string& apiKey);
 
 	/**
 	 * @brief Start the periodic downloads
@@ -102,7 +102,7 @@ private:
 	 * @brief The Boost service that processes asynchronous events, timers,
 	 * etc.
 	 */
-	asio::io_service& _ioService;
+	asio::io_context& _ioContext;
 
 	/**
 	 * @brief The observations database connector

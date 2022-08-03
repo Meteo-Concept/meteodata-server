@@ -48,7 +48,7 @@ using namespace meteodata;
 class ObjeniousMqttSubscriber : public MqttSubscriber
 {
 public:
-	ObjeniousMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	ObjeniousMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
 					const std::string& objeniousId, const std::map<std::string, std::string>& variables);
 

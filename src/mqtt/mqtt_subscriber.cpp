@@ -61,12 +61,12 @@ MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::stri
 		password(password)
 {}
 
-MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details, asio::io_service& ioService,
+MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details, asio::io_context& ioContext,
 							   DbConnectionObservations& db) :
-		_ioService{ioService},
+		_ioContext{ioContext},
 		_db{db},
 		_details{details},
-		_timer{ioService}
+		_timer{ioContext}
 {
 }
 
@@ -190,7 +190,7 @@ bool MqttSubscriber::handlePublish(std::uint8_t, boost::optional<std::uint16_t>,
 void MqttSubscriber::start()
 {
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "About to start the MQTT client  " << std::endl;
-	_client = mqtt::make_tls_client(_ioService, _details.host, _details.port);
+	_client = mqtt::make_tls_client(_ioContext, _details.host, _details.port);
 
 	std::ostringstream clientId;
 	clientId << MqttSubscriber::CLIENT_ID << ":" << getConnectorSuffix();

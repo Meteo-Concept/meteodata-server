@@ -24,7 +24,7 @@
 #define METEODATA_SERVER_LIVEOBJECTS_MQTT_SUBSCRIBER_H
 
 #include <vector>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
@@ -37,7 +37,7 @@ namespace meteodata
 class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
-	LiveobjectsMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	LiveobjectsMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
 					const std::string& streamId);
 

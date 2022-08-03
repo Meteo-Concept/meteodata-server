@@ -187,20 +187,20 @@ int main(int argc, char** argv)
 
 	try {
 		curl_global_init(CURL_GLOBAL_SSL);
-		boost::asio::io_service ioService;
+		boost::asio::io_context ioContext;
 
 		if (daemonized) {
-			std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>(ioService);
+			std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>(ioContext);
 			watchdog->start();
 		}
 
-		MeteoServer server(ioService, std::move(serverConfig));
+		MeteoServer server(ioContext, std::move(serverConfig));
 		server.start();
 
 		std::vector<std::thread> workers;
 		// start all the workers
 		for (unsigned long i = 0 ; i < threads ; i++) {
-			workers.emplace_back([&]() { ioService.run(); });
+			workers.emplace_back([&]() { ioContext.run(); });
 		}
 		if (daemonized)
 			sd_notifyf(0, "READY=1\n" "STATUS=Data collection started\n" "MAINPID=%d", getpid());

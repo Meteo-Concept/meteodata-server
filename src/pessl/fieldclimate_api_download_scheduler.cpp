@@ -27,14 +27,10 @@
 #include <iterator>
 #include <chrono>
 #include <thread>
-#include <unistd.h>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <date.h>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
@@ -42,6 +38,7 @@
 #include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
 #include "../http_utils.h"
+#include "../connector.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -52,29 +49,23 @@ namespace args = std::placeholders;
 namespace meteodata
 {
 
-constexpr int FieldClimateApiDownloadScheduler::POLLING_PERIOD;
-
-
 using namespace date;
 
-FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_service& ioService,
-																   DbConnectionObservations& db,
-																   const std::string& apiId,
-																   const std::string& apiSecret) :
-		_ioService{ioService},
-		_db{db},
+FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
+	DbConnectionObservations& db, const std::string& apiId, const std::string& apiSecret) :
+		Connector{ioContext, db},
 		_apiId{apiId},
 		_apiSecret{apiSecret},
-		_timer{ioService}
+		_timer{ioContext}
 {
 }
 
 void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
-										   TimeOffseter::PredefinedTimezone tz,
-										   const std::map<std::string, std::string> sensors)
+	TimeOffseter::PredefinedTimezone tz, const std::map<std::string, std::string> sensors)
 {
 	_downloaders.emplace_back(
-			std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret));
+		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret)
+	);
 }
 
 void FieldClimateApiDownloadScheduler::start()
@@ -99,9 +90,9 @@ void FieldClimateApiDownloadScheduler::reload()
 
 void FieldClimateApiDownloadScheduler::downloadArchives()
 {
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
+	for (const auto& downloader : _downloaders) {
 		try {
-			(*it)->download(_client);
+			downloader->download(_client);
 			// Wait for 100ms to limit the number of requests
 			// (capped at 10 per second)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
@@ -119,7 +110,7 @@ void FieldClimateApiDownloadScheduler::waitUntilNextDownload()
 	auto tp = chrono::minutes(realTimePollingPeriod) -
 			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
 	_timer.expires_from_now(tp);
-	_timer.async_wait(std::bind(&FieldClimateApiDownloadScheduler::checkDeadline, self, args::_1));
+	_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 }
 
 void FieldClimateApiDownloadScheduler::checkDeadline(const sys::error_code& e)
@@ -137,7 +128,7 @@ void FieldClimateApiDownloadScheduler::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&FieldClimateApiDownloadScheduler::checkDeadline, self, args::_1));
+		_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

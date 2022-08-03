@@ -38,35 +38,6 @@ class Connector : public std::enable_shared_from_this<Connector>
 {
 public:
 	/**
-	 * @brief Connector::ptr is the type to use to manipulate a
-	 * generic connector
-	 */
-	typedef std::shared_ptr<Connector> ptr;
-
-	/**
-	 * @brief Instantiate a new connector for a given meteo station
-	 * type
-	 *
-	 * Meteo stations connectors should never be instantiated
-	 * directly: use this method instead. This lets the connector
-	 * be deallocated automatically once it is no longer used.
-	 *
-	 * @tparam T The actual meteo station connector type, e.g.
-	 * VantagePro2Connector for a VantagePro2 (R) station
-	 * @param ioService The Boost::Asio asynchronous service that
-	 * the connector will have to use for all Boost:Asio operations
-	 * @param db The handle to the database
-	 *
-	 * @return An auto-managed shared pointer to the connector
-	 */
-	template<typename T>
-	static typename std::enable_if<std::is_base_of<Connector, T>::value, Connector::ptr>::type
-	create(boost::asio::io_service& ioService, DbConnectionObservations& db)
-	{
-		return Connector::ptr(new T(std::ref(ioService), std::ref(db)));
-	}
-
-	/**
 	 * @brief Destroy the connector
 	 */
 	virtual ~Connector() = default;
@@ -79,17 +50,9 @@ public:
 	 */
 	virtual void start() = 0;
 
-	/**
-	 * @brief Give the TCP socket allocated for the connector to
-	 * communicate with the meteo station
-	 *
-	 * The connector should terminate all operations when it detects
-	 * a connectivity loss.
-	 *
-	 * @return The socket used to communicate with the meteo station
-	 */
-	boost::asio::ip::tcp::socket& socket()
-	{ return _sock; }
+	virtual void stop() = 0;
+
+	virtual void reload() = 0;
 
 protected:
 	/**
@@ -97,21 +60,17 @@ protected:
 	 *
 	 * This method is only callable by actual child classes
 	 * connectors.
-	 * @param ioService The Boost::Asio service to use for all
+	 * @param ioContext The Boost::Asio service to use for all
 	 * Boost::Asio asynchronous operations
 	 * @param db The handle to the database
 	 */
-	Connector(boost::asio::io_service& ioService, DbConnectionObservations& db);
-	/**
-	 * @brief The TCP socket used to communicate to the meteo
-	 * station
-	 */
-	boost::asio::ip::tcp::socket _sock;
+	Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db);
+
 	/**
 	 * @brief The Boost::Asio service to use for asynchronous
 	 * operations
 	 */
-	boost::asio::io_service& _ioService;
+	boost::asio::io_context& _ioContext;
 	/**
 	 * @brief The connection to the database
 	 */

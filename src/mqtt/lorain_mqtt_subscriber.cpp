@@ -48,9 +48,9 @@ namespace chrono = std::chrono;
 namespace meteodata
 {
 
-LorainMqttSubscriber::LorainMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
+LorainMqttSubscriber::LorainMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_context& ioContext,
 	 DbConnectionObservations& db) :
-		LiveobjectsMqttSubscriber(std::move(details), ioService, db)
+		LiveobjectsMqttSubscriber(std::move(details), ioContext, db)
 {
 }
 

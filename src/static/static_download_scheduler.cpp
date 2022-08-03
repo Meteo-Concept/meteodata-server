@@ -54,10 +54,9 @@ namespace meteodata
 
 using namespace date;
 
-StatICDownloadScheduler::StatICDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db) :
-		_ioService{ioService},
-		_db{db},
-		_timer{ioService}
+StatICDownloadScheduler::StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
+		Connector{ioContext, db},
+		_timer{ioContext}
 {
 }
 
@@ -67,7 +66,7 @@ StatICDownloadScheduler::add(const CassUuid& station, const std::string& host, c
 							 const std::map<std::string, std::string>& sensors)
 {
 	_downloaders.emplace_back(
-			std::make_shared<StatICTxtDownloader>(_ioService, _db, station, host, url, https, timezone, sensors)
+			std::make_shared<StatICTxtDownloader>(_ioContext, _db, station, host, url, https, timezone, sensors)
 	);
 }
 
@@ -113,7 +112,7 @@ void StatICDownloadScheduler::waitUntilNextDownload()
 	auto tp = chrono::minutes(realTimePollingPeriod) -
 			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
 	_timer.expires_from_now(tp);
-	_timer.async_wait(std::bind(&StatICDownloadScheduler::checkDeadline, self, args::_1));
+	_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 }
 
 void StatICDownloadScheduler::checkDeadline(const sys::error_code& e)
@@ -131,7 +130,7 @@ void StatICDownloadScheduler::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&StatICDownloadScheduler::checkDeadline, self, args::_1));
+		_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

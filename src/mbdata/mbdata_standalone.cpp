@@ -135,8 +135,8 @@ int main(int argc, char** argv)
 				}
 			}
 
-			boost::asio::io_service ioService;
-			MBDataTxtDownloader downloader{ioService, db, station};
+			boost::asio::io_context ioContext;
+			MBDataTxtDownloader downloader{ioContext, db, station};
 			try {
 				downloader.download(client);
 				retry = 0;

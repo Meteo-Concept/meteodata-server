@@ -39,13 +39,14 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <dbconnection_observations.h>
 
 #include "ship_and_buoy_downloader.h"
 #include "meteo_france_ship_and_buoy.h"
 #include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
+#include "../connector.h"
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -54,16 +55,11 @@ namespace args = std::placeholders;
 
 namespace meteodata
 {
-
 using namespace date;
 
-constexpr char ShipAndBuoyDownloader::HOST[];
-constexpr char ShipAndBuoyDownloader::URL[];
-
-ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_service& ioService, DbConnectionObservations& db) :
-		_ioService(ioService),
-		_db(db),
-		_timer(_ioService)
+ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db) :
+		Connector{ioContext, db},
+		_timer{ioContext}
 {
 }
 
@@ -94,9 +90,8 @@ void ShipAndBuoyDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(
-			date::days(1) + chrono::hours(6 - tod.hours().count()) - chrono::minutes(tod.minutes().count()));
-	_timer.async_wait(std::bind(&ShipAndBuoyDownloader::checkDeadline, self, args::_1));
+	_timer.expires_from_now(date::days(1) + chrono::hours(6 - tod.hours().count()) - chrono::minutes(tod.minutes().count()));
+	_timer.async_wait([this, self] (const sys::error_code& e) { return checkDeadline(e); });
 }
 
 void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
@@ -116,7 +111,7 @@ void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&ShipAndBuoyDownloader::checkDeadline, self, args::_1));
+		_timer.async_wait([this, self] (const sys::error_code& e) { return checkDeadline(e); });
 	}
 }
 
@@ -129,40 +124,40 @@ void ShipAndBuoyDownloader::download()
 
 	CURLcode ret = client.download(std::string{"https://"} + HOST + date::format(URL, ymd),
 								   [&](const std::string& body) {
-									   std::istringstream responseStream{body};
+		std::istringstream responseStream{body};
 
-									   std::string line;
-									   std::getline(responseStream, line);
-									   std::istringstream lineIterator{line};
-									   std::vector<std::string> fields;
-									   for (std::string field ; std::getline(lineIterator, field, ';') ;)
-										   if (field != "")
-											   fields.emplace_back(std::move(field));
+		std::string line;
+		std::getline(responseStream, line);
+		std::istringstream lineIterator{line};
+		std::vector<std::string> fields;
+		for (std::string field ; std::getline(lineIterator, field, ';') ;)
+			   if (!field.empty())
+				   fields.emplace_back(std::move(field));
 
-									   while (std::getline(responseStream, line)) {
-										   lineIterator = std::istringstream{line};
-										   MeteoFranceShipAndBuoy m{lineIterator, fields};
-										   if (!m)
-											   continue;
-										   auto uuidIt = _icaos.find(m.getIdentifier());
-										   if (uuidIt != _icaos.end()) {
-											   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
-														 << "UUID identified: " << uuidIt->second << std::endl;
-											   bool ret = _db.insertV2DataPoint(m.getObservation(uuidIt->second));
-											   if (ret) {
-												   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second
-															 << "] measurement: "
-															 << "SHIP ou BUOY data inserted into database for station "
-															 << uuidIt->second << std::endl;
-											   } else {
-												   std::cerr << SD_ERR << "[SHIP " << uuidIt->second
-															 << "] measurement: "
-															 << "Failed to insert SHIP ou BUOY data into database for station "
-															 << uuidIt->second << std::endl;
-											   }
-										   }
-									   }
-								   });
+		while (std::getline(responseStream, line)) {
+			   lineIterator = std::istringstream{line};
+			   MeteoFranceShipAndBuoy m{lineIterator, fields};
+			   if (!m)
+				   continue;
+			   auto uuidIt = _icaos.find(m.getIdentifier());
+			   if (uuidIt != _icaos.end()) {
+				   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
+							 << "UUID identified: " << uuidIt->second << std::endl;
+				   bool ret = _db.insertV2DataPoint(m.getObservation(uuidIt->second));
+				   if (ret) {
+					   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second
+								 << "] measurement: "
+								 << "SHIP ou BUOY data inserted into database for station "
+								 << uuidIt->second << std::endl;
+				   } else {
+					   std::cerr << SD_ERR << "[SHIP " << uuidIt->second
+								 << "] measurement: "
+								 << "Failed to insert SHIP ou BUOY data into database for station "
+								 << uuidIt->second << std::endl;
+				   }
+			   }
+		}
+	});
 
 	if (ret != CURLE_OK) {
 		std::string_view error = client.getLastError();

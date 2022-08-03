@@ -1,11 +1,11 @@
 /**
- * @file synopdownloader.h
- * @brief Definition of the SynopDownloader class
+ * @file abstractsynopdownloader.h
+ * @brief Definition of the AbstractSynopDownloader class
  * @author Laurent Georget
- * @date 2018-08-20
+ * @date 2019-02-20
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2019  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYNOPDOWNLOADER_H
-#define SYNOPDOWNLOADER_H
+#ifndef ABSTRACTSYNOPDOWNLOADER_H
+#define ABSTRACTSYNOPDOWNLOADER_H
 
 #include <iostream>
 #include <memory>
@@ -40,7 +40,7 @@
 #include <tz.h>
 #include <dbconnection_observations.h>
 
-#include "abstract_synop_downloader.h"
+#include "../connector.h"
 
 namespace meteodata
 {
@@ -54,23 +54,16 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 /**
- * A downloader for recent (last three or so hours) SYNOP data from Ogimet
  */
-class SynopDownloader : public AbstractSynopDownloader
+class SynopDownloadScheduler : public Connector
 {
 public:
-	/**
-	 * Construct the downloader
-	 *
-	 * @param ioService The Boost service to handle asynchronous events and
-	 * callbacks
-	 * @param db The connection to the observations database
-	 * @param group The prefix of the SYNOP stations to be downloaded (can
-	 * be an entire SYNOP to download just one station, or a country prefix
-	 * like 07 for France)
-	 */
-	SynopDownloader(asio::io_service& ioService, DbConnectionObservations& db, std::string group);
+	SynopDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db);
 	void start() override;
+	void stop() override;
+	void reload() override;
+
+	void add(const std::string& group, const chrono::minutes& period, const chrono::hours& backlog);
 
 	/**
 	 * The SYNOP country prefix for France
@@ -82,17 +75,26 @@ public:
 	static constexpr char GROUP_LU[] = "06";
 
 private:
-	chrono::minutes computeWaitDuration() override;
-	void buildDownloadRequest(std::ostream& out) override;
+	asio::basic_waitable_timer<chrono::steady_clock> _timer;
+	std::map<std::string, CassUuid> _icaos;
 
-	/**
-	 * The prefix of the SYNOP stations to download
-	 *
-	 * It can be one of the static prefixes in this class like GROUP_FR, or
-	 * a complete SYNOP identifier, or anything that is a valid prefix for
-	 * SYNOP stations.
-	 */
-	const std::string _group;
+	struct SynopGroup {
+		std::string prefix;
+		chrono::minutes period;
+		chrono::hours backlog;
+	};
+	std::vector<SynopGroup> _groups;
+	bool _mustStop = false;
+
+	static constexpr char HOST[] = "www.ogimet.com";
+	static constexpr int MINIMAL_PERIOD_MINUTES = 20;
+	static constexpr int DELAY_MINUTES = 4;
+
+	void checkDeadline(const sys::error_code& e);
+	void waitUntilNextDownload();
+	void download(const std::string& group, const chrono::hours& backlog);
+	static void buildDownloadRequest(std::ostream& out, const std::string& group, const chrono::hours& backlog);
+	void reloadStations();
 };
 
 }

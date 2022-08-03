@@ -52,8 +52,8 @@ using namespace date;
 constexpr char ObjeniousMqttSubscriber::ARCHIVES_TOPIC[];
 
 ObjeniousMqttSubscriber::ObjeniousMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
-												 asio::io_service& ioService, DbConnectionObservations& db) :
-		MqttSubscriber(details, ioService, db)
+												 asio::io_context& ioContext, DbConnectionObservations& db) :
+		MqttSubscriber(details, ioContext, db)
 {
 }
 

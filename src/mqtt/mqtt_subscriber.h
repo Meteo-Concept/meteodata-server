@@ -64,14 +64,14 @@ public:
 		friend bool operator<(const MqttSubscriptionDetails& s1, const MqttSubscriptionDetails& s2);
 	};
 
-	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_service& ioService, DbConnectionObservations& db);
+	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start();
 	void stop();
 	void reload();
 
 protected:
-	asio::io_service& _ioService;
+	asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
 	MqttSubscriptionDetails _details;
 
@@ -80,7 +80,7 @@ protected:
 	 * @brief Map from topic to station UUID, station name, polling period, last archive insertion datetime, time offseter
 	 */
 	std::map<std::string, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>> _stations;
-	decltype(mqtt::make_tls_client(_ioService, _details.host, _details.port)) _client;
+	decltype(mqtt::make_tls_client(_ioContext, _details.host, _details.port)) _client;
 
 	/**
 	 * @brief The channel subscription id

@@ -32,7 +32,7 @@
 #include <unistd.h>
 
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <date.h>
 #include <dbconnection_observations.h>
 
@@ -55,12 +55,12 @@ namespace meteodata
 
 using namespace date;
 
-MBDataTxtDownloader::MBDataTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db,
+MBDataTxtDownloader::MBDataTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
 										 const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
 		:
-		_ioService(ioService),
+		_ioContext(ioContext),
 		_db(db),
-		_timer(_ioService),
+		_timer(_ioContext),
 		_station(std::get<0>(downloadDetails)),
 		_type(std::get<5>(downloadDetails)),
 		_lastDownloadTime(chrono::seconds(0)) // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station

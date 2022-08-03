@@ -50,9 +50,9 @@ namespace chrono = std::chrono;
 namespace meteodata
 {
 
-BaraniRainGaugeMqttSubscriber::BaraniRainGaugeMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_service& ioService,
+BaraniRainGaugeMqttSubscriber::BaraniRainGaugeMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details, asio::io_context& ioContext,
 	 DbConnectionObservations& db) :
-		LiveobjectsMqttSubscriber(std::move(details), ioService, db)
+		LiveobjectsMqttSubscriber(std::move(details), ioContext, db)
 {
 }
 

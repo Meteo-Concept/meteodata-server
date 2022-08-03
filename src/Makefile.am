@@ -108,10 +108,8 @@ meteodata_SOURCES = \
 		    static/static_txt_downloader.h\
 		    static/static_download_scheduler.cpp\
 		    static/static_download_scheduler.h\
-		    synop/abstract_synop_downloader.cpp\
-		    synop/abstract_synop_downloader.h\
-		    synop/deferred_synop_downloader.cpp\
-		    synop/deferred_synop_downloader.h\
+		    synop/synop_download_scheduler.cpp\
+		    synop/synop_download_scheduler.h\
 		    synop/ogimet_synop.cpp\
 		    synop/ogimet_synop.h\
 		    synop/synop_decoder/cloud_observation.h\
@@ -128,8 +126,6 @@ meteodata_SOURCES = \
 		    synop/synop_decoder/pressure_tendency.h\
 		    synop/synop_decoder/range.h\
 		    synop/synop_decoder/synop_message.h\
-		    synop/synop_downloader.cpp\
-		    synop/synop_downloader.h\
 		    barani/barani_anemometer_message.cpp\
 		    barani/barani_anemometer_message.h\
 		    barani/barani_rain_gauge_message.cpp\
@@ -153,7 +149,12 @@ meteodata_SOURCES = \
 		    objenious/objenious_archive_message.cpp\
 		    objenious/objenious_archive_message.h\
 		    monitoring/watchdog.h\
-		    monitoring/watchdog.cpp
+		    monitoring/watchdog.cpp\
+		    control/control_connector.h\
+		    control/control_connector.cpp\
+		    control/query_handler.h\
+		    control/connectors_query_handler.h\
+		    control/connectors_query_handler.cpp
 
 meteodata_minmax_SOURCES = \
 		    minmax.cpp
@@ -284,6 +285,8 @@ meteodata_fieldclimate_api_standalone_SOURCES = \
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
+		    connector.cpp\
+		    connector.h\
 		    pessl/fieldclimate_api_downloader_standalone.cpp \
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\

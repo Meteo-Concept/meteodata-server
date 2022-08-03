@@ -29,7 +29,6 @@
 #include <vector>
 
 #include <boost/asio.hpp>
-#include <static/static_download_scheduler.h>
 
 #include "connector.h"
 #include "meteo_server.h"
@@ -44,8 +43,8 @@
 #include "mqtt/barani_rain_gauge_mqtt_subscriber.h"
 #include "mqtt/barani_anemometer_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
-#include "synop/deferred_synop_downloader.h"
-#include "synop/synop_downloader.h"
+#include "static/static_download_scheduler.h"
+#include "synop/synop_download_scheduler.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
 #include "rest_web_server.h"
 
@@ -55,11 +54,12 @@ using namespace boost::asio::ip;
 namespace meteodata
 {
 
-MeteoServer::MeteoServer(boost::asio::io_service& ioService, MeteoServer::MeteoServerConfiguration&& config) :
-		_ioService{ioService},
-		_acceptor{ioService},
+MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoServerConfiguration&& config) :
+		_ioContext{ioContext},
+		_vp2DirectConnectAcceptor{ioContext},
 		_db{config.address, config.user, config.password},
-		_configuration{config}
+		_configuration{config},
+		_controlAcceptor{ioContext}
 {
 	_configuration.password.clear();
 
@@ -91,7 +91,7 @@ void MeteoServer::start()
 			if (topic.substr(0, 4) == "vp2/") {
 				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
 				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
-					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(details, _ioService, _db);
+					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(details, _ioContext, _db);
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
 				mqttSubscribersIt->second->addStation(topic, uuid, tz);
@@ -99,7 +99,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
 				if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
 					std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
-							details, _ioService, _db);
+							details, _ioContext, _db);
 					mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
 				}
 
@@ -111,7 +111,7 @@ void MeteoServer::start()
 			} else if (topic == "fifo/Lorain") {
 				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
 				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {
-					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioService, _db);
+					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioContext, _db);
 					mqttSubscribersIt = lorainMqttSubscribers.emplace(details, subscriber).first;
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
@@ -121,7 +121,7 @@ void MeteoServer::start()
 			} else if (topic == "fifo/Barani_rain") {
 				auto mqttSubscribersIt = baraniRainGaugeMqttSubscribers.find(details);
 				if (mqttSubscribersIt == baraniRainGaugeMqttSubscribers.end()) {
-					std::shared_ptr<BaraniRainGaugeMqttSubscriber> subscriber = std::make_shared<BaraniRainGaugeMqttSubscriber>(details, _ioService, _db);
+					std::shared_ptr<BaraniRainGaugeMqttSubscriber> subscriber = std::make_shared<BaraniRainGaugeMqttSubscriber>(details, _ioContext, _db);
 					mqttSubscribersIt = baraniRainGaugeMqttSubscribers.emplace(details, subscriber).first;
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
@@ -131,7 +131,7 @@ void MeteoServer::start()
 			} else if (topic == "fifo/Barani_anemo") {
 				auto mqttSubscribersIt = baraniAnemometerMqttSubscribers.find(details);
 				if (mqttSubscribersIt == baraniAnemometerMqttSubscribers.end()) {
-					std::shared_ptr<BaraniAnemometerMqttSubscriber> subscriber = std::make_shared<BaraniAnemometerMqttSubscriber>(details, _ioService, _db);
+					std::shared_ptr<BaraniAnemometerMqttSubscriber> subscriber = std::make_shared<BaraniAnemometerMqttSubscriber>(details, _ioContext, _db);
 					mqttSubscribersIt = baraniAnemometerMqttSubscribers.emplace(details, subscriber).first;
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
@@ -159,82 +159,86 @@ void MeteoServer::start()
 	if (_configuration.startSynop) {
 		// Start the Synop downloader worker (one for all the SYNOP stations in
 		// the same group)
-		auto synopDownloaderFr = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_FR);
-		synopDownloaderFr->start();
-		auto synopDownloaderLu = std::make_shared<SynopDownloader>(_ioService, _db, SynopDownloader::GROUP_LU);
-		synopDownloaderLu->start();
+		auto synopDownloader = std::make_shared<SynopDownloadScheduler>(_ioContext, _db);
+		synopDownloader->add(SynopDownloadScheduler::GROUP_FR, chrono::minutes(20), chrono::hours(3));
+		synopDownloader->add(SynopDownloadScheduler::GROUP_LU, chrono::minutes(20), chrono::hours(3));
 
-		// Start the deferred SYNOP downloader worker (one for each deferred SYNOP)
+		// Add the deferred SYNOPs
 		std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
 		_db.getDeferredSynops(deferredSynops);
 		for (auto&& synop : deferredSynops) {
-			auto deferredSynopDownloader = std::make_shared<DeferredSynopDownloader>(_ioService, _db,
-				std::get<1>(synop),
-				std::get<0>(synop));
-			deferredSynopDownloader->start();
+			synopDownloader->add(std::get<1>(synop), chrono::minutes(6 * 60), chrono::hours(24));
 		}
+
+		synopDownloader->start();
+		_connectors.emplace("synop", synopDownloader);
 	}
 
 	if (_configuration.startShip) {
 		// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
-		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioService, _db);
+		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db);
 		meteofranceDownloader->start();
+		_connectors.emplace("ship", meteofranceDownloader);
 	}
 
 	if (_configuration.startStatic) {
-		auto statICDownloadScheduler = std::make_shared<StatICDownloadScheduler>(_ioService, _db);
+		auto statICDownloadScheduler = std::make_shared<StatICDownloadScheduler>(_ioContext, _db);
 		statICDownloadScheduler->start();
+		_connectors.emplace("static", statICDownloadScheduler);
 	}
 
 	if (_configuration.startWeatherlink) {
 		// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station but they
 		// share a single HTTP client)
-		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioService, _db, std::move(
+		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(_ioContext, _db, std::move(
 				_configuration.weatherlinkApiV2Key), std::move(_configuration.weatherlinkApiV2Secret));
 		weatherlinkScheduler->start();
+		_connectors.emplace("weatherlink", weatherlinkScheduler);
 	}
 
 	if (_configuration.startFieldclimate) {
 		// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station but they
 		// share a single HTTP client)
-		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioService, _db, std::move(
+		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioContext, _db, std::move(
 				_configuration.fieldClimateApiKey), std::move(_configuration.fieldClimateApiSecret));
 		fieldClimateScheduler->start();
+		_connectors.emplace("fieldclimate", fieldClimateScheduler);
 	}
 
 	if (_configuration.startMbdata) {
-		auto mbdataDownloadScheduler = std::make_shared<MBDataDownloadScheduler>(_ioService, _db);
+		auto mbdataDownloadScheduler = std::make_shared<MBDataDownloadScheduler>(_ioContext, _db);
 		mbdataDownloadScheduler->start();
+		_connectors.emplace("mbdata", mbdataDownloadScheduler);
 	}
 
 	if (_configuration.startRest) {
 		// Start the Web server for the REST API
-		auto restWebServer = std::make_shared<RestWebServer>(_ioService, _db);
+		auto restWebServer = std::make_shared<RestWebServer>(_ioContext, _db);
 		restWebServer->start();
 	}
 
 	if (_configuration.startVp2) {
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
-		_acceptor.open(tcp::v4());
-		_acceptor.set_option(tcp::acceptor::reuse_address(true));
-		_acceptor.bind(tcp::endpoint{tcp::v4(), 5886});
-		_acceptor.listen();
-		startAccepting();
+		_vp2DirectConnectAcceptor.open(tcp::v4());
+		_vp2DirectConnectAcceptor.set_option(tcp::acceptor::reuse_address(true));
+		_vp2DirectConnectAcceptor.bind(tcp::endpoint{tcp::v4(), 5886});
+		_vp2DirectConnectAcceptor.listen();
+		startAcceptingVp2DirectConnect();
 	}
 }
 
-void MeteoServer::startAccepting()
+void MeteoServer::startAcceptingVp2DirectConnect()
 {
-	Connector::ptr newConnector = Connector::create<VantagePro2Connector>(_ioService, _db);
-	_acceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
-		runNewConnector(newConnector, error);
+	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db);
+	_vp2DirectConnectAcceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
+		runNewVp2DirectConnector(newConnector, error);
 	});
 }
 
-void MeteoServer::runNewConnector(Connector::ptr c, const boost::system::error_code& error)
+void MeteoServer::runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Connector>& c, const boost::system::error_code& error)
 {
 	if (!error) {
-		startAccepting();
+		startAcceptingVp2DirectConnect();
 		c->start();
 	}
 }

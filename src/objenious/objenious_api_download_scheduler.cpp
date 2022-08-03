@@ -57,12 +57,12 @@ constexpr int ObjeniousApiDownloadScheduler::POLLING_PERIOD;
 
 using namespace date;
 
-ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
+ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
 															 const std::string& apiKey) :
-		_ioService{ioService},
+		_ioContext{ioContext},
 		_db{db},
 		_apiKey{apiKey},
-		_timer{ioService}
+		_timer{ioContext}
 {
 }
 

@@ -50,10 +50,11 @@ namespace meteodata
 using namespace std::placeholders;
 using namespace date;
 
-VantagePro2Connector::VantagePro2Connector(boost::asio::io_service& ioService, DbConnectionObservations& db) :
-		Connector(ioService, db),
-		_timer(ioService),
-		_setTimeTimer(ioService)
+VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db) :
+		Connector(ioContext, db),
+		_sock{ioContext},
+		_timer{ioContext},
+		_setTimeTimer{ioContext}
 {
 }
 
@@ -198,6 +199,14 @@ void VantagePro2Connector::stop()
 
 	/* After the return of this function, no one should hold a pointer to
 	 * self (aka this) anymore, so this instance will be destroyed */
+}
+
+void VantagePro2Connector::reload()
+{
+	// reset the state machine, disregarding what was going on
+	_timer.cancel();
+	_setTimeTimer.cancel();
+	flushSocketAndRetry(State::SENDING_WAKE_UP_STATION, [this]() { sendRequest(_echoRequest, sizeof(_echoRequest) - 1); });
 }
 
 void VantagePro2Connector::sendRequest(const char* req, int reqsize)

@@ -64,14 +64,41 @@ public:
 	/**
 	 * @brief Construct a new Connector for a VantagePro2 station
 	 *
-	 * @param ioService the Boost::Asio service to use for all aynchronous
+	 * @param ioContext the Boost::Asio service to use for all aynchronous
 	 * network operations
 	 * @param db The handle to the database
 	 */
-	VantagePro2Connector(boost::asio::io_service& ioService, DbConnectionObservations& db);
+	VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db);
 
 	//main loop
 	void start() override;
+
+	/**
+	 * @brief Cease all operations and close the socket
+	 *
+	 * Calling this method allows for the VantagePro2Connector to be
+	 * destroyed and its memory reclaimed because the only permanent shared
+	 * pointer to it is owned by the Boost::Asio::io_context which exits
+	 * when the socket is closed.
+	 */
+	void stop() override;
+
+	/**
+	 * @brief Cease ongoing operations and restart the communication from
+	 * the beginning, as if the station had just initiated the connexion
+	 */
+	void reload() override;
+
+	/**
+	 * @brief Give the TCP socket allocated for the connector to
+	 * communicate with the meteo station
+	 *
+	 * The connector should terminate all operations when it detects
+	 * a connectivity loss.
+	 *
+	 * @return The socket used to communicate with the meteo station
+	 */
+	boost::asio::ip::tcp::socket& socket() { return _sock; }
 
 private:
 	/**
@@ -201,15 +228,7 @@ private:
 	 * timer has been interrupted before the deadline
 	 */
 	void handleSetTimeDeadline(const sys::error_code& e);
-	/**
-	 * @brief Cease all operations and close the socket
-	 *
-	 * Calling this method allows for the VantagePro2Connector to be
-	 * destroyed and its memory reclaimed because the only permanent shared
-	 * pointer to it is owned by the Boost::Asio::io_service which exits
-	 * when the socket is closed.
-	 */
-	void stop();
+
 
 	/**
 	 * @brief Program the timer to send a timeout event when the clock hit
@@ -327,6 +346,12 @@ private:
 	 * @return A shared pointer on a newly built \a SettimeRequestParams
 	 */
 	std::shared_ptr<SettimeRequestParams> buildSettimeParams();
+
+	/**
+	 * @brief The TCP socket used to communicate to the meteo
+	 * station
+	 */
+	boost::asio::ip::tcp::socket _sock;
 
 	/**
 	 * @brief The current state of the state machine

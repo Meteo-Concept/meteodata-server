@@ -1,11 +1,11 @@
 /**
- * @file connector.cpp
- * @brief Implementation of the Connector class
+ * @file query_handler.h
+ * @brief Definition of the QueryHandler class
  * @author Laurent Georget
- * @date 2016-10-05
+ * @date 2022-08-02
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2022  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +21,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/asio.hpp>
 
-#include "connector.h"
+#ifndef QUERY_HANDLER_H
+#define QUERY_HANDLER_H
+
+#include <memory>
 
 namespace meteodata
 {
 
-Connector::Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db) :
-		_ioContext{ioContext},
-		_db{db}
-{}
+class QueryHandler
+{
+public:
+	virtual ~QueryHandler() = default;
+	virtual void setNext(std::unique_ptr<QueryHandler>&& next) {
+		_next = std::move(next);
+	};
+	virtual std::string handleQuery(const std::string& query) = 0;
+
+protected:
+	std::unique_ptr<QueryHandler> _next = nullptr;
+};
 
 }
+
+#endif // QUERY_HANDLER_H

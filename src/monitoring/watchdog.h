@@ -29,7 +29,7 @@
 #include <chrono>
 
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 
 namespace meteodata
 {
@@ -56,10 +56,10 @@ public:
 	/**
 	 * @brief Construct the watchdog
 	 *
-	 * @param ioService the Boost object used to process asynchronous
+	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
 	 */
-	Watchdog(asio::io_service& ioService);
+	Watchdog(asio::io_context& ioContext);
 
 	/**
 	 * @brief Start the periodic watchdog notification
@@ -71,7 +71,7 @@ private:
 	 * @brief The Boost service that processes asynchronous events, timers,
 	 * etc.
 	 */
-	asio::io_service& _ioService;
+	asio::io_context& _ioContext;
 
 	/**
 	 * @brief The timer used to periodically trigger the data downloads

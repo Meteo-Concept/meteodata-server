@@ -167,11 +167,11 @@ int main(int argc, char** argv)
 	};
 	cass_log_set_callback(logCallback, nullptr);
 
-	asio::io_service ioService;
+	asio::io_context ioContext;
 	DbConnectionObservations db{address, user, password};
 
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
-	auto client = mqtt::make_tls_sync_client(ioService, mqttAddress, mqttPort);
+	auto client = mqtt::make_tls_sync_client(ioContext, mqttAddress, mqttPort);
 
 	client->set_client_id(CLIENT_ID);
 	client->set_user_name(mqttUser);
@@ -237,5 +237,5 @@ int main(int argc, char** argv)
 	);
 
 	client->connect();
-	ioService.run();
+	ioContext.run();
 }

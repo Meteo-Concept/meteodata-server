@@ -40,6 +40,7 @@
 #include <tz.h>
 #include <dbconnection_observations.h>
 
+#include "../connector.h"
 
 namespace meteodata
 {
@@ -54,17 +55,15 @@ using namespace meteodata;
 
 /**
  */
-class ShipAndBuoyDownloader : public std::enable_shared_from_this<ShipAndBuoyDownloader>
+class ShipAndBuoyDownloader : public Connector
 {
 public:
-	ShipAndBuoyDownloader(asio::io_service& ioService, DbConnectionObservations& db);
-	void start();
-	void stop();
-	void reload();
+	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db);
+	void start() override;
+	void stop() override;
+	void reload() override;
 
 private:
-	asio::io_service& _ioService;
-	DbConnectionObservations& _db;
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
 	bool _mustStop = false;

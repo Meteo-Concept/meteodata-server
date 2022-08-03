@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
@@ -48,7 +48,7 @@ class LiveobjectsMessage;
 class BaraniRainGaugeMqttSubscriber : public LiveobjectsMqttSubscriber
 {
 public:
-	BaraniRainGaugeMqttSubscriber(MqttSubscriptionDetails details, asio::io_service& ioService, DbConnectionObservations& db);
+	BaraniRainGaugeMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 
 protected:
 	const char* getConnectorSuffix() override

@@ -28,7 +28,7 @@
 #include <systemd/sd-daemon.h>
 
 #include <boost/system/error_code.hpp>
-#include <boost/asio/io_service.hpp>
+#include <boost/asio/io_context.hpp>
 #include <date.h>
 #include <dbconnection_observations.h>
 
@@ -53,10 +53,10 @@ namespace meteodata
 
 using namespace date;
 
-StatICTxtDownloader::StatICTxtDownloader(asio::io_service& ioService, DbConnectionObservations& db, CassUuid station,
+StatICTxtDownloader::StatICTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db, CassUuid station,
 										 const std::string& host, const std::string& url, bool https, int timezone,
 										 std::map<std::string, std::string> sensors) :
-		_ioService(ioService),
+		_ioContext(ioContext),
 		_db(db),
 		_station(station),
 		_lastDownloadTime(chrono::seconds(0)), // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station

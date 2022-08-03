@@ -68,7 +68,7 @@ public:
 	 *
 	 * @tparam T The actual meteo station connector type, e.g.
 	 * VantagePro2Connector for a VantagePro2 (R) station
-	 * @param ioService The Boost::Asio asynchronous service that
+	 * @param ioContext The Boost::Asio asynchronous service that
 	 * the connector will have to use for all Boost:Asio operations
 	 * @param db The handle to the database
 	 *

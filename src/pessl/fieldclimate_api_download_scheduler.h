@@ -40,6 +40,7 @@
 #include "fieldclimate_api_downloader.h"
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
+#include "../connector.h"
 
 namespace meteodata
 {
@@ -58,35 +59,35 @@ using namespace std::placeholders;
  * prepare a HTTP client, connect it to the API server and call all the
  * individual downloaders (one per station) on the client.
  */
-class FieldClimateApiDownloadScheduler : public std::enable_shared_from_this<FieldClimateApiDownloadScheduler>
+class FieldClimateApiDownloadScheduler : public Connector
 {
 public:
 	/**
 	 * @brief Construct the download scheduler
 	 *
-	 * @param ioService the Boost object used to process asynchronous
+	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
 	 * @param db the Météodata observations database connector
 	 * @param apiId the public part of the FieldClimate API key
 	 * @param apiSecret the private part of the FieldClimate API key
 	 */
-	FieldClimateApiDownloadScheduler(asio::io_service& ioService, DbConnectionObservations& db,
-									 const std::string& apiId, const std::string& apiSecret);
+	FieldClimateApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
+		const std::string& apiId, const std::string& apiSecret);
 
 	/**
 	 * @brief Start the periodic downloads
 	 */
-	void start();
+	void start() override;
 
 	/**
 	 * @brief Stop the periodic downloads
 	 */
-	void stop();
+	void stop() override;
 
 	/**
 	 * @brief Reload the configuration
 	 */
-	 void reload();
+	 void reload() override;
 
 	/**
 	 * @brief Add a station to download the data for
@@ -101,19 +102,6 @@ public:
 			 const std::map<std::string, std::string> sensors);
 
 private:
-	/**
-	 * @brief The Boost service that processes asynchronous events, timers,
-	 * etc.
-	 */
-	asio::io_service& _ioService;
-
-	/**
-	 * @brief The observations database connector
-	 *
-	 * We use this just to hand it over to the downloaders.
-	 */
-	DbConnectionObservations& _db;
-
 	/**
 	 * @brief The public part of the FieldClimate API key
 	 */
