@@ -101,6 +101,18 @@ void SynopDownloadScheduler::reload()
 
 void SynopDownloadScheduler::reloadStations()
 {
+	_groups.clear();
+
+	add(GROUP_FR, chrono::minutes(20), chrono::hours(3));
+	add(GROUP_LU, chrono::minutes(20), chrono::hours(3));
+
+	// Add the deferred SYNOPs
+	std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
+	_db.getDeferredSynops(deferredSynops);
+	for (auto&& synop : deferredSynops) {
+		add(std::get<1>(synop), chrono::minutes(6 * 60), chrono::hours(24));
+	}
+
 	std::vector<std::tuple<CassUuid, std::string>> icaos;
 	_db.getAllIcaos(icaos);
 	for (auto&& icao : icaos)

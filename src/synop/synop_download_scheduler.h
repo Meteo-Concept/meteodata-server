@@ -63,17 +63,6 @@ public:
 	void stop() override;
 	void reload() override;
 
-	void add(const std::string& group, const chrono::minutes& period, const chrono::hours& backlog);
-
-	/**
-	 * The SYNOP country prefix for France
-	 */
-	static constexpr char GROUP_FR[] = "07";
-	/**
-	 * The SYNOP country prefix for Luxemburg
-	 */
-	static constexpr char GROUP_LU[] = "06";
-
 private:
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
@@ -89,11 +78,22 @@ private:
 	static constexpr char HOST[] = "www.ogimet.com";
 	static constexpr int MINIMAL_PERIOD_MINUTES = 20;
 	static constexpr int DELAY_MINUTES = 4;
+	/**
+	 * The SYNOP country prefix for France
+	 */
+	static constexpr char GROUP_FR[] = "07";
+	/**
+	 * The SYNOP country prefix for Luxemburg
+	 */
+	static constexpr char GROUP_LU[] = "06";
 
 	void checkDeadline(const sys::error_code& e);
 	void waitUntilNextDownload();
+
 	void download(const std::string& group, const chrono::hours& backlog);
 	static void buildDownloadRequest(std::ostream& out, const std::string& group, const chrono::hours& backlog);
+
+	void add(const std::string& group, const chrono::minutes& period, const chrono::hours& backlog);
 	void reloadStations();
 };
 
