@@ -57,10 +57,10 @@ namespace pt = boost::property_tree;
 class AbstractWeatherlinkApiMessage
 {
 public:
-	AbstractWeatherlinkApiMessage(const TimeOffseter* _timeOffseter);
+	explicit AbstractWeatherlinkApiMessage(const TimeOffseter* _timeOffseter);
 
 	virtual void parse(std::istream& input) = 0;
-	Observation getObservation(const CassUuid station) const;
+	Observation getObservation(CassUuid station) const;
 	constexpr static size_t MAXSIZE = (2 << 20);
 
 	enum class SensorType

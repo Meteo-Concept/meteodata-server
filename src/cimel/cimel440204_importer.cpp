@@ -65,14 +65,14 @@ bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, 
 	char header[4];
 	input >> header[0] >> header[1] >> std::ws >> header[2] >> header[3];
 	if (header[0] != 'S' || header[1] != '0') {
-		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong header \"" << header[0] << header[1]
-				  << "\" (expected \"S0\")" << std::endl;
+		std::cerr << SD_ERR << R"([Cimel440204Importer] protocol: wrong header ")" << header[0] << header[1]
+				  << R"(" (expected "S0"))" << std::endl;
 		return false;
 	}
 
 	if (header[2] != '4' || header[3] != '4') {
-		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong station type \"" << header[2] << header[3]
-				  << "\" (expected \"44\")" << std::endl;
+		std::cerr << SD_ERR << R"([Cimel440204Importer] protocol: wrong station type ")" << header[2] << header[3]
+				  << R"(" (expected "44"))" << std::endl;
 		return false;
 	}
 
@@ -82,8 +82,8 @@ bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, 
 
 	std::string detectedId = std::to_string(dept * 10000 + city * 10 + nb);
 	if (detectedId != _cimelId) {
-		std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong station id \"" << detectedId << "\" (expected \""
-				  << _cimelId << "\")" << std::endl;
+		std::cerr << SD_ERR << R"([Cimel440204Importer] protocol: wrong station id ")" << detectedId << R"(" (expected ")"
+				  << _cimelId << R"("))" << std::endl;
 		return false;
 	}
 
@@ -99,8 +99,8 @@ bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, 
 		input.unget();
 		input >> header[0] >> header[1] >> std::ws;
 		if (header[0] != 'S' || header[1] != '0') {
-			std::cerr << SD_ERR << "[Cimel440204Importer] protocol: wrong daily value header \"" << header[0] << header[1]
-					  << "\" (expected \"S0\")" << std::endl;
+			std::cerr << SD_ERR << R"([Cimel440204Importer] protocol: wrong daily value header ")" << header[0] << header[1]
+					  << R"(" (expected "S0"))" << std::endl;
 			return false;
 		}
 		if (!input)
@@ -146,17 +146,18 @@ bool Cimel440204Importer::import(std::istream& input, date::sys_seconds& start, 
 
 			bool ret = _db.insertV2DataPoint(o);
 			if (!ret) {
-				std::cerr << SD_ERR << "[Cimel440204 " << _station << "] measurement: failed to insert datapoint"
+				std::cerr << SD_ERR << "[Cimel440204 " << _station << "]"
+						  << " measurement: failed to insert datapoint"
 						  << std::endl;
 			}
-		};
+		}
 	}
 
 	if (updateLastArchiveDownloadTime) {
 		bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
 		if (!ret) {
-			std::cerr << SD_ERR << "[Cimel440204 " << _station
-					  << "] management: failed to update the last archive download datetime" << std::endl;
+			std::cerr << SD_ERR << "[Cimel440204 " << _station << "]"
+					  << " management: failed to update the last archive download datetime" << std::endl;
 		}
 	}
 	return true;

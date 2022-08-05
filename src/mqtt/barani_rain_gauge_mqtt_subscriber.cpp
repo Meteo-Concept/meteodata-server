@@ -84,13 +84,13 @@ std::unique_ptr<meteodata::LiveobjectsMessage> BaraniRainGaugeMqttSubscriber::bu
 		prevCorr = previousCorrectionClicks;
 	}
 
-	std::string t = json.get<std::string>("timestamp");
+	auto t = json.get<std::string>("timestamp");
 	std::istringstream is{t};
 	// don't bother parsing the seconds and subseconds
 	is >> date::parse("%Y-%m-%dT%H:%M:", timestamp);
 
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Data received for timestamp " << timestamp << " (" << t << ")" << std::endl;
-	std::string payload = json.get<std::string>("value.payload");
+	auto payload = json.get<std::string>("value.payload");
 
 	std::unique_ptr<BaraniRainGaugeMessage> msg = std::make_unique<BaraniRainGaugeMessage>();
 	msg->ingest(payload, timestamp, BARANI_RAIN_GAUGE_RESOLUTION, previousClicks, previousCorrectionClicks);

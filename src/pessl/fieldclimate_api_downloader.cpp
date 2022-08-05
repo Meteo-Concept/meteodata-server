@@ -46,25 +46,20 @@
 namespace meteodata
 {
 
-constexpr char FieldClimateApiDownloader::APIHOST[];
-const std::string FieldClimateApiDownloader::BASE_URL =
-		std::string{"https://"} + FieldClimateApiDownloader::APIHOST + "/v2";
-
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
 using namespace meteodata;
 
-FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station, const std::string& fieldclimateId,
-													 const std::map<std::string, std::string>& sensors,
-													 DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz,
-													 const std::string& apiKey, const std::string& apiSecret) :
-		_station(station),
-		_fieldclimateId(fieldclimateId),
-		_sensors(sensors),
+FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
+	std::map<std::string, std::string> sensors, DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz,
+	std::string apiKey, std::string apiSecret) :
+		_station{station},
+		_fieldclimateId{std::move(fieldclimateId)},
+		_sensors{std::move(sensors)},
 		_db(db),
-		_apiKey(apiKey),
-		_apiSecret(apiSecret)
+		_apiKey{std::move(apiKey)},
+		_apiSecret{std::move(apiSecret)}
 {
 	time_t lastArchiveDownloadTime;
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);

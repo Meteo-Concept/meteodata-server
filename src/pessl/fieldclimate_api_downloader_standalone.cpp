@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
 					  << message->file << ", line " << message->line << std::endl;
 		};
-		cass_log_set_callback(logCallback, NULL);
+		cass_log_set_callback(logCallback, nullptr);
 
 		// Start the FieldClimate downloaders workers (one per Pessl station, but all sharing the same Curl client)
 		std::vector<std::tuple<CassUuid, std::string, int, std::map<std::string, std::string>>> fieldClimateStations;

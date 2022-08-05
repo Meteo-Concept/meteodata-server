@@ -81,7 +81,7 @@ public:
 					DbConnectionObservations& db);
 
 	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-				bool updateLastArchiveDownloadTime = true) override;
+				bool updateLastArchiveDownloadTime) override;
 };
 
 }

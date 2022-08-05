@@ -51,8 +51,10 @@ class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<Abstra
 {
 public:
 	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db, TimeOffseter&& to) :
-			_db(db),
-			_station(station)
+			_db{db},
+			_station{station},
+			_timeOffseter{to},
+			_pollingPeriod{0}
 	{
 		time_t lastArchiveDownloadTime;
 		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -60,7 +62,6 @@ public:
 		int elevation;
 		db.getStationLocation(station, latitude, longitude, elevation);
 		_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-		_timeOffseter = to;
 		_timeOffseter.setLatitude(latitude);
 		_timeOffseter.setLongitude(longitude);
 		_timeOffseter.setElevation(elevation);
@@ -112,7 +113,7 @@ protected:
 	TimeOffseter _timeOffseter;
 
 public:
-	inline int getPollingPeriod()
+	inline int getPollingPeriod() const
 	{ return _pollingPeriod; };
 };
 

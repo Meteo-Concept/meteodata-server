@@ -65,7 +65,7 @@ public:
 	 * is successful (no curl errors and HTTP status code in the 2xx range)
 	 * @return The curl result/error code for the query (https://curl.se/libcurl/c/libcurl-errors.html)
 	 */
-	CURLcode download(const std::string& url, std::function<void(const std::string&)> parser);
+	CURLcode download(const std::string& url, const std::function<void(const std::string&)>& parser);
 
 	/**
 	 * @brief Get the last error message returned by curl

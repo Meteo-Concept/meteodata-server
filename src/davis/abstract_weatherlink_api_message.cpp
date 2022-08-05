@@ -45,7 +45,7 @@ AbstractWeatherlinkApiMessage::AbstractWeatherlinkApiMessage(const TimeOffseter*
 		_timeOffseter{timeOffseter}
 {}
 
-Observation AbstractWeatherlinkApiMessage::getObservation(const CassUuid station) const
+Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) const
 {
 	Observation result;
 

@@ -62,7 +62,7 @@ public:
 	 */
 	~FieldClimateApiArchiveMessage() = default;
 
-	Observation getObservation(const CassUuid station) const;
+	Observation getObservation(const CassUuid& station) const;
 
 private:
 	/**
@@ -79,13 +79,13 @@ private:
 	 * @brief A time offseter to convert datetimes from the station's local
 	 * timezone to the UTC timezone
 	 */
-	const TimeOffseter* _timeOffseter;
+	const TimeOffseter* _timeOffseter = nullptr;
 
 	/**
 	 * @brief The sensors map for the station
 	 * @see FieldClimateApiDownloader
 	 */
-	const std::map<std::string, std::string>* _sensors;
+	const std::map<std::string, std::string>* _sensors = nullptr;
 
 	/**
 	 * @brief Whether a floating point sensored value is invalid
@@ -203,4 +203,4 @@ private:
 
 }
 
-#endif /* FIELDCLIMATE_ARCHIVE_MESSAGE_H */
+#endif /* FIELDCLIMATE_API_ARCHIVE_MESSAGE_H */

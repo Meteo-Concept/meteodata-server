@@ -68,7 +68,7 @@ void CurlWrapper::setHeader(const std::string& header, const std::string& value)
 	}
 }
 
-CURLcode CurlWrapper::download(const std::string& url, std::function<void(const std::string&)> parser)
+CURLcode CurlWrapper::download(const std::string& url, const std::function<void(const std::string&)>& parser)
 {
 	if (_headers)
 		curl_easy_setopt(_handle.get(), CURLOPT_HTTPHEADER, _headers.get());

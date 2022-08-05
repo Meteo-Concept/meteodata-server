@@ -72,7 +72,7 @@ public:
 	 * @param apiSecret the private part of the FieldClimate API key
 	 */
 	FieldClimateApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-		const std::string& apiId, const std::string& apiSecret);
+		std::string apiId, std::string apiSecret);
 
 	/**
 	 * @brief Start the periodic downloads
@@ -99,7 +99,7 @@ public:
 	 * FieldClimateApiDownloader class for details)
 	 */
 	void add(const CassUuid& station, const std::string& fieldClimateId, TimeOffseter::PredefinedTimezone tz,
-			 const std::map<std::string, std::string> sensors);
+			 const std::map<std::string, std::string>& sensors);
 
 private:
 	/**

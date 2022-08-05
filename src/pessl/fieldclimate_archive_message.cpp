@@ -50,7 +50,7 @@ namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
 FieldClimateApiArchiveMessage::FieldClimateApiArchiveMessage(const TimeOffseter* timeOffseter,
-															 const std::map<std::string, std::string>* sensors) :
+	const std::map<std::string, std::string>* sensors) :
 		_timeOffseter(timeOffseter),
 		_sensors(sensors)
 {
@@ -157,7 +157,7 @@ void FieldClimateApiArchiveMessage::ingest(const pt::ptree& jsonTree, int index)
 	getValueForSensor("leaf wetness time ratio 1", "time", _obs.leafWetnessTimeRatio[0]);
 }
 
-Observation FieldClimateApiArchiveMessage::getObservation(const CassUuid station) const
+Observation FieldClimateApiArchiveMessage::getObservation(const CassUuid& station) const
 {
 	Observation result;
 

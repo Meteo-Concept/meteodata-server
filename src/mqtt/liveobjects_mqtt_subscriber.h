@@ -37,7 +37,7 @@ namespace meteodata
 class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
-	LiveobjectsMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
+	LiveobjectsMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
 					const std::string& streamId);
 

@@ -65,7 +65,7 @@ public:
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
 	 */
-	CimelImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+	CimelImporter(const CassUuid& station, std::string cimelId, const std::string& timezone,
 					DbConnectionObservations& db);
 
 	/**
@@ -76,13 +76,13 @@ public:
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
 	 */
-	CimelImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+	CimelImporter(const CassUuid& station, std::string cimelId, TimeOffseter&& timeOffseter,
 					DbConnectionObservations& db);
 
 	virtual ~CimelImporter() = default;
 
 	virtual bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-				bool updateLastArchiveDownloadTime = true) = 0;
+				bool updateLastArchiveDownloadTime) = 0;
 
 protected:
 	CassUuid _station;

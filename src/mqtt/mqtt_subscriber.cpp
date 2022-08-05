@@ -22,13 +22,11 @@
  */
 
 #include <iostream>
-#include <sstream>
 #include <memory>
 #include <functional>
 #include <iterator>
 #include <chrono>
 #include <systemd/sd-daemon.h>
-#include <unistd.h>
 
 #include <cassandra.h>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -39,7 +37,7 @@
 #include "../time_offseter.h"
 #include "../cassandra_utils.h"
 #include "mqtt_subscriber.h"
-#include "../davis/vantagepro2_archive_page.h"
+#include "../connector.h"
 
 #define DEFAULT_VERIFY_PATH "/etc/ssl/certs"
 
@@ -53,18 +51,9 @@ namespace meteodata
 
 using namespace date;
 
-MqttSubscriber::MqttSubscriptionDetails::MqttSubscriptionDetails(const std::string& host, int port,
-																 const std::string& user, const std::string& password) :
-		host(host),
-		port(port),
-		user(user),
-		password(password)
-{}
-
 MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details, asio::io_context& ioContext,
 							   DbConnectionObservations& db) :
-		_ioContext{ioContext},
-		_db{db},
+		Connector{ioContext, db},
 		_details{details},
 		_timer{ioContext}
 {
@@ -138,7 +127,7 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
+		_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
 	}
 }
 
@@ -153,7 +142,7 @@ void MqttSubscriber::handleError(sys::error_code const&)
 	auto self{shared_from_this()};
 	if (_retries < MAX_RETRIES) {
 		_timer.expires_from_now(chrono::minutes(_retries));
-		_timer.async_wait(std::bind(&MqttSubscriber::checkRetryStartDeadline, self, args::_1));
+		_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
 	} else {
 		std::cerr << SD_ERR << "[MQTT] protocol: " << "impossible to reconnect" << std::endl;
 		// bail off

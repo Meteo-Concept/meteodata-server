@@ -76,7 +76,7 @@ public:
 			size_t start = field.find_first_not_of(' ');
 			size_t end = field.find_last_not_of(" \r");
 			if (start == std::string::npos) {
-				_fields.push_back("");
+				_fields.emplace_back("");
 			} else {
 				std::string&& f = field.substr(start, end - start + 1);
 				_fields.push_back(f);

@@ -31,6 +31,7 @@
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
+#include <utility>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
@@ -52,16 +53,16 @@ namespace meteodata
 using namespace date;
 
 FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
-	DbConnectionObservations& db, const std::string& apiId, const std::string& apiSecret) :
+	DbConnectionObservations& db, std::string  apiId, std::string apiSecret) :
 		Connector{ioContext, db},
-		_apiId{apiId},
-		_apiSecret{apiSecret},
+		_apiId{std::move(apiId)},
+		_apiSecret{std::move(apiSecret)},
 		_timer{ioContext}
 {
 }
 
 void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
-	TimeOffseter::PredefinedTimezone tz, const std::map<std::string, std::string> sensors)
+	TimeOffseter::PredefinedTimezone tz, const std::map<std::string, std::string>& sensors)
 {
 	_downloaders.emplace_back(
 		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret)

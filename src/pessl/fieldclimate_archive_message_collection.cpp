@@ -58,11 +58,11 @@ void FieldClimateApiArchiveMessageCollection::parse(std::istream& input)
 	// Every individual message will receive the full tree, but a specific
 	// index (one index = one date = one datapoint)
 	auto dates = jsonTree.get_child("dates");
-	int nb = dates.size();
+	auto nb = dates.size();
 	for (int i = 0 ; i < nb ; i++) {
 		FieldClimateApiArchiveMessage message{_timeOffseter, _sensors};
 		message.ingest(jsonTree, i);
-		_messages.push_back(std::move(message));
+		_messages.push_back(message);
 	}
 }
 

@@ -159,7 +159,7 @@ std::unique_ptr<CimelImporter> CimelHttpRequestHandler::makeImporter(const std::
 		return std::make_unique<Cimel440204Importer>(station, cimelId,
 			std::forward<TimeOffseter&&>(timeOffseter), db);
 	} else {
-		return std::unique_ptr<CimelImporter>();
+		return {};
 	}
 }
 

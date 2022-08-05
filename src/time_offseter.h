@@ -230,4 +230,4 @@ private:
 
 }
 
-#endif /* VANTAGEPRO2ARCHIVEMESSAGE_H */
+#endif /* TIMEOFFSETER_H */

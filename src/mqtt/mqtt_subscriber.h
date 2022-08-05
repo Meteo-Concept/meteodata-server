@@ -43,13 +43,14 @@
 
 #include "../time_offseter.h"
 #include "../davis/vantagepro2_archive_page.h"
+#include "../connector.h"
 
 namespace meteodata
 {
 
 /**
  */
-class MqttSubscriber : public std::enable_shared_from_this<MqttSubscriber>
+class MqttSubscriber : public Connector
 {
 public:
 	struct MqttSubscriptionDetails
@@ -59,20 +60,16 @@ public:
 		std::string user;
 		std::string password;
 
-		MqttSubscriptionDetails(const std::string& host, int port, const std::string& user,
-								const std::string& password);
 		friend bool operator<(const MqttSubscriptionDetails& s1, const MqttSubscriptionDetails& s2);
 	};
 
 	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
-	void start();
-	void stop();
-	void reload();
+	void start() override;
+	void stop() override;
+	void reload() override;
 
 protected:
-	asio::io_context& _ioContext;
-	DbConnectionObservations& _db;
 	MqttSubscriptionDetails _details;
 
 	std::map<std::uint16_t, std::string> _subscriptions;

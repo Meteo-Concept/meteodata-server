@@ -62,10 +62,9 @@ public:
 	 * @param apiId the FieldClimate API key public part
 	 * @param apiSecret the FieldClimate API key private part
 	 */
-	FieldClimateApiDownloader(const CassUuid& station, const std::string& fieldclimateId,
-							  const std::map<std::string, std::string>& sensors, DbConnectionObservations& db,
-							  TimeOffseter::PredefinedTimezone tz, const std::string& apiId,
-							  const std::string& apiSecret);
+	FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
+		std::map<std::string, std::string> sensors, DbConnectionObservations& db,
+		TimeOffseter::PredefinedTimezone tz, std::string apiId, std::string apiSecret);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored
@@ -88,8 +87,7 @@ public:
 	 * @brief The host name of the FieldClimate API server
 	 */
 	static constexpr char APIHOST[] = "api.fieldclimate.com";
-
-	static const std::string BASE_URL;
+	static constexpr char BASE_URL[] = "https://api.fieldclimate.com/v2";
 
 private:
 	/**

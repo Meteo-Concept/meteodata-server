@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include <string>
+#include <utility>
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
@@ -43,19 +44,19 @@ namespace chrono = std::chrono;
 using namespace std::placeholders;
 using namespace meteodata;
 
-CimelImporter::CimelImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
+CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, const std::string& timezone,
 								 DbConnectionObservations& db) :
 		_station{station},
-		_cimelId{cimelId},
+		_cimelId{std::move(cimelId)},
 		_db{db},
 		_tz{TimeOffseter::getTimeOffseterFor(timezone)}
 {
 }
 
-CimelImporter::CimelImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
+CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, TimeOffseter&& timeOffseter,
 								 DbConnectionObservations& db) :
 		_station{station},
-		_cimelId{cimelId},
+		_cimelId{std::move(cimelId)},
 		_db{db},
 		_tz{timeOffseter}
 {
