@@ -30,11 +30,70 @@
 #include "meteo_server.h"
 #include "connector.h"
 #include "davis/vantagepro2_connector.h"
+#include "control/control_connector.h"
 
 #define CONTROL_SOCKET_PATH "/var/run/meteodata/control.sock"
 
 namespace meteodata
 {
+
+class ConnectorIterator {
+private:
+	using Container = std::map<std::string, std::weak_ptr<Connector>>;
+	const Container* _container = nullptr;
+	Container::const_iterator _it;
+	std::shared_ptr<Connector> _owned;
+
+public:
+	using difference_type = Container::const_iterator::difference_type;
+	using value_type = std::tuple<std::string, std::shared_ptr<Connector>>;
+	using iterator_category = std::forward_iterator_tag;
+	using pointer = value_type*;
+	using reference = value_type&;
+
+	ConnectorIterator(const Container* container) {
+		_container = container;
+		_it = _container->cbegin();
+		if (_it != _container->cend()) {
+			_owned = _it->second.lock();
+			if (!_owned)
+				operator++();
+		}
+	}
+
+	ConnectorIterator() = default;
+	ConnectorIterator(const ConnectorIterator& other) {
+		_container = other._container;
+		_it = other._it;
+	}
+	ConnectorIterator& operator++() {
+		if (_owned)
+			_owned.reset();
+		do {
+			++_it;
+		} while ((_it != _container->cend()) && !(_owned = _it->second.lock()));
+		return *this;
+	}
+
+	ConnectorIterator operator++(int) {
+		ConnectorIterator ret = *this;
+		operator++();
+		return ret;
+	}
+
+	value_type operator*() {
+		if (!_owned) {
+			_owned = _it->second.lock();
+		}
+		return {_it->first, _owned};
+	}
+
+	bool operator!=(const ConnectorIterator& other) const {
+		return (_container == other._container && _it != other._it) ||
+				(other._container == nullptr && _it != _container->cend());
+	}
+};
+
 /**
  * @brief Main class and orchestrator
  *
@@ -76,12 +135,18 @@ public:
 	 * @param config the credentials and other configuration to use
 	 */
 	MeteoServer(boost::asio::io_context& io, MeteoServerConfiguration&& config);
+
+	~MeteoServer();
+
 	/**
 	 * @brief Launch all operations: start the SYNOP messages
 	 * downloader, the Weatherlink archive downloader and listen
 	 * for incoming stations.
 	 */
 	void start();
+
+	void stop();
+
 
 private:
 	boost::asio::io_context& _ioContext;
@@ -141,10 +206,17 @@ private:
 	 * @param error an error code returned from the accept()
 	 * operation
 	 */
-	void runNewControlConnector(const boost::system::error_code& error);
+	void runNewControlConnector(const std::shared_ptr<ControlConnector>& c, const boost::system::error_code& error);
 
 	std::map<std::string, std::weak_ptr<Connector>> _connectors;
+
+public:
+	ConnectorIterator beginConnectors() { return ConnectorIterator(&_connectors); }
+	ConnectorIterator endConnectors() { return ConnectorIterator(); };
+
+	friend class ConnectorIterator;
 };
+
 }
 
-#endif /* ifndef METEO_SERVER_H */
+#endif /* METEO_SERVER_H */

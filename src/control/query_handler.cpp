@@ -1,8 +1,8 @@
 /**
- * @file connectors_query_handler.h
- * @brief Definition of the ConnectorsQueryHandler class
+ * @file query_handler.cpp
+ * @brief Implementation of the QueryHandler class
  * @author Laurent Georget
- * @date 2022-08-02
+ * @date 2022-08-05
  */
 /*
  * Copyright (C) 2022  SAS Météo Concept <contact@meteo-concept.fr>
@@ -21,34 +21,42 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef CONNECTORS_QUERY_HANDLER_H
-#define CONNECTORS_QUERY_HANDLER_H
-
+#include <sstream>
 #include <string>
-#include <array>
-#include <tuple>
+#include <algorithm>
 
 #include "query_handler.h"
+#include "../meteo_server.h"
 
-namespace meteodata
+namespace meteodata {
+
+QueryHandler::QueryHandler(std::string cat) :
+	_category{std::move(cat)}
+{}
+
+std::string QueryHandler::handleQuery(const std::string& query)
 {
+	std::istringstream is{query};
+	std::string category;
+	is >> category;
 
-class MeteoServer;
+	if (category == _category) {
+		std::string verb;
+		is >> verb;
+		if (verb.empty())
+			verb = _defaultCommand;
 
-class ConnectorsQueryHandler : public QueryHandler
-{
-public:
-	explicit ConnectorsQueryHandler(MeteoServer& meteoServer);
-	std::string list(const std::string&);
-	std::string status(const std::string& name);
-	std::string help(const std::string&);
+		for (auto&& [name, cmd]: _commands) {
+			if (name == verb) {
+				std::string restOfQuery;
+				is >> std::ws;
+				std::getline(is, restOfQuery);
+				return (this->*(cmd))(restOfQuery);
+			}
+		}
+	}
 
-private:
-	MeteoServer& _meteoServer;
-};
-
+	return _next ? _next->handleQuery(query) : "";
 }
 
-
-#endif // CONNECTORS_QUERY_HANDLER_H
+}

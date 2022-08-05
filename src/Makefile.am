@@ -153,8 +153,11 @@ meteodata_SOURCES = \
 		    control/control_connector.h\
 		    control/control_connector.cpp\
 		    control/query_handler.h\
+		    control/query_handler.cpp\
 		    control/connectors_query_handler.h\
-		    control/connectors_query_handler.cpp
+		    control/connectors_query_handler.cpp\
+		    control/general_query_handler.h\
+		    control/general_query_handler.cpp
 
 meteodata_minmax_SOURCES = \
 		    minmax.cpp

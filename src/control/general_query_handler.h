@@ -1,8 +1,8 @@
 /**
- * @file connectors_query_handler.h
- * @brief Definition of the ConnectorsQueryHandler class
+ * @file general_query_handler.h
+ * @brief Definition of the GeneralQueryHandler class
  * @author Laurent Georget
- * @date 2022-08-02
+ * @date 2022-08-05
  */
 /*
  * Copyright (C) 2022  SAS Météo Concept <contact@meteo-concept.fr>
@@ -22,8 +22,8 @@
  */
 
 
-#ifndef CONNECTORS_QUERY_HANDLER_H
-#define CONNECTORS_QUERY_HANDLER_H
+#ifndef GENERAL_QUERY_HANDLER_H
+#define GENERAL_QUERY_HANDLER_H
 
 #include <string>
 #include <array>
@@ -36,12 +36,11 @@ namespace meteodata
 
 class MeteoServer;
 
-class ConnectorsQueryHandler : public QueryHandler
+class GeneralQueryHandler : public QueryHandler
 {
 public:
-	explicit ConnectorsQueryHandler(MeteoServer& meteoServer);
-	std::string list(const std::string&);
-	std::string status(const std::string& name);
+	explicit GeneralQueryHandler(MeteoServer& meteoServer);
+	std::string shutdown(const std::string&);
 	std::string help(const std::string&);
 
 private:
@@ -51,4 +50,4 @@ private:
 }
 
 
-#endif // CONNECTORS_QUERY_HANDLER_H
+#endif // GENERAL_QUERY_HANDLER_H

@@ -54,6 +54,8 @@ public:
 
 	virtual void reload() = 0;
 
+	virtual std::string getStatus();
+
 protected:
 	/**
 	 * @brief Construct a connector
@@ -75,6 +77,17 @@ protected:
 	 * @brief The connection to the database
 	 */
 	DbConnectionObservations& _db;
+
+	struct Status {
+		date::sys_seconds activeSince;
+		date::sys_seconds lastReloaded;
+		date::sys_seconds lastDownload;
+		unsigned int nbDownloads = 0;
+		std::string shortStatus;
+		chrono::seconds timeToNextDownload;
+	};
+
+	Status _status;
 };
 }
 

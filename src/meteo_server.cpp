@@ -27,6 +27,7 @@
 #include <tuple>
 #include <functional>
 #include <vector>
+#include <filesystem>
 
 #include <boost/asio.hpp>
 
@@ -47,6 +48,7 @@
 #include "synop/synop_download_scheduler.h"
 #include "pessl/fieldclimate_api_download_scheduler.h"
 #include "rest_web_server.h"
+#include "control/control_connector.h"
 
 using namespace boost::asio;
 using namespace boost::asio::ip;
@@ -64,6 +66,16 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 	_configuration.password.clear();
 
 	std::cerr << SD_INFO << "[Server] management: " << "Meteodata has started succesfully" << std::endl;
+}
+
+MeteoServer::~MeteoServer()
+{
+	if (_vp2DirectConnectAcceptor.is_open())
+		_vp2DirectConnectAcceptor.close();
+	if (_controlAcceptor.is_open())
+		_controlAcceptor.close();
+	// do nothing silently if the file doesn't exist, throws on I/O error
+	std::filesystem::remove(CONTROL_SOCKET_PATH);
 }
 
 void MeteoServer::start()
@@ -144,32 +156,32 @@ void MeteoServer::start()
 			}
 		}
 
-		for (auto&& mqttSubscriber : vp2MqttSubscribers)
+		for (auto&& mqttSubscriber : vp2MqttSubscribers) {
 			mqttSubscriber.second->start();
-		for (auto&& mqttSubscriber : objeniousMqttSubscribers)
+			_connectors.emplace("mqtt_vp2_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : objeniousMqttSubscribers) {
 			mqttSubscriber.second->start();
-		for (auto&& mqttSubscriber : lorainMqttSubscribers)
+			_connectors.emplace("mqtt_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : lorainMqttSubscribers) {
 			mqttSubscriber.second->start();
-		for (auto&& mqttSubscriber : baraniRainGaugeMqttSubscribers)
+			_connectors.emplace("mqtt_lorain_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : baraniRainGaugeMqttSubscribers) {
 			mqttSubscriber.second->start();
-		for (auto&& mqttSubscriber : baraniAnemometerMqttSubscribers)
+			_connectors.emplace("mqtt_barani_rain_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : baraniAnemometerMqttSubscribers) {
 			mqttSubscriber.second->start();
+			_connectors.emplace("mqtt_barani_anemo_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
 	}
 
 	if (_configuration.startSynop) {
 		// Start the Synop downloader worker (one for all the SYNOP stations in
 		// the same group)
 		auto synopDownloader = std::make_shared<SynopDownloadScheduler>(_ioContext, _db);
-		synopDownloader->add(SynopDownloadScheduler::GROUP_FR, chrono::minutes(20), chrono::hours(3));
-		synopDownloader->add(SynopDownloadScheduler::GROUP_LU, chrono::minutes(20), chrono::hours(3));
-
-		// Add the deferred SYNOPs
-		std::vector<std::tuple<CassUuid, std::string>> deferredSynops;
-		_db.getDeferredSynops(deferredSynops);
-		for (auto&& synop : deferredSynops) {
-			synopDownloader->add(std::get<1>(synop), chrono::minutes(6 * 60), chrono::hours(24));
-		}
-
 		synopDownloader->start();
 		_connectors.emplace("synop", synopDownloader);
 	}
@@ -225,6 +237,26 @@ void MeteoServer::start()
 		_vp2DirectConnectAcceptor.listen();
 		startAcceptingVp2DirectConnect();
 	}
+
+	_controlAcceptor.open();
+	_controlAcceptor.set_option(local::stream_protocol::acceptor::reuse_address(true));
+	_controlAcceptor.bind(local::stream_protocol::endpoint{CONTROL_SOCKET_PATH});
+	_controlAcceptor.listen();
+	startAcceptingControlConnection();
+}
+
+void MeteoServer::stop()
+{
+	for (auto&& connector : _connectors) {
+		auto c = connector.second.lock();
+		if (c)
+			c->stop();
+	}
+	if (_vp2DirectConnectAcceptor.is_open())
+		_vp2DirectConnectAcceptor.close();
+
+	if (_controlAcceptor.is_open())
+		_controlAcceptor.close();
 }
 
 void MeteoServer::startAcceptingVp2DirectConnect()
@@ -239,6 +271,22 @@ void MeteoServer::runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Conn
 {
 	if (!error) {
 		startAcceptingVp2DirectConnect();
+		c->start();
+	}
+}
+
+void MeteoServer::startAcceptingControlConnection()
+{
+	auto controlConnection = std::make_shared<ControlConnector>(_ioContext, *this);
+	_controlAcceptor.async_accept(controlConnection->socket(), [this, controlConnection](const boost::system::error_code& error) {
+		runNewControlConnector(controlConnection, error);
+	});
+}
+
+void MeteoServer::runNewControlConnector(const std::shared_ptr<ControlConnector>& c, const boost::system::error_code& error)
+{
+	if (!error) {
+		startAcceptingControlConnection();
 		c->start();
 	}
 }

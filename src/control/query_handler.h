@@ -26,6 +26,7 @@
 #define QUERY_HANDLER_H
 
 #include <memory>
+#include <vector>
 
 namespace meteodata
 {
@@ -33,14 +34,27 @@ namespace meteodata
 class QueryHandler
 {
 public:
+	explicit QueryHandler(std::string category);
+	QueryHandler(const QueryHandler& other) = delete;
+	QueryHandler(QueryHandler&& other) = default;
 	virtual ~QueryHandler() = default;
+
 	virtual void setNext(std::unique_ptr<QueryHandler>&& next) {
 		_next = std::move(next);
 	};
-	virtual std::string handleQuery(const std::string& query) = 0;
+	virtual std::string handleQuery(const std::string& query);
 
 protected:
 	std::unique_ptr<QueryHandler> _next = nullptr;
+	std::string _category;
+
+	using Command = std::string (QueryHandler::*)(const std::string& query);
+	struct NamedCommand {
+		const char* verb;
+		Command command;
+	};
+	std::vector<NamedCommand> _commands;
+	std::string _defaultCommand;
 };
 
 }

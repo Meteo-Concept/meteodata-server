@@ -22,56 +22,53 @@
  */
 
 #include <sstream>
+#include <algorithm>
 
 #include "connectors_query_handler.h"
+#include "../meteo_server.h"
 
 namespace meteodata {
 
 ConnectorsQueryHandler::ConnectorsQueryHandler(meteodata::MeteoServer& meteoServer) :
+	QueryHandler{"connectors"},
 	_meteoServer{meteoServer}
 {
-
+	_commands.push_back(NamedCommand{ "list", static_cast<Command>(&ConnectorsQueryHandler::list) });
+	_commands.push_back(NamedCommand{ "status", static_cast<Command>(&ConnectorsQueryHandler::status) });
+	_commands.push_back(NamedCommand{ "help", static_cast<Command>(&ConnectorsQueryHandler::help) });
+	_defaultCommand = "list";
 }
 
-std::string ConnectorsQueryHandler::list(const std::string& name)
+std::string ConnectorsQueryHandler::list(const std::string&)
 {
-	return std::string();
+	std::ostringstream os;
+	for (auto it = _meteoServer.beginConnectors() ; it != _meteoServer.endConnectors() ; ++it) {
+		os << std::get<0>(*it) << "\n";
+	}
+	return os.str();
 }
 
 std::string ConnectorsQueryHandler::status(const std::string& name)
 {
-	return std::string();
+	auto it = std::find_if(_meteoServer.beginConnectors(), _meteoServer.endConnectors(),
+						   [&name](const auto& connector) { return std::get<0>(connector) == name; });
+	if (it != _meteoServer.endConnectors())
+		return std::get<1>(*it)->getStatus();
+	else
+		return R"(Unknown or unavailable connector ")" + name + R"(")";
 }
 
-std::string ConnectorsQueryHandler::help(const std::string& name)
+std::string ConnectorsQueryHandler::help(const std::string&)
 {
-	return std::string();
-}
+	return R"(The "connectors" queries are used to get information and act
+on the various components of Meteodata in charge of retrieving weather data.
+There is one connector for each "way" of getting the data, be it an API,
+a proprietary protocol, etc.
 
-std::string ConnectorsQueryHandler::handleQuery(const std::string& query)
-{
-	std::istringstream is{query};
-	std::string category;
-	is >> category;
-
-	if (category == "connectors") {
-		std::string verb;
-		is >> verb;
-		if (verb.empty())
-			verb = DEFAULT_COMMAND;
-
-		bool found = false;
-		for (auto it = _commands.cbegin() ; it != _commands.end() && !found ; ++it) {
-			if (it->verb == verb) {
-				found = true;
-				std::string restOfQuery;
-				std::getline(is, restOfQuery);
-				(this->*(it->command))(restOfQuery);
-			}
-		}
-	}
-
-	return _next->handleQuery(query);
+Available options :
+- list: list the active connectors
+- status <connector>: gives the latest status of the connector identified by its name
+- help: displays this message)";
 }
 
 }

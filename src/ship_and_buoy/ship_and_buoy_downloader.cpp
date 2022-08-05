@@ -41,6 +41,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <dbconnection_observations.h>
+#include <date.h>
 
 #include "ship_and_buoy_downloader.h"
 #include "meteo_france_ship_and_buoy.h"
@@ -61,24 +62,32 @@ ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext, DbConn
 		Connector{ioContext, db},
 		_timer{ioContext}
 {
+	_status.shortStatus = "IDLE";
 }
 
 void ShipAndBuoyDownloader::start()
 {
+	_status.shortStatus = "OK";
+	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
+
 	_mustStop = false;
 	reloadStations();
-	download();
 	waitUntilNextDownload();
 }
 
 void ShipAndBuoyDownloader::stop()
 {
+	_status.shortStatus = "STOPPED";
 	_mustStop = true;
 	_timer.cancel();
 }
 
 void ShipAndBuoyDownloader::reload()
 {
+	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_status.nbDownloads = 0;
+
 	_timer.cancel();
 	reloadStations();
 	waitUntilNextDownload();
@@ -90,7 +99,9 @@ void ShipAndBuoyDownloader::waitUntilNextDownload()
 	auto target = chrono::steady_clock::now();
 	auto daypoint = date::floor<date::days>(target);
 	auto tod = date::make_time(target - daypoint);
-	_timer.expires_from_now(date::days(1) + chrono::hours(6 - tod.hours().count()) - chrono::minutes(tod.minutes().count()));
+
+	_status.timeToNextDownload = chrono::hours(6 - (tod.hours().count() % 6)) - chrono::minutes(tod.minutes().count());
+	_timer.expires_from_now(_status.timeToNextDownload);
 	_timer.async_wait([this, self] (const sys::error_code& e) { return checkDeadline(e); });
 }
 

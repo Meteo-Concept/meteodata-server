@@ -32,8 +32,11 @@
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 
-#include "control_connector.h"
 #include "../meteo_server.h"
+#include "control_connector.h"
+#include "query_handler.h"
+#include "connectors_query_handler.h"
+#include "general_query_handler.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -52,13 +55,16 @@ ControlConnector::ControlConnector(boost::asio::io_context& ioContext,
 		_sock{ioContext},
 		_meteoServer{meteoServer}
 {
+	auto connectorsHandler = std::make_unique<ConnectorsQueryHandler>(meteoServer);
+	auto generalHandler = std::make_unique<GeneralQueryHandler>(meteoServer);
+
+	generalHandler->setNext(std::move(connectorsHandler));
+	_queryHandlerChain = std::move(generalHandler);
 }
 
 void ControlConnector::start()
 {
-	auto self(std::static_pointer_cast<ControlConnector>(shared_from_this()));
 	_currentState = State::STARTING;
-
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
@@ -78,7 +84,7 @@ void ControlConnector::checkDeadline(const sys::error_code& e)
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
-		auto self(std::static_pointer_cast<ControlConnector>(shared_from_this()));
+		auto self = shared_from_this();
 		_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
 	}
 }
@@ -103,39 +109,35 @@ void ControlConnector::stop()
 
 void ControlConnector::sendData()
 {
-	auto self(std::static_pointer_cast<ControlConnector>(shared_from_this()));
+	auto self = shared_from_this();
 	countdown(chrono::seconds(6));
 
 	// passing buffer to the lambda keeps the buffer alive
 	asio::async_write(_sock, _answerBuffer.data(),
-				[this, self](const sys::error_code& ec, std::size_t n) {
-					if (ec == sys::errc::operation_canceled)
-						return;
-					_timer.cancel();
-					if (ec == sys::errc::success)
-						_answerBuffer.consume(n);
-					handleEvent(ec);
-				});
+		[this, self](const sys::error_code& ec, std::size_t n) {
+			if (ec == sys::errc::operation_canceled)
+				return;
+			_timer.cancel();
+			if (ec == sys::errc::success)
+				_answerBuffer.consume(n);
+			handleEvent(ec);
+		});
 }
 
 void ControlConnector::recvData()
 {
-	auto self(std::static_pointer_cast<ControlConnector>(shared_from_this()));
-	countdown(chrono::seconds(6));
-	asio::streambuf::mutable_buffers_type buffer = _queryBuffer.prepare(QUERY_MAX_SIZE);
-	asio::async_read(_sock, buffer, [this, self](const sys::error_code& ec, std::size_t n) {
+	auto self = shared_from_this();
+	asio::async_read_until(_sock, _queryBuffer, "\n", [this, self](const sys::error_code& ec, std::size_t n) {
 		if (ec == sys::errc::operation_canceled)
 			return;
 		_timer.cancel();
-		if (ec == sys::errc::success)
-			_queryBuffer.commit(n);
 		handleEvent(ec);
 	});
 }
 
 void ControlConnector::flushSocket()
 {
-	auto self(std::static_pointer_cast<ControlConnector>(shared_from_this()));
+	auto self = shared_from_this();
 	// wait before flushing in order not to leave garbage behind
 	_timer.expires_from_now(chrono::seconds(10));
 	_timer.async_wait([this, self](const sys::error_code& ec) {
@@ -180,7 +182,10 @@ void ControlConnector::handleGenericErrors(const sys::error_code& e)
 	if (e == sys::errc::success || e == sys::errc::operation_canceled) {
 		return;
 	} else if (e == sys::errc::timed_out) {
-		std::cerr << SD_ERR << "[Control connection]: " << "Timeout, aborting" << std::endl;
+		std::cerr << SD_ERR << "[Control connection]: Timeout, aborting" << std::endl;
+		stop();
+	} else if (e == asio::error::eof) {
+		std::cerr << SD_NOTICE << "[Control connection]: Client disconnected" << std::endl;
 		stop();
 	} else { /* TCP reset by peer, etc. */
 		std::cerr << SD_ERR << "[Control connection]: " << "unknown network error: " << e.message()
@@ -205,10 +210,23 @@ void ControlConnector::handleEvent(const sys::error_code& e)
 
 				std::string query;
 				std::istream is{&_queryBuffer};
-				is >> query;
-				// parse the query, do something, prepare an answer
-				_currentState = State::SENDING_ANSWER;
-				sendData();
+				std::getline(is, query);
+				if (!query.empty()) {
+					_queryBuffer.consume(query.size());
+
+					std::string answer = _queryHandlerChain->handleQuery(query);
+					std::ostream os{&_answerBuffer};
+					os << answer;
+					if (answer.empty() || answer.at(answer.length() - 1) != '\n')
+						os << '\n';
+
+					_currentState = State::SENDING_ANSWER;
+					sendData();
+				} else {
+					// client has sent an empty line, that's disconcerting, but
+					// we should keep listening anyway
+					recvData();
+				}
 			}
 			break;
 

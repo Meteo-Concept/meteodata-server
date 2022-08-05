@@ -35,6 +35,8 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <date.h>
 
+#include "query_handler.h"
+
 namespace meteodata
 {
 
@@ -51,7 +53,7 @@ class MeteoServer;
  * @brief A connector to receive commands from external programs on the control
  * socket
  */
-class ControlConnector : std::enable_shared_from_this<ControlConnector>
+class ControlConnector : public std::enable_shared_from_this<ControlConnector>
 {
 public:
 	/**
@@ -66,6 +68,8 @@ public:
 
 	//main loop
 	void start();
+
+	inline asio::local::stream_protocol::socket& socket() { return _sock; };
 
 private:
 	/**
@@ -181,6 +185,8 @@ private:
 	asio::streambuf _answerBuffer;
 
 	constexpr static size_t QUERY_MAX_SIZE = 4096;
+
+	std::unique_ptr<QueryHandler> _queryHandlerChain;
 };
 
 }
