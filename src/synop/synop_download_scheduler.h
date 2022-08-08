@@ -1,6 +1,6 @@
 /**
- * @file abstractsynopdownloader.h
- * @brief Definition of the AbstractSynopDownloader class
+ * @file synop_download_scheduler.h
+ * @brief Definition of the SynopDownloadScheduler class
  * @author Laurent Georget
  * @date 2019-02-20
  */
@@ -21,50 +21,31 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ABSTRACTSYNOPDOWNLOADER_H
-#define ABSTRACTSYNOPDOWNLOADER_H
+#ifndef SYNOP_DOWNLOAD_SCHEDULER_H
+#define SYNOP_DOWNLOAD_SCHEDULER_H
 
 #include <iostream>
-#include <memory>
-#include <array>
 #include <vector>
-#include <functional>
 #include <map>
-#include <unistd.h>
 
-#include <boost/system/error_code.hpp>
-#include <boost/asio.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date.h>
 #include <tz.h>
-#include <dbconnection_observations.h>
 
-#include "../connector.h"
+#include "../abstract_download_scheduler.h"
 
 namespace meteodata
 {
-
-namespace ip = boost::asio::ip;
-namespace asio = boost::asio;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-
-using namespace std::placeholders;
-using namespace meteodata;
 
 /**
  */
-class SynopDownloadScheduler : public Connector
+class SynopDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
 	SynopDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db);
-	void start() override;
-	void stop() override;
-	void reload() override;
 
 private:
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
 
 	struct SynopGroup {
@@ -73,11 +54,9 @@ private:
 		chrono::hours backlog;
 	};
 	std::vector<SynopGroup> _groups;
-	bool _mustStop = false;
 
 	static constexpr char HOST[] = "www.ogimet.com";
 	static constexpr int MINIMAL_PERIOD_MINUTES = 20;
-	static constexpr int DELAY_MINUTES = 4;
 	/**
 	 * The SYNOP country prefix for France
 	 */
@@ -87,14 +66,12 @@ private:
 	 */
 	static constexpr char GROUP_LU[] = "06";
 
-	void checkDeadline(const sys::error_code& e);
-	void waitUntilNextDownload();
-
-	void download(const std::string& group, const chrono::hours& backlog);
+	void download() override;
+	void downloadGroup(const std::string& group, const chrono::hours& backlog);
 	static void buildDownloadRequest(std::ostream& out, const std::string& group, const chrono::hours& backlog);
 
 	void add(const std::string& group, const chrono::minutes& period, const chrono::hours& backlog);
-	void reloadStations();
+	void reloadStations() override;
 };
 
 }

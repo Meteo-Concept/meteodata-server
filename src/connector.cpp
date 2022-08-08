@@ -42,23 +42,24 @@ std::string Connector::getStatus()
 {
 	using namespace date;
 
-	auto h = date::floor<chrono::hours>(_status.timeToNextDownload);
-	auto m = date::floor<chrono::minutes>(_status.timeToNextDownload - h);
-	auto s = _status.timeToNextDownload - h - m;
-
 	std::ostringstream os;
 	auto z = date::current_zone();
 	os << _status.shortStatus << "\n"
 	   << "active since " << date::make_zoned(z, _status.activeSince) << "\n"
 	   << _status.nbDownloads << " since last reload at " << date::make_zoned(z, _status.lastReloaded) << "\n"
-	   << "next download scheduled ";
+	   << "next download scheduled at " << date::make_zoned(z, _status.nextDownload);
 
+	auto timeToNextDownload = _status.nextDownload - chrono::system_clock::now();
+	auto h = date::floor<chrono::hours>(timeToNextDownload);
+	auto m = date::floor<chrono::minutes>(timeToNextDownload - h);
+	auto s = timeToNextDownload - h - m;
+	os << " (";
 	if (h.count())
 		os << h;
 	os << std::setw(2) << std::setfill('0');
 	if (m.count())
 		os << m;
-	os << s << " from now.\n";
+	os << s << ") from now.\n";
 	return os.str();
 }
 

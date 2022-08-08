@@ -84,7 +84,7 @@ protected:
 		date::sys_seconds lastDownload;
 		unsigned int nbDownloads = 0;
 		std::string shortStatus;
-		chrono::seconds timeToNextDownload;
+		date::sys_seconds nextDownload;
 	};
 
 	Status _status;

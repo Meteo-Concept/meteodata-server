@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SHIPANDBUOYDOWNLOADER_H
-#define SHIPANDBUOYDOWNLOADER_H
+#ifndef SHIP_AND_BUOY_DOWNLOADER_H
+#define SHIP_AND_BUOY_DOWNLOADER_H
 
 #include <iostream>
 #include <memory>
@@ -40,7 +40,7 @@
 #include <tz.h>
 #include <dbconnection_observations.h>
 
-#include "../connector.h"
+#include "../abstract_download_scheduler.h"
 
 namespace meteodata
 {
@@ -55,28 +55,22 @@ using namespace meteodata;
 
 /**
  */
-class ShipAndBuoyDownloader : public Connector
+class ShipAndBuoyDownloader : public AbstractDownloadScheduler
 {
 public:
 	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db);
-	void start() override;
-	void stop() override;
-	void reload() override;
 
 private:
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::map<std::string, CassUuid> _icaos;
-	bool _mustStop = false;
 
 	static constexpr char HOST[] = "donneespubliques.meteofrance.fr";
 	static constexpr char URL[] = "/donnees_libres/Txt/Marine/marine.%Y%m%d.csv";
+	static constexpr int POLLING_PERIOD_HOURS = 6;
 
-	void checkDeadline(const sys::error_code& e);
-	void waitUntilNextDownload();
-	void download();
-	void reloadStations();
+	void download() override;
+	void reloadStations() override;
 };
 
 }
 
-#endif
+#endif /* SHIP_AND_BUOY_DOWNLOADER_H */

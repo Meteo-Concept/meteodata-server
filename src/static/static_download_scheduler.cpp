@@ -22,41 +22,26 @@
  */
 
 #include <iostream>
-#include <memory>
-#include <functional>
-#include <iterator>
 #include <chrono>
 #include <thread>
-#include <unistd.h>
 
 #include <systemd/sd-daemon.h>
-#include <boost/system/error_code.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <date.h>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
 #include "static_download_scheduler.h"
 #include "static_txt_downloader.h"
-#include "../http_utils.h"
+#include "../abstract_download_scheduler.h"
 
-namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-namespace args = std::placeholders;
 
 namespace meteodata
 {
-
 using namespace date;
 
 StatICDownloadScheduler::StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
-		Connector{ioContext, db},
-		_timer{ioContext}
+		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db}
 {
 }
 
@@ -70,27 +55,7 @@ StatICDownloadScheduler::add(const CassUuid& station, const std::string& host, c
 	);
 }
 
-void StatICDownloadScheduler::start()
-{
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void StatICDownloadScheduler::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void StatICDownloadScheduler::reload()
-{
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void StatICDownloadScheduler::downloadArchives()
+void StatICDownloadScheduler::download()
 {
 	for (const auto & _downloader : _downloaders) {
 		try {
@@ -99,38 +64,6 @@ void StatICDownloadScheduler::downloadArchives()
 			std::cerr << SD_ERR << "[StatIC] protocol: " << "Runtime error, impossible to download " << e.what()
 					  << ", moving on..." << std::endl;
 		}
-	}
-}
-
-void StatICDownloadScheduler::waitUntilNextDownload()
-{
-	if (_mustStop)
-		return;
-
-	auto self(shared_from_this());
-	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = chrono::minutes(realTimePollingPeriod) -
-			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
-	_timer.expires_from_now(tp);
-	_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
-}
-
-void StatICDownloadScheduler::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		downloadArchives();
-		waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

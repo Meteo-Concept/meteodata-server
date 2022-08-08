@@ -40,6 +40,7 @@
 #include "objenious_api_downloader.h"
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
+#include "../abstract_download_scheduler.h"
 
 namespace meteodata
 {
@@ -58,7 +59,7 @@ using namespace std::placeholders;
  * prepare a HTTP client, connect it to the API server and call all the
  * individual downloaders (one per station) on the client.
  */
-class ObjeniousApiDownloadScheduler : public std::enable_shared_from_this<ObjeniousApiDownloadScheduler>
+class ObjeniousApiDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
 	/**
@@ -69,22 +70,7 @@ public:
 	 * @param db the Météodata observations database connector
 	 * @param apiKey the Objenious API key
 	 */
-	ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, const std::string& apiKey);
-
-	/**
-	 * @brief Start the periodic downloads
-	 */
-	void start();
-
-	/**
-	 * @brief Stop the periodic downloads
-	 */
-	void stop();
-
-	/**
-	 * @brief Reload the configuration
-	 */
-	 void reload();
+	ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, std::string  apiKey);
 
 	/**
 	 * @brief Add a station to download the data for
@@ -94,59 +80,25 @@ public:
 	 * @param variables All the variables registered for that station (see
 	 * the ObjeniousApiDownloader class for details)
 	 */
-	void
-	add(const CassUuid& station, const std::string& fieldClimateId, const std::map<std::string, std::string> variables);
+	void add(const CassUuid& station, const std::string& fieldClimateId, const std::map<std::string, std::string>& variables);
 
 private:
-	/**
-	 * @brief The Boost service that processes asynchronous events, timers,
-	 * etc.
-	 */
-	asio::io_context& _ioContext;
-
-	/**
-	 * @brief The observations database connector
-	 *
-	 * We use this just to hand it over to the downloaders.
-	 */
-	DbConnectionObservations& _db;
-
 	/**
 	 * @brief The Objenious API key
 	 */
 	const std::string _apiKey;
 
 	/**
-	 * @brief The timer used to periodically trigger the data downloads
-	 */
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
-
-	/**
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<ObjeniousApiDownloader>> _downloaders;
-
-	CurlWrapper _client;
-
-	bool _mustStop = false;
-
-public:
-	/**
-	 * @brief The type of the const iterators through the downloaders
-	 */
-	using DownloaderIterator = decltype(_downloaders)::const_iterator;
 
 private:
 	/**
 	 * @brief Reload the list of Pessl stations from the database and
 	 * recreate all downloaders
 	 */
-	void reloadStations();
-
-	/**
-	 * @brief Wait for the periodic download timer to tick again
-	 */
-	void waitUntilNextDownload();
+	void reloadStations() override;
 
 	/**
 	 * @brief Download archive data for all stations
@@ -154,18 +106,7 @@ private:
 	 * Archive data are downloaded since the last timestamp the data is
 	 * previously available for the station.
 	 */
-	void downloadArchives();
-
-	/**
-	 * @brief The callback registered to react to the periodic download
-	 * timer ticking
-	 *
-	 * This method makes sure the deadline set for the timer is actually
-	 * reached (the timer could go off in case of an error, or anything).
-	 *
-	 * @param e The error/return code of the timer event
-	 */
-	void checkDeadline(const sys::error_code& e);
+	void download() override;
 
 	/**
 	 * @brief The fixed polling period, for stations authorized to get

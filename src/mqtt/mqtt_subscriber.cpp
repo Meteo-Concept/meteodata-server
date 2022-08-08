@@ -57,6 +57,9 @@ MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& de
 		_details{details},
 		_timer{ioContext}
 {
+	_status.shortStatus = "IDLE";
+	// we cheat a little bit with the activeSince value, the lastReloaded is more relevant
+	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
 }
 
 bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2)
@@ -198,22 +201,28 @@ void MqttSubscriber::start()
 			_retries = 0;
 			std::cerr << SD_NOTICE << "[MQTT] protocol: " << "Connection established to " << _details.host << ": "
 					  << mqtt::connect_return_code_to_str(ret) << std::endl;
+			_status.shortStatus = "CONNECTED";
+			_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
+			_status.nbDownloads = 0;
 
 			return handleConnAck(sp, ret);
 		} else {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "Failed to establish connection to " << _details.host << ": "
 					  << mqtt::connect_return_code_to_str(ret) << std::endl;
+			_status.shortStatus = "FAILED TO CONNECT";
 		}
 		return true;
 	});
 	_client->set_close_handler([this, self]() {
 		std::cerr << SD_NOTICE << "[MQTT] protocol: " << "MQTT client " << _details.host << " disconnected"
 				  << std::endl;
+		_status.shortStatus = "CONNECTION CLOSED";
 		handleClose();
 	});
 	_client->set_error_handler([this, self](sys::error_code const& ec) {
 		std::cerr << SD_ERR << "[MQTT] protocol: " << "MQTT client " << _details.host << ": unexpected disconnection "
 				  << ec.message() << std::endl;
+		_status.shortStatus = "ERROR";
 		handleError(ec);
 	});
 	_client->set_puback_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
@@ -232,6 +241,7 @@ void MqttSubscriber::start()
 	_client->set_publish_handler(
 			[this, self](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
 						 mqtt::string_view contents) {
+				++_status.nbDownloads;
 				return handlePublish(header, packetId, topic, contents);
 			});
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Set the handlers" << std::endl;
@@ -243,6 +253,7 @@ void MqttSubscriber::start()
 void MqttSubscriber::stop()
 {
 	_client->disconnect();
+	_status.shortStatus = "STOPPED";
 }
 
 void MqttSubscriber::reload()

@@ -38,6 +38,7 @@
 #include "weatherlink_download_scheduler.h"
 #include "weatherlink_downloader.h"
 #include "../http_utils.h"
+#include "../abstract_download_scheduler.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -52,10 +53,9 @@ using namespace date;
 
 WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
 							   const std::string& apiId, const std::string& apiSecret) :
-		Connector{ioContext, db},
+		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{apiId},
-		_apiSecret{apiSecret},
-		_timer{ioContext}
+		_apiSecret{apiSecret}
 {
 }
 
@@ -75,24 +75,16 @@ WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, c
 	);
 }
 
-void WeatherlinkDownloadScheduler::start()
+void WeatherlinkDownloadScheduler::download()
 {
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
+	downloadRealTime();
 
-void WeatherlinkDownloadScheduler::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
+	auto now = chrono::system_clock::now();
+	auto daypoint = date::floor<date::days>(now);
+	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 
-void WeatherlinkDownloadScheduler::reload()
-{
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
+	if (tod.minutes().count() < POLLING_PERIOD) //will trigger once per hour
+		downloadArchives();
 }
 
 void WeatherlinkDownloadScheduler::downloadRealTime()
@@ -150,42 +142,6 @@ void WeatherlinkDownloadScheduler::downloadArchives()
 		if (it.first) { // only download archives from archived stations
 			genericDownload([&it](auto& client) { (it.second)->download(client); });
 		}
-	}
-}
-
-void WeatherlinkDownloadScheduler::waitUntilNextDownload()
-{
-	auto self = shared_from_this();
-	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = realTimePollingPeriod - (chrono::system_clock::now().time_since_epoch() % realTimePollingPeriod) +
-			  chrono::minutes(API_DELAY);
-	_timer.expires_from_now(tp);
-	_timer.async_wait([self,this](const sys::error_code& e) { checkDeadline(e); });
-}
-
-void WeatherlinkDownloadScheduler::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		auto now = chrono::system_clock::now();
-		auto daypoint = date::floor<date::days>(now);
-		auto tod = date::make_time(now - daypoint); // Yields time_of_day type
-
-		downloadRealTime();
-		if (tod.minutes().count() < POLLING_PERIOD) //will trigger once per hour
-			downloadArchives();
-		if (!_mustStop)
-			waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait([self,this](const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

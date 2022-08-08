@@ -22,32 +22,20 @@
  */
 
 #include <iostream>
-#include <memory>
-#include <functional>
-#include <iterator>
 #include <chrono>
 #include <thread>
-#include <unistd.h>
 
 #include <systemd/sd-daemon.h>
-#include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <date.h>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
 #include "mbdata_download_scheduler.h"
 #include "mbdata_txt_downloader.h"
-#include "../http_utils.h"
+#include "../abstract_download_scheduler.h"
 
-namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-namespace args = std::placeholders;
 
 namespace meteodata
 {
@@ -55,8 +43,7 @@ namespace meteodata
 using namespace date;
 
 MBDataDownloadScheduler::MBDataDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
-	Connector{ioContext, db},
-	_timer{ioContext}
+	AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db}
 {
 }
 
@@ -65,27 +52,7 @@ void MBDataDownloadScheduler::add(const std::tuple<CassUuid, std::string, std::s
 	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_ioContext, _db, downloadDetails));
 }
 
-void MBDataDownloadScheduler::start()
-{
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void MBDataDownloadScheduler::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void MBDataDownloadScheduler::reload()
-{
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void MBDataDownloadScheduler::downloadArchives()
+void MBDataDownloadScheduler::download()
 {
 	for (const auto& _downloader : _downloaders) {
 		try {
@@ -94,38 +61,6 @@ void MBDataDownloadScheduler::downloadArchives()
 			std::cerr << SD_ERR << "[MBData] protocol: " << "Runtime error, impossible to download " << e.what()
 					  << ", moving on..." << std::endl;
 		}
-	}
-}
-
-void MBDataDownloadScheduler::waitUntilNextDownload()
-{
-	if (_mustStop)
-		return;
-
-	auto self(shared_from_this());
-	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = chrono::minutes(realTimePollingPeriod) -
-			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
-	_timer.expires_from_now(tp);
-	_timer.async_wait([this,self] (const sys::error_code& e) { checkDeadline(e); });
-}
-
-void MBDataDownloadScheduler::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		downloadArchives();
-		waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait([this,self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

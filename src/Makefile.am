@@ -29,6 +29,8 @@ meteodata_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
 		    hex_parser.h\
+		    abstract_download_scheduler.cpp\
+		    abstract_download_scheduler.h\
 		    cimel/cimel_importer.cpp\
 		    cimel/cimel_importer.h\
 		    cimel/cimel4A_importer.cpp\
@@ -293,8 +295,6 @@ meteodata_fieldclimate_api_standalone_SOURCES = \
 		    pessl/fieldclimate_api_downloader_standalone.cpp \
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\
-		    pessl/fieldclimate_api_download_scheduler.cpp\
-		    pessl/fieldclimate_api_download_scheduler.h\
 		    pessl/fieldclimate_archive_message_collection.cpp\
 		    pessl/fieldclimate_archive_message_collection.h\
 		    pessl/fieldclimate_archive_message.cpp\
@@ -320,8 +320,6 @@ meteodata_objenious_api_standalone_SOURCES = \
 		    objenious/objenious_api_downloader_standalone.cpp\
 		    objenious/objenious_api_downloader.cpp\
 		    objenious/objenious_api_downloader.h\
-		    objenious/objenious_api_download_scheduler.cpp\
-		    objenious/objenious_api_download_scheduler.h\
 		    objenious/objenious_archive_message_collection.cpp\
 		    objenious/objenious_archive_message_collection.h\
 		    objenious/objenious_archive_message.cpp\

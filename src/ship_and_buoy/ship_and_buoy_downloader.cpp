@@ -22,108 +22,31 @@
  */
 
 #include <iostream>
-#include <memory>
-#include <functional>
-#include <iterator>
+#include <string>
 #include <chrono>
 #include <map>
-#include <sstream>
-#include <iomanip>
 
 #include <fstream>
-
-#include <cstring>
-#include <cctype>
 #include <systemd/sd-daemon.h>
-#include <unistd.h>
-
-#include <boost/system/error_code.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <dbconnection_observations.h>
 #include <date.h>
 
 #include "ship_and_buoy_downloader.h"
 #include "meteo_france_ship_and_buoy.h"
-#include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
-#include "../connector.h"
+#include "../abstract_download_scheduler.h"
 
-namespace asio = boost::asio;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-namespace args = std::placeholders;
 
 namespace meteodata
 {
 using namespace date;
 
 ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db) :
-		Connector{ioContext, db},
-		_timer{ioContext}
+		AbstractDownloadScheduler{chrono::hours(POLLING_PERIOD_HOURS), ioContext, db}
 {
 	_status.shortStatus = "IDLE";
-}
-
-void ShipAndBuoyDownloader::start()
-{
-	_status.shortStatus = "OK";
-	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
-	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
-
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void ShipAndBuoyDownloader::stop()
-{
-	_status.shortStatus = "STOPPED";
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void ShipAndBuoyDownloader::reload()
-{
-	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
-	_status.nbDownloads = 0;
-
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void ShipAndBuoyDownloader::waitUntilNextDownload()
-{
-	auto self(shared_from_this());
-	auto target = chrono::steady_clock::now();
-	auto daypoint = date::floor<date::days>(target);
-	auto tod = date::make_time(target - daypoint);
-
-	_status.timeToNextDownload = chrono::hours(6 - (tod.hours().count() % 6)) - chrono::minutes(tod.minutes().count());
-	_timer.expires_from_now(_status.timeToNextDownload);
-	_timer.async_wait([this, self] (const sys::error_code& e) { return checkDeadline(e); });
-}
-
-void ShipAndBuoyDownloader::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		download();
-		// Going back to sleep unless we shouldn't
-		if (!_mustStop)
-			waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait([this, self] (const sys::error_code& e) { return checkDeadline(e); });
-	}
 }
 
 void ShipAndBuoyDownloader::download()
@@ -131,9 +54,7 @@ void ShipAndBuoyDownloader::download()
 	std::cout << SD_NOTICE << "[SHIP] measurement: " << "Now downloading SHIP and BUOY data " << std::endl;
 	auto ymd = date::year_month_day(date::floor<date::days>(chrono::system_clock::now() - date::days(1)));
 
-	CurlWrapper client;
-
-	CURLcode ret = client.download(std::string{"https://"} + HOST + date::format(URL, ymd),
+	CURLcode ret = _client.download(std::string{"https://"} + HOST + date::format(URL, ymd),
 								   [&](const std::string& body) {
 		std::istringstream responseStream{body};
 
@@ -171,7 +92,7 @@ void ShipAndBuoyDownloader::download()
 	});
 
 	if (ret != CURLE_OK) {
-		std::string_view error = client.getLastError();
+		std::string_view error = _client.getLastError();
 		std::cerr << SD_ERR << "[SHIP] protocol: " << "Failed to download SHIP and BUOY data: " << error << std::endl;
 	}
 }

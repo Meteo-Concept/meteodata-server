@@ -22,30 +22,20 @@
  */
 
 #include <iostream>
-#include <memory>
-#include <functional>
-#include <iterator>
+#include <map>
 #include <chrono>
 #include <thread>
 
 #include <systemd/sd-daemon.h>
-#include <boost/system/error_code.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
-#include <utility>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
 #include "../time_offseter.h"
 #include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
-#include "../http_utils.h"
-#include "../connector.h"
+#include "../abstract_download_scheduler.h"
 
-namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-namespace args = std::placeholders;
 
 namespace meteodata
 {
@@ -54,10 +44,9 @@ using namespace date;
 
 FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
 	DbConnectionObservations& db, std::string  apiId, std::string apiSecret) :
-		Connector{ioContext, db},
+		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
-		_apiSecret{std::move(apiSecret)},
-		_timer{ioContext}
+		_apiSecret{std::move(apiSecret)}
 {
 }
 
@@ -69,28 +58,10 @@ void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::s
 	);
 }
 
-void FieldClimateApiDownloadScheduler::start()
+void FieldClimateApiDownloadScheduler::download()
 {
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void FieldClimateApiDownloadScheduler::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void FieldClimateApiDownloadScheduler::reload()
-{
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void FieldClimateApiDownloadScheduler::downloadArchives()
-{
+	++_status.nbDownloads;
+	_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 	for (const auto& downloader : _downloaders) {
 		try {
 			downloader->download(_client);
@@ -101,35 +72,6 @@ void FieldClimateApiDownloadScheduler::downloadArchives()
 			std::cerr << SD_ERR << "[Pessl] protocol: " << "Runtime error, impossible to download " << e.what()
 					  << ", moving on..." << std::endl;
 		}
-	}
-}
-
-void FieldClimateApiDownloadScheduler::waitUntilNextDownload()
-{
-	auto self(shared_from_this());
-	constexpr auto realTimePollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = chrono::minutes(realTimePollingPeriod) -
-			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(realTimePollingPeriod));
-	_timer.expires_from_now(tp);
-	_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
-}
-
-void FieldClimateApiDownloadScheduler::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		downloadArchives();
-		waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 	}
 }
 

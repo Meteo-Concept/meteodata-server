@@ -22,82 +22,43 @@
  */
 
 #include <iostream>
-#include <memory>
-#include <functional>
-#include <iterator>
 #include <chrono>
 #include <thread>
-#include <unistd.h>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <date.h>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
 #include "objenious_api_download_scheduler.h"
 #include "objenious_api_downloader.h"
-#include "../http_utils.h"
+#include "../abstract_download_scheduler.h"
 
-namespace asio = boost::asio;
-namespace ip = boost::asio::ip;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
-namespace args = std::placeholders;
 
 namespace meteodata
 {
-
-constexpr int ObjeniousApiDownloadScheduler::POLLING_PERIOD;
-
-
 using namespace date;
 
 ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-															 const std::string& apiKey) :
-		_ioContext{ioContext},
-		_db{db},
-		_apiKey{apiKey},
-		_timer{ioContext}
+	std::string apiKey) :
+		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD},ioContext, db},
+		_apiKey{std::move(apiKey)}
 {
 }
 
 void ObjeniousApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
-										const std::map<std::string, std::string> variables)
+	const std::map<std::string, std::string>& variables)
 {
-	_downloaders.emplace_back(
-			std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey));
+	_downloaders.emplace_back(std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey));
 }
 
-void ObjeniousApiDownloadScheduler::start()
+void ObjeniousApiDownloadScheduler::download()
 {
-	_mustStop = false;
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void ObjeniousApiDownloadScheduler::stop()
-{
-	_mustStop = true;
-	_timer.cancel();
-}
-
-void ObjeniousApiDownloadScheduler::reload()
-{
-	_timer.cancel();
-	reloadStations();
-	waitUntilNextDownload();
-}
-
-void ObjeniousApiDownloadScheduler::downloadArchives()
-{
-	for (auto it = _downloaders.cbegin() ; it != _downloaders.cend() ; ++it) {
+	for (const auto & _downloader : _downloaders) {
 		try {
-			(*it)->download(_client);
+			_downloader->download(_client);
 			// Wait for 100ms to limit the number of requests
 			// (10 per second looks fine)
 			std::this_thread::sleep_for(chrono::milliseconds(100));
@@ -105,36 +66,6 @@ void ObjeniousApiDownloadScheduler::downloadArchives()
 			std::cerr << SD_ERR << "[Objenious] protocol: " << "Runtime error, impossible to download " << e.what()
 					  << ", moving on..." << std::endl;
 		}
-	}
-}
-
-void ObjeniousApiDownloadScheduler::waitUntilNextDownload()
-{
-	auto self(shared_from_this());
-	constexpr auto pollingPeriod = chrono::minutes(POLLING_PERIOD);
-	auto tp = chrono::minutes(pollingPeriod) -
-			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(pollingPeriod));
-	_timer.expires_from_now(tp);
-	_timer.async_wait(std::bind(&ObjeniousApiDownloadScheduler::checkDeadline, self, args::_1));
-}
-
-void ObjeniousApiDownloadScheduler::checkDeadline(const sys::error_code& e)
-{
-	/* if the timer has been cancelled, then bail out ; we probably have been
-	 * asked to die */
-	if (e == sys::errc::operation_canceled)
-		return;
-
-	// verify that the timeout is not spurious
-	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		downloadArchives();
-		if (!_mustStop)
-			waitUntilNextDownload();
-	} else {
-		/* spurious handler call, restart the timer without changing the
-		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&ObjeniousApiDownloadScheduler::checkDeadline, self, args::_1));
 	}
 }
 

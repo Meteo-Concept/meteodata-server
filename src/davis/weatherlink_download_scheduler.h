@@ -41,6 +41,7 @@
 
 #include "weatherlink_downloader.h"
 #include "weatherlink_apiv2_downloader.h"
+#include "../abstract_download_scheduler.h"
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
@@ -57,14 +58,11 @@ using namespace std::placeholders;
 
 /**
  */
-class WeatherlinkDownloadScheduler : public Connector
+class WeatherlinkDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
 	WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, const std::string& apiId,
 								 const std::string& apiSecret);
-	void start() override;
-	void stop() override;
-	void reload() override;
 	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
 			 TimeOffseter::PredefinedTimezone tz);
 	void addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
@@ -73,20 +71,17 @@ public:
 private:
 	const std::string _apiId;
 	const std::string _apiSecret;
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
 	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
-	CurlWrapper _client;
 	bool _mustStop = false;
 
 public:
-	using DownloaderIterator = decltype(_downloaders)::const_iterator;
 	static constexpr char HOST[] = "weatherlink.com";
 	static constexpr char APIHOST[] = "api.weatherlink.com";
 
 private:
-	void reloadStations();
-	void waitUntilNextDownload();
+	void download() override;
+	void reloadStations() override;
 
 	template<typename Downloader>
 	void genericDownload(const Downloader& downloadMethod)
@@ -106,7 +101,6 @@ private:
 
 	void downloadArchives();
 	void downloadRealTime();
-	void checkDeadline(const sys::error_code& e);
 
 	/**
 	 * The polling period that apply to all stations, in minutes

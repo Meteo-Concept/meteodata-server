@@ -1,8 +1,8 @@
 /**
- * @file static_download_scheduler.h
- * @brief Definition of the StaticDownloadScheduler class
+ * @file abstract_download_scheduler.h
+ * @brief Definition of the AbstractApiDownloadScheduler class
  * @author Laurent Georget
- * @date 2022-08-01
+ * @date 2022-08-05
  */
 /*
  * Copyright (C) 2022  SAS JD Environnement <contact@meteo-concept.fr>
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STATIC_DOWNLOAD_SCHEDULER_H
-#define STATIC_DOWNLOAD_SCHEDULER_H
+#ifndef ABSTRACT_DOWNLOAD_SCHEDULER_H
+#define ABSTRACT_DOWNLOAD_SCHEDULER_H
 
 #include <memory>
 #include <vector>
@@ -30,21 +30,18 @@
 #include <chrono>
 #include <map>
 
-#include <boost/system/error_code.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "static_txt_downloader.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../abstract_download_scheduler.h"
+#include "./curl_wrapper.h"
+#include "./connector.h"
 
 namespace meteodata
 {
 
+namespace asio = boost::asio;
+namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 using namespace std::placeholders;
@@ -56,7 +53,7 @@ using namespace std::placeholders;
  * parallelize requests to the API). Instances of this class are responsible to
  * prepare a HTTP client and call all the individual downloaders (one per station).
  */
-class StatICDownloadScheduler : public AbstractDownloadScheduler
+class AbstractDownloadScheduler : public Connector
 {
 public:
 	/**
@@ -66,33 +63,63 @@ public:
 	 * events, timers, and callbacks
 	 * @param db the Météodata observations database connector
 	 */
-	StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db);
+	AbstractDownloadScheduler(chrono::steady_clock::duration period, asio::io_context& ioContext, DbConnectionObservations& db);
 
 	/**
-	 * @brief Add a station to download the data for
-	 *
-	 * @param station The station Météodata UUID
-	 * @param fieldClimateId The Static API id
-	 * @param tz The station's local timezone
-	 * @param sensors All the sensors registered for that station (see the
-	 * StaticApiDownloader class for details)
+	 * @brief Start the periodic downloads
 	 */
-	void add(const CassUuid& station, const std::string& host, const std::string& url,
-			 bool https, int timezone,
-			 const std::map<std::string, std::string>& sensors);
+	void start() override;
+
+	/**
+	 * @brief Stop the periodic downloads
+	 */
+	void stop() override;
+
+	/**
+	 * @brief Reload the configuration
+	 */
+	 void reload() override;
+
+protected:
+	/**
+	 * @brief The CURL handler used to make HTTP requests
+	 */
+	CurlWrapper _client;
+
+	/**
+	 * @brief The default time to add to the scheduled download time, to make
+	 * sure the download is ready (for instance, if data are available every ten
+	 * minutes, download at minutes 02, 12, 22, etc. to make sure the data
+	 * generated at 00, 10, 20, etc. is available for download)
+	 */
+	chrono::minutes _offset{2};
 
 private:
 	/**
-	 * @brief The list of all downloaders (one per station)
+	 * @brief The timer used to periodically trigger the data downloads
 	 */
-	std::vector<std::shared_ptr<StatICTxtDownloader>> _downloaders;
+	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 
-private:
+	/**
+	 * @brief Whether to stop collecting data
+	 */
+	bool _mustStop = false;
+
+	/**
+	 * @brief The time between two measurements
+	 */
+	chrono::steady_clock::duration _period;
+
 	/**
 	 * @brief Reload the list of StatIC stations from the database and
 	 * recreate all downloaders
 	 */
-	void reloadStations() override;
+	virtual void reloadStations() = 0;
+
+	/**
+	 * @brief Wait for the periodic download timer to tick again
+	 */
+	virtual void waitUntilNextDownload();
 
 	/**
 	 * @brief Download archive data for all stations
@@ -100,12 +127,18 @@ private:
 	 * Archive data are downloaded since the last timestamp the data is
 	 * previously available for the station.
 	 */
-	void download() override;
+	virtual void download() = 0;
 
 	/**
-	 * @brief The fixed polling period, in minutes
+	 * @brief The callback registered to react to the periodic download
+	 * timer ticking
+	 *
+	 * This method makes sure the deadline set for the timer is actually
+	 * reached (the timer could go off in case of an error, or anything).
+	 *
+	 * @param e The error/return code of the timer event
 	 */
-	static constexpr int POLLING_PERIOD = 10;
+	void checkDeadline(const sys::error_code& e);
 };
 
 }

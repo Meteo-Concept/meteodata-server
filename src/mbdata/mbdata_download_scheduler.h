@@ -41,6 +41,7 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 #include "../connector.h"
+#include "../abstract_download_scheduler.h"
 
 namespace meteodata
 {
@@ -58,7 +59,7 @@ using namespace std::placeholders;
  * parallelize requests to the API). Instances of this class are responsible to
  * prepare a HTTP client and call all the individual downloaders (one per station).
  */
-class MBDataDownloadScheduler : public Connector
+class MBDataDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
 	/**
@@ -71,60 +72,27 @@ public:
 	MBDataDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db);
 
 	/**
-	 * @brief Start the periodic downloads
-	 */
-	void start() override;
-
-	/**
-	 * @brief Stop the periodic downloads
-	 */
-	void stop() override;
-
-	/**
-	 * @brief Reload the configuration
-	 */
-	 void reload() override;
-
-	/**
 	 * @brief Add a station to download the data for
 	 */
 	void add(const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 
 private:
 	/**
-	 * @brief The timer used to periodically trigger the data downloads
-	 */
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
-
-	/**
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<MBDataTxtDownloader>> _downloaders;
-
-	CurlWrapper _client;
 
 	/**
 	 * @brief Whether to stop collecting data
 	 */
 	bool _mustStop = false;
 
-public:
-	/**
-	 * @brief The type of the const iterators through the downloaders
-	 */
-	using DownloaderIterator = decltype(_downloaders)::const_iterator;
-
 private:
 	/**
 	 * @brief Reload the list of MBData stations from the database and
 	 * recreate all downloaders
 	 */
-	void reloadStations();
-
-	/**
-	 * @brief Wait for the periodic download timer to tick again
-	 */
-	void waitUntilNextDownload();
+	void reloadStations() override;
 
 	/**
 	 * @brief Download archive data for all stations
@@ -132,18 +100,7 @@ private:
 	 * Archive data are downloaded since the last timestamp the data is
 	 * previously available for the station.
 	 */
-	void downloadArchives();
-
-	/**
-	 * @brief The callback registered to react to the periodic download
-	 * timer ticking
-	 *
-	 * This method makes sure the deadline set for the timer is actually
-	 * reached (the timer could go off in case of an error, or anything).
-	 *
-	 * @param e The error/return code of the timer event
-	 */
-	void checkDeadline(const sys::error_code& e);
+	void download() override;
 
 	/**
 	 * @brief The fixed polling period, for stations authorized to get
