@@ -35,6 +35,7 @@ namespace meteodata
 {
 
 class MeteoServer;
+class Connector;
 
 class ConnectorsQueryHandler : public QueryHandler
 {
@@ -43,9 +44,17 @@ public:
 	std::string list(const std::string&);
 	std::string status(const std::string& name);
 	std::string help(const std::string&);
+	std::string start(const std::string&);
+	std::string stop(const std::string&);
+	std::string reload(const std::string&);
 
 private:
 	MeteoServer& _meteoServer;
+
+	using Action = void (Connector::*)();
+	using Query = std::string (Connector::*)();
+	template<typename T>
+	std::string callOnConnector(const std::string& name, T action);
 };
 
 }

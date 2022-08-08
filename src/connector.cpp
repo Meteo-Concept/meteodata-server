@@ -59,7 +59,7 @@ std::string Connector::getStatus()
 	os << std::setw(2) << std::setfill('0');
 	if (m.count())
 		os << m;
-	os << s << ") from now.\n";
+	os << date::floor<chrono::seconds>(s) << ") from now.\n";
 	return os.str();
 }
 

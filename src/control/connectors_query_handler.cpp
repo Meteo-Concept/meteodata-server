@@ -23,6 +23,7 @@
 
 #include <sstream>
 #include <algorithm>
+#include <type_traits>
 
 #include "connectors_query_handler.h"
 #include "../meteo_server.h"
@@ -36,6 +37,9 @@ ConnectorsQueryHandler::ConnectorsQueryHandler(meteodata::MeteoServer& meteoServ
 	_commands.push_back(NamedCommand{ "list", static_cast<Command>(&ConnectorsQueryHandler::list) });
 	_commands.push_back(NamedCommand{ "status", static_cast<Command>(&ConnectorsQueryHandler::status) });
 	_commands.push_back(NamedCommand{ "help", static_cast<Command>(&ConnectorsQueryHandler::help) });
+	_commands.push_back(NamedCommand{ "start", static_cast<Command>(&ConnectorsQueryHandler::start) });
+	_commands.push_back(NamedCommand{ "stop", static_cast<Command>(&ConnectorsQueryHandler::stop) });
+	_commands.push_back(NamedCommand{ "reload", static_cast<Command>(&ConnectorsQueryHandler::reload) });
 	_defaultCommand = "list";
 }
 
@@ -48,15 +52,7 @@ std::string ConnectorsQueryHandler::list(const std::string&)
 	return os.str();
 }
 
-std::string ConnectorsQueryHandler::status(const std::string& name)
-{
-	auto it = std::find_if(_meteoServer.beginConnectors(), _meteoServer.endConnectors(),
-						   [&name](const auto& connector) { return std::get<0>(connector) == name; });
-	if (it != _meteoServer.endConnectors())
-		return std::get<1>(*it)->getStatus();
-	else
-		return R"(Unknown or unavailable connector ")" + name + R"(")";
-}
+
 
 std::string ConnectorsQueryHandler::help(const std::string&)
 {
@@ -68,7 +64,48 @@ a proprietary protocol, etc.
 Available options :
 - list: list the active connectors
 - status <connector>: gives the latest status of the connector identified by its name
+- start <connector>: starts a connector previously stopped
+- stop <connector>: stop an active connector
+- reload <connector>: make a connector reload its configuration and list of stations
 - help: displays this message)";
+}
+
+template <typename T>
+std::string ConnectorsQueryHandler::callOnConnector(const std::string& name, T action)
+{
+	auto it = std::find_if(_meteoServer.beginConnectors(), _meteoServer.endConnectors(),
+						   [&name](const auto& connector) { return std::get<0>(connector) == name; });
+	if (it != _meteoServer.endConnectors()) {
+		Connector* connector = std::get<1>(*it).get();
+		if constexpr (std::is_base_of<std::string, std::invoke_result_t<T, Connector*>>()) {
+			return (connector->*action)();
+		} else {
+			(connector->*action)();
+			return "OK";
+		}
+	} else {
+		return R"(Unknown or unavailable connector ")" + name + R"(")";
+	}
+}
+
+std::string ConnectorsQueryHandler::start(const std::string& name)
+{
+	return callOnConnector(name, &Connector::start);
+}
+
+std::string ConnectorsQueryHandler::stop(const std::string& name)
+{
+	return callOnConnector(name, &Connector::stop);
+}
+
+std::string ConnectorsQueryHandler::reload(const std::string& name)
+{
+	return callOnConnector(name, &Connector::reload);
+}
+
+std::string ConnectorsQueryHandler::status(const std::string& name)
+{
+	return callOnConnector(name, &Connector::getStatus);
 }
 
 }
