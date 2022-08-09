@@ -25,6 +25,7 @@
 #define METEO_SERVER_H
 
 #include <boost/asio.hpp>
+#include <boost/system/error_code.hpp>
 #include <dbconnection_observations.h>
 
 #include "meteo_server.h"
@@ -146,7 +147,6 @@ public:
 
 	void stop();
 
-
 private:
 	boost::asio::io_context& _ioContext;
 	/**
@@ -168,6 +168,12 @@ private:
 	boost::asio::local::stream_protocol::acceptor _controlAcceptor;
 
 	int _lockFileDescriptor = -1;
+
+	asio::basic_waitable_timer<chrono::steady_clock> _signalTimer;
+
+	void pollSignal(const boost::system::error_code& e);
+
+	constexpr static std::chrono::seconds SIGNAL_POLLING_PERIOD{3};
 
 	/**
 	 * @brief Start listening on the port, construct a connector,

@@ -21,8 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <systemd/sd-daemon.h>
-
 #include <memory>
 #include <tuple>
 #include <functional>
@@ -30,7 +28,9 @@
 #include <filesystem>
 
 #include <boost/asio.hpp>
+#include <systemd/sd-daemon.h>
 #include <unistd.h>
+#include <csignal>
 
 #include "connector.h"
 #include "meteo_server.h"
@@ -51,8 +51,25 @@
 #include "rest_web_server.h"
 #include "control/control_connector.h"
 
-using namespace boost::asio;
-using namespace boost::asio::ip;
+namespace asio = boost::asio;
+namespace ip = boost::asio::ip;
+namespace local = boost::asio::local;
+namespace sys = boost::system;
+namespace chrono = std::chrono;
+
+namespace {
+
+extern "C" {
+
+volatile sig_atomic_t signalCaught = 0;
+void catchSignal(int signum) {
+	if (signum == SIGINT || signum == SIGTERM) {
+		signalCaught = 1;
+	}
+}
+}
+
+}
 
 namespace meteodata
 {
@@ -61,10 +78,14 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 		_ioContext{ioContext},
 		_vp2DirectConnectAcceptor{ioContext},
 		_db{config.address, config.user, config.password},
+		_signalTimer{ioContext},
 		_configuration{config},
 		_controlAcceptor{ioContext}
 {
 	_configuration.password.clear();
+	signal(SIGINT, catchSignal);
+	signal(SIGTERM, catchSignal);
+	pollSignal(sys::errc::make_error_code(sys::errc::success));
 
 	std::cerr << SD_INFO << "[Server] management: " << "Meteodata has started succesfully" << std::endl;
 }
@@ -86,6 +107,20 @@ MeteoServer::~MeteoServer()
 			std::filesystem::remove(SOCKET_LOCK_PATH);
 			close(_lockFileDescriptor);
 		}
+	}
+}
+
+void MeteoServer::pollSignal(const sys::error_code& e)
+{
+	if (e == sys::errc::operation_canceled)
+		return;
+
+	if (signalCaught) {
+		std::cerr << SD_ERR << "[Server] management: " << "Signal caught, stopping" << std::endl;
+		stop();
+	} else {
+		_signalTimer.expires_from_now(SIGNAL_POLLING_PERIOD);
+		_signalTimer.async_wait([this](const sys::error_code& e) { pollSignal(e); });
 	}
 }
 
@@ -242,9 +277,9 @@ void MeteoServer::start()
 
 	if (_configuration.startVp2) {
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
-		_vp2DirectConnectAcceptor.open(tcp::v4());
-		_vp2DirectConnectAcceptor.set_option(tcp::acceptor::reuse_address(true));
-		_vp2DirectConnectAcceptor.bind(tcp::endpoint{tcp::v4(), 5886});
+		_vp2DirectConnectAcceptor.open(ip::tcp::v4());
+		_vp2DirectConnectAcceptor.set_option(ip::tcp::acceptor::reuse_address(true));
+		_vp2DirectConnectAcceptor.bind(ip::tcp::endpoint{ip::tcp::v4(), 5886});
 		_vp2DirectConnectAcceptor.listen();
 		startAcceptingVp2DirectConnect();
 	}
@@ -254,6 +289,9 @@ void MeteoServer::start()
 	if (_lockFileDescriptor >= 0) {
 		lock = lockf(_lockFileDescriptor, F_TLOCK, 0);
 		if (lock == 0) {
+			// no-op if it doesn't exist
+			std::filesystem::remove(CONTROL_SOCKET_PATH);
+
 			_controlAcceptor.open();
 			_controlAcceptor.bind(local::stream_protocol::endpoint{CONTROL_SOCKET_PATH});
 			_controlAcceptor.listen();
