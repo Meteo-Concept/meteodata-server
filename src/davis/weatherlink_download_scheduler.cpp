@@ -52,10 +52,10 @@ namespace meteodata
 using namespace date;
 
 WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-							   const std::string& apiId, const std::string& apiSecret) :
+							   std::string apiId, std::string apiSecret) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
-		_apiId{apiId},
-		_apiSecret{apiSecret}
+		_apiId{std::move(apiId)},
+		_apiSecret{std::move(apiSecret)}
 {
 }
 

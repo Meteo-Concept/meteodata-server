@@ -61,12 +61,12 @@ using namespace std::placeholders;
 class WeatherlinkDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
-	WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, const std::string& apiId,
-								 const std::string& apiSecret);
+	WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
+		std::string apiId, std::string apiSecret);
 	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
-			 TimeOffseter::PredefinedTimezone tz);
+		TimeOffseter::PredefinedTimezone tz);
 	void addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
-				  const std::string& weatherlinkId, TimeOffseter&& to);
+		const std::string& weatherlinkId, TimeOffseter&& to);
 
 private:
 	const std::string _apiId;

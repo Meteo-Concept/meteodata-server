@@ -25,6 +25,7 @@
 #include <map>
 #include <chrono>
 #include <thread>
+#include <utility>
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
@@ -43,7 +44,7 @@ namespace meteodata
 using namespace date;
 
 FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
-	DbConnectionObservations& db, std::string  apiId, std::string apiSecret) :
+	DbConnectionObservations& db, std::string apiId, std::string apiSecret) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
 		_apiSecret{std::move(apiSecret)}

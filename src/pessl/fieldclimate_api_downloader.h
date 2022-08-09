@@ -64,7 +64,7 @@ public:
 	 */
 	FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
 		std::map<std::string, std::string> sensors, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz, std::string apiId, std::string apiSecret);
+		TimeOffseter::PredefinedTimezone tz, const std::string& apiId, const std::string& apiSecret);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored

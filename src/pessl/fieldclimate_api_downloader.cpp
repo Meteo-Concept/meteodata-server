@@ -25,7 +25,6 @@
 #include <tuple>
 #include <map>
 
-#include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -34,13 +33,10 @@
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 
-#include "fieldclimate_api_download_scheduler.h"
 #include "fieldclimate_api_downloader.h"
 #include "fieldclimate_archive_message_collection.h"
 #include "fieldclimate_archive_message.h"
-#include "../time_offseter.h"
 #include "../http_utils.h"
-#include "../curl_wrapper.h"
 #include "../cassandra_utils.h"
 
 namespace meteodata
@@ -53,13 +49,13 @@ using namespace meteodata;
 
 FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
 	std::map<std::string, std::string> sensors, DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz,
-	std::string apiKey, std::string apiSecret) :
+	const std::string& apiKey, const std::string& apiSecret) :
 		_station{station},
 		_fieldclimateId{std::move(fieldclimateId)},
 		_sensors{std::move(sensors)},
 		_db(db),
-		_apiKey{std::move(apiKey)},
-		_apiSecret{std::move(apiSecret)}
+		_apiKey{apiKey},
+		_apiSecret{apiSecret}
 {
 	time_t lastArchiveDownloadTime;
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);

@@ -56,11 +56,11 @@ using namespace meteodata;
 class WeatherlinkApiv2Downloader : public AbstractWeatherlinkDownloader
 {
 public:
-	WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-							   const std::map<int, CassUuid>& mapping, const std::string& apiKey,
+	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
+							   std::map<int, CassUuid>  mapping, const std::string& apiKey,
 							   const std::string& apiSecret, DbConnectionObservations& db, TimeOffseter&& to);
-	WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-							   const std::map<int, CassUuid>& mapping, const std::string& apiKey,
+	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
+							   std::map<int, CassUuid>  mapping, const std::string& apiKey,
 							   const std::string& apiSecret, DbConnectionObservations& db,
 							   TimeOffseter::PredefinedTimezone tz);
 	void download(CurlWrapper& client, bool force = false);

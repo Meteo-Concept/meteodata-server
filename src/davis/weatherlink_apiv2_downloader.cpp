@@ -95,29 +95,29 @@ float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
 		return 0.f;
 }
 
-WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-	const std::map<int, CassUuid>& mapping,
+WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, std::string weatherlinkId,
+	std::map<int, CassUuid> mapping,
 	const std::string& apiKey, const std::string& apiSecret,
 	DbConnectionObservations& db, TimeOffseter&& to) :
 		AbstractWeatherlinkDownloader(station, db, std::forward<TimeOffseter&&>(to)),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
-		_weatherlinkId(weatherlinkId),
-		_substations(mapping)
+		_weatherlinkId(std::move(weatherlinkId)),
+		_substations(std::move(mapping))
 {
 	initialize();
 }
 
-WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, const std::string& weatherlinkId,
-	const std::map<int, CassUuid>& mapping,
+WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, std::string weatherlinkId,
+	std::map<int, CassUuid> mapping,
 	const std::string& apiKey, const std::string& apiSecret,
 	DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
 		AbstractWeatherlinkDownloader(station, db, tz),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
-		_weatherlinkId(weatherlinkId),
-		_substations(mapping)
+		_weatherlinkId(std::move(weatherlinkId)),
+		_substations(std::move(mapping))
 {
 	initialize();
 }
