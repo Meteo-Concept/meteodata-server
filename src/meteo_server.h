@@ -31,8 +31,7 @@
 #include "connector.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
-
-#define CONTROL_SOCKET_PATH "/var/run/meteodata/control.sock"
+#include "config.h"
 
 namespace meteodata
 {
@@ -167,6 +166,8 @@ private:
 	 * from the meteodatactl program
 	 */
 	boost::asio::local::stream_protocol::acceptor _controlAcceptor;
+
+	int _lockFileDescriptor = -1;
 
 	/**
 	 * @brief Start listening on the port, construct a connector,

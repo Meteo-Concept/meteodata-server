@@ -185,7 +185,7 @@ void ControlConnector::handleGenericErrors(const sys::error_code& e)
 		std::cerr << SD_ERR << "[Control connection]: Timeout, aborting" << std::endl;
 		stop();
 	} else if (e == asio::error::eof) {
-		std::cerr << SD_NOTICE << "[Control connection]: Client disconnected" << std::endl;
+		std::cerr << SD_INFO << "[Control connection]: Client disconnected" << std::endl;
 		stop();
 	} else { /* TCP reset by peer, etc. */
 		std::cerr << SD_ERR << "[Control connection]: " << "unknown network error: " << e.message()

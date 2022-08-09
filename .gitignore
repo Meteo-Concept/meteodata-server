@@ -47,3 +47,4 @@ src/meteodata-weatherlink-apiv2-standalone
 src/meteodata-weatherlink-oldxml-standalone
 src/meteodata-cimel-standalone
 src/meteodata-mqtt-vp2-standalone
+src/meteodatactl

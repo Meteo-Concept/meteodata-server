@@ -30,6 +30,7 @@
 #include <filesystem>
 
 #include <boost/asio.hpp>
+#include <unistd.h>
 
 #include "connector.h"
 #include "meteo_server.h"
@@ -74,8 +75,18 @@ MeteoServer::~MeteoServer()
 		_vp2DirectConnectAcceptor.close();
 	if (_controlAcceptor.is_open())
 		_controlAcceptor.close();
-	// do nothing silently if the file doesn't exist, throws on I/O error
-	std::filesystem::remove(CONTROL_SOCKET_PATH);
+
+	_lockFileDescriptor = open(SOCKET_LOCK_PATH, O_WRONLY);
+	if (_lockFileDescriptor >= 0) {
+		int lock = lockf(_lockFileDescriptor, F_TEST, 0);
+		if (lock == 0) {
+			// either we own the lock or nobody does; in either case, it's safe
+			// to remove everything
+			std::filesystem::remove(CONTROL_SOCKET_PATH);
+			std::filesystem::remove(SOCKET_LOCK_PATH);
+			close(_lockFileDescriptor);
+		}
+	}
 }
 
 void MeteoServer::start()
@@ -211,8 +222,8 @@ void MeteoServer::start()
 	if (_configuration.startFieldclimate) {
 		// Start the FieldClimate download scheduler (one for all Pessl stations, one downloader per station but they
 		// share a single HTTP client)
-		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioContext, _db, std::move(
-				_configuration.fieldClimateApiKey), std::move(_configuration.fieldClimateApiSecret));
+		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(_ioContext, _db,
+				_configuration.fieldClimateApiKey, _configuration.fieldClimateApiSecret);
 		fieldClimateScheduler->start();
 		_connectors.emplace("fieldclimate", fieldClimateScheduler);
 	}
@@ -238,11 +249,21 @@ void MeteoServer::start()
 		startAcceptingVp2DirectConnect();
 	}
 
-	_controlAcceptor.open();
-	_controlAcceptor.set_option(local::stream_protocol::acceptor::reuse_address(true));
-	_controlAcceptor.bind(local::stream_protocol::endpoint{CONTROL_SOCKET_PATH});
-	_controlAcceptor.listen();
-	startAcceptingControlConnection();
+	int lock = -1;
+	_lockFileDescriptor = open(SOCKET_LOCK_PATH, O_WRONLY | O_CREAT, 0644);
+	if (_lockFileDescriptor >= 0) {
+		lock = lockf(_lockFileDescriptor, F_TLOCK, 0);
+		if (lock == 0) {
+			_controlAcceptor.open();
+			_controlAcceptor.bind(local::stream_protocol::endpoint{CONTROL_SOCKET_PATH});
+			_controlAcceptor.listen();
+			startAcceptingControlConnection();
+		} else {
+			std::cerr << SD_ERR << "[Server] management: " << "Couldn't get the lock at " << SOCKET_LOCK_PATH << ", is meteodata-server already starded ? Continuing anyway, without the control socket." << std::endl;
+		}
+	} else {
+		std::cerr << SD_ERR << "[Server] management: " << "Couldn't open the lockfile at " << SOCKET_LOCK_PATH << ", is meteodata-server started with insufficient permissions ? Continuing anyway, without the control socket." << std::endl;
+	}
 }
 
 void MeteoServer::stop()

@@ -11,7 +11,8 @@ bin_PROGRAMS = \
 	       meteodata-csv-standalone\
 	       meteodata-objenious-api-standalone\
 	       meteodata-cimel-standalone\
-	       meteodata-mqtt-vp2-standalone
+	       meteodata-mqtt-vp2-standalone\
+	       meteodatactl
 
 meteodata_SOURCES = \
 		    connector.cpp\
@@ -341,6 +342,9 @@ meteodata_mqtt_vp2_standalone_SOURCES = \
 		    cassandra_utils.h\
 		    mqtt/vp2_mqtt_subscriber_standalone.cpp
 
+meteodatactl_SOURCES = \
+		    control/meteodatactl.cpp
+
 basecppflags = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(OPENSSL_INCLUDES) $(LIBCURL_CPPFLAGS) $(CASSANDRA_CFLAGS) $(DATE_CFLAGS) $(MYSQL_CFLAGS) $(CASSOBS_CFLAGS)
 allcppflags = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS) $(BOOST_PROPERTY_TREE_CPPFLAGS) $(BOOST_BEAST_CPPFLAGS) $(SYSTEMD_CFLAGS)
 
@@ -419,3 +423,8 @@ meteodata_mqtt_vp2_standalone_CPPFLAGS = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS
 meteodata_mqtt_vp2_standalone_CXXFLAGS =
 meteodata_mqtt_vp2_standalone_LDFLAGS = $(baseldflags) $(BOOST_SYSTEM_LDFLAGS)
 meteodata_mqtt_vp2_standalone_LDADD = $(baselibs) $(BOOST_SYSTEM_LIBS)
+
+meteodatactl_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS)
+meteodatactl_CXXFLAGS =
+meteodatactl_LDFLAGS = $(PTHREAD_LDFLAGS) $(BOOST_ASIO_LDFLAGS) $(BOOST_PROGRAM_OPTIONS_LDFLAGS)
+meteodatactl_LDADD = $(PTHREAD_LIBS) $(BOOST_ASIO_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS)

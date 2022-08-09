@@ -71,5 +71,9 @@ PKG_CHECK_MODULES(MOSQUITTO, [libmosquitto])
 PKG_CHECK_MODULES(CASSOBS, [cassobs])
 PKG_CHECK_MODULES(DATE, [date])
 
+# Define more params
+AC_DEFINE(CONTROL_SOCKET_PATH, "/var/run/meteodata/control.sock", "The path where the UNIX socket used by meteodatactl will be created and looked for")
+AC_DEFINE(SOCKET_LOCK_PATH, "/var/run/meteodata/meteodata.lock", "The path that meteodata-server will try to lock to make sure it owns the control socket")
+
 AC_CONFIG_FILES([Makefile src/Makefile])
 AC_OUTPUT
