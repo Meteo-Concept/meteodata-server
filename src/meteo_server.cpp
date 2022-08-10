@@ -328,9 +328,11 @@ void MeteoServer::startAcceptingVp2DirectConnect()
 
 void MeteoServer::runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Connector>& c, const boost::system::error_code& error)
 {
+	startAcceptingVp2DirectConnect();
 	if (!error) {
-		startAcceptingVp2DirectConnect();
 		c->start();
+	} else {
+		std::cerr << SD_ERR << "[Direct] protocol: " << "Failed to launch a direct VP2 connector: " << error.message() << std::endl;
 	}
 }
 
@@ -344,9 +346,11 @@ void MeteoServer::startAcceptingControlConnection()
 
 void MeteoServer::runNewControlConnector(const std::shared_ptr<ControlConnector>& c, const boost::system::error_code& error)
 {
+	startAcceptingControlConnection();
 	if (!error) {
-		startAcceptingControlConnection();
 		c->start();
+	} else {
+		std::cerr << SD_ERR << "[Control] protocol: " << "Failed to open a controller socket: " << error.message() << std::endl;
 	}
 }
 }
