@@ -69,8 +69,12 @@ void HttpConnection::checkDeadline(const sys::error_code& e)
 
 	// verify that the timeout is not spurious
 	if (_timeout.expires_at() <= chrono::steady_clock::now()) {
-		_socket.cancel();
-		_socket.shutdown(tcp::socket::shutdown_send);
+		// there's a chance the socket has already been wrecked by the
+		// remote end
+		if (_socket.is_open()) {
+			_socket.cancel();
+			_socket.shutdown(tcp::socket::shutdown_send);
+		}
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */

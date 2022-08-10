@@ -53,7 +53,6 @@ void RestWebServer::start()
 void RestWebServer::serveHttpConnection(boost::asio::ip::tcp::socket&& socket, const boost::system::error_code& error)
 {
 	if (!error) {
-		start();
 		auto connection = std::make_shared<HttpConnection>(std::forward<boost::asio::ip::tcp::socket>(socket), _db);
 		connection->start();
 	}
