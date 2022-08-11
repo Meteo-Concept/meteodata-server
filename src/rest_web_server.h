@@ -34,11 +34,12 @@
 #include <dbconnection_observations.h>
 
 #include "http_connection.h"
+#include "connector.h"
 
 namespace meteodata
 {
 
-class RestWebServer : public std::enable_shared_from_this<RestWebServer>
+class RestWebServer : public Connector
 {
 public:
 	RestWebServer(boost::asio::io_context& io, DbConnectionObservations& db);
@@ -46,13 +47,19 @@ public:
 	// Start accepting incoming connections
 	void start();
 
+	void stop();
+
+	void reload();
+
 
 private:
 	boost::asio::io_context& _io;
 	boost::asio::ip::tcp::acceptor _acceptor;
 	DbConnectionObservations& _db;
+	bool _stopped;
 
 	void serveHttpConnection(const std::shared_ptr<HttpConnection>& connection, const boost::system::error_code& error);
+	void acceptConnection();
 };
 
 }

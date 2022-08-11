@@ -75,12 +75,14 @@ namespace meteodata
 {
 
 MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoServerConfiguration&& config) :
-		_ioContext{ioContext},
-		_vp2DirectConnectAcceptor{ioContext},
-		_db{config.address, config.user, config.password},
-		_signalTimer{ioContext},
-		_configuration{config},
-		_controlAcceptor{ioContext}
+	_ioContext{ioContext},
+	_vp2DirectConnectAcceptor{ioContext},
+	_db{config.address, config.user, config.password},
+	_vp2DirectConnectorStopped{true},
+	_controlConnectionStopped{true},
+	_signalTimer{ioContext},
+	_configuration{config},
+	_controlAcceptor{ioContext}
 {
 	_configuration.password.clear();
 	signal(SIGINT, catchSignal);
@@ -92,10 +94,14 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 
 MeteoServer::~MeteoServer()
 {
-	if (_vp2DirectConnectAcceptor.is_open())
+	if (_vp2DirectConnectAcceptor.is_open()) {
+		_vp2DirectConnectorStopped = true;
 		_vp2DirectConnectAcceptor.close();
-	if (_controlAcceptor.is_open())
+	}
+	if (_controlAcceptor.is_open()) {
+		_controlConnectionStopped = true;
 		_controlAcceptor.close();
+	}
 
 	_lockFileDescriptor = open(SOCKET_LOCK_PATH, O_WRONLY);
 	if (_lockFileDescriptor >= 0) {
@@ -273,9 +279,11 @@ void MeteoServer::start()
 		// Start the Web server for the REST API
 		auto restWebServer = std::make_shared<RestWebServer>(_ioContext, _db);
 		restWebServer->start();
+		_connectors.emplace("rest", restWebServer);
 	}
 
 	if (_configuration.startVp2) {
+		_vp2DirectConnectorStopped = false;
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 		_vp2DirectConnectAcceptor.open(ip::tcp::v4());
 		_vp2DirectConnectAcceptor.set_option(ip::tcp::acceptor::reuse_address(true));
@@ -289,6 +297,7 @@ void MeteoServer::start()
 	if (_lockFileDescriptor >= 0) {
 		lock = lockf(_lockFileDescriptor, F_TLOCK, 0);
 		if (lock == 0) {
+			_controlConnectionStopped = false;
 			// no-op if it doesn't exist
 			std::filesystem::remove(CONTROL_SOCKET_PATH);
 
@@ -311,15 +320,22 @@ void MeteoServer::stop()
 		if (c)
 			c->stop();
 	}
-	if (_vp2DirectConnectAcceptor.is_open())
+	if (_vp2DirectConnectAcceptor.is_open()) {
+		_vp2DirectConnectorStopped = true;
 		_vp2DirectConnectAcceptor.close();
+	}
 
-	if (_controlAcceptor.is_open())
+	if (_controlAcceptor.is_open()) {
+		_controlConnectionStopped = true;
 		_controlAcceptor.close();
+	}
 }
 
 void MeteoServer::startAcceptingVp2DirectConnect()
 {
+	if (_vp2DirectConnectorStopped)
+		return;
+
 	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db);
 	_vp2DirectConnectAcceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
 		runNewVp2DirectConnector(newConnector, error);
@@ -338,6 +354,9 @@ void MeteoServer::runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Conn
 
 void MeteoServer::startAcceptingControlConnection()
 {
+	if (_controlConnectionStopped)
+		return;
+
 	auto controlConnection = std::make_shared<ControlConnector>(_ioContext, *this);
 	_controlAcceptor.async_accept(controlConnection->socket(), [this, controlConnection](const boost::system::error_code& error) {
 		runNewControlConnector(controlConnection, error);

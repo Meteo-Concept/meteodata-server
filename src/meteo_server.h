@@ -161,6 +161,10 @@ private:
 
 	MeteoServerConfiguration _configuration;
 
+	bool _vp2DirectConnectorStopped;
+
+	bool _controlConnectionStopped;
+
 	/**
 	 * @brief The Boost::Asio object representing the endpoint receiving commands
 	 * from the meteodatactl program

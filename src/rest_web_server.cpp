@@ -21,27 +21,63 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <memory>
+#include <chrono>
+
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
-#include <memory>
+#include <date.h>
 
 #include "rest_web_server.h"
+#include "connector.h"
 
 namespace meteodata
 {
 
 namespace http = boost::beast::http;
 namespace asio = boost::asio;
+namespace chrono = std::chrono;
 using tcp = boost::asio::ip::tcp;
 
 RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db) :
+	Connector{io, db},
 	_io{io},
 	_acceptor{io, tcp::endpoint{tcp::v4(), 5887}},
-	_db{db}
-{}
+	_db{db},
+	_stopped{true}
+{
+	_status.shortStatus = "IDLE";
+	_status.nextDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_status.nbDownloads = -1;
+}
 
 void RestWebServer::start()
 {
+	_status.shortStatus = "OK";
+	_stopped = false;
+	auto now = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_status.activeSince = now;
+	_status.lastReloaded = now;
+	acceptConnection();
+}
+
+void RestWebServer::stop()
+{
+	_status.shortStatus = "STOPPED";
+	_stopped = true;
+	_acceptor.close();
+}
+
+void RestWebServer::reload()
+{
+	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
+}
+
+void RestWebServer::acceptConnection()
+{
+	if (_stopped)
+		return;
+
 	auto self = shared_from_this();
 	auto connection = std::make_shared<HttpConnection>(_io, _db);
 	_acceptor.async_accept(connection->getSocket(), [self, this, connection](const boost::system::error_code& error) {
@@ -51,7 +87,7 @@ void RestWebServer::start()
 
 void RestWebServer::serveHttpConnection(const std::shared_ptr<HttpConnection>& connection, const boost::system::error_code& error)
 {
-	start();
+	acceptConnection();
 	if (!error) {
 		connection->start();
 	}
