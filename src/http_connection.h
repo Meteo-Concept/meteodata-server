@@ -36,13 +36,15 @@ namespace meteodata
 class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
 public:
-	HttpConnection(boost::asio::ip::tcp::socket&& socket, DbConnectionObservations& db);
+	HttpConnection(boost::asio::io_context& io, DbConnectionObservations& db);
 	void start();
+	inline boost::asio::ip::tcp::socket& getSocket() { return _socket; }
 
 
 private:
-	boost::asio::ip::tcp::socket _socket;
+	boost::asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
+	boost::asio::ip::tcp::socket _socket;
 	boost::beast::flat_buffer _buffer{4096};
 	boost::beast::http::request<boost::beast::http::string_body> _request;
 	boost::beast::http::response<boost::beast::http::string_body> _response;

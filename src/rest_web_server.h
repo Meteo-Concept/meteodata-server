@@ -50,10 +50,9 @@ public:
 private:
 	boost::asio::io_context& _io;
 	boost::asio::ip::tcp::acceptor _acceptor;
-	boost::asio::ip::tcp::socket _socket;
 	DbConnectionObservations& _db;
 
-	void serveHttpConnection(boost::asio::ip::tcp::socket&& socket, const boost::system::error_code& error);
+	void serveHttpConnection(const std::shared_ptr<HttpConnection>& connection, const boost::system::error_code& error);
 };
 
 }

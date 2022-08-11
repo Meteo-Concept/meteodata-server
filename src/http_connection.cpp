@@ -42,10 +42,11 @@ namespace chrono = std::chrono;
 namespace sys = boost::system;
 using tcp = boost::asio::ip::tcp;
 
-HttpConnection::HttpConnection(boost::asio::ip::tcp::socket&& socket, meteodata::DbConnectionObservations& db) :
-		_socket{std::move(socket)},
-		_db{db},
-		_timeout{_socket.get_executor()}
+HttpConnection::HttpConnection(boost::asio::io_context& io, meteodata::DbConnectionObservations& db) :
+	_ioContext{io},
+	_db{db},
+	_socket{io},
+	_timeout{io}
 {
 }
 

@@ -37,24 +37,22 @@ using tcp = boost::asio::ip::tcp;
 RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db) :
 	_io{io},
 	_acceptor{io, tcp::endpoint{tcp::v4(), 5887}},
-	_socket{_io},
 	_db{db}
 {}
 
 void RestWebServer::start()
 {
 	auto self = shared_from_this();
-	_acceptor.async_accept(_socket, [self, this](const boost::system::error_code& error) {
-		serveHttpConnection(std::move(_socket), error);
-		_socket = tcp::socket{_io};
+	auto connection = std::make_shared<HttpConnection>(_io, _db);
+	_acceptor.async_accept(connection->getSocket(), [self, this, connection](const boost::system::error_code& error) {
+		serveHttpConnection(connection, error);
 	});
 }
 
-void RestWebServer::serveHttpConnection(boost::asio::ip::tcp::socket&& socket, const boost::system::error_code& error)
+void RestWebServer::serveHttpConnection(const std::shared_ptr<HttpConnection>& connection, const boost::system::error_code& error)
 {
 	start();
 	if (!error) {
-		auto connection = std::make_shared<HttpConnection>(std::forward<boost::asio::ip::tcp::socket>(socket), _db);
 		connection->start();
 	}
 }
