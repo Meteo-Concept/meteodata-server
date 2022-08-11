@@ -75,12 +75,12 @@ private:
 														  std::cmatch&& url);
 
 	const std::array<std::tuple<boost::beast::http::verb, std::regex, VantagePro2HttpRequestHandler::Route>, 2> routes = {
-			std::make_tuple(boost::beast::http::verb::get, std::regex{
-									"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
-							&VantagePro2HttpRequestHandler::getLastArchive),
-			std::make_tuple(boost::beast::http::verb::post, std::regex{
-									"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/?"},
-							&VantagePro2HttpRequestHandler::postArchivePage)};
+		std::make_tuple(boost::beast::http::verb::get, std::regex{
+			"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
+			&VantagePro2HttpRequestHandler::getLastArchive),
+		std::make_tuple(boost::beast::http::verb::post, std::regex{
+			"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/archive_page/?"},
+			&VantagePro2HttpRequestHandler::postArchivePage)};
 
 };
 
