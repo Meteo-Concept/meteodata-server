@@ -46,9 +46,7 @@ namespace meteodata
 
 using namespace date;
 
-constexpr char VP2MqttSubscriber::ARCHIVES_TOPIC[];
-
-VP2MqttSubscriber::VP2MqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
+VP2MqttSubscriber::VP2MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
 		asio::io_context& ioContext, DbConnectionObservations& db) :
 	MqttSubscriber(details, ioContext, db)
 {
@@ -75,9 +73,14 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 			int pollingPeriod = std::get<2>(station);
 			// The topic name ought to be vp2/<client>/dmpaft, we can write
 			// to vp2/<client> to request the archives
-			if (topic.rfind("/dmpaft") == topic.size() - 7) { // ends_with("/dmpaft")
+			if (topic.rfind(ARCHIVES_TOPIC) == topic.size() - 7) { // ends_with("/dmpaft")
+				std::string stationTopic = topic.substr(0, topic.size() - 7);
 				// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
-				_client->publish_at_least_once(topic.substr(0, topic.size() - 7), "GETTIME");
+				_client->publish_at_least_once(stationTopic, "GETTIME");
+
+				// Reset the station clock for good measure as well
+				setClock(stationTopic, std::get<0>(station), timeOffseter);
+
 				if (chrono::system_clock::now() - lastArchive > chrono::minutes(pollingPeriod)) {
 					// Fetch all the archives available right now, this will resync the scheduler at the same time
 					// The 2h offset is somewhat arbitrary, it prevents missing observations in case of multiple
@@ -140,26 +143,36 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 		return;
 	}
 
-	// about twice a day, set the clock (it seems very frequent, but it doesn't matter)
+	// about four times a day, set the clock (it seems very frequent, but it doesn't matter)
+	if (topicName.rfind(ARCHIVES_TOPIC) == topicName.size() - 7) { // ends_with("/dmpaft")
+		// The topic name ought to be vp2/<client>/dmpaft, we can write
+		// to vp2/<client> to send the SETTIME command
+		std::string topic{topicName.substr(0, topicName.size() - 7)};
+		if (_clockResetTimes[topic] + chrono::hours(6) < chrono::system_clock::now()) {
+			setClock(topic, station, timeOffseter);
+		}
+	}
+
+}
+
+void VP2MqttSubscriber::setClock(const std::string& topic, const CassUuid& station, const TimeOffseter& timeOffseter)
+{
 	using namespace date;
 	date::sys_seconds now = date::floor<chrono::seconds>(chrono::system_clock::now());
-	// The topic name ought to be vp2/<client>/dmpaft, we can write
-	// to vp2/<client> to send the SETTIME command
-	if (topicName.rfind("/dmpaft") == topicName.size() - 7) { // ends_with("/dmpaft")
-		std::string topic{topicName.substr(0, topicName.size() - 7)};
-		if (_clockResetTimes[topic] + chrono::hours(12) < now) {
-			if (timeOffseter.usesUTC()) {
-				std::cerr << SD_INFO << "[MQTT " << station << "] protocol: " << "Setting the station clock to "
-					  << date::format("%Y-%m-%d %H:%M:%S+0000", now) << std::endl;
-				_client->publish_at_least_once(topic, date::format("SETTIME %Y-%m-%d %H:%M:%S", now));
-			} else {
-				std::cerr << SD_INFO << "[MQTT " << station << "] protocol: "
-					  << "Setting the station clock to the Raspberry Pi current time" << std::endl;
-				_client->publish_at_least_once(topic, "SETTIME");
-			}
-		}
-		_clockResetTimes[topic] = now;
+
+	std::cerr << SD_INFO << "[MQTT " << station << "] protocol: "
+			  << "Setting the station clock to the Raspberry Pi current time" << std::endl;
+	if (timeOffseter.usesUTC()) {
+		// Force the datetime sent, in case the vp2-interface has a local timezone
+		// but the console is forced to use UTC
+		std::ostringstream os;
+		os << "SETTIME " << date::format("%Y-%m-%d %H:%M:%S", now);
+		_client->publish_at_least_once(topic, os.str());
+	} else {
+		// Trust the vp2-interface to have the same timezone as the station
+		_client->publish_at_least_once(topic, "SETTIME");
 	}
+	_clockResetTimes[topic] = now;
 }
 
 }

@@ -55,11 +55,12 @@ using namespace meteodata;
 class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
-	VP2MqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
+	VP2MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
 	std::map<std::string, date::sys_seconds> _clockResetTimes;
+	void setClock(const std::string& topic, const CassUuid& station, const TimeOffseter& timeOffseter);
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
