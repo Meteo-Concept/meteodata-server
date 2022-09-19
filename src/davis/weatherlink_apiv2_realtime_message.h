@@ -57,13 +57,14 @@ class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, pu
 public:
 	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, float& dayRain);
 	void parse(std::istream& input) override;
-	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
+	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station,
+			   const std::map<int, std::map<std::string, std::string>>& variables) override;
 	date::sys_seconds
 	getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
 
 private:
 	float& _dayRain;
-	void doParse(std::istream& input, const Acceptor& acceptable);
+	void doParse(std::istream& input, const Acceptor& acceptable, const std::map<int, std::map<std::string, std::string>>& variables);
 	constexpr bool compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
 		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2);
 };

@@ -97,19 +97,22 @@ float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, std::string weatherlinkId,
 	std::map<int, CassUuid> mapping,
+	std::map<int, std::map<std::string, std::string>> parsers,
 	const std::string& apiKey, const std::string& apiSecret,
 	DbConnectionObservations& db, TimeOffseter&& to) :
 		AbstractWeatherlinkDownloader(station, db, std::forward<TimeOffseter&&>(to)),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
 		_weatherlinkId(std::move(weatherlinkId)),
-		_substations(std::move(mapping))
+		_substations(std::move(mapping)),
+		_parsers(std::move(parsers))
 {
 	initialize();
 }
 
 WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, std::string weatherlinkId,
 	std::map<int, CassUuid> mapping,
+	std::map<int, std::map<std::string, std::string>> parsers,
 	const std::string& apiKey, const std::string& apiSecret,
 	DbConnectionObservations& db,
 	TimeOffseter::PredefinedTimezone tz) :
@@ -117,7 +120,8 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
 		_weatherlinkId(std::move(weatherlinkId)),
-		_substations(std::move(mapping))
+		_substations(std::move(mapping)),
+		_parsers(std::move(parsers))
 {
 	initialize();
 }
@@ -193,7 +197,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 			if (_substations.empty())
 				obs.parse(contentStream);
 			else
-				obs.parse(contentStream, _substations, u);
+				obs.parse(contentStream, _substations, u, _parsers);
 
 			int ret = _db.insertV2DataPoint(obs.getObservation(u));
 			if (!ret) {
@@ -315,7 +319,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				if (_substations.empty())
 					page.parse(contentStream);
 				else
-					page.parse(contentStream, _substations, u);
+					page.parse(contentStream, _substations, u, _parsers);
 
 				auto newestTimestamp = page.getNewestMessageTime();
 				// find the oldest of all the newest records

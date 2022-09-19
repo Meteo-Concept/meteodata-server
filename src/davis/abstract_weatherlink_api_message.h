@@ -153,7 +153,6 @@ public:
 		;
 	}
 
-protected:
 	constexpr static int INVALID_INT = std::numeric_limits<int>::min();
 	constexpr static float INVALID_FLOAT = std::numeric_limits<float>::quiet_NaN();
 
@@ -166,7 +165,6 @@ protected:
 	{
 		return v == INVALID_INT;
 	}
-
 
 	struct DataPoint
 	{
@@ -189,6 +187,8 @@ protected:
 		int soilMoisture[4] = {INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT};
 		float soilTemperature[4] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT};
 	};
+
+protected:
 	DataPoint _obs;
 
 	/**

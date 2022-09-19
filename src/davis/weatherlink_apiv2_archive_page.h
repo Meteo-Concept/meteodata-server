@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 
 #include <date.h>
 #include <chrono>
@@ -52,13 +53,15 @@ public:
 	{}
 
 	void parse(std::istream& input) override;
-	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) override;
+	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station,
+			   const std::map<int, std::map<std::string, std::string>>& variables) override;
 
 private:
 	std::vector<WeatherlinkApiv2ArchiveMessage> _messages;
 	date::sys_seconds _time;
 	const TimeOffseter* _timeOffseter;
-	void doParse(std::istream& input, const Acceptor& acceptable);
+	void doParse(std::istream& input, const Acceptor& acceptable,
+				 const std::map<int, std::map<std::string, std::string>>& variables);
 
 public:
 	inline decltype(_messages)::const_iterator begin() const

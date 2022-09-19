@@ -67,11 +67,12 @@ void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::strin
 
 void
 WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& mapping,
+					   const std::map<int, std::map<std::string, std::string>>& parsers,
 				       const std::string& weatherlinkId, TimeOffseter&& to)
 {
 	_downloadersAPIv2.emplace_back(archived,
-		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping,_apiId, _apiSecret, _db,
-				std::forward<TimeOffseter&&>(to))
+		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, parsers,
+				_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to))
 	);
 }
 
@@ -157,7 +158,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 			TimeOffseter::PredefinedTimezone(std::get<3>(station)));
 	}
 
-	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkAPIv2Stations;
+	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>> > > weatherlinkAPIv2Stations;
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
 
 	CurlWrapper client;
@@ -172,8 +173,9 @@ void WeatherlinkDownloadScheduler::reloadStations()
 					  << std::endl;
 			continue;
 		}
-		addAPIv2(std::get<0>(station), std::get<1>(station), std::get<2>(station), std::get<3>(station),
-			 TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})));
+		addAPIv2(std::get<0>(station), std::get<1>(station), std::get<2>(station),
+			std::get<4>(station), std::get<3>(station),
+			TimeOffseter::getTimeOffseterFor(st->second.get("time_zone", std::string{"UTC"})));
 	}
 }
 

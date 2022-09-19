@@ -149,7 +149,7 @@ int main(int argc, char** argv)
 		cass_log_set_callback(logCallback, nullptr);
 
 		// Start the Weatherlink downloaders workers (one per Weatherlink station)
-		std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string>> weatherlinkStations;
+		std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>> >> weatherlinkStations;
 		DbConnectionObservations db{address, user, password};
 		db.getAllWeatherlinkAPIv2Stations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
@@ -175,6 +175,7 @@ int main(int argc, char** argv)
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
 			WeatherlinkApiv2Downloader downloader{std::get<0>(station), std::get<3>(station), std::get<2>(station),
+												  std::get<4>(station),
 												  weatherlinkApiV2Key, weatherlinkApiV2Secret, db,
 												  TimeOffseter::PredefinedTimezone(0)};
 			try {

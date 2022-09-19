@@ -34,6 +34,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <cassandra.h>
 #include <observation.h>
+#include <davis/weatherlink_apiv2_data_structures_parsers/parser_factory.h>
 
 #include "vantagepro2_message.h"
 #include "weatherlink_apiv2_realtime_message.h"
@@ -74,16 +75,17 @@ void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input)
 {
 	doParse(input, [this](auto&& entry) {
 		return acceptEntry(std::forward<decltype(entry)>(entry));
-	});
+	}, {});
 }
 
 void WeatherlinkApiv2RealtimeMessage::parse(std::istream& input,
 	const std::map<int, CassUuid>& substations,
-	const CassUuid& station)
+	const CassUuid& station,
+	const std::map<int, std::map<std::string, std::string>>& variables)
 {
 	doParse(input, [this, substations, station](auto&& entry) {
 		return acceptEntryWithSubstations(std::forward<decltype(entry)>(entry), substations, station);
-	});
+	}, variables);
 }
 
 date::sys_seconds
@@ -121,12 +123,14 @@ WeatherlinkApiv2RealtimeMessage::getLastUpdateTimestamp(std::istream& input,
 	return *std::max_element(updates.begin(), updates.end());
 }
 
-void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Acceptor& acceptable)
+void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Acceptor& acceptable,
+		  const std::map<int, std::map<std::string, std::string>>& variables)
 {
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
 	std::vector<std::tuple<SensorType, DataStructureType, pt::ptree>> entries;
+	std::vector<std::tuple<std::unique_ptr<wlv2structures::AbstractParser>, pt::ptree>> dedicatedParsing;
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		if (!acceptable(reading))
@@ -138,21 +142,27 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 
 		// we expect exactly one element, the current condition
 		auto data = dataIt->second.front().second;
-		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
-		entries.push_back(std::make_tuple(sensorType, dataStructureType, data));
+
+		int lsid = reading.second.get<int>("lsid", -1);
+		auto customParser = variables.find(lsid);
+		if (customParser == variables.end()) {
+			// default parsing
+			SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
+			DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
+			entries.emplace_back(sensorType, dataStructureType, data);
+		} else {
+			// custom parsing!
+			auto parser = wlv2structures::ParserFactory::makeParser(reading.second.get<int>("sensor_type"), customParser->second);
+			// delay the custom parsing after the default one since it can override it
+			if (parser) {
+				dedicatedParsing.emplace_back(std::move(parser), data);
+			}
+		}
 	}
 
-	std::sort(entries.begin(), entries.end(),
-		  std::bind(&WeatherlinkApiv2RealtimeMessage::compareDataPackages, this, std::placeholders::_1, std::placeholders::_2)
-	);
+	std::sort(entries.begin(), entries.end(), [this](auto&& entry1, auto&& entry2) { return compareDataPackages(entry1, entry2); });
 
-	for (const auto& entry : entries) {
-		SensorType sensorType;
-		DataStructureType dataStructureType;
-		pt::ptree data;
-		std::tie(sensorType, dataStructureType, data) = entry;
-
+	for (const auto& [sensorType, dataStructureType, data] : entries) {
 		if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
 			_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 			float hum = data.get<float>("hum", INVALID_FLOAT);
@@ -320,6 +330,10 @@ void WeatherlinkApiv2RealtimeMessage::doParse(std::istream& input, const Accepto
 			_obs.windSpeed = data.get<float>("wind_speed_avg_last_10_min", INVALID_FLOAT);
 			_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
 		}
+	}
+
+	for (const auto& [parser, data] : dedicatedParsing) {
+		parser->parse(_obs, data);
 	}
 }
 

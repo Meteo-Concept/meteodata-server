@@ -50,7 +50,7 @@ class WeatherlinkApiv2ParserTrait
 {
 public:
 	virtual void parse(std::istream& input) = 0;
-	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station) = 0;
+	virtual void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station, const std::map<int, std::map<std::string, std::string>>& parsers) = 0;
 
 protected:
 	using Reading = std::pair<const std::string, pt::ptree>;

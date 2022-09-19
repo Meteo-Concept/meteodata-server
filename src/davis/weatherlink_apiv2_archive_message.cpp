@@ -86,8 +86,7 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>(
-				"data_structure_type"));
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 
 		auto dataIt = reading.second.find("data");
 		if (dataIt == reading.second.not_found() || dataIt->second.empty())
@@ -96,6 +95,11 @@ void WeatherlinkApiv2ArchiveMessage::parse(std::istream& input)
 		auto data = dataIt->second.back().second;
 		ingest(data, sensorType, dataStructureType);
 	}
+}
+
+void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, wlv2structures::AbstractParser& dedicatedParser)
+{
+	dedicatedParser.parse(_obs, data);
 }
 
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType,

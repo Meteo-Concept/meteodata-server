@@ -39,6 +39,7 @@
 
 #include "abstract_weatherlink_api_message.h"
 #include "../time_offseter.h"
+#include "weatherlink_apiv2_data_structures_parsers/abstract_parser.h"
 
 namespace meteodata
 {
@@ -55,10 +56,11 @@ class WeatherlinkApiv2ArchiveMessage : public AbstractWeatherlinkApiMessage
 {
 public:
 	WeatherlinkApiv2ArchiveMessage(const TimeOffseter* timeOffseter);
-	virtual void parse(std::istream& input);
+	void parse(std::istream& input) override;
 
 private:
 	void ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType);
+	void ingest(const pt::ptree& data, wlv2structures::AbstractParser& dedicatedParser);
 	float extractRainFall(const pt::ptree& data);
 	float extractRainRate(const pt::ptree& data);
 

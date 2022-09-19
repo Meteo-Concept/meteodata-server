@@ -57,12 +57,15 @@ class WeatherlinkApiv2Downloader : public AbstractWeatherlinkDownloader
 {
 public:
 	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
-							   std::map<int, CassUuid>  mapping, const std::string& apiKey,
-							   const std::string& apiSecret, DbConnectionObservations& db, TimeOffseter&& to);
+							   std::map<int, CassUuid>  mapping,
+							   std::map<int, std::map<std::string, std::string>> parsers,
+							   const std::string& apiKey, const std::string& apiSecret,
+							   DbConnectionObservations& db, TimeOffseter&& to);
 	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
-							   std::map<int, CassUuid>  mapping, const std::string& apiKey,
-							   const std::string& apiSecret, DbConnectionObservations& db,
-							   TimeOffseter::PredefinedTimezone tz);
+							   std::map<int, CassUuid>  mapping,
+							   std::map<int, std::map<std::string, std::string>> parsers,
+							   const std::string& apiKey, const std::string& apiSecret,
+							   DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz);
 	void download(CurlWrapper& client, bool force = false);
 	void downloadRealTime(CurlWrapper& client);
 	static std::unordered_map<std::string, boost::property_tree::ptree>
@@ -86,6 +89,11 @@ private:
 	 * answers
 	 */
 	const std::map<int, CassUuid> _substations;
+
+	/**
+	 * @brief The dedicated parsers configured for the station
+	 */
+	const std::map<int, std::map<std::string, std::string>> _parsers;
 
 	/**
 	 * @brief The list of Meteodata stations that from the
