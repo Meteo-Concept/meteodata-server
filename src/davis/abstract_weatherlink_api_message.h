@@ -186,6 +186,18 @@ public:
 		int leafWetness[2] = {INVALID_INT, INVALID_INT};
 		int soilMoisture[4] = {INVALID_INT, INVALID_INT, INVALID_INT, INVALID_INT};
 		float soilTemperature[4] = {INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT, INVALID_FLOAT};
+		float soilMoisture10cm = INVALID_FLOAT;
+		float soilMoisture20cm = INVALID_FLOAT;
+		float soilMoisture30cm = INVALID_FLOAT;
+		float soilMoisture40cm = INVALID_FLOAT;
+		float soilMoisture50cm = INVALID_FLOAT;
+		float soilMoisture60cm = INVALID_FLOAT;
+		float soilTemp10cm = INVALID_FLOAT;
+		float soilTemp20cm = INVALID_FLOAT;
+		float soilTemp30cm = INVALID_FLOAT;
+		float soilTemp40cm = INVALID_FLOAT;
+		float soilTemp50cm = INVALID_FLOAT;
+		float soilTemp60cm = INVALID_FLOAT;
 	};
 
 protected:

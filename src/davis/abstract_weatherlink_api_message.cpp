@@ -85,6 +85,18 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 		result.soilmoistures[i] = {!isInvalid(_obs.soilMoisture[i]), _obs.soilMoisture[i]};
 		result.soiltemp[i] = {!isInvalid(_obs.soilTemperature[i]), from_Farenheit_to_Celsius(_obs.soilTemperature[i])};
 	}
+	result.soilmoistures10cm = {!isInvalid(_obs.soilMoisture10cm), _obs.soilMoisture10cm};
+	result.soilmoistures20cm = {!isInvalid(_obs.soilMoisture20cm), _obs.soilMoisture20cm};
+	result.soilmoistures30cm = {!isInvalid(_obs.soilMoisture30cm), _obs.soilMoisture30cm};
+	result.soilmoistures30cm = {!isInvalid(_obs.soilMoisture40cm), _obs.soilMoisture40cm};
+	result.soilmoistures40cm = {!isInvalid(_obs.soilMoisture50cm), _obs.soilMoisture50cm};
+	result.soilmoistures50cm = {!isInvalid(_obs.soilMoisture60cm), _obs.soilMoisture60cm};
+	result.soiltemp10cm = {!isInvalid(_obs.soilTemp10cm), _obs.soilTemp10cm};
+	result.soiltemp20cm = {!isInvalid(_obs.soilTemp20cm), _obs.soilTemp20cm};
+	result.soiltemp30cm = {!isInvalid(_obs.soilTemp30cm), _obs.soilTemp30cm};
+	result.soiltemp30cm = {!isInvalid(_obs.soilTemp40cm), _obs.soilTemp40cm};
+	result.soiltemp40cm = {!isInvalid(_obs.soilTemp50cm), _obs.soilTemp50cm};
+	result.soiltemp50cm = {!isInvalid(_obs.soilTemp60cm), _obs.soilTemp60cm};
 
 	result.solarrad = {!isInvalid(_obs.solarRad), _obs.solarRad};
 

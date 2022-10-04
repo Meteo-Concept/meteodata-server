@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 
+#include "sentek_probe_116_parser.h"
 #include "soil_probe_108_parser.h"
 #include "thermohygro_probe_100_parser.h"
 
@@ -16,6 +17,8 @@ std::unique_ptr<AbstractParser> ParserFactory::makeParser(int sensorType, std::m
 		return std::make_unique<ThermohygroProbe100Parser>(variables["temperature"], variables["humidity"]);
 	} else if (sensorType == 108) {
 		return std::make_unique<SoilProbe108Parser>(variables["soil_moisture"]);
+	} else if (sensorType == 116) {
+		return std::make_unique<SentekProbe116Parser>();
 	} else {
 		return nullptr;
 	}
