@@ -17,7 +17,7 @@ std::unique_ptr<AbstractParser> ParserFactory::makeParser(int sensorType, std::m
 		return std::make_unique<ThermohygroProbe100Parser>(variables["temperature"], variables["humidity"]);
 	} else if (sensorType == 108) {
 		return std::make_unique<SoilProbe108Parser>(variables["soil_moisture"]);
-	} else if (sensorType == 116) {
+	} else if (sensorType == 115 || sensorType == 116) {
 		return std::make_unique<SentekProbe116Parser>();
 	} else {
 		return nullptr;
