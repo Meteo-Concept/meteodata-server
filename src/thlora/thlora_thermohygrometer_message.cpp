@@ -42,7 +42,7 @@ void ThloraThermohygrometerMessage::ingest(const std::string& payload, const dat
 {
 	using namespace hex_parser;
 
-	if (!validateInput(payload, 9)) {
+	if (!validateInput(payload, 18)) {
 		_obs.valid = false;
 		return;
 	}
