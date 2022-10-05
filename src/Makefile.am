@@ -110,6 +110,8 @@ meteodata_SOURCES = \
 		    mqtt/barani_anemometer_mqtt_subscriber.h\
 		    mqtt/barani_rain_gauge_mqtt_subscriber.cpp\
 		    mqtt/barani_rain_gauge_mqtt_subscriber.h\
+		    mqtt/thlora_thermohygrometer_mqtt_subscriber.cpp\
+		    mqtt/thlora_thermohygrometer_mqtt_subscriber.h\
 		    mqtt/lorain_mqtt_subscriber.cpp\
 		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
@@ -144,6 +146,8 @@ meteodata_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
+		    thlora/thlora_thermohygrometer_message.cpp\
+		    thlora/thlora_thermohygrometer_message.h\
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\
 		    pessl/fieldclimate_api_download_scheduler.cpp\
