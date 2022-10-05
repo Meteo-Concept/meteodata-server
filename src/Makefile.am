@@ -57,6 +57,8 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv1_realtime_message.h\
 		    davis/weatherlink_apiv2_realtime_message.cpp\
 		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_page.cpp\
+		    davis/weatherlink_apiv2_realtime_page.h\
 		    davis/weatherlink_apiv2_archive_message.cpp\
 		    davis/weatherlink_apiv2_archive_message.h\
 		    davis/weatherlink_apiv2_archive_page.cpp\
@@ -222,6 +224,8 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    davis/weatherlink_apiv1_realtime_message.h\
 		    davis/weatherlink_apiv2_realtime_message.cpp\
 		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_page.cpp\
+		    davis/weatherlink_apiv2_realtime_page.h\
 		    davis/weatherlink_apiv2_archive_message.cpp\
 		    davis/weatherlink_apiv2_archive_message.h\
 		    davis/weatherlink_apiv2_archive_page.cpp\
@@ -259,6 +263,8 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    davis/weatherlink_apiv1_realtime_message.h\
 		    davis/weatherlink_apiv2_realtime_message.cpp\
 		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_page.cpp\
+		    davis/weatherlink_apiv2_realtime_page.h\
 		    davis/weatherlink_apiv2_archive_message.cpp\
 		    davis/weatherlink_apiv2_archive_message.h\
 		    davis/weatherlink_apiv2_archive_page.cpp\

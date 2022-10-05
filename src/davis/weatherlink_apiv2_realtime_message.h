@@ -24,11 +24,7 @@
 #ifndef WEATHERLINK_APIV2_REALTIME_MESSAGE_H
 #define WEATHERLINK_APIV2_REALTIME_MESSAGE_H
 
-#include <cmath>
-#include <cstdint>
-#include <array>
 #include <chrono>
-#include <limits>
 #include <iostream>
 #include <optional>
 
@@ -39,8 +35,8 @@
 #include <message.h>
 
 #include "abstract_weatherlink_api_message.h"
-#include "weatherlink_apiv2_parser_trait.h"
 #include "../time_offseter.h"
+#include "weatherlink_apiv2_data_structures_parsers/abstract_parser.h"
 
 namespace meteodata
 {
@@ -48,25 +44,35 @@ namespace meteodata
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
+class WeatherlinkApiv2RealtimePage;
+
 /**
  * @brief A Message able to receive and store a JSON file resulting from a call to
  * https://api.weatherlink.com/v2/current/...
  */
-class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage, public WeatherlinkApiv2ParserTrait
+class WeatherlinkApiv2RealtimeMessage : public AbstractWeatherlinkApiMessage
 {
 public:
-	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, float& dayRain);
+	WeatherlinkApiv2RealtimeMessage(const TimeOffseter* timeOffseter, float dayRain);
 	void parse(std::istream& input) override;
-	void parse(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station,
-			   const std::map<int, std::map<std::string, std::string>>& variables) override;
-	date::sys_seconds
-	getLastUpdateTimestamp(std::istream& input, const std::map<int, CassUuid>& substations, const CassUuid& station);
 
 private:
-	float& _dayRain;
-	void doParse(std::istream& input, const Acceptor& acceptable, const std::map<int, std::map<std::string, std::string>>& variables);
-	constexpr bool compareDataPackages(const std::tuple<SensorType, DataStructureType, pt::ptree>& entry1,
-		const std::tuple<SensorType, DataStructureType, pt::ptree>& entry2);
+	float _dayRain = INVALID_FLOAT;
+	void ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType);
+	void ingest(const pt::ptree& data, wlv2structures::AbstractParser& dedicatedParser);
+	constexpr static bool compareDataPackages(const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2RealtimeMessage>& entry1,
+		const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2RealtimeMessage>& entry2)
+	{
+		// Ingest first the ISS so that when reading the data from the aux. sensor suites,
+		// we can check for the missing data
+		// The ordering of the rest is irrelevant.
+		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE && isMainStationType(std::get<0>(entry2)))
+			return false;
+
+		return true;
+	}
+
+	friend WeatherlinkApiv2RealtimePage;
 };
 
 }

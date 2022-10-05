@@ -57,7 +57,7 @@ protected:
 	using Acceptor = std::function<bool(Reading&)>;
 
 	inline bool acceptEntryWithSubstations(const Reading& reading, const std::map<int, CassUuid>& substations,
-										   const CassUuid& station)
+		const CassUuid& station)
 	{
 		// lsid should not be missing, but even if it is, the entry will be rejected
 		// by the test below (no lsid can be negative)

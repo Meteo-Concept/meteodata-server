@@ -45,6 +45,7 @@
 #include "../http_utils.h"
 #include "../cassandra_utils.h"
 #include "../curl_wrapper.h"
+#include "weatherlink_apiv2_realtime_page.h"
 #include "weatherlink_apiv2_realtime_message.h"
 #include "weatherlink_apiv2_archive_page.h"
 #include "weatherlink_apiv2_archive_message.h"
@@ -193,21 +194,24 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 
 			// get the last rainfall from cache
 			_lastDayRainfall[u] = getDayRainfall(u);
-			WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, _lastDayRainfall[u]);
+			WeatherlinkApiv2RealtimePage page(&_timeOffseter, _lastDayRainfall[u]);
 			if (_substations.empty())
-				obs.parse(contentStream);
+				page.parse(contentStream);
 			else
-				obs.parse(contentStream, _substations, u, _parsers);
+				page.parse(contentStream, _substations, u, _parsers);
 
-			int ret = _db.insertV2DataPoint(obs.getObservation(u));
-			if (!ret) {
-				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
-						  << "Failed to insert real-time observation for substation " << u << std::endl;
-			}
-			ret = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(obs.getObservation(u).time), _lastDayRainfall[u]);
-			if (!ret) {
-				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
-						  << "Failed to cache the rainfall for substation " << u << std::endl;
+			int ret = 1;
+			for (auto&& it = page.begin() ; it != page.end() && ret ; ++it) {
+				ret = _db.insertV2DataPoint(it->getObservation(u));
+				if (!ret) {
+					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
+							  << "Failed to insert real-time observation for substation " << u << std::endl;
+				}
+				ret = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(it->getObservation(u).time), _lastDayRainfall[u]);
+				if (!ret) {
+					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
+							  << "Failed to cache the rainfall for substation " << u << std::endl;
+				}
 			}
 		}
 	});
@@ -255,9 +259,9 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			std::vector<date::sys_seconds> lastUpdates;
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
-				float dummyRainfall = 0.f;
-				WeatherlinkApiv2RealtimeMessage obs(&_timeOffseter, dummyRainfall);
-				lastUpdates.push_back(obs.getLastUpdateTimestamp(contentStream, _substations, u));
+				float dummyRainfall = WeatherlinkApiv2RealtimeMessage::INVALID_FLOAT;
+				WeatherlinkApiv2RealtimePage page(&_timeOffseter, dummyRainfall);
+				lastUpdates.push_back(page.getLastUpdateTimestamp(contentStream, _substations, u));
 			}
 			stationIsDisconnected = std::all_of(lastUpdates.begin(), lastUpdates.end(),
 				[this](auto&& ts) { return ts <= _lastArchive; });

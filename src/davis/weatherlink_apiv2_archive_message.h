@@ -24,11 +24,7 @@
 #ifndef WEATHERLINK_APIV2_ARCHIVE_MESSAGE_H
 #define WEATHERLINK_APIV2_ARCHIVE_MESSAGE_H
 
-#include <cmath>
-#include <cstdint>
-#include <array>
 #include <chrono>
-#include <limits>
 #include <iostream>
 
 #include <boost/property_tree/ptree.hpp>
