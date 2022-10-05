@@ -58,8 +58,7 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	for (int i = 0 ; i < 2 ; i++)
 		result.extrahum[i] = {!isInvalid(_obs.extraHumidity[i]), _obs.extraHumidity[i]};
 	for (int i = 0 ; i < 3 ; i++) {
-		result.extratemp[i] = {!isInvalid(_obs.extraTemperature[i]),
-							   from_Farenheit_to_Celsius(_obs.extraTemperature[i])};
+		result.extratemp[i] = {!isInvalid(_obs.extraTemperature[i]), from_Farenheit_to_Celsius(_obs.extraTemperature[i])};
 	}
 	result.heatindex = {!isInvalid(_obs.temperatureF) && !isInvalid(_obs.humidity),
 						heat_index(_obs.temperatureF, _obs.humidity)};
@@ -75,10 +74,11 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	if (!isInvalid(_obs.temperature) && !isInvalid(_obs.windSpeed) && !isInvalid(_obs.humidity) &&
 		!isInvalid(_obs.solarRad)) {
 		result.et = {true,
-					 evapotranspiration(_obs.temperature, _obs.humidity, from_mph_to_mps(_obs.windSpeed), _obs.solarRad,
-										_timeOffseter->getLatitude(), _timeOffseter->getLongitude(),
-										_timeOffseter->getElevation(), chrono::system_clock::to_time_t(_obs.time),
-										_timeOffseter->getMeasureStep())};
+			 evapotranspiration(_obs.temperature, _obs.humidity, from_mph_to_mps(_obs.windSpeed), _obs.solarRad,
+				_timeOffseter->getLatitude(), _timeOffseter->getLongitude(),
+				_timeOffseter->getElevation(), chrono::system_clock::to_time_t(_obs.time),
+				_timeOffseter->getMeasureStep())
+		};
 	}
 
 	for (int i = 0 ; i < 4 ; i++) {
@@ -88,15 +88,15 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	result.soilmoistures10cm = {!isInvalid(_obs.soilMoisture10cm), _obs.soilMoisture10cm};
 	result.soilmoistures20cm = {!isInvalid(_obs.soilMoisture20cm), _obs.soilMoisture20cm};
 	result.soilmoistures30cm = {!isInvalid(_obs.soilMoisture30cm), _obs.soilMoisture30cm};
-	result.soilmoistures30cm = {!isInvalid(_obs.soilMoisture40cm), _obs.soilMoisture40cm};
-	result.soilmoistures40cm = {!isInvalid(_obs.soilMoisture50cm), _obs.soilMoisture50cm};
-	result.soilmoistures50cm = {!isInvalid(_obs.soilMoisture60cm), _obs.soilMoisture60cm};
-	result.soiltemp10cm = {!isInvalid(_obs.soilTemp10cm), _obs.soilTemp10cm};
-	result.soiltemp20cm = {!isInvalid(_obs.soilTemp20cm), _obs.soilTemp20cm};
-	result.soiltemp30cm = {!isInvalid(_obs.soilTemp30cm), _obs.soilTemp30cm};
-	result.soiltemp30cm = {!isInvalid(_obs.soilTemp40cm), _obs.soilTemp40cm};
-	result.soiltemp40cm = {!isInvalid(_obs.soilTemp50cm), _obs.soilTemp50cm};
-	result.soiltemp50cm = {!isInvalid(_obs.soilTemp60cm), _obs.soilTemp60cm};
+	result.soilmoistures40cm = {!isInvalid(_obs.soilMoisture40cm), _obs.soilMoisture40cm};
+	result.soilmoistures50cm = {!isInvalid(_obs.soilMoisture50cm), _obs.soilMoisture50cm};
+	result.soilmoistures60cm = {!isInvalid(_obs.soilMoisture60cm), _obs.soilMoisture60cm};
+	result.soiltemp10cm = {!isInvalid(_obs.soilTemp10cm), from_Farenheit_to_Celsius(_obs.soilTemp10cm)};
+	result.soiltemp20cm = {!isInvalid(_obs.soilTemp20cm), from_Farenheit_to_Celsius(_obs.soilTemp20cm)};
+	result.soiltemp30cm = {!isInvalid(_obs.soilTemp30cm), from_Farenheit_to_Celsius(_obs.soilTemp30cm)};
+	result.soiltemp40cm = {!isInvalid(_obs.soilTemp40cm), from_Farenheit_to_Celsius(_obs.soilTemp40cm)};
+	result.soiltemp50cm = {!isInvalid(_obs.soilTemp50cm), from_Farenheit_to_Celsius(_obs.soilTemp50cm)};
+	result.soiltemp60cm = {!isInvalid(_obs.soilTemp60cm), from_Farenheit_to_Celsius(_obs.soilTemp60cm)};
 
 	result.solarrad = {!isInvalid(_obs.solarRad), _obs.solarRad};
 
@@ -109,7 +109,7 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	}
 	result.uv = {!isInvalid(_obs.uvIndex), _obs.uvIndex * 10};
 	result.windchill = {!isInvalid(_obs.temperatureF) && !isInvalid(_obs.windSpeed),
-						wind_chill(_obs.temperatureF, _obs.windSpeed)};
+		wind_chill(_obs.temperatureF, _obs.windSpeed)};
 	result.winddir = {!isInvalid(_obs.windDir), _obs.windDir};
 	result.windgust = {!isInvalid(_obs.windGustSpeed), from_mph_to_kph(_obs.windGustSpeed)};
 	result.windspeed = {!isInvalid(_obs.windSpeed), from_mph_to_kph(_obs.windSpeed)};
