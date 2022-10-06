@@ -45,6 +45,7 @@
 #include "mqtt/barani_rain_gauge_mqtt_subscriber.h"
 #include "mqtt/barani_anemometer_mqtt_subscriber.h"
 #include "mqtt/thlora_thermohygrometer_mqtt_subscriber.h"
+#include "mqtt/oy1110_thermohygrometer_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_download_scheduler.h"
 #include "synop/synop_download_scheduler.h"
@@ -143,6 +144,7 @@ void MeteoServer::start()
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniAnemometerMqttSubscriber>> baraniAnemometerMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniRainGaugeMqttSubscriber>> baraniRainGaugeMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ThloraThermohygrometerMqttSubscriber>> thloraThermohygrometerMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber>> oy1110ThermohygrometerMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		_db.getMqttStations(mqttStations);
 		_db.getAllObjeniousApiStations(objeniousStations);
@@ -174,7 +176,7 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
-			} else if (topic == "fifo/Lorain") { //TODO: refactor the following four sections with an abstract factory
+			} else if (topic == "fifo/Lorain") { //TODO: refactor the following five sections with an abstract factory
 				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
 				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {
 					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioContext, _db);
@@ -214,6 +216,16 @@ void MeteoServer::start()
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != liveobjectsStations.end())
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
+			} else if (topic == "fifo/Oy1110_thermohygrometer") {
+				auto mqttSubscribersIt = oy1110ThermohygrometerMqttSubscribers.find(details);
+				if (mqttSubscribersIt == oy1110ThermohygrometerMqttSubscribers.end()) {
+					std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber> subscriber = std::make_shared<Oy1110ThermohygrometerMqttSubscriber>(details, _ioContext, _db);
+					mqttSubscribersIt = oy1110ThermohygrometerMqttSubscribers.emplace(details, subscriber).first;
+				}
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				if (it != liveobjectsStations.end())
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else {
 				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
 						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
@@ -243,6 +255,10 @@ void MeteoServer::start()
 		for (auto&& mqttSubscriber : thloraThermohygrometerMqttSubscribers) {
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_thlora_thermohygrometer_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : oy1110ThermohygrometerMqttSubscribers) {
+			mqttSubscriber.second->start();
+			_connectors.emplace("mqtt_oy1110_thermohygrometer_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 	}
 
