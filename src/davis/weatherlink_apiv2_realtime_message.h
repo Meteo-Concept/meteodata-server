@@ -58,6 +58,7 @@ public:
 
 private:
 	float _dayRain = INVALID_FLOAT;
+	float _newDayRain = INVALID_FLOAT;
 	void ingest(const pt::ptree& data, SensorType sensorType, DataStructureType dataStructureType);
 	void ingest(const pt::ptree& data, wlv2structures::AbstractParser& dedicatedParser);
 	constexpr static bool compareDataPackages(const std::tuple<SensorType, DataStructureType, WeatherlinkApiv2RealtimeMessage>& entry1,

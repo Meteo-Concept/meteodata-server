@@ -141,8 +141,8 @@ void WeatherlinkApiv2RealtimePage::doParse(std::istream& input, const Acceptor& 
 				// nothing has been parsed, continuing
 				continue;
 			}
-			if (!WeatherlinkApiv2RealtimeMessage::isInvalid(message._dayRain)) {
-				_newDayRain = message._dayRain;
+			if (!WeatherlinkApiv2RealtimeMessage::isInvalid(message._newDayRain)) {
+				_newDayRain = message._newDayRain;
 			}
 			entries.emplace_back(sensorType, dataStructureType, std::move(message));
 		} else {

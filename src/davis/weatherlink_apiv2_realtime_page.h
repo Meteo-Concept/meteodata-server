@@ -62,7 +62,7 @@ public:
 private:
 	const TimeOffseter* _timeOffseter;
 	std::vector<WeatherlinkApiv2RealtimeMessage> _messages;
-	float _dayRain;
+	float& _dayRain;
 	float _newDayRain = WeatherlinkApiv2RealtimeMessage::INVALID_FLOAT;
 	void doParse(std::istream& input, const Acceptor& acceptable, const std::map<int, std::map<std::string, std::string>>& variables);
 

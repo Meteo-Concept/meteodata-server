@@ -92,8 +92,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 			_obs.rainRate = from_rainrate_to_mm(rainRate);
 		auto rainFall = data.get<int>("rainfall_daily_clicks", INVALID_INT);
 		if (!isInvalid(rainFall)) {
-			float lastRecordedDayRain = _dayRain;
-			float diff = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
+			_newDayRain = from_rainrate_to_mm(rainFall);
+			float diff = from_rainrate_to_mm(rainFall) - _dayRain;
 			if (diff > -0.1) { // don't compare with exactly 0 because of rouding errors
 				// If the diff is negative,
 				// either the station clock is off or we
@@ -126,9 +126,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 			_obs.rainRate = from_rainrate_to_mm(rainRate);
 		auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
 		if (!isInvalid(rainFall)) {
-			float lastRecordedDayRain = _dayRain;
-			_dayRain = from_rainrate_to_mm(rainFall);
-			float diff = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
+			_newDayRain = from_rainrate_to_mm(rainFall);
+			float diff = from_rainrate_to_mm(rainFall) - _dayRain;
 			if (diff > -0.1) {
 				_obs.rainFall = diff;
 			}
@@ -174,9 +173,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 			_obs.rainRate = from_rainrate_to_mm(rainRate);
 		auto rainFall = data.get<int>("rain_day_clicks", INVALID_INT);
 		if (!isInvalid(rainFall)) {
-			float lastRecordedDayRain = _dayRain;
-			_dayRain = from_rainrate_to_mm(rainFall);
-			float diff = from_rainrate_to_mm(rainFall) - lastRecordedDayRain;
+			_newDayRain = from_rainrate_to_mm(rainFall);
+			float diff = from_rainrate_to_mm(rainFall) - _dayRain;
 			if (diff > -0.1) {
 				_obs.rainFall = diff;
 			}
