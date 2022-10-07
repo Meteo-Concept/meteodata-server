@@ -40,11 +40,11 @@ ThermohygroProbe100Parser::ThermohygroProbe100Parser(const std::string& temperat
 	if (humidityField.empty()) {
 		// noop
 	} else if (humidityField == "humidity") {
-		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, int value) { obs.humidity = value; };
+		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, float value) { obs.humidity = int(value); };
 	} else if (humidityField == "extra_humidity_1") {
-		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, int value) { obs.extraHumidity[0] = value; };
+		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, float value) { obs.extraHumidity[0] = int(value); };
 	} else if (humidityField == "extra_humidity_2") {
-		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, int value) { obs.extraHumidity[1] = value; };
+		_setHum = [](AbstractWeatherlinkApiMessage::DataPoint& obs, float value) { obs.extraHumidity[1] = int(value); };
 	}
 }
 
@@ -52,7 +52,7 @@ void ThermohygroProbe100Parser::parse(AbstractWeatherlinkApiMessage::DataPoint& 
 {
 	AbstractParser::parse(obs, data);
 	_setTemp(obs, from_Farenheit_to_Celsius(data.get<float>("temp_last", AbstractWeatherlinkApiMessage::INVALID_FLOAT)));
-	_setHum(obs, data.get<int>("hum_last", AbstractWeatherlinkApiMessage::INVALID_INT));
+	_setHum(obs, data.get<float>("hum_last", AbstractWeatherlinkApiMessage::INVALID_FLOAT));
 }
 
 }
