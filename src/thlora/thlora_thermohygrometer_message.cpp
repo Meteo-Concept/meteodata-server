@@ -63,7 +63,7 @@ void ThloraThermohygrometerMessage::ingest(const std::string& payload, const dat
 	_obs.header = raw[0];
 	// bytes 8-23: temperature, 16 bits, little endian
 	uint32_t temperature = raw[1] + (raw[2] << 8);
-	_obs.temperature = (172.72 * temperature) / (1 << 16) - 46.85;
+	_obs.temperature = (175.72 * temperature) / (1 << 16) - 46.85;
 	// bytes 24-31: humidity
 	uint16_t humidity = raw[3];
 	_obs.humidity = (125 * humidity) / (1 << 8) - 6;
