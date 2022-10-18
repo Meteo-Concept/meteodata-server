@@ -638,15 +638,14 @@ evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiatio
 
 
 	// Slope of the saturation pressure curve
-	double Delta =
-			4098 * (0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3))) / std::pow(t_celsius + 237.3, 2.);
-	// Average atmospheric pressure at the altitude of the station
+	double Delta = 4098 * (0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3))) / std::pow(t_celsius + 237.3, 2.);
+	// Average atmospheric pressure at the altitude of the station (kPa)
 	double P = 101.3 * std::pow((293. - 0.0065 * elevation) / 293., 5.26);
-	// Psychometric constant
+	// Psychometric constant (kPa/°C)
 	double gamma = 6.65e-4 * P;
-	// Saturation vapour pressure
+	// Saturation vapour pressure (kPa)
 	double e_s = 0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3));
-	// Vapour pressure
+	// Vapour pressure (kPa)
 	double e_a = e_s * hum / 100;
 
 	// day of the year
@@ -661,30 +660,29 @@ evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiatio
 	// Fractional hours since midnight (UTC)
 	double t = duration<double, hours::period>(time - floor<days>(time)).count();
 	// sunset hour angle
-	//double omega_s = std::acos(-std::tan(latitude) * std::tan(delta));
+	double omega_s = std::acos(-std::tan(latitude) * std::tan(delta));
 	// true solar angle at half the polling period
 	double omega = (t - (polling_period / 120) + S_c) * PI / 12 - longitude - PI;
 	double omega_2 = omega + (PI / 12) * (polling_period / 120.);
 	double omega_1 = omega - (PI / 12) * (polling_period / 120.);
-	//bool daytime = omega > - omega_s && omega < omega_s;
+	bool daytime = omega > - omega_s && omega < omega_s;
 
 	// Extraterrestrial radiation
 	double G_sc = 0.0820; // solar constant
 	double R_a = (12 / PI) * G_sc * d_r * ((omega_2 - omega_1) * std::sin(latitude) * std::sin(delta) +
-										   std::cos(latitude) * std::cos(delta) *
-										   (std::sin(omega_2) - std::sin(omega_1)));
+		std::cos(latitude) * std::cos(delta) * (std::sin(omega_2) - std::sin(omega_1)));
 	if (R_a < 0)
 		R_a = 0;
 
 	// solar radiation over the measurement period
-	double R = solar_radiation * 60e-6; // conversion from W.m^2 to MJ.m^2.min^-1
+	double R = solar_radiation * 60e-6 * polling_period; // conversion from W.m^2 to MJ.m^2.min^-1 * polling_period min
 	// Clear-sky solar radiation (Angstrom formula with no calibrated parameters)
 	double R_so = (0.75 + 2e-5 * elevation) * R_a;
 	// Net shortwave radiation
 	double a = 0.23; // standard albedo for the grass
 	double R_ns = (1 - a) * R;
-	// Stefan-Boltzmann constant, by min
-	double sigma = 4.903e-9 / (24 * 60);
+	// Stefan-Boltzmann constant, in MJ.m-2.min-1 * polling_period min
+	double sigma = 4.903e-9 * polling_period / (24 * 60);
 	// Net longwave radiation
 	double ratio = R_so == 0 ? 0.6 : R > R_so ? 1 : R / R_so;
 	double R_nl = sigma * std::pow(t_celsius + 273.16, 4.) * (0.34 - 0.14 * std::sqrt(e_a)) * (1.35 * ratio - 0.35);
@@ -692,10 +690,10 @@ evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiatio
 	double R_n = R_ns - R_nl;
 
 	// Soil heat flux, seems to be ignored by Vantage stations
-	double G = 0.; //R_n * (daytime ? 0.1 : 0.5);
+	double G = R_n * (daytime ? 0.1 : 0.5); // 0;
 
 	// Evapotranspiration
-	double ET_0 = (0.408 * Delta * (R_n - G) + gamma * (37 / (t_celsius + 273.16)) * wind_ms * (e_s - e_a)) /
+	double ET_0 = (0.408 * Delta * (R_n - G) + gamma * ((37. * polling_period / 60.) / (t_celsius + 273.16)) * wind_ms * (e_s - e_a)) /
 				  (Delta + gamma * (1 + 0.34 * wind_ms));
 	if (ET_0 < 0)
 		ET_0 = 0;
