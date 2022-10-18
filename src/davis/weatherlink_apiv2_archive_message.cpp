@@ -103,7 +103,7 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, wlv2structure
 }
 
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType,
-											DataStructureType dataStructureType)
+		DataStructureType dataStructureType)
 {
 	if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
