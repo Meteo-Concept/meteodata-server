@@ -53,13 +53,13 @@ Observation VantagePro2ArchiveMessage::getObservation(CassUuid station) const
 	result.time = timestamp;
 	result.barometer = {_data.barometer != 0, from_inHg_to_bar(_data.barometer)};
 	result.dewpoint = {_data.outsideTemp != 32767 && _data.outsideHum != 255,
-					   dew_point(from_Farenheit_to_Celsius(_data.outsideTemp / 10), _data.outsideHum)};
+		dew_point(from_Farenheit_to_Celsius(_data.outsideTemp / 10), _data.outsideHum)};
 	for (int i = 0 ; i < 2 ; i++)
 		result.extrahum[i] = {_data.extraHum[i] != 255, _data.extraHum[i]};
 	for (int i = 0 ; i < 3 ; i++)
 		result.extratemp[i] = {_data.extraTemp[i] != 255, from_Farenheit_to_Celsius(_data.extraTemp[i] - 90)};
 	result.heatindex = {_data.outsideTemp != 32767 && _data.outsideHum != 255,
-						heat_index(_data.outsideTemp / 10, _data.outsideHum)};
+		heat_index(_data.outsideTemp / 10, _data.outsideHum)};
 	for (int i = 0 ; i < 2 ; i++) {
 		result.leaftemp[i] = {_data.leafTemp[i] != 255, from_Farenheit_to_Celsius(_data.leafTemp[i] - 90)};
 		result.leafwetnesses[i] = {_data.leafWetness[i] >= 0 && _data.leafWetness[i] <= 15, _data.leafWetness[i]};
@@ -75,23 +75,28 @@ Observation VantagePro2ArchiveMessage::getObservation(CassUuid station) const
 	}
 	result.solarrad = {_data.solarRad != 32767, _data.solarRad};
 	result.thswindex = {_data.outsideTemp != 32767 && _data.avgWindSpeed != 255 && _data.outsideHum != 255,
-						thsw_index(from_Farenheit_to_Celsius(_data.outsideTemp / 10), _data.outsideHum,
-								   from_mph_to_mps(_data.avgWindSpeed))};
+		thsw_index(from_Farenheit_to_Celsius(_data.outsideTemp / 10), _data.outsideHum,
+				from_mph_to_mps(_data.avgWindSpeed))};
 	result.uv = {_data.uv != 255, _data.uv};
 	result.windchill = {_data.outsideTemp != 32767 && _data.avgWindSpeed != 255,
-						wind_chill(_data.outsideTemp / 10, _data.avgWindSpeed)};
+		wind_chill(_data.outsideTemp / 10, _data.avgWindSpeed)};
 	result.winddir = {_data.prevailingWindDir != 255, static_cast<int>(_data.prevailingWindDir * 22.5)};
 	result.windgust = {_data.maxWindSpeed != 255, from_mph_to_kph(_data.maxWindSpeed)};
 	result.windspeed = {_data.avgWindSpeed != 255, from_mph_to_kph(_data.avgWindSpeed)};
 	if (_data.solarRad != 32767) {
 		bool ins = insolated(_data.solarRad, _timeOffseter->getLatitude(), _timeOffseter->getLongitude(),
-							 date::floor<chrono::seconds>(timestamp).time_since_epoch().count());
+				date::floor<chrono::seconds>(timestamp).time_since_epoch().count());
 		result.insolation_time = {true, ins ? _timeOffseter->getMeasureStep() : 0};
 	}
 	result.min_outside_temperature = {_data.minOutsideTemp != 32767,
-									  from_Farenheit_to_Celsius(_data.minOutsideTemp / 10.0)};
+		from_Farenheit_to_Celsius(_data.minOutsideTemp / 10.0)};
 	result.max_outside_temperature = {_data.maxOutsideTemp != -32768,
-									  from_Farenheit_to_Celsius(_data.maxOutsideTemp / 10.0)};
+		from_Farenheit_to_Celsius(_data.maxOutsideTemp / 10.0)};
+
+	if (_timeOffseter->mayStoreInsideMeasurements()) {
+		result.insidehum = {_data.insideHum != 255, _data.insideHum};
+		result.insidetemp = {_data.insideTemp != 32767, from_Farenheit_to_Celsius(_data.insideTemp / 10.0)};
+	}
 
 	return result;
 }

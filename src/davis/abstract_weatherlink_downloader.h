@@ -57,7 +57,8 @@ public:
 			_pollingPeriod{0}
 	{
 		time_t lastArchiveDownloadTime;
-		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
+		bool storeInsideMeasurement;
+		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurement);
 		float latitude, longitude;
 		int elevation;
 		db.getStationLocation(station, latitude, longitude, elevation);
@@ -66,6 +67,7 @@ public:
 		_timeOffseter.setLongitude(longitude);
 		_timeOffseter.setElevation(elevation);
 		_timeOffseter.setMeasureStep(_pollingPeriod);
+		_timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurement);
 	}
 
 	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
@@ -74,7 +76,8 @@ public:
 			_station(station)
 	{
 		time_t lastArchiveDownloadTime;
-		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
+		bool storeInsideMeasurement;
+		db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurement);
 		float latitude, longitude;
 		int elevation;
 		db.getStationLocation(station, latitude, longitude, elevation);
@@ -84,6 +87,7 @@ public:
 		_timeOffseter.setLongitude(longitude);
 		_timeOffseter.setElevation(elevation);
 		_timeOffseter.setMeasureStep(_pollingPeriod);
+		_timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurement);
 	}
 
 protected:

@@ -86,7 +86,8 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 	std::string stationName;
 	int pollingPeriod;
 	time_t lastArchiveDownloadTime;
-	_db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime);
+	bool storeInsideMeasurements;
+	_db.getStationDetails(station, stationName, pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurements);
 	date::sys_seconds lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 
 	float latitude;
@@ -101,6 +102,7 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 	timeOffseter.setLongitude(longitude);
 	timeOffseter.setElevation(elevation);
 	timeOffseter.setMeasureStep(pollingPeriod);
+	timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurements);
 	std::cout << SD_NOTICE << "[MQTT " << station << "] connection: " << "Discovered MQTT station " << stationName
 			  << std::endl;
 

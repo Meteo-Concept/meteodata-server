@@ -467,12 +467,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					// From documentation, latitude, longitude and elevation are stored contiguously
 					// in this order in the station's EEPROM
 					time_t lastArchiveDownloadTime;
+					bool storeInsideMeasurements;
 					bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName,
-														_pollingPeriod, lastArchiveDownloadTime);
+														_pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurements);
 					_timeOffseter.setLatitude(_coords[0]);
 					_timeOffseter.setLongitude(_coords[1]);
 					_timeOffseter.setElevation(_coords[2]);
 					_timeOffseter.setMeasureStep(_pollingPeriod);
+					_timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurements);
 					_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 					if (found) {
 						std::cout << SD_INFO << "[Direct " << _station << "] connection: " << _stationName

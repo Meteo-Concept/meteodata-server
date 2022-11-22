@@ -169,7 +169,9 @@ public:
 	}
 
 	inline float getLatitude() const
-	{ return _latitude; }
+	{
+		return _latitude;
+	}
 
 	inline void setLatitude(float lat)
 	{
@@ -177,7 +179,9 @@ public:
 	}
 
 	inline float getLongitude() const
-	{ return _longitude; }
+	{
+		return _longitude;
+	}
 
 	inline void setLongitude(float lon)
 	{
@@ -185,7 +189,9 @@ public:
 	}
 
 	inline int getElevation() const
-	{ return _elevation; }
+	{
+		return _elevation;
+	}
 
 	inline void setElevation(int elevation)
 	{
@@ -193,11 +199,23 @@ public:
 	}
 
 	inline int getMeasureStep() const
-	{ return _measureStep; }
+	{
+		return _measureStep;
+	}
 
 	inline void setMeasureStep(int step)
 	{
 		_measureStep = step;
+	}
+
+	inline bool mayStoreInsideMeasurements() const
+	{
+		return _mayStoreInsideMeasurements;
+	}
+
+	inline void setMayStoreInsideMeasurements(bool okToStoreInsideMeasurements)
+	{
+		_mayStoreInsideMeasurements = okToStoreInsideMeasurements;
 	}
 
 	inline bool usesUTC() const
@@ -226,6 +244,7 @@ private:
 	float _longitude;
 	int _elevation;
 	int _measureStep;
+	bool _mayStoreInsideMeasurements = false;
 };
 
 }

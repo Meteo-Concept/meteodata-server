@@ -113,7 +113,8 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		std::string name;
 		int pollingPeriod;
 		time_t lastDownload;
-		_db.getStationDetails(uuid, name, pollingPeriod, lastDownload);
+		bool storeInsideMeasurements;
+		_db.getStationDetails(uuid, name, pollingPeriod, lastDownload, &storeInsideMeasurements);
 
 		float latitude;
 		float longitude;
@@ -126,6 +127,7 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		timeOffseter.setLatitude(latitude);
 		timeOffseter.setLongitude(longitude);
 		timeOffseter.setElevation(elevation);
+		timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurements);
 
 		bool ret = true;
 		date::sys_seconds lastArchive = date::floor<std::chrono::seconds>(
