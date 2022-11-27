@@ -40,9 +40,11 @@ namespace meteodata
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(date::sys_seconds datetime, const std::string& content,
-														 std::optional<float> rainfallOver50Min,
-														 const TimeOffseter& timeOffseter) :
+MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(
+	date::sys_seconds datetime,
+	const std::string& content,
+	std::optional<float> rainfallOver50Min,
+	const TimeOffseter& timeOffseter) :
 		AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
@@ -50,25 +52,25 @@ MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(date::sys_seconds datet
 	_diffRainfall = rainfallOver50Min;
 
 	const std::regex mandatoryPart{"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
-								   "([^\\|]*)\\|" // temperature
-								   "([^\\|]*)\\|" // humidite
-								   "([^\\|]*)\\|" // dew point
-								   "([^\\|]*)\\|" // pressure
-								   "([^\\|]*)\\|" // pressure variable, should be null
-								   "([^\\|]*)\\|" // rainfall over 1 hour
-								   "([^\\|]*)\\|" // wind
-								   "([^\\|]*)\\|" // wind direction
-								   "([^\\|]*)\\|" // wind gusts
-								   "([^\\|]*)\\|" // windchill
-								   "([^\\|]*)(?:\\||$)" // HEATINDEX
+		"([^\\|]*)\\|" // temperature
+		"([^\\|]*)\\|" // humidite
+		"([^\\|]*)\\|" // dew point
+		"([^\\|]*)\\|" // pressure
+		"([^\\|]*)\\|" // pressure variable, should be null
+		"([^\\|]*)\\|" // rainfall over 1 hour
+		"([^\\|]*)\\|" // wind
+		"([^\\|]*)\\|" // wind direction
+		"([^\\|]*)\\|" // wind gusts
+		"([^\\|]*)\\|" // windchill
+		"([^\\|]*)(?:\\||$)" // HEATINDEX
 	};
 
 	const std::regex optionalPart{"([^\\|]*)\\|" // Tx since midnight
-								  "([^\\|]*)\\|" // Tn since midnight
-								  "([^\\|]*)\\|" // rainrate
-								  "([^\\|]*)\\|" // solar radiation
-								  "([^\\|]*)\\|" // hour of Tx
-								  "([^\\|]*)\\|?" // hour of Tn
+		"([^\\|]*)\\|" // Tn since midnight
+		"([^\\|]*)\\|" // rainrate
+		"([^\\|]*)\\|" // solar radiation
+		"([^\\|]*)\\|" // hour of Tx
+		"([^\\|]*)\\|?" // hour of Tn
 	};
 
 	std::smatch baseMatch;

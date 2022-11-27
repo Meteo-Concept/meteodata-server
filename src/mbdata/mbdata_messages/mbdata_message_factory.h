@@ -61,16 +61,18 @@ private:
 	{
 		std::string content = std::string{std::istreambuf_iterator<char>(entry), std::istreambuf_iterator<char>()};
 
-		std::tuple<std::regex, std::string> regexps[] = {{std::regex{"\\&#124;"},                       "|"},
-														 {std::regex{"\\%[0-9a-zA-Z\\_\\[\\]\\.]+\\%"}, ""},
-														 {std::regex{"\\s+"},                           ""},
-														 {std::regex{","},                              "."},
-														 {std::regex{"<!--.+?-->"},                     ""},
-														 {std::regex{"\\+"},                            ""},
-														 {std::regex{"---"},                            ""},
-														 {std::regex{"--"},                             ""},
-														 {std::regex{"\\[[^\\]]*\\]"},                  ""},
-														 {std::regex{"-99"},                            ""}};
+		std::tuple<std::regex, std::string> regexps[] = {
+			{std::regex{"\\&#124;"},                       "|"},
+			{std::regex{"\\%[0-9a-zA-Z\\_\\[\\]\\.]+\\%"}, ""},
+			{std::regex{"\\s+"},                           ""},
+			{std::regex{","},                              "."},
+			{std::regex{"<!--.+?-->"},                     ""},
+			{std::regex{"\\+"},                            ""},
+			{std::regex{"---"},                            ""},
+			{std::regex{"--"},                             ""},
+			{std::regex{"\\[[^\\]]*\\]"},                  ""},
+			{std::regex{"-99"},                            ""}
+		};
 
 		for (auto&& r : regexps) {
 			content = std::regex_replace(content, std::get<0>(r), std::get<1>(r));
@@ -135,8 +137,7 @@ public:
 			float f;
 			if (db.getRainfall(station, begin, end, f))
 				rainfall = f;
-			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall,
-																			  timeOffseter);
+			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall, timeOffseter);
 		} else {
 			throw std::invalid_argument("Unknown message type");
 		}

@@ -49,7 +49,7 @@ class MBDataWeatherDisplayMessage : public AbstractMBDataMessage
 {
 public:
 	MBDataWeatherDisplayMessage(date::sys_seconds datetime, const std::string& content,
-								std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter);
+		std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter);
 };
 
 }
