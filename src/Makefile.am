@@ -79,6 +79,8 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/soil_probe_108_parser.h\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.cpp\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -249,6 +251,8 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/soil_probe_108_parser.h\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.cpp\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    davis/weatherlink_downloader_standalone.cpp
 
 meteodata_weatherlink_apiv2_standalone_SOURCES = \
@@ -288,6 +292,8 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/soil_probe_108_parser.h\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.cpp\
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    davis/weatherlink_apiv2_downloader_standalone.cpp
 
 meteodata_mbdata_standalone_SOURCES = \
