@@ -131,10 +131,10 @@ void WeatherlinkApiv2RealtimePage::doParse(std::istream& input, const Acceptor& 
 
 		int lsid = reading.second.get<int>("lsid", -1);
 		auto customParser = variables.find(lsid);
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 		if (customParser == variables.end()) {
 			// default parsing
 			SensorType sensorType = static_cast<SensorType>(reading.second.get<int>("sensor_type"));
-			DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 			WeatherlinkApiv2RealtimeMessage message{_timeOffseter, _dayRain};
 			message.ingest(data, sensorType, dataStructureType);
 			if (message._obs.time == chrono::system_clock::from_time_t(0)) {
@@ -147,7 +147,7 @@ void WeatherlinkApiv2RealtimePage::doParse(std::istream& input, const Acceptor& 
 			entries.emplace_back(sensorType, dataStructureType, std::move(message));
 		} else {
 			// custom parsing!
-			auto parser = wlv2structures::ParserFactory::makeParser(reading.second.get<int>("sensor_type"), customParser->second);
+			auto parser = wlv2structures::ParserFactory::makeParser(reading.second.get<int>("sensor_type"), customParser->second, dataStructureType);
 			// delay the custom parsing after the default one since it can override it
 			if (parser) {
 				WeatherlinkApiv2RealtimeMessage message{_timeOffseter, _dayRain};

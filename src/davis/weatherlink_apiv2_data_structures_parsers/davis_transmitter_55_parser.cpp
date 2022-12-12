@@ -6,7 +6,7 @@
 
 namespace meteodata::wlv2structures
 {
-DavisTransmitter55Parser::DavisTransmitter55Parser(std::map<std::string, std::string> variables, int dataStructureType) :
+DavisTransmitter55Parser::DavisTransmitter55Parser(std::map<std::string, std::string> variables, AbstractWeatherlinkApiMessage::DataStructureType dataStructureType) :
 	_dataStructureType{dataStructureType}
 {
 	auto temp = variables.find("temperature");
@@ -76,8 +76,8 @@ void DavisTransmitter55Parser::parse(AbstractWeatherlinkApiMessage::DataPoint& o
 {
 	AbstractParser::parse(obs, data);
 
-	const int WL_CURRENT = static_cast<int>(AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_CURRENT_READING);
-	const int WL_ARCHIVE = static_cast<int>(AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD);
+	constexpr auto WL_CURRENT = AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_CURRENT_READING;
+	constexpr auto WL_ARCHIVE = AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD;
 
 
 	float temperature = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
