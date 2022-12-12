@@ -97,6 +97,8 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 			continue;
 
 		int lsid = reading.second.get<int>("lsid", -1);
+		int dataStructureType = reading.second.get<int>("data_structure_type", -1);
+
 		auto customParser = variables.find(lsid);
 		if (customParser == variables.end()) {
 			// conventional parsing
@@ -116,7 +118,7 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 			}
 		} else {
 			// custom parsing
-			auto parser = wlv2structures::ParserFactory::makeParser(reading.second.get<int>("sensor_type"), customParser->second);
+			auto parser = wlv2structures::ParserFactory::makeParser(reading.second.get<int>("sensor_type"), customParser->second, dataStructureType);
 			// delay the custom parsing after the default one since it can override it
 			if (parser) {
 				for (std::pair<const std::string, pt::ptree>& data : dataIt->second) {

@@ -12,7 +12,7 @@
 namespace meteodata::wlv2structures
 {
 
-std::unique_ptr<AbstractParser> ParserFactory::makeParser(int sensorType, std::map<std::string, std::string> variables)
+std::unique_ptr<AbstractParser> ParserFactory::makeParser(int sensorType, std::map<std::string, std::string> variables, int dataStructureType)
 {
 	if (sensorType == 100 || sensorType == 105) {
 		return std::make_unique<ThermohygroProbe100Parser>(variables["temperature"], variables["humidity"]);
@@ -21,7 +21,7 @@ std::unique_ptr<AbstractParser> ParserFactory::makeParser(int sensorType, std::m
 	} else if (sensorType == 115 || sensorType == 116) {
 		return std::make_unique<SentekProbe116Parser>();
 	} else if (sensorType == 55) {
-		return std::make_unique<DavisTransmitter55Parser>(std::move(variables));
+		return std::make_unique<DavisTransmitter55Parser>(std::move(variables), dataStructureType);
 	} else {
 		return nullptr;
 	}

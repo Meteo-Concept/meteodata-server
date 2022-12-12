@@ -6,7 +6,8 @@
 
 namespace meteodata::wlv2structures
 {
-DavisTransmitter55Parser::DavisTransmitter55Parser(std::map<std::string, std::string> variables)
+DavisTransmitter55Parser::DavisTransmitter55Parser(std::map<std::string, std::string> variables, int dataStructureType) :
+	_dataStructureType{dataStructureType}
 {
 	auto temp = variables.find("temperature");
 	if (temp != variables.end()) {
@@ -75,31 +76,64 @@ void DavisTransmitter55Parser::parse(AbstractWeatherlinkApiMessage::DataPoint& o
 {
 	AbstractParser::parse(obs, data);
 
-	float temperature = data.get<float>("temp", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	const int WL_CURRENT = static_cast<int>(AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_CURRENT_READING);
+	const int WL_ARCHIVE = static_cast<int>(AbstractWeatherlinkApiMessage::DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD);
+
+
+	float temperature = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	if (_dataStructureType == WL_CURRENT) {
+		temperature = data.get<float>("temp", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	} else if (_dataStructureType == WL_ARCHIVE) {
+		temperature = data.get<float>("temp_last", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	}
 	if (!AbstractWeatherlinkApiMessage::isInvalid(temperature)) {
 		_setTemperature(obs, temperature);
 	}
 
-	float humidity = data.get<float>("hum", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	float humidity =  AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	if (_dataStructureType == WL_CURRENT) {
+		humidity = data.get<float>("hum", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	} else if (_dataStructureType == WL_ARCHIVE) {
+		humidity = data.get<float>("hum_last", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	}
 	if (!AbstractWeatherlinkApiMessage::isInvalid(humidity)) {
 		_setHumidity(obs, int(humidity));
 	}
 
-	float wind = data.get<float>("wind_speed_avg_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
-	float gust = data.get<float>("wind_speed_hi_last_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
-	float dir = data.get<float>("wind_dir_scalar_avg_last_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	float wind = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	float gust = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	float dir = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	if (_dataStructureType == WL_CURRENT) {
+		wind = data.get<float>("wind_speed_avg_last_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+		gust = data.get<float>("wind_speed_hi_last_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+		dir = data.get<float>("wind_dir_scalar_avg_last_10_min", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	} else if (_dataStructureType == WL_ARCHIVE) {
+		wind = data.get<float>("wind_speed_avg", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+		gust = data.get<float>("wind_speed_hi", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+		dir = data.get<float>("wind_dir_of_prevail", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	}
 	if (!AbstractWeatherlinkApiMessage::isInvalid(wind) &&
 		!AbstractWeatherlinkApiMessage::isInvalid(gust) &&
 		!AbstractWeatherlinkApiMessage::isInvalid(dir)) {
 		_setWindValues(obs, wind, gust, int(dir));
 	}
 
-	float solar = data.get<float>("solar_rad", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	float solar = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	if (_dataStructureType == WL_CURRENT) {
+		solar = data.get<float>("solar_rad", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	} else if (_dataStructureType == WL_ARCHIVE) {
+		solar = data.get<float>("solar_rad_avg", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	}
 	if (!AbstractWeatherlinkApiMessage::isInvalid(solar)) {
 		_setSolarRadiationValues(obs, int(solar));
 	}
 
-	float uv = data.get<float>("uv_index", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	float uv = AbstractWeatherlinkApiMessage::INVALID_FLOAT;
+	if (_dataStructureType == WL_CURRENT) {
+		uv = data.get<float>("uv_index", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	} else if (_dataStructureType == WL_ARCHIVE) {
+		uv = data.get<float>("uv_index_avg", AbstractWeatherlinkApiMessage::INVALID_FLOAT);
+	}
 	if (!AbstractWeatherlinkApiMessage::isInvalid(uv)) {
 		_setUvValues(obs, uv);
 	}

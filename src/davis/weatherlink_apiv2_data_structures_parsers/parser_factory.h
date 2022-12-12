@@ -14,7 +14,7 @@ namespace meteodata::wlv2structures
 class ParserFactory
 {
 public:
-	static std::unique_ptr<AbstractParser> makeParser(int sensorType, std::map<std::string, std::string> variables);
+	static std::unique_ptr<AbstractParser> makeParser(int sensorType, std::map<std::string, std::string> variables, int dataStructureType = -1);
 
 };
 
