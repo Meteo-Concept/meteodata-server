@@ -13,6 +13,10 @@ Makefile
 config.guess
 config.sub
 ltmain.sh
+confdefs.h
+conftest
+conftest.cpp
+conftest.err
 src/Makefile
 src/Makefile.in
 src/autoscan-2.69.log
