@@ -37,30 +37,11 @@ namespace meteodata
 
 namespace chrono = std::chrono;
 
-bool Lsn50v2ThermohygrometerMessage::validateInput(const std::string& payload)
-{
-	if (payload.length() != 22) {
-		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Invalid size " << payload.length() << " for payload "
-				  << payload << ", should be a 11-byte packet" << std::endl;
-		return false;
-	}
-
-	if (!std::all_of(payload.cbegin(), payload.cend(), [](char c) {
-		return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
-	})) {
-		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Payload " << payload
-				  << " contains invalid characters" << std::endl;
-		return false;
-	}
-
-	return true;
-}
-
 void Lsn50v2ThermohygrometerMessage::ingest(const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 
-	if (!validateInput(payload)) {
+	if (!validateInput(payload, 22)) {
 		_obs.valid = false;
 		return;
 	}

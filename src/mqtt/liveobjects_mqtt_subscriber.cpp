@@ -44,7 +44,7 @@ namespace meteodata
 {
 
 LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-													 asio::io_context& ioContext, DbConnectionObservations& db) :
+		asio::io_context& ioContext, DbConnectionObservations& db) :
 		MqttSubscriber(details, ioContext, db)
 {
 }

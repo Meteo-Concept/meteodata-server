@@ -75,8 +75,6 @@ private:
 		float humidity = NAN;
 	};
 
-	static bool validateInput(const std::string& payload);
-
 	/**
 	 * @brief An observation object to store values as the API return value
 	 * is getting parsed

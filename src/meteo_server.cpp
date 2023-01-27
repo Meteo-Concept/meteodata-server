@@ -218,7 +218,7 @@ void MeteoServer::start()
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != liveobjectsStations.end())
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Oy1110_thermohygrometer") {
+			} else if (topic == "fifo/Oy1110") {
 				auto mqttSubscribersIt = oy1110ThermohygrometerMqttSubscribers.find(details);
 				if (mqttSubscribersIt == oy1110ThermohygrometerMqttSubscribers.end()) {
 					std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber> subscriber = std::make_shared<Oy1110ThermohygrometerMqttSubscriber>(details, _ioContext, _db);
@@ -228,7 +228,7 @@ void MeteoServer::start()
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != liveobjectsStations.end())
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/DraginoLSN50v2_thermohygrometer") {
+			} else if (topic == "fifo/DraginoLSN50v2") {
 				auto mqttSubscribersIt = lsn50v2ThermohygrometerMqttSubscribers.find(details);
 				if (mqttSubscribersIt == lsn50v2ThermohygrometerMqttSubscribers.end()) {
 					std::shared_ptr<Lsn50v2ThermohygrometerMqttSubscriber> subscriber = std::make_shared<Lsn50v2ThermohygrometerMqttSubscriber>(details, _ioContext, _db);
@@ -270,11 +270,11 @@ void MeteoServer::start()
 		}
 		for (auto&& mqttSubscriber : oy1110ThermohygrometerMqttSubscribers) {
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_oy1110_thermohygrometer_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_oy1110_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 		for (auto&& mqttSubscriber : lsn50v2ThermohygrometerMqttSubscribers) {
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_lsn50v2_thermohygrometer_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_lsn50v2_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 	}
 
