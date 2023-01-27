@@ -81,6 +81,8 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.h\
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
+		    dragino/lsn50v2_thermohygrometer_message.cpp\
+		    dragino/lsn50v2_thermohygrometer_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -112,6 +114,8 @@ meteodata_SOURCES = \
 		    mqtt/barani_anemometer_mqtt_subscriber.h\
 		    mqtt/barani_rain_gauge_mqtt_subscriber.cpp\
 		    mqtt/barani_rain_gauge_mqtt_subscriber.h\
+		    mqtt/lsn50v2_thermohygrometer_mqtt_subscriber.cpp\
+		    mqtt/lsn50v2_thermohygrometer_mqtt_subscriber.h\
 		    mqtt/thlora_thermohygrometer_mqtt_subscriber.cpp\
 		    mqtt/thlora_thermohygrometer_mqtt_subscriber.h\
 		    mqtt/oy1110_thermohygrometer_mqtt_subscriber.cpp\

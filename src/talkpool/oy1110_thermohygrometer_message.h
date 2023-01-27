@@ -38,8 +38,8 @@
 namespace meteodata
 {
 /**
- * @brief A Message able to receive and store a Barani rain gauge IoT payload from a
- * low-power connection (LoRa, NB-IoT, etc.)
+ * @brief A Message able to receive and store a Talkpool OY1110 thermohygrometer
+ * IoT payload from a low-power connection (LoRa, NB-IoT, etc.)
  */
 class Oy1110ThermohygrometerMessage : public LiveobjectsMessage
 {
