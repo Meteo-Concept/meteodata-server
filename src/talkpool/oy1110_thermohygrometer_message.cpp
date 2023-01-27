@@ -44,7 +44,7 @@ Oy1110ThermohygrometerMessage::Oy1110ThermohygrometerMessage(const CassUuid& sta
 
 bool Oy1110ThermohygrometerMessage::validateInput(const std::string& payload)
 {
-	if (payload.length() != 3 && (payload.length() - 1) % 3 == 0) {
+	if (payload.length() != 6 && (payload.length() - 1) % 6 == 0) {
 		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Invalid size " << payload.length() << " for payload "
 				  << payload << ", should be either a 3-byte packet or a 1-byte header followed by 3-byte packets" << std::endl;
 		return false;
@@ -75,7 +75,7 @@ void Oy1110ThermohygrometerMessage::ingest(const std::string& payload, const dat
 	std::istringstream is{payload};
 
 	std::size_t length = payload.length();
-	if (length > 3) {
+	if (length > 6) {
 		uint8_t header;
 		is >> parse(header, 2, 16);
 		uint8_t minOrHour = header & 0b1000'0000;
@@ -90,11 +90,11 @@ void Oy1110ThermohygrometerMessage::ingest(const std::string& payload, const dat
 		   >> parse(hum1, 2, 16)
 		   >> parse(temp2, 1, 16)
 		   >> parse(hum2, 1, 16);
-		uint16_t temp = (temp1 << 8) + temp2;
-		uint16_t hum = (hum1 << 8) + hum2;
+		uint16_t temp = (temp1 << 4) + temp2;
+		uint16_t hum = (hum1 << 4) + hum2;
 		_obs.temperatures.push_back(float(temp - 800u) / 10.f);
 		_obs.humidities.push_back(float(hum - 250) / 10.f);
-		length -= 3;
+		length -= 6;
 	}
 
 	_obs.valid = true;

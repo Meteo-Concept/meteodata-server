@@ -118,9 +118,9 @@ std::unique_ptr<LiveobjectsMessage> Oy1110ThermohygrometerMqttSubscriber::buildM
 
 	auto payload = json.get<std::string>("value.payload");
 
-	if (payload.length() > 3) {
+	if (payload.length() > 6) {
 		// This is a group of measurements, only return the first packet in the group.
-		payload = payload.substr(1, 3);
+		payload = payload.substr(1, 6);
 	}
 	m->ingest(payload, timestamp);
 	return m;
