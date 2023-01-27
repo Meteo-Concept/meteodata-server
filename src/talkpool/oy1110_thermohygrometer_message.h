@@ -28,6 +28,7 @@
 #include <vector>
 #include <chrono>
 #include <iterator>
+#include <cmath>
 
 #include <date.h>
 #include <observation.h>
@@ -97,9 +98,10 @@ public:
 		inline Observation operator*() {
 			Observation o;
 			o.station = _msg->_station;
+			o.day = date::floor<date::days>(_time);
 			o.time = _time;
 			o.outsidetemp = { true, *_tempIt };
-			o.outsidehum = { true, int(*_humIt) };
+			o.outsidehum = { true, int(std::round(*_humIt)) };
 
 			return o;
 		}
