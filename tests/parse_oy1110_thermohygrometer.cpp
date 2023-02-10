@@ -20,4 +20,13 @@ int main()
 		obs.day << " | " << obs.time << "\n" <<
 		"temperature: " << obs.outsidetemp.second << "°C\n" <<
 		"humidity: " << obs.outsidehum.second << "%\n";
+
+
+	Oy1110ThermohygrometerMessage m2{station};
+	m2.ingest("304039", sys_days{2023_y/January/27});
+	obs = m2.getObservation(station);
+	std::cout <<
+		obs.day << " | " << obs.time << "\n" <<
+		"temperature: " << obs.outsidetemp.second << "°C\n" <<
+		"humidity: " << obs.outsidehum.second << "%\n";
 }

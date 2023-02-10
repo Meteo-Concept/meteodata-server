@@ -90,9 +90,10 @@ void Oy1110ThermohygrometerMessage::ingest(const std::string& payload, const dat
 		   >> parse(hum1, 2, 16)
 		   >> parse(temp2, 1, 16)
 		   >> parse(hum2, 1, 16);
+
 		uint16_t temp = (temp1 << 4) + temp2;
 		uint16_t hum = (hum1 << 4) + hum2;
-		_obs.temperatures.push_back(float(temp - 800u) / 10.f);
+		_obs.temperatures.push_back(float(static_cast<int16_t>(temp - 800u)) / 10.f);
 		_obs.humidities.push_back(float(hum - 250) / 10.f);
 		length -= 6;
 	}
