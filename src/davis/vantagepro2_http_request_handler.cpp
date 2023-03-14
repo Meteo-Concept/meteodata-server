@@ -58,9 +58,13 @@ void VantagePro2HttpRequestHandler::processRequest(const Request& request, Respo
 {
 	bool targetFound = false;
 
+	auto begin = request.target().begin();
+	// Discard any query string for now
+	auto end = std::find(begin, request.target().end(), '?');
+
 	for (auto&&[verb, url, handler] : routes) {
 		std::cmatch match;
-		if (std::regex_match(request.target().begin(), request.target().end(), match, url)) {
+		if (std::regex_match(begin, end, match, url)) {
 			targetFound = true;
 			if (verb == request.method()) {
 				(this->*handler)(request, response, std::move(match));

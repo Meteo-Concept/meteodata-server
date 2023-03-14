@@ -26,7 +26,7 @@
 #include <boost/asio/socket_base.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/system/error_code.hpp>
-#include <memory>
+#include <algorithm>
 #include <chrono>
 
 #include "http_connection.h"
@@ -99,6 +99,7 @@ void HttpConnection::readRequest()
 void HttpConnection::processRequest()
 {
 	auto url = _request.target();
+
 	if (url.substr(0, 13) == "/imports/vp2/") {
 		VantagePro2HttpRequestHandler handler{_db};
 		handler.processRequest(_request, _response);
