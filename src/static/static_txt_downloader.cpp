@@ -58,7 +58,6 @@ StatICTxtDownloader::StatICTxtDownloader(DbConnectionObservations& db,
 	CassUuid station, const std::string& host,
 	const std::string& url, bool https, int timezone,
 	std::map<std::string, std::string> sensors) :
-		_ioContext(ioContext),
 		_db(db),
 		_station(station),
 		// any impossible date will do before the first download,

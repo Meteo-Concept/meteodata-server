@@ -51,7 +51,7 @@ StatICDownloadScheduler::add(const CassUuid& station, const std::string& host, c
 							 const std::map<std::string, std::string>& sensors)
 {
 	_downloaders.emplace_back(
-			std::make_shared<StatICTxtDownloader>(_ioContext, _db, station, host, url, https, timezone, sensors)
+			std::make_shared<StatICTxtDownloader>(_db, station, host, url, https, timezone, sensors)
 	);
 }
 

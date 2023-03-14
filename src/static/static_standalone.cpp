@@ -135,8 +135,7 @@ int main(int argc, char** argv)
 				}
 			}
 
-			boost::asio::io_context ioContext;
-			StatICTxtDownloader downloader{ioContext, db, std::get<0>(station),
+			StatICTxtDownloader downloader{db, std::get<0>(station),
 										   std::get<1>(station), std::get<2>(station),
 										   std::get<3>(station), std::get<4>(station),
 										   std::get<5>(station)};
