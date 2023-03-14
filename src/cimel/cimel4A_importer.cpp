@@ -107,8 +107,13 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 
 		unsigned int day, month;
 		int tn, tx, rainfall;
-		input >> parse(day, 2, 10) >> parse(month, 2, 10) >> parse(tn, 4, 16) >> parse(tx, 4, 16) >> ignore(24)
-			  >> parse(rainfall, 4, 16) >> ignore(88);
+		input >> parse(day, 2, 10)
+			  >> parse(month, 2, 10)
+			  >> parse(tn, 4, 16)
+			  >> parse(tx, 4, 16)
+			  >> ignore(24)
+			  >> parse(rainfall, 4, 16)
+			  >> ignore(88);
 
 		date::year_month_day ymd{year, date::month{month}, date::day{day}};
 		date::sys_days date{ymd};
@@ -134,8 +139,12 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 				end = o.time;
 
 			int temp, hum, rain, rainrate, leafwetness;
-			input >> parse(temp, 4, 16) >> parse(hum, 2, 16) >> ignore(2) >> parse(rain, 4, 16)
-				  >> parse(rainrate, 2, 16) >> parse(leafwetness, 2, 16);
+			input >> parse(temp, 4, 16)
+				  >> parse(hum, 2, 16)
+				  >> ignore(2)
+				  >> parse(rain, 4, 16)
+				  >> parse(rainrate, 2, 16)
+				  >> parse(leafwetness, 2, 16);
 
 			o.outsidetemp = {temp != 0xFFFF, static_cast<float>(temp - 400) / 10.f};
 			o.outsidehum = {hum != 0xFF, static_cast<float>(hum) / 2.f};
