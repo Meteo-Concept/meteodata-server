@@ -52,6 +52,8 @@ class MBDataMessageFactory;
 class AbstractMBDataMessage
 {
 public:
+	static constexpr char RAINFALL_SINCE_MIDNIGHT[] = "rainfall_midnight";
+
 	/**
 	 * @brief AbstractMBDataMessage::ptr is the type to use to manipulate a
 	 * generic MBData message
@@ -59,20 +61,16 @@ public:
 	typedef std::unique_ptr<AbstractMBDataMessage> ptr;
 
 	/**
-	 * @brief Instantiate a new connector for a given meteo station
-	 * type
+	 * @brief Instantiate a new MBdata message parser.
 	 *
-	 * Meteo stations connectors should never be instantiated
-	 * directly: use this method instead. This lets the connector
-	 * be deallocated automatically once it is no longer used.
+	 * @tparam T The actual MBdata message type
+	 * @param datetime The datetime of the archive
+	 * @param content The raw content of the message
+	 * @param rainfall A previous rainfall to compute the difference
+	 * @param timeOffseter A object able to perform time conversions from and
+	 * since the timezone used in the message
 	 *
-	 * @tparam T The actual meteo station connector type, e.g.
-	 * VantagePro2Connector for a VantagePro2 (R) station
-	 * @param ioContext The Boost::Asio asynchronous service that
-	 * the connector will have to use for all Boost:Asio operations
-	 * @param db The handle to the database
-	 *
-	 * @return An auto-managed shared pointer to the connector
+	 * @return An auto-managed shared pointer to the message
 	 */
 	template<typename T>
 	static typename std::enable_if<std::is_base_of<AbstractMBDataMessage, T>::value, AbstractMBDataMessage::ptr>::type
@@ -80,6 +78,24 @@ public:
 		   const TimeOffseter& timeOffseter)
 	{
 		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), rainfall, std::ref(timeOffseter)));
+	}
+
+	/**
+	 * @brief Instantiate a new MBdata message parser.
+	 *
+	 * @tparam T The actual MBdata message type
+	 * @param datetime The datetime of the archive
+	 * @param content The raw content of the message
+	 * @param timeOffseter A object able to perform time conversions from and
+	 * since the timezone used in the message
+	 *
+	 * @return An auto-managed shared pointer to the message
+	 */
+	template<typename T>
+	static typename std::enable_if<std::is_base_of<AbstractMBDataMessage, T>::value, AbstractMBDataMessage::ptr>::type
+	create(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter)
+	{
+		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), std::ref(timeOffseter)));
 	}
 
 	inline operator bool() const
@@ -94,6 +110,11 @@ public:
 
 	Observation getObservation(const CassUuid station) const;
 
+	virtual std::optional<float> getRainfallSince0h() const
+	{
+		return {};
+	}
+
 protected:
 	AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter);
 
@@ -101,7 +122,7 @@ protected:
 	std::string _content;
 	bool _valid;
 	const TimeOffseter& _timeOffseter;
-	constexpr static int POLLING_PERIOD = 10;
+	static constexpr int POLLING_PERIOD = 10;
 
 	std::optional<float> _airTemp;
 	std::optional<float> _dewPoint;
@@ -113,7 +134,6 @@ protected:
 	std::optional<float> _rainRate;
 	std::optional<int> _solarRad;
 	std::optional<float> _computedRainfall;
-	std::optional<float> _diffRainfall;
 
 	friend MBDataMessageFactory;
 };

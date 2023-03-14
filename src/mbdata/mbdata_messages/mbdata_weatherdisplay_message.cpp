@@ -43,13 +43,10 @@ namespace chrono = std::chrono;
 MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(
 	date::sys_seconds datetime,
 	const std::string& content,
-	std::optional<float> rainfallOver50Min,
 	const TimeOffseter& timeOffseter) :
 		AbstractMBDataMessage(datetime, content, timeOffseter)
 {
 	using namespace date;
-
-	_diffRainfall = rainfallOver50Min;
 
 	const std::regex mandatoryPart{"^\\d+-\\d+-\\d+;\\d+:\\d+;" // date: already parsed
 		"([^\\|]*)\\|" // temperature
@@ -100,11 +97,12 @@ MBDataWeatherDisplayMessage::MBDataWeatherDisplayMessage(
 			}
 		}
 		// skip pressure tendency
-		if (baseMatch[6].length() && _diffRainfall) {
+		// Store rainfall only at the top of the hour since we get it
+		// over the last hour
+		bool topOfTheHour = (datetime - date::floor<chrono::hours>(datetime)) < chrono::minutes(POLLING_PERIOD);
+		if (baseMatch[6].length() && topOfTheHour) {
 			try {
-				float f = std::stof(baseMatch[6].str()) - *_diffRainfall;
-				if (f >= 0 && f < 100)
-					_computedRainfall = f;
+				_computedRainfall = std::stof(baseMatch[6].str());
 			} catch (std::exception&) {
 			}
 		}

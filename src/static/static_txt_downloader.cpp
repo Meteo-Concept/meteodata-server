@@ -24,6 +24,7 @@
 #include <iostream>
 #include <functional>
 #include <chrono>
+#include <optional>
 
 #include <systemd/sd-daemon.h>
 
@@ -53,13 +54,17 @@ namespace meteodata
 
 using namespace date;
 
-StatICTxtDownloader::StatICTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db, CassUuid station,
-										 const std::string& host, const std::string& url, bool https, int timezone,
-										 std::map<std::string, std::string> sensors) :
+StatICTxtDownloader::StatICTxtDownloader(DbConnectionObservations& db,
+	CassUuid station, const std::string& host,
+	const std::string& url, bool https, int timezone,
+	std::map<std::string, std::string> sensors) :
 		_ioContext(ioContext),
 		_db(db),
 		_station(station),
-		_lastDownloadTime(chrono::seconds(0)), // any impossible date will do before the first download, if it's old enough, it cannot correspond to any date sent by the station
+		// any impossible date will do before the first download,
+		// if it's old enough, it cannot correspond to any date sent
+		// by the station
+		_lastDownloadTime(chrono::seconds(0)),
 		_sensors(std::move(sensors))
 {
 	float latitude;
@@ -109,13 +114,11 @@ void StatICTxtDownloader::download(CurlWrapper& client)
 			auto downloadTime = m.getDateTime();
 			auto end = chrono::system_clock::to_time_t(downloadTime);
 			auto begin1h = chrono::system_clock::to_time_t(downloadTime - chrono::hours(1));
+			auto dayRainfall = getDayRainfall(downloadTime);
 
-			date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(downloadTime));
-			date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
-			auto beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-			float f1h, fDay;
-			if (_db.getRainfall(_station, begin1h, end, f1h) && _db.getRainfall(_station, beginDay, end, fDay))
-				m.computeRainfall(f1h, fDay);
+			float f1h;
+			if (_db.getRainfall(_station, begin1h, end, f1h) && dayRainfall)
+				m.computeRainfall(f1h, *dayRainfall);
 		}
 
 		bool ret = _db.insertV2DataPoint(m.getObservation(_station));
@@ -126,6 +129,22 @@ void StatICTxtDownloader::download(CurlWrapper& client)
 			std::cerr << SD_ERR << "[StatIC " << _station << "] measurement: "
 					  << "Failed to insert data from StatIC file from " << _query << " into database" << std::endl;
 		}
+
+		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(m.getDateTime()));
+		if (!ret) {
+			std::cerr << SD_ERR << "[StatIC " << _station << "] measurement: "
+					  << "Failed to update the last insertion time of station " << _station << std::endl;
+		}
+
+		std::optional<float> newDayRain = m.getDayRainfall();
+		if (newDayRain) {
+			ret = _db.cacheFloat(_station, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(_lastDownloadTime),
+								 *newDayRain);
+			if (!ret) {
+				std::cerr << SD_ERR << "[StatIC  " << _station << "] protocol: "
+						  << "Failed to cache the rainfall for station " << _station << std::endl;
+			}
+		}
 	});
 
 	if (ret != CURLE_OK) {
@@ -133,6 +152,28 @@ void StatICTxtDownloader::download(CurlWrapper& client)
 		std::cerr << SD_ERR << "[StatIC " << _station << "] protocol: " << "Download failed for " << _stationName
 				  << " Bad response from " << _query << ": " << error << std::endl;
 	}
+}
+
+std::optional<float> StatICTxtDownloader::getDayRainfall(const date::sys_seconds& datetime)
+{
+	time_t lastUpdateTimestamp;
+	float rainfall;
+
+	date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(datetime));
+	date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
+	std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
+	std::time_t currentTime = chrono::system_clock::to_time_t(datetime);
+
+	if (_db.getCachedFloat(_station, RAINFALL_SINCE_MIDNIGHT, lastUpdateTimestamp, rainfall)) {
+		auto lastUpdate = chrono::system_clock::from_time_t(lastUpdateTimestamp);
+		if (!std::isnan(rainfall) && lastUpdate > localMidnightInUTC)
+			return rainfall;
+	}
+
+	if (_db.getRainfall(_station, beginDay, currentTime, rainfall))
+		return rainfall;
+	else
+		return std::nullopt;
 }
 
 }

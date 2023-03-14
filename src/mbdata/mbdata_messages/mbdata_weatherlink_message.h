@@ -49,15 +49,12 @@ class MBDataWeatherlinkMessage : public AbstractMBDataMessage
 {
 public:
 	MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content,
-							 std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+		std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
 
-	inline std::optional<float> getDailyRainfall() const
-	{
-		return _dailyRainfall;
-	}
+	std::optional<float> getRainfallSince0h() const override;
 
 private:
-	std::optional<float> _dailyRainfall;
+	std::optional<float> _rainfallSince0h = std::nullopt;
 };
 
 }

@@ -40,31 +40,30 @@ namespace meteodata
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 
-MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, const std::string& content,
-												   std::optional<float> previousRainfall,
-												   const TimeOffseter& timeOffseter) :
-		AbstractMBDataMessage(datetime, content, timeOffseter)
+MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime,
+	const std::string& content, std::optional<float> previousRainfall,
+	const TimeOffseter& timeOffseter) :
+		AbstractMBDataMessage(datetime, content, timeOffseter),
+		_rainfallSince0h{previousRainfall}
 {
 	using namespace date;
 
-	_diffRainfall = previousRainfall;
-
 	const std::regex mandatoryPart{"^\\d+/\\d+/\\d+;\\d+:\\d+;" // date: already parsed
-								   "([^\\|]*)\\|" // temperature
-								   "([^\\|]*)\\|" // humidite
-								   "([^\\|]*)\\|" // dew point
-								   "([^\\|]*)\\|" // pressure
-								   "([^\\|]*)\\|" // pressure variation
-								   "([^\\|]*)\\|" // rainfall since 0h
-								   "([^\\|]*)\\|" // wind
-								   "([^\\|]*)\\|" // wind direction
-								   "([^\\|]*)\\|" // wind gusts
-								   "([^\\|]*)\\|" // windchill
-								   "([^\\|]*)\\|" // HEATINDEX
-								   "([^\\|]*)\\|" // Tx over 24h
-								   "([^\\|]*)\\|" // Tn over 24h
-								   "([^\\|]*)\\|" // rainrate
-								   "([^\\|]*)\\|?" // solar radiation
+		"([^\\|]*)\\|" // temperature
+		"([^\\|]*)\\|" // humidite
+		"([^\\|]*)\\|" // dew point
+		"([^\\|]*)\\|" // pressure
+		"([^\\|]*)\\|" // pressure variation
+		"([^\\|]*)\\|" // rainfall since 0h
+		"([^\\|]*)\\|" // wind
+		"([^\\|]*)\\|" // wind direction
+		"([^\\|]*)\\|" // wind gusts
+		"([^\\|]*)\\|" // windchill
+		"([^\\|]*)\\|" // HEATINDEX
+		"([^\\|]*)\\|" // Tx over 24h
+		"([^\\|]*)\\|" // Tn over 24h
+		"([^\\|]*)\\|" // rainrate
+		"([^\\|]*)\\|?" // solar radiation
 	};
 
 	std::smatch baseMatch;
@@ -94,13 +93,18 @@ MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, c
 			}
 		}
 		// skip pressure tendency
-		if (baseMatch[6].length() && _diffRainfall) {
+		if (baseMatch[6].length()) {
 			try {
-				float f = std::stof(baseMatch[6].str()) - *_diffRainfall;
-				if (f >= 0 && f < 100)
-					_computedRainfall = f;
+				float f = std::stof(baseMatch[6].str());
+				if (_rainfallSince0h) {
+					if (f >= 0 && f < 100)
+						_computedRainfall = f - *_rainfallSince0h;
+				}
+				_rainfallSince0h = f;
 			} catch (std::exception&) {
 			}
+		} else {
+			_rainfallSince0h = std::nullopt;
 		}
 		if (baseMatch[7].length()) {
 			try {
@@ -137,6 +141,11 @@ MBDataWeatherlinkMessage::MBDataWeatherlinkMessage(date::sys_seconds datetime, c
 
 		_valid = true;
 	}
+}
+
+std::optional<float> MBDataWeatherlinkMessage::getRainfallSince0h() const
+{
+	return _rainfallSince0h;
 }
 
 }

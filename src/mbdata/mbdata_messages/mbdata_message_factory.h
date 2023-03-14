@@ -25,6 +25,7 @@
 #include <memory>
 #include <stdexcept>
 #include <regex>
+#include <optional>
 
 #include <dbconnection_observations.h>
 #include <date.h>
@@ -45,16 +46,14 @@ namespace chrono = std::chrono;
 class MBDataMessageFactory
 {
 private:
-	static inline std::tuple<date::sys_seconds, date::sys_seconds>
-	parseDatetime(std::istream& entry, const std::string& format, const TimeOffseter& timeOffseter)
+	static inline date::sys_seconds parseDatetime(std::istream& entry,
+		const std::string& format, const TimeOffseter& timeOffseter)
 	{
 		using namespace date;
 
 		local_seconds unzonedDatetime;
 		entry >> parse(format, unzonedDatetime);
-		auto midnight = local_seconds(floor<days>(unzonedDatetime));
-		return {floor<chrono::seconds>(timeOffseter.convertFromLocalTime(unzonedDatetime)),
-				timeOffseter.convertFromLocalTime(midnight)};
+		return floor<chrono::seconds>(timeOffseter.convertFromLocalTime(unzonedDatetime));
 	}
 
 	static std::string cleanInput(std::istream& entry)
@@ -80,6 +79,31 @@ private:
 		return content;
 	}
 
+	static std::optional<float> getDayRainfall(DbConnectionObservations& db,
+		const CassUuid& station, const TimeOffseter& timeOffseter)
+	{
+		time_t lastUpdateTimestamp;
+		float rainfall;
+
+		auto now = chrono::system_clock::now();
+		date::local_seconds localMidnight = date::floor<date::days>(timeOffseter.convertToLocalTime(now));
+		date::sys_seconds localMidnightInUTC = timeOffseter.convertFromLocalTime(localMidnight);
+		std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
+		std::time_t currentTime = chrono::system_clock::to_time_t(now);
+
+		if (db.getCachedFloat(station, AbstractMBDataMessage::RAINFALL_SINCE_MIDNIGHT, lastUpdateTimestamp, rainfall)) {
+			auto lastUpdate = chrono::system_clock::from_time_t(lastUpdateTimestamp);
+			if (!std::isnan(rainfall) && lastUpdate > localMidnightInUTC)
+				return rainfall;
+		}
+
+		if (db.getRainfall(station, beginDay, currentTime, rainfall))
+			return rainfall;
+		else
+			return std::nullopt;
+	}
+
+
 
 public:
 	static inline AbstractMBDataMessage::ptr
@@ -92,52 +116,23 @@ public:
 		std::string content = cleanInput(entry);
 		std::istringstream contentStream{content};
 
-		std::optional<float> rainfall;
 		if (type == "weatherlink") {
-			sys_seconds datetime, midnight;
-			std::tie(datetime, midnight) = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
-			auto begin = chrono::system_clock::to_time_t(midnight);
-			auto end = chrono::system_clock::to_time_t(datetime);
-			float f;
-			if (db.getRainfall(station, begin, end, f))
-				rainfall = f;
+			sys_seconds datetime = parseDatetime(contentStream, "%d/%m/%y;%H:%M;", timeOffseter);
+			std::optional<float> rainfall = getDayRainfall(db, station, timeOffseter);
 			return AbstractMBDataMessage::create<MBDataWeatherlinkMessage>(datetime, content, rainfall, timeOffseter);
 		} else if (type == "meteohub") {
-			sys_seconds datetime;
-			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
-			auto end = chrono::system_clock::to_time_t(datetime);
-			float f;
-			if (db.getRainfall(station, begin, end, f))
-				rainfall = f;
-			return AbstractMBDataMessage::create<MBDataMeteohubMessage>(datetime, content, rainfall, timeOffseter);
+			sys_seconds datetime = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
+			return AbstractMBDataMessage::create<MBDataMeteohubMessage>(datetime, content, timeOffseter);
 		} else if (type == "weathercat") {
-			sys_seconds datetime, midnight;
-			std::tie(datetime, midnight) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			auto begin = chrono::system_clock::to_time_t(midnight);
-			auto end = chrono::system_clock::to_time_t(datetime);
-			float f;
-			if (db.getRainfall(station, begin, end, f))
-				rainfall = f;
+			sys_seconds datetime = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
+			std::optional<float> rainfall = getDayRainfall(db, station, timeOffseter);
 			return AbstractMBDataMessage::create<MBDataWeathercatMessage>(datetime, content, rainfall, timeOffseter);
 		} else if (type == "wswin") {
-			sys_seconds datetime;
-			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
-			auto end = chrono::system_clock::to_time_t(datetime);
-			float f;
-			if (db.getRainfall(station, begin, end, f))
-				rainfall = f;
-			return AbstractMBDataMessage::create<MBDataWsWinMessage>(datetime, content, rainfall, timeOffseter);
+			sys_seconds datetime = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
+			return AbstractMBDataMessage::create<MBDataWsWinMessage>(datetime, content, timeOffseter);
 		} else if (type == "weatherdisplay" || type == "cumulus" || type == "weewx") {
-			sys_seconds datetime;
-			std::tie(datetime, std::ignore) = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
-			auto begin = chrono::system_clock::to_time_t(datetime - chrono::hours(1));
-			auto end = chrono::system_clock::to_time_t(datetime);
-			float f;
-			if (db.getRainfall(station, begin, end, f))
-				rainfall = f;
-			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, rainfall, timeOffseter);
+			sys_seconds datetime = parseDatetime(contentStream, "%Y-%m-%d;%H:%M;", timeOffseter);
+			return AbstractMBDataMessage::create<MBDataWeatherDisplayMessage>(datetime, content, timeOffseter);
 		} else {
 			throw std::invalid_argument("Unknown message type");
 		}

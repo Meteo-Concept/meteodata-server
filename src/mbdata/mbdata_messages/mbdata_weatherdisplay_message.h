@@ -48,8 +48,8 @@ namespace chrono = std::chrono;
 class MBDataWeatherDisplayMessage : public AbstractMBDataMessage
 {
 public:
-	MBDataWeatherDisplayMessage(date::sys_seconds datetime, const std::string& content,
-		std::optional<float> rainfallOver50Min, const TimeOffseter& timeOffseter);
+	MBDataWeatherDisplayMessage(date::sys_seconds datetime,
+		const std::string& content, const TimeOffseter& timeOffseter);
 };
 
 }

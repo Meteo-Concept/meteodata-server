@@ -56,7 +56,7 @@ namespace meteodata
 using namespace date;
 
 MBDataTxtDownloader::MBDataTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
-										 const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
+	const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
 		:
 		_ioContext(ioContext),
 		_db(db),
@@ -112,6 +112,7 @@ void MBDataTxtDownloader::download(CurlWrapper& client)
 
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);
+
 		bool ret = _db.insertV2DataPoint(m->getObservation(_station));
 		if (ret) {
 			std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: " << "Data from station " << _stationName
@@ -121,12 +122,23 @@ void MBDataTxtDownloader::download(CurlWrapper& client)
 					  << "Insertion into database failed for station " << _stationName << std::endl;
 			return;
 		}
+
 		_lastDownloadTime = m->getDateTime();
 		ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(_lastDownloadTime));
 		if (!ret) {
 			std::cerr << SD_ERR << "[MBData " << _station << "] management: "
 					  << "Failed to update the last insertion time of station " << _stationName << std::endl;
 			return;
+		}
+
+		std::optional<float> rainfallSince0h = m->getRainfallSince0h();
+		if (rainfallSince0h) {
+			ret = _db.cacheFloat(_station, AbstractMBDataMessage::RAINFALL_SINCE_MIDNIGHT,
+								 chrono::system_clock::to_time_t(_lastDownloadTime), *rainfallSince0h);
+			if (!ret) {
+				std::cerr << SD_ERR << "[MBData  " << _station << "] protocol: "
+						  << "Failed to cache the rainfall for station " << _station << std::endl;
+			}
 		}
 	});
 

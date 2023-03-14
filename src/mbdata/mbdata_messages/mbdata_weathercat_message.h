@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <array>
 #include <chrono>
+#include <optional>
 
 #include <boost/asio.hpp>
 #include <cassandra.h>
@@ -49,7 +50,11 @@ class MBDataWeathercatMessage : public AbstractMBDataMessage
 {
 public:
 	MBDataWeathercatMessage(date::sys_seconds datetime, const std::string& content,
-							std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+		std::optional<float> previousRainfall, const TimeOffseter& timeOffseter);
+	std::optional<float> getRainfallSince0h() const override;
+
+private:
+	std::optional<float> _rainfallSince0h = std::nullopt;
 };
 
 }

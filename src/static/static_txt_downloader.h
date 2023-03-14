@@ -28,6 +28,7 @@
 #include <experimental/optional>
 #include <string>
 #include <map>
+#include <optional>
 
 #include <unistd.h>
 
@@ -68,6 +69,10 @@ private:
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
 	std::map<std::string, std::string> _sensors;
+
+	std::optional<float> getDayRainfall(const date::sys_seconds& datetime);
+
+	static constexpr char RAINFALL_SINCE_MIDNIGHT[] = "rainfall_midnight";
 };
 
 }
