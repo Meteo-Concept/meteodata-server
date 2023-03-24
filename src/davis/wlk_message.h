@@ -60,7 +60,7 @@ public:
 	}
 
 private:
-	// WLK files have the following fields:
+	// WLK files have at least the following fields:
 	//Date|Time|Temp Out|Hi Temp|Low Temp|Out Hum|Dew Pt.|Wind Speed|Wind Dir|Wind Run|Hi Speed|Hi Dir|Wind Chill|Heat Index|THW Index|Bar|Rain|Rain Rate|Heat D-D|Cool D-D|In Temp|In Hum|In Dew|In Heat|In EMC|In Air Density|Wind Samp|Wind Tx|ISS Recept|Arc. Int.
 	date::sys_seconds _datetime; //Date + Time, dd/mm/yy H:MM
 	std::optional<float> _airTemp; // Temp Out, °C
@@ -76,6 +76,8 @@ private:
 	std::optional<float> _pressure; // Bar, hPa
 	std::optional<float> _rainfall; // Rain, mm
 	std::optional<float> _rainrate; // Rain Rate, mm
+	std::optional<float> _solarRad; // Global Solar Radiation, W/m²
+	std::optional<float> _et;       // Evapotranspiration, mm
 	bool _valid;
 
 	friend std::ostream& operator<<(std::ostream& out, const WlkMessage& m);

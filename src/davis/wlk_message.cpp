@@ -160,6 +160,14 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 	if (values["Rain Rate"] != "---")
 		_rainrate = std::stof(values["Rain Rate"]);
 
+	// Solar Rad.
+	if (values["Solar Rad."] != "" && values["Solar Rad."] != "---")
+		_solarRad = std::stof(values["Solar Rad."]);
+
+	// ET
+	if (values["In Air ET"] != "" && values["In Air ET"] != "---")
+		_et = std::stof(values["In Air ET"]);
+
 	_valid = true;
 }
 
@@ -185,6 +193,8 @@ Observation WlkMessage::getObservation(const CassUuid station) const
 	result.winddir = {bool(_windDir), *_windDir};
 	result.windgust = {bool(_gust), *_gust};
 	result.windspeed = {bool(_windSpeed), *_windSpeed};
+	result.solarrad = {bool(_solarRad), *_solarRad};
+	result.et = {bool(_et), *_solarRad};
 
 	return result;
 }
