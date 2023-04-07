@@ -84,7 +84,7 @@ void Oy1110ThermohygrometerMqttSubscriber::processArchive(const mqtt::string_vie
 	auto payload = jsonTree.get<std::string>("value.payload");
 
 	Oy1110ThermohygrometerMessage msg{station};
-	msg.ingest(payload, timestamp);
+	msg.ingest(station, payload, timestamp);
 
 	int ret = false;
 	if (msg.looksValid()) {
@@ -122,7 +122,7 @@ std::unique_ptr<LiveobjectsMessage> Oy1110ThermohygrometerMqttSubscriber::buildM
 		// This is a group of measurements, only return the first packet in the group.
 		payload = payload.substr(1, 6);
 	}
-	m->ingest(payload, timestamp);
+	m->ingest(station, payload, timestamp);
 	return m;
 }
 

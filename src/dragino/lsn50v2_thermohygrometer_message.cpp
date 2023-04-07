@@ -37,7 +37,7 @@ namespace meteodata
 
 namespace chrono = std::chrono;
 
-void Lsn50v2ThermohygrometerMessage::ingest(const std::string& payload, const date::sys_seconds& datetime)
+void Lsn50v2ThermohygrometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 

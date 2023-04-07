@@ -84,7 +84,7 @@ void Lsn50v2ThermohygrometerMqttSubscriber::processArchive(const mqtt::string_vi
 	auto payload = jsonTree.get<std::string>("value.payload");
 
 	Lsn50v2ThermohygrometerMessage msg;
-	msg.ingest(payload, timestamp);
+	msg.ingest(station, payload, timestamp);
 
 	int ret = false;
 	if (msg.looksValid()) {
@@ -115,7 +115,7 @@ std::unique_ptr<LiveobjectsMessage> Lsn50v2ThermohygrometerMqttSubscriber::build
 	std::unique_ptr<Lsn50v2ThermohygrometerMessage> m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
 
 	auto payload = json.get<std::string>("value.payload");
-	m->ingest(payload, timestamp);
+	m->ingest(station, payload, timestamp);
 	return m;
 }
 

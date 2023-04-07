@@ -47,18 +47,15 @@ class LiveobjectsMessage;
 class LorainMqttSubscriber : public LiveobjectsMqttSubscriber
 {
 public:
-	static constexpr char LORAIN_RAINFALL_CACHE_KEY[] = "rainfall_clicks";
-
 	LorainMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
 
 protected:
+	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& content, const CassUuid& station, date::sys_seconds& timestamp) override;
+
 	const char* getConnectorSuffix() override
 	{
 		return "lorain";
 	}
-
-	void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) override;
-	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& content, const CassUuid& station, date::sys_seconds& timestamp) override;
 
 	const char* getTopic() const override
 	{

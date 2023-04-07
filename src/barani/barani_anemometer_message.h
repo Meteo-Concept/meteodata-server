@@ -56,11 +56,12 @@ public:
 	 * @brief Parse the payload to build a specific datapoint for a given
 	 * timestamp (not part of the payload itself)
 	 *
+	 * @param station The station identifier
 	 * @param data The payload received by some mean, it's a ASCII-encoded
 	 * hexadecimal string
 	 * @param datetime The timestamp of the data message
 	 */
-	void ingest(const std::string& payload, const date::sys_seconds& datetime);
+	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
 
 	inline bool looksValid() const override { return _obs.valid; }
 

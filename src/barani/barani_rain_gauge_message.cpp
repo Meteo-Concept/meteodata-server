@@ -27,9 +27,12 @@
 #include <cmath>
 
 #include <cassandra.h>
+#include <dbconnection_observations.h>
 #include <observation.h>
+#include <systemd/sd-daemon.h>
 
 #include "barani_rain_gauge_message.h"
+#include "cassandra_utils.h"
 #include "hex_parser.h"
 
 namespace meteodata
@@ -37,11 +40,13 @@ namespace meteodata
 
 namespace chrono = std::chrono;
 
+BaraniRainGaugeMessage::BaraniRainGaugeMessage(DbConnectionObservations& db):
+	_db{db}
+{}
 
-void BaraniRainGaugeMessage::ingest(const std::string& payload, const date::sys_seconds& datetime,
-									float gaugeResolution,
-									std::optional<int> previousClicks, std::optional<int> previousCorrectionClicks)
+void BaraniRainGaugeMessage::ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime)
 {
+	using namespace std::chrono;
 	using namespace hex_parser;
 
 	if (!validateInput(payload, 12)) {
@@ -62,6 +67,28 @@ void BaraniRainGaugeMessage::ingest(const std::string& payload, const date::sys_
 		is >> parse(raw[byte], 2, 16);
 	}
 
+
+	time_t lastUpdate;
+	int previousClicks;
+	bool result = _db.getCachedInt(station, BARANI_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
+	std::optional<int> prev = std::nullopt;
+	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
+		// the last rainfall datapoint is not too old, we can use
+		// it as a reference for the current number of clicks recorded
+		// by the pluviometer
+		prev = previousClicks;
+	}
+
+	int previousCorrectionClicks;
+	result = _db.getCachedInt(station, BARANI_RAINFALL_CORRECTION_CACHE_KEY, lastUpdate, previousCorrectionClicks);
+	std::optional<int> prevCorr = std::nullopt;
+	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
+		// the last rainfall datapoint is not too old, we can use
+		// it as a reference for the current number of clicks recorded
+		// by the pluviometer
+		prevCorr = previousCorrectionClicks;
+	}
+
 	// bytes 0-7: index
 	_obs.index = raw[0];
 	// bytes 8-12: battery, resolution 0.05V, offset 3V
@@ -72,15 +99,15 @@ void BaraniRainGaugeMessage::ingest(const std::string& payload, const date::sys_
 	_obs.rainfallClicks = rainClicks;
 	if (previousClicks) {
 		if (rainClicks > previousClicks) {
-			_obs.rainfall = (rainClicks - *previousClicks) * gaugeResolution;
+			_obs.rainfall = (rainClicks - *prev) * BARANI_RAIN_GAUGE_RESOLUTION;
 		} else {
-			_obs.rainfall = (4096 - *previousClicks + rainClicks ) * gaugeResolution;
+			_obs.rainfall = (4096 - *prev + rainClicks ) * BARANI_RAIN_GAUGE_RESOLUTION;
 		}
 	}
 	// bytes 25-32: min time between clicks
 	uint16_t minTimeBetweenClicks = ((raw[3] & 0b0111'1111) << 1) + ((raw[4] & 0b1000'0000) >> 7);
 	_obs.minTimeBetweenClicks = minTimeBetweenClicks;
-	_obs.maxRainrate = gaugeResolution / (182.f / minTimeBetweenClicks);
+	_obs.maxRainrate = BARANI_RAIN_GAUGE_RESOLUTION / (182.f / minTimeBetweenClicks);
 	// byte 33: internal temperature over 2°C, 0=FALSE, 1=TRUE
 	_obs.tempOver2C = raw[4] & 0b0100'0000;
 	// byte 34: heater status, 0=OFF, 1=ON
@@ -90,10 +117,26 @@ void BaraniRainGaugeMessage::ingest(const std::string& payload, const date::sys_
 	_obs.correction = rainCorrectionClicks;
 	if (previousCorrectionClicks) {
 		if (rainCorrectionClicks > previousCorrectionClicks) {
-			_obs.rainfall += (rainCorrectionClicks - *previousCorrectionClicks) * 0.01f * gaugeResolution;
+			_obs.rainfall += (rainCorrectionClicks - *prevCorr) * 0.01f * BARANI_RAIN_GAUGE_RESOLUTION;
 		} else {
-			_obs.rainfall += (4096 - *previousCorrectionClicks + rainCorrectionClicks) * 0.01f * gaugeResolution;
+			_obs.rainfall += (4096 - *prevCorr + rainCorrectionClicks) * 0.01f * BARANI_RAIN_GAUGE_RESOLUTION;
 		}
+	}
+}
+
+void BaraniRainGaugeMessage::cacheValues(const CassUuid& station)
+{
+	if (_obs.valid) {
+		int ret = _db.cacheInt(station, BARANI_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.rainfallClicks);
+		if (!ret)
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+					  << std::endl;
+		ret = _db.cacheInt(station, BARANI_RAINFALL_CORRECTION_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.correction);
+		if (!ret)
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+					  << std::endl;
 	}
 }
 

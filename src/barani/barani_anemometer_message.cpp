@@ -38,7 +38,7 @@ namespace meteodata
 namespace chrono = std::chrono;
 
 
-void BaraniAnemometerMessage::ingest(const std::string& payload, const date::sys_seconds& datetime)
+void BaraniAnemometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 

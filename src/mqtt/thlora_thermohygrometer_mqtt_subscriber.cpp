@@ -69,7 +69,7 @@ std::unique_ptr<meteodata::LiveobjectsMessage> ThloraThermohygrometerMqttSubscri
 	auto payload = json.get<std::string>("value.payload");
 
 	std::unique_ptr<ThloraThermohygrometerMessage> msg = std::make_unique<ThloraThermohygrometerMessage>();
-	msg->ingest(payload, timestamp);
+	msg->ingest(station, payload, timestamp);
 	return msg;
 }
 

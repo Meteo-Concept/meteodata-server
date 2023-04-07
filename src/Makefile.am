@@ -83,6 +83,8 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
+		    dragino/cpl01_pluviometer_message.cpp\
+		    dragino/cpl01_pluviometer_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\

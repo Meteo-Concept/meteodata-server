@@ -1,11 +1,11 @@
 /**
- * @file lorain_message.h
- * @brief Definition of the LorainMessage class
+ * @file cpl01_pluviometer_message.h
+ * @brief Definition of the Cpl01PluviometerMessage class
  * @author Laurent Georget
- * @date 2022-03-24
+ * @date 2023-04-07
  */
 /*
- * Copyright (C) 2022  SAS JD Environnement <contact@meteo-concept.fr>
+ * Copyright (C) 2023  SAS JD Environnement <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,55 +21,52 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LORAIN_MESSAGE_H
-#define LORAIN_MESSAGE_H
+#ifndef CPL01_PLUVIOMETER_MESSAGE_H
+#define CPL01_PLUVIOMETER_MESSAGE_H
 
-#include <limits>
-#include <iostream>
 #include <string>
-#include <map>
-#include <optional>
+#include <vector>
+#include <chrono>
+#include <iterator>
 #include <cmath>
 
-#include <boost/property_tree/ptree.hpp>
 #include <date.h>
 #include <observation.h>
-#include <cassandra.h>
 #include <dbconnection_observations.h>
+#include <cassandra.h>
 
 #include "mqtt/liveobjects_message.h"
 
 namespace meteodata
 {
-
-namespace pt = boost::property_tree;
-
 /**
- * @brief A Message able to receive and store a Lorain IoT payload from a
- * low-power connection (LoRa, NB-IoT, etc.)
+ * @brief A Message able to receive and store the payload from Dragino CPL-01
+ * configured for rainfall measurement
  */
-class LorainMessage : public LiveobjectsMessage
+class Cpl01PluviometerMessage : public LiveobjectsMessage
 {
 public:
-	LorainMessage(DbConnectionObservations& db);
-
-	Observation getObservation(const CassUuid& station) const override;
+	Cpl01PluviometerMessage(DbConnectionObservations& db);
 
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
 	 * timestamp (not part of the payload itself)
 	 *
+	 * @param station The station/sensor identifier
 	 * @param data The payload received by some mean, it's a ASCII-encoded
-	 * 45-bytes hexadecimal string
+	 * hexadecimal string
 	 * @param datetime The timestamp of the data message
 	 */
 	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
 
 	void cacheValues(const CassUuid& station) override;
 
-	inline int getRainfallClicks() const { return _obs.rainfallClicks; }
+	inline bool looksValid() const override
+	{
+		return _obs.valid;
+	}
 
-	inline bool looksValid() const override { return _obs.valid; }
+	Observation getObservation(const CassUuid& station) const override;
 
 private:
 	DbConnectionObservations& _db;
@@ -82,24 +79,11 @@ private:
 	{
 		bool valid = false;
 		date::sys_seconds time;
-		int batteryVoltage;    // mV
-		int solarPanelVoltage; // mV
-		int rainfallClicks;
-		float rainfall;       // mm
-		float temperature;    // °C
-		float minTemperature; // °C
-		float maxTemperature; // °C
-		float humidity;    // %
-		float minHumidity; // %
-		float maxHumidity; // %
-		float deltaT;    // °c
-		float minDeltaT; // °C
-		float maxDeltaT; // °C
-		float dewPoint; // °C
-		float minDewPoint; // °C
-		float vaporPressureDeficit; // kPa
-		float minVaporPressureDeficit; // kPa
-		int leafWetnessTimeRatio; // min
+		int flag;
+		bool alarm;
+		bool currentlyOpen;
+		uint16_t totalPulses;
+		float rainfall = NAN;
 	};
 
 	/**
@@ -108,9 +92,10 @@ private:
 	 */
 	DataPoint _obs;
 
-	static constexpr char LORAIN_RAINFALL_CACHE_KEY[] = "rainfall_clicks";
+	static constexpr float CPL01_RAIN_GAUGE_RESOLUTION = 0.2f;
+	static constexpr char CPL01_RAINFALL_CACHE_KEY[] = "cpl01_rainfall_clicks";
 };
 
 }
 
-#endif /* LORAIN_MESSAGE_H */
+#endif /* CPL01_PLUVIOMETER_MESSAGE_H */

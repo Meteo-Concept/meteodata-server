@@ -47,9 +47,17 @@ protected:
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
 
 	virtual void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg);
-	virtual std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp) = 0;
+	virtual std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp);
 
-	virtual const char* getTopic() const = 0;
+	const char* getConnectorSuffix() override
+	{
+		return "liveobjects";
+	}
+
+	virtual const char* getTopic() const
+	{
+		return "fifo/liveobjects";
+	}
 };
 
 }

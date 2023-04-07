@@ -56,33 +56,11 @@ BaraniRainGaugeMqttSubscriber::BaraniRainGaugeMqttSubscriber(MqttSubscriber::Mqt
 {
 }
 
-std::unique_ptr<meteodata::LiveobjectsMessage> BaraniRainGaugeMqttSubscriber::buildMessage(const pt::ptree& json, const CassUuid& station,
-																								  date::sys_seconds& timestamp)
+std::unique_ptr<meteodata::LiveobjectsMessage> BaraniRainGaugeMqttSubscriber::buildMessage(
+		const pt::ptree& json, const CassUuid& station, date::sys_seconds& timestamp
+	)
 {
-	using namespace std::chrono;
 	using date::operator<<;
-
-	time_t lastUpdate;
-	int previousClicks;
-	bool result = _db.getCachedInt(station, BARANI_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-	std::optional<int> prev = std::nullopt;
-	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
-		// the last rainfall datapoint is not too old, we can use
-		// it as a reference for the current number of clicks recorded
-		// by the pluviometer
-		prev = previousClicks;
-	}
-
-
-	int previousCorrectionClicks;
-	result = _db.getCachedInt(station, BARANI_RAINFALL_CORRECTION_CACHE_KEY, lastUpdate, previousCorrectionClicks);
-	std::optional<int> prevCorr = std::nullopt;
-	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
-		// the last rainfall datapoint is not too old, we can use
-		// it as a reference for the current number of clicks recorded
-		// by the pluviometer
-		prevCorr = previousCorrectionClicks;
-	}
 
 	auto t = json.get<std::string>("timestamp");
 	std::istringstream is{t};
@@ -92,28 +70,9 @@ std::unique_ptr<meteodata::LiveobjectsMessage> BaraniRainGaugeMqttSubscriber::bu
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Data received for timestamp " << timestamp << " (" << t << ")" << std::endl;
 	auto payload = json.get<std::string>("value.payload");
 
-	std::unique_ptr<BaraniRainGaugeMessage> msg = std::make_unique<BaraniRainGaugeMessage>();
-	msg->ingest(payload, timestamp, BARANI_RAIN_GAUGE_RESOLUTION, previousClicks, previousCorrectionClicks);
+	std::unique_ptr<BaraniRainGaugeMessage> msg = std::make_unique<BaraniRainGaugeMessage>(_db);
+	msg->ingest(station, payload, timestamp);
 	return msg;
-}
-
-
-void BaraniRainGaugeMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
-{
-	// always safe, the pointer is constructed by the method buildMessage below
-	auto* m = dynamic_cast<BaraniRainGaugeMessage*>(msg.get());
-	if (m) {
-		int ret = MqttSubscriber::_db.cacheInt(station, BARANI_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(m->getObservation(station).time), m->getRainfallClicks());
-		if (!ret)
-			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
-		ret = MqttSubscriber::_db.cacheInt(station, BARANI_RAINFALL_CORRECTION_CACHE_KEY, chrono::system_clock::to_time_t(m->getObservation(station).time), m->getRainfallCorrectionClicks());
-		if (!ret)
-			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
-	}
 }
 
 }

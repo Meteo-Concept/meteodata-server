@@ -147,6 +147,7 @@ void MeteoServer::start()
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ThloraThermohygrometerMqttSubscriber>> thloraThermohygrometerMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber>> oy1110ThermohygrometerMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<Lsn50v2ThermohygrometerMqttSubscriber>> lsn50v2ThermohygrometerMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsMqttSubscriber>> liveobjectsMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		_db.getMqttStations(mqttStations);
 		_db.getAllObjeniousApiStations(objeniousStations);
@@ -178,6 +179,16 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
+			} else if (topic == "fifo/liveobjects") { // TODO: will eventually contain all the following sections
+				auto mqttSubscribersIt = liveobjectsMqttSubscribers.find(details);
+				if (mqttSubscribersIt == liveobjectsMqttSubscribers.end()) {
+					std::shared_ptr<LiveobjectsMqttSubscriber> subscriber = std::make_shared<LiveobjectsMqttSubscriber>(details, _ioContext, _db);
+					mqttSubscribersIt = liveobjectsMqttSubscribers.emplace(details, subscriber).first;
+				}
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				if (it != liveobjectsStations.end())
+					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else if (topic == "fifo/Lorain") { //TODO: refactor the following six sections with an abstract factory
 				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
 				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {

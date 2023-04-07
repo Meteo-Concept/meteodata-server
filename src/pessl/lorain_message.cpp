@@ -35,14 +35,18 @@
 
 #include "lorain_message.h"
 #include "../hex_parser.h"
+#include "cassandra_utils.h"
 
 namespace meteodata
 {
 
 namespace chrono = std::chrono;
 
+LorainMessage::LorainMessage(DbConnectionObservations& db):
+	_db{db}
+{}
 
-void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& datetime, std::optional<int> lastRainfallClicks)
+void LorainMessage::ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 
@@ -55,6 +59,20 @@ void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& 
 
 	// parse and fill in the obs
 	_obs.valid = true;
+
+	using namespace std::chrono;
+
+	time_t lastUpdate;
+	int previousClicks;
+	bool result = _db.getCachedInt(station, LORAIN_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
+	std::optional<int> lastRainfallClicks = std::nullopt;
+	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
+		// the last rainfall datapoint is not too old, we can use
+		// it as a reference for the current number of clicks recorded
+		// by the pluviometer
+		lastRainfallClicks = previousClicks;
+	}
+
 
 	std::istringstream is{payload};
 
@@ -113,6 +131,17 @@ void LorainMessage::ingest(const std::string& payload, const date::sys_seconds& 
 		}
 	} else {
 		_obs.rainfall = NAN;
+	}
+}
+
+void LorainMessage::cacheValues(const CassUuid& station)
+{
+	if (_obs.valid) {
+		int ret = _db.cacheInt(station, LORAIN_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.rainfallClicks);
+		if (!ret)
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+					  << std::endl;
 	}
 }
 

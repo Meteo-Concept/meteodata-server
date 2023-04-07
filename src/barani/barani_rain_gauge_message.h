@@ -34,6 +34,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <date.h>
 #include <observation.h>
+#include <dbconnection_observations.h>
 #include <cassandra.h>
 
 #include "mqtt/liveobjects_message.h"
@@ -50,7 +51,13 @@ namespace pt = boost::property_tree;
 class BaraniRainGaugeMessage : public LiveobjectsMessage
 {
 public:
+	BaraniRainGaugeMessage(DbConnectionObservations& db);
+
 	Observation getObservation(const CassUuid& station) const override;
+
+	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
+
+	void cacheValues(const CassUuid& station) override;
 
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
@@ -74,6 +81,8 @@ public:
 	inline bool looksValid() const override { return _obs.valid; }
 
 private:
+	DbConnectionObservations& _db;
+
 	/**
 	 * @brief A struct used to store observation values to then populate the
 	 * DB insertion query
@@ -98,6 +107,10 @@ private:
 	 * is getting parsed
 	 */
 	DataPoint _obs;
+
+	static constexpr float BARANI_RAIN_GAUGE_RESOLUTION = 0.2f;
+	static constexpr char BARANI_RAINFALL_CACHE_KEY[] = "barani_rainfall_clicks";
+	static constexpr char BARANI_RAINFALL_CORRECTION_CACHE_KEY[] = "barani_raincorr_clicks";
 };
 
 }

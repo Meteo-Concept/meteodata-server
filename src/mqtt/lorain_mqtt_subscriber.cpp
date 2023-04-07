@@ -54,35 +54,11 @@ LorainMqttSubscriber::LorainMqttSubscriber(MqttSubscriber::MqttSubscriptionDetai
 {
 }
 
-void LorainMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
+std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessage(
+		const pt::ptree& json, const CassUuid& station, date::sys_seconds& timestamp
+	)
 {
-	// always safe, the pointer is constructed by the method buildMessage below
-	auto* m = dynamic_cast<LorainMessage*>(msg.get());
-	if (m) {
-		int ret = MqttSubscriber::_db.cacheInt(station, LorainMqttSubscriber::LORAIN_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(m->getObservation(station).time), m->getRainfallClicks());
-		if (!ret)
-			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
-	}
-}
-
-std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessage(const pt::ptree& json, const CassUuid& station,
-																				  date::sys_seconds& timestamp)
-{
-	using namespace std::chrono;
 	using date::operator<<;
-
-	time_t lastUpdate;
-	int previousClicks;
-	bool result = _db.getCachedInt(station, LORAIN_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-	std::optional<int> prev = std::nullopt;
-	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - 24h) {
-		// the last rainfall datapoint is not too old, we can use
-		// it as a reference for the current number of clicks recorded
-		// by the pluviometer
-		prev = previousClicks;
-	}
 
 	std::string t = json.get<std::string>("timestamp");
 	std::istringstream is{t};
@@ -92,8 +68,8 @@ std::unique_ptr<meteodata::LiveobjectsMessage> LorainMqttSubscriber::buildMessag
 	std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Data received for timestamp " << timestamp << " (" << t << ")" << std::endl;
 	std::string payload = json.get<std::string>("value.payload");
 
-	std::unique_ptr<LorainMessage> msg = std::make_unique<LorainMessage>();
-	msg->ingest(payload, timestamp, prev);
+	std::unique_ptr<LorainMessage> msg = std::make_unique<LorainMessage>(_db);
+	msg->ingest(station, payload, timestamp);
 	return msg;
 }
 

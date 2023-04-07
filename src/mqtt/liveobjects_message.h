@@ -39,6 +39,13 @@ public:
 	virtual Observation getObservation(const CassUuid& station) const = 0;
 
 	virtual inline bool looksValid() const = 0;
+
+	virtual void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& timestamp) = 0;
+
+	virtual void cacheValues(const CassUuid& station)
+	{
+		// no-op
+	};
 };
 
 }

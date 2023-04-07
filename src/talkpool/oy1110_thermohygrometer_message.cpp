@@ -61,7 +61,7 @@ bool Oy1110ThermohygrometerMessage::validateInput(const std::string& payload)
 	return true;
 }
 
-void Oy1110ThermohygrometerMessage::ingest(const std::string& payload, const date::sys_seconds& datetime)
+void Oy1110ThermohygrometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 

@@ -56,8 +56,6 @@ protected:
 		return "barani_rain_gauge";
 	}
 
-	void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg) override;
-
 	std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp) override;
 
 	const char* getTopic() const override

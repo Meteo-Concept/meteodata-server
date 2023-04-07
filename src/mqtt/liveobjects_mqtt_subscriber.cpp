@@ -38,7 +38,8 @@
 
 #include "mqtt_subscriber.h"
 #include "liveobjects_mqtt_subscriber.h"
-#include "../cassandra_utils.h"
+#include "cassandra_utils.h"
+#include "dragino/cpl01_pluviometer_message.h"
 
 namespace meteodata
 {
@@ -127,7 +128,32 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 
 void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
 {
-	// no-op
+	msg->cacheValues(station);
+}
+
+std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp)
+{
+	auto sensor = json.get<std::string>("extra.sensors", "");
+	auto payload = json.get<std::string>("value.payload");
+	auto port = json.get<int>("metadata.network.lora.port", -1);
+
+	std::unique_ptr<LiveobjectsMessage> m;
+	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
+		m = std::make_unique<Cpl01PluviometerMessage>(_db);
+	}
+
+	if (!m) {
+		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] protocol: "
+				  << "Misconfigured sensor, unknown sensor type! Aborting." << std::endl;
+		return {};
+	}
+
+	if (payload.length() > 6) {
+		// This is a group of measurements, only return the first packet in the group.
+		payload = payload.substr(1, 6);
+	}
+	m->ingest(station, payload, timestamp);
+	return m;
 }
 
 void LiveobjectsMqttSubscriber::addStation(const std::string& topic, const CassUuid& station,

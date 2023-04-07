@@ -56,8 +56,9 @@ BaraniAnemometerMqttSubscriber::BaraniAnemometerMqttSubscriber(MqttSubscriber::M
 {
 }
 
-std::unique_ptr<meteodata::LiveobjectsMessage> BaraniAnemometerMqttSubscriber::buildMessage(const pt::ptree& json, const CassUuid& station,
-																								  date::sys_seconds& timestamp)
+std::unique_ptr<meteodata::LiveobjectsMessage> BaraniAnemometerMqttSubscriber::buildMessage(
+		const pt::ptree& json, const CassUuid& station, date::sys_seconds& timestamp
+	)
 {
 	using namespace std::chrono;
 	using date::operator<<;
@@ -71,7 +72,7 @@ std::unique_ptr<meteodata::LiveobjectsMessage> BaraniAnemometerMqttSubscriber::b
 	auto payload = json.get<std::string>("value.payload");
 
 	std::unique_ptr<BaraniAnemometerMessage> msg = std::make_unique<BaraniAnemometerMessage>();
-	msg->ingest(payload, timestamp);
+	msg->ingest(station, payload, timestamp);
 	return msg;
 }
 
