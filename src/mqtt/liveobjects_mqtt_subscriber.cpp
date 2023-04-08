@@ -166,6 +166,11 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(cons
 		return {};
 	}
 
+	auto t = json.get<std::string>("timestamp");
+	std::istringstream is{t};
+	// don't bother parsing the seconds and subseconds
+	is >> date::parse("%Y-%m-%dT%H:%M:", timestamp);
+
 	m->ingest(station, payload, timestamp);
 	return m;
 }
