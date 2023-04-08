@@ -40,6 +40,7 @@
 #include "liveobjects_mqtt_subscriber.h"
 #include "cassandra_utils.h"
 #include "dragino/cpl01_pluviometer_message.h"
+#include "dragino/lsn50v2_thermohygrometer_message.h"
 
 namespace meteodata
 {
@@ -100,7 +101,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	std::unique_ptr<LiveobjectsMessage> msg = buildMessage(jsonTree, station, timestamp);
 
 	int ret = false;
-	if (msg->looksValid()) {
+	if (msg && msg->looksValid()) {
 		ret = _db.insertV2DataPoint(msg->getObservation(station));
 	} else {
 		std::cerr << SD_WARNING << "[MQTT Liveobjects " << station << "] measurement: "
@@ -140,6 +141,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(cons
 	std::unique_ptr<LiveobjectsMessage> m;
 	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
 		m = std::make_unique<Cpl01PluviometerMessage>(_db);
+	} else if (sensor == "dragino-lsn50v2" && port == 2) {
+		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
 	}
 
 	if (!m) {
