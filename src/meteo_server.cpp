@@ -173,7 +173,7 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
-			} else if (topic == "fifo/liveobjects") {
+			} else if (topic.substr(0, 5) == "fifo/") {
 				auto mqttSubscribersIt = liveobjectsMqttSubscribers.find(details);
 				if (mqttSubscribersIt == liveobjectsMqttSubscribers.end()) {
 					std::shared_ptr<LiveobjectsMqttSubscriber> subscriber = std::make_shared<LiveobjectsMqttSubscriber>(details, _ioContext, _db);
