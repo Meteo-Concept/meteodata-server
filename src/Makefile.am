@@ -112,18 +112,6 @@ meteodata_SOURCES = \
 		    mqtt/objenious_mqtt_subscriber.h\
 		    mqtt/liveobjects_mqtt_subscriber.cpp\
 		    mqtt/liveobjects_mqtt_subscriber.h\
-		    mqtt/barani_anemometer_mqtt_subscriber.cpp\
-		    mqtt/barani_anemometer_mqtt_subscriber.h\
-		    mqtt/barani_rain_gauge_mqtt_subscriber.cpp\
-		    mqtt/barani_rain_gauge_mqtt_subscriber.h\
-		    mqtt/lsn50v2_thermohygrometer_mqtt_subscriber.cpp\
-		    mqtt/lsn50v2_thermohygrometer_mqtt_subscriber.h\
-		    mqtt/thlora_thermohygrometer_mqtt_subscriber.cpp\
-		    mqtt/thlora_thermohygrometer_mqtt_subscriber.h\
-		    mqtt/oy1110_thermohygrometer_mqtt_subscriber.cpp\
-		    mqtt/oy1110_thermohygrometer_mqtt_subscriber.h\
-		    mqtt/lorain_mqtt_subscriber.cpp\
-		    mqtt/lorain_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
 		    ship_and_buoy/meteo_france_ship_and_buoy.h\
 		    ship_and_buoy/ship_and_buoy_downloader.cpp\
