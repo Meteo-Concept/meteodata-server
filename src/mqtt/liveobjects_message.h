@@ -34,14 +34,46 @@ class LiveobjectsMessage
 public:
 	virtual ~LiveobjectsMessage() = default;
 
+	/**
+	 * Validate that the payload looks valid (only characters in the correct
+	 * character set, correct length, etc.)
+	 * @param payload The LoRa message payload
+	 * @param expectedSize The length the payload should have
+	 * @return True if, and only if, the payload looks correct, before parsing
+	 */
 	virtual bool validateInput(const std::string& payload, int expectedSize);
 
+	/**
+	 * Get the observation built from the message
+	 * @param station The station which will receive the observation in the
+	 * database
+	 * @return The observation built from the message
+	 */
 	virtual Observation getObservation(const CassUuid& station) const = 0;
 
+	/**
+	 * Whether the observation can be inserted in the database
+	 * @return True if, and only if, the message looks good enough to be inserted
+	 * in the database
+	 */
 	virtual inline bool looksValid() const = 0;
 
+	/**
+	 * @brief Parse the payload to build a specific datapoint for a given
+	 * timestamp (not part of the payload itself)
+	 *
+	 * @param station The station/sensor identifier
+	 * @param data The payload received by some mean, it's a ASCII-encoded
+	 * hexadecimal string
+	 * @param datetime The timestamp of the data message
+	 */
 	virtual void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& timestamp) = 0;
 
+	/**
+	 * @brief Store values in the cache database for later message building
+	 *
+	 * @param station The station/sensor identifier
+	 */
 	virtual void cacheValues(const CassUuid& station)
 	{
 		// no-op

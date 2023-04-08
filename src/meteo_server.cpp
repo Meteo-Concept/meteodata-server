@@ -263,6 +263,10 @@ void MeteoServer::start()
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
+		for (auto&& mqttSubscriber : liveobjectsMqttSubscribers) {
+			mqttSubscriber.second->start();
+			_connectors.emplace("mqtt_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
 		for (auto&& mqttSubscriber : lorainMqttSubscribers) {
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_lorain_" + mqttSubscriber.first.host, mqttSubscriber.second);

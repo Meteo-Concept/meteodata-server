@@ -46,17 +46,8 @@ namespace meteodata
 class Cpl01PluviometerMessage : public LiveobjectsMessage
 {
 public:
-	Cpl01PluviometerMessage(DbConnectionObservations& db);
+	explicit Cpl01PluviometerMessage(DbConnectionObservations& db);
 
-	/**
-	 * @brief Parse the payload to build a specific datapoint for a given
-	 * timestamp (not part of the payload itself)
-	 *
-	 * @param station The station/sensor identifier
-	 * @param data The payload received by some mean, it's a ASCII-encoded
-	 * hexadecimal string
-	 * @param datetime The timestamp of the data message
-	 */
 	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
 
 	void cacheValues(const CassUuid& station) override;
@@ -69,6 +60,9 @@ public:
 	Observation getObservation(const CassUuid& station) const override;
 
 private:
+	/**
+	 * A reference to the database connection, to get or store cached values
+	 */
 	DbConnectionObservations& _db;
 
 	/**
@@ -92,7 +86,14 @@ private:
 	 */
 	DataPoint _obs;
 
+	/**
+	 * The rain gauge scale in mm
+	 */
 	static constexpr float CPL01_RAIN_GAUGE_RESOLUTION = 0.2f;
+
+	/**
+	 * The cache key used to store the rainfall last number of clicks
+	 */
 	static constexpr char CPL01_RAINFALL_CACHE_KEY[] = "cpl01_rainfall_clicks";
 };
 
