@@ -252,6 +252,8 @@ void MeteoServer::start()
 
 	if (_configuration.startVp2) {
 		_vp2DirectConnectorStopped = false;
+		_vp2DirectConnectorsGroup = std::make_shared<ConnectorGroup>(_ioContext, _db);
+		_connectors.emplace("vp2_directconnect", _vp2DirectConnectorsGroup);
 		// Listen on the Meteodata port for incoming stations (one connector per direct-connect station)
 		_vp2DirectConnectAcceptor.open(ip::tcp::v4());
 		_vp2DirectConnectAcceptor.set_option(ip::tcp::acceptor::reuse_address(true));
@@ -293,6 +295,10 @@ void MeteoServer::stop()
 		_vp2DirectConnectAcceptor.close();
 	}
 
+	if (_vp2DirectConnectorsGroup) {
+		_vp2DirectConnectorsGroup.reset();
+	}
+
 	if (_controlAcceptor.is_open()) {
 		_controlConnectionStopped = true;
 		_controlAcceptor.close();
@@ -314,6 +320,7 @@ void MeteoServer::runNewVp2DirectConnector(const std::shared_ptr<VantagePro2Conn
 {
 	startAcceptingVp2DirectConnect();
 	if (!error) {
+		_vp2DirectConnectorsGroup->addConnector(c);
 		c->start();
 	} else {
 		std::cerr << SD_ERR << "[Direct] protocol: " << "Failed to launch a direct VP2 connector: " << error.message() << std::endl;

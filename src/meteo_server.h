@@ -30,6 +30,7 @@
 
 #include "meteo_server.h"
 #include "connector.h"
+#include "connector_group.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
 #include "config.h"
@@ -154,6 +155,8 @@ private:
 	 * operations
 	 */
 	boost::asio::ip::tcp::acceptor _vp2DirectConnectAcceptor;
+	std::shared_ptr<ConnectorGroup> _vp2DirectConnectorsGroup;
+
 	/**
 	 * @brief The connection to the database
 	 */

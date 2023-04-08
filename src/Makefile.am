@@ -17,6 +17,8 @@ bin_PROGRAMS = \
 meteodata_SOURCES = \
 		    connector.cpp\
 		    connector.h\
+		    connector_group.cpp\
+		    connector_group.h\
 		    daemon.cpp\
 		    http_connection.cpp\
 		    http_connection.h\
