@@ -41,6 +41,11 @@
 #include "cassandra_utils.h"
 #include "dragino/cpl01_pluviometer_message.h"
 #include "dragino/lsn50v2_thermohygrometer_message.h"
+#include "barani/barani_anemometer_message.h"
+#include "barani/barani_rain_gauge_message.h"
+#include "pessl/lorain_message.h"
+#include "thlora/thlora_thermohygrometer_message.h"
+#include "talkpool/oy1110_thermohygrometer_message.h"
 
 namespace meteodata
 {
@@ -143,6 +148,16 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(cons
 		m = std::make_unique<Cpl01PluviometerMessage>(_db);
 	} else if (sensor == "dragino-lsn50v2" && port == 2) {
 		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
+	} else if (sensor == "barani-meteowind") {
+		m = std::make_unique<BaraniAnemometerMessage>();
+	} else if (sensor == "barani-meteorain") {
+		m = std::make_unique<BaraniRainGaugeMessage>(_db);
+	} else if (sensor == "lorain-pluviometer") {
+		m = std::make_unique<LorainMessage>(_db);
+	} else if (sensor == "thlora-thermohygrometer") {
+		m = std::make_unique<ThloraThermohygrometerMessage>();
+	} else if (sensor == "talkpool-oy1110") {
+		m = std::make_unique<Oy1110ThermohygrometerMessage>(station);
 	}
 
 	if (!m) {
@@ -151,10 +166,6 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(cons
 		return {};
 	}
 
-	if (payload.length() > 6) {
-		// This is a group of measurements, only return the first packet in the group.
-		payload = payload.substr(1, 6);
-	}
 	m->ingest(station, payload, timestamp);
 	return m;
 }

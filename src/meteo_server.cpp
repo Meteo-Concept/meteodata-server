@@ -141,12 +141,6 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
 		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LorainMqttSubscriber>> lorainMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniAnemometerMqttSubscriber>> baraniAnemometerMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<BaraniRainGaugeMqttSubscriber>> baraniRainGaugeMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ThloraThermohygrometerMqttSubscriber>> thloraThermohygrometerMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber>> oy1110ThermohygrometerMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<Lsn50v2ThermohygrometerMqttSubscriber>> lsn50v2ThermohygrometerMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsMqttSubscriber>> liveobjectsMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		_db.getMqttStations(mqttStations);
@@ -179,71 +173,11 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
-			} else if (topic == "fifo/liveobjects") { // TODO: will eventually contain all the following sections
+			} else if (topic == "fifo/liveobjects") {
 				auto mqttSubscribersIt = liveobjectsMqttSubscribers.find(details);
 				if (mqttSubscribersIt == liveobjectsMqttSubscribers.end()) {
 					std::shared_ptr<LiveobjectsMqttSubscriber> subscriber = std::make_shared<LiveobjectsMqttSubscriber>(details, _ioContext, _db);
 					mqttSubscribersIt = liveobjectsMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Lorain") { //TODO: refactor the following six sections with an abstract factory
-				auto mqttSubscribersIt = lorainMqttSubscribers.find(details);
-				if (mqttSubscribersIt == lorainMqttSubscribers.end()) {
-					std::shared_ptr<LorainMqttSubscriber> subscriber = std::make_shared<LorainMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = lorainMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Barani_rain") {
-				auto mqttSubscribersIt = baraniRainGaugeMqttSubscribers.find(details);
-				if (mqttSubscribersIt == baraniRainGaugeMqttSubscribers.end()) {
-					std::shared_ptr<BaraniRainGaugeMqttSubscriber> subscriber = std::make_shared<BaraniRainGaugeMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = baraniRainGaugeMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Barani_anemo") {
-				auto mqttSubscribersIt = baraniAnemometerMqttSubscribers.find(details);
-				if (mqttSubscribersIt == baraniAnemometerMqttSubscribers.end()) {
-					std::shared_ptr<BaraniAnemometerMqttSubscriber> subscriber = std::make_shared<BaraniAnemometerMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = baraniAnemometerMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Thlora_thermohygrometer") {
-				auto mqttSubscribersIt = thloraThermohygrometerMqttSubscribers.find(details);
-				if (mqttSubscribersIt == thloraThermohygrometerMqttSubscribers.end()) {
-					std::shared_ptr<ThloraThermohygrometerMqttSubscriber> subscriber = std::make_shared<ThloraThermohygrometerMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = thloraThermohygrometerMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/Oy1110") {
-				auto mqttSubscribersIt = oy1110ThermohygrometerMqttSubscribers.find(details);
-				if (mqttSubscribersIt == oy1110ThermohygrometerMqttSubscribers.end()) {
-					std::shared_ptr<Oy1110ThermohygrometerMqttSubscriber> subscriber = std::make_shared<Oy1110ThermohygrometerMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = oy1110ThermohygrometerMqttSubscribers.emplace(details, subscriber).first;
-				}
-				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != liveobjectsStations.end())
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
-			} else if (topic == "fifo/DraginoLSN50v2") {
-				auto mqttSubscribersIt = lsn50v2ThermohygrometerMqttSubscribers.find(details);
-				if (mqttSubscribersIt == lsn50v2ThermohygrometerMqttSubscribers.end()) {
-					std::shared_ptr<Lsn50v2ThermohygrometerMqttSubscriber> subscriber = std::make_shared<Lsn50v2ThermohygrometerMqttSubscriber>(details, _ioContext, _db);
-					mqttSubscribersIt = lsn50v2ThermohygrometerMqttSubscribers.emplace(details, subscriber).first;
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
@@ -266,30 +200,6 @@ void MeteoServer::start()
 		for (auto&& mqttSubscriber : liveobjectsMqttSubscribers) {
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : lorainMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_lorain_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : baraniRainGaugeMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_barani_rain_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : baraniAnemometerMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_barani_anemo_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : thloraThermohygrometerMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_thlora_thermohygrometer_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : oy1110ThermohygrometerMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_oy1110_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : lsn50v2ThermohygrometerMqttSubscribers) {
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_lsn50v2_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 	}
 
