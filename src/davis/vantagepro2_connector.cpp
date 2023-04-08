@@ -72,6 +72,11 @@ void VantagePro2Connector::start()
 	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_currentState = State::STARTING;
 
+	_status.shortStatus = "Starting";
+	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
+	_status.lastReloaded = _status.activeSince;
+	_status.nbDownloads = 0;
+
 	handleEvent(sys::errc::make_error_code(sys::errc::success));
 }
 
@@ -126,12 +131,15 @@ void VantagePro2Connector::waitForNextMeasure()
 	_timeouts = 0;
 	_transmissionErrors = 0;
 
+	auto now = chrono::system_clock::now();
 	auto tp = chrono::minutes(_pollingPeriod) -
-			  (chrono::system_clock::now().time_since_epoch() % chrono::minutes(_pollingPeriod));
+			  (now.time_since_epoch() % chrono::minutes(_pollingPeriod));
 	std::cout << SD_INFO << "[Direct " << _station << "] measurement: " << "Next measurement will be taken in "
 			  << chrono::duration_cast<chrono::minutes>(tp).count() << "min "
 			  << chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count() << "s " << std::endl;
 	_timer.expires_after(tp);
+	_status.nextDownload = date::floor<chrono::seconds>(now + tp);
+	_status.shortStatus = "SEtting the station clock";
 	_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
 }
 
@@ -189,6 +197,7 @@ void VantagePro2Connector::stop()
 	/* cancel all asynchronous event handlers */
 	_timer.cancel();
 	_setTimeTimer.cancel();
+	_status.shortStatus = "Stopped";
 	/* close the socket (but check if it's not been wrecked by the other
 	 * end before)
 	 */
@@ -207,6 +216,7 @@ void VantagePro2Connector::reload()
 	_timer.cancel();
 	_setTimeTimer.cancel();
 	flushSocketAndRetry(State::SENDING_WAKE_UP_STATION, [this]() { sendRequest(_echoRequest, sizeof(_echoRequest) - 1); });
+	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
 }
 
 void VantagePro2Connector::sendRequest(const char* req, int reqsize)
@@ -389,6 +399,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			_currentState = State::SENDING_WAKE_UP_STATION;
 			std::cout << SD_NOTICE << "[Direct] connection: " << "A new station is connected" << std::endl;
 			requestEcho();
+			_status.shortStatus = "Waking up station";
 			break;
 
 		case State::WAITING_NEXT_MEASURE_TICK:
@@ -397,8 +408,10 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cout << SD_DEBUG << "[Direct " << _station << "] measurement: "
 						  << "Time to wake up! We need a new measurement" << std::endl;
 				requestEcho();
+				_status.shortStatus = "Waking up station";
 			} else {
 				waitForNextMeasure();
+				_status.shortStatus = "Waiting for next measurement time";
 			}
 			break;
 
@@ -417,6 +430,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_currentState = State::SENDING_REQ_STATION;
 				std::cout << SD_DEBUG << "[Direct] protocol: " << "Station has woken up" << std::endl;
 				requestStation();
+				_status.shortStatus = "Waiting for station identification";
 			}
 			break;
 
@@ -484,6 +498,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 								  << std::endl;
 						_currentState = State::SENDING_REQ_MAIN_MODE;
 						requestMainMode();
+						_status.shortStatus = "Waiting for station ack to main configuration";
 					} else {
 						std::cerr << SD_ERR << "[Direct] connection: " << "Unknown station (" << _coords[0] << ", "
 								  << _coords[1] << ", " << _coords[2] << ") ! Aborting" << std::endl;
@@ -525,6 +540,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
 						  << "Sent timezone identification request" << std::endl;
 				recvAck();
+				_status.shortStatus = "Waiting for station timezone";
 			}
 			break;
 
@@ -593,6 +609,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
 						  << "Waking up station for archive request" << std::endl;
 				recvWakeUp();
+				_status.shortStatus = "Waiting for archive download";
 			}
 			break;
 
@@ -690,6 +707,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 							  << "Archive size has a valid CRC, we will receive " << _archiveSize.pagesLeft
 							  << " pages, first record at " << _archiveSize.index << std::endl;
 					sendAck();
+					_status.shortStatus = "Downloading " + std::to_string(_archiveSize.pagesLeft) + " archive pages";
 				} else {
 					_currentState = State::SENDING_ABORT_ARCHIVE_DOWNLOAD;
 					std::cerr << SD_WARNING << "[Direct " << _station << "] protocol: "
@@ -776,6 +794,8 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 							  << " pages left to download" << std::endl;
 					recvData(_archivePage.getBuffer());
 				} else {
+					_status.nbDownloads++;
+					_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Archive data stored"
 							  << std::endl;
 					if (_setTimeRequested) {
@@ -783,6 +803,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 								  << "'s clock has to be set" << std::endl;
 						_currentState = State::SENDING_WAKE_UP_SETTIME;
 						requestEcho();
+						_status.shortStatus = "Setting the station clock";
 					} else {
 						std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: "
 								  << "Now sleeping until next measurement" << std::endl;
