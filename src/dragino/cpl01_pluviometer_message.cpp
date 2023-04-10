@@ -27,6 +27,7 @@
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 #include <observation.h>
+#include <boost/property_tree/ptree.hpp>
 
 #include "cpl01_pluviometer_message.h"
 #include "hex_parser.h"
@@ -36,6 +37,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 Cpl01PluviometerMessage::Cpl01PluviometerMessage(DbConnectionObservations& db):
 	_db{db}
@@ -104,6 +106,20 @@ Observation Cpl01PluviometerMessage::getObservation(const CassUuid& station) con
 	obs.time = _obs.time;
 	obs.rainfall = {!std::isnan(_obs.rainfall), _obs.rainfall};
 	return obs;
+}
+
+pt::ptree Cpl01PluviometerMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "CPL01_pluviometer_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+	value.put("flag", _obs.flag);
+	value.put("alarm", _obs.alarm);
+	value.put("currently_open", _obs.currentlyOpen ? "true" : "false");
+	value.put("total_pulses", _obs.totalPulses);
+	value.put("rainfall", _obs.rainfall);
+
+	return decoded;
 }
 
 }

@@ -26,6 +26,7 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <observation.h>
@@ -39,6 +40,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 BaraniRainGaugeMessage::BaraniRainGaugeMessage(DbConnectionObservations& db):
 	_db{db}
@@ -153,6 +155,23 @@ Observation BaraniRainGaugeMessage::getObservation(const CassUuid& station) cons
 	}
 
 	return result;
+}
+
+pt::ptree BaraniRainGaugeMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "barani_pluviometer_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+	value.put("index", _obs.index);
+	value.put("battery_voltage", _obs.batteryVoltage);
+	value.put("rainfall_clicks",_obs.rainfallClicks);
+	value.put("min_time_between_clicks", _obs.minTimeBetweenClicks);
+	value.put("max_rainrate", _obs.maxRainrate);
+	value.put("temp_over_2C", _obs.tempOver2C);
+	value.put("heater_switched_on", _obs.heaterSwitchedOn);
+	value.put("correction", _obs.correction);
+
+	return decoded;
 }
 
 }

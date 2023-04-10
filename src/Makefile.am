@@ -107,6 +107,8 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_download_scheduler.h\
 		    liveobjects/liveobjects_message.cpp\
 		    liveobjects/liveobjects_message.h\
+		    liveobjects/liveobjects_http_decoding_request_handler.cpp\
+		    liveobjects/liveobjects_http_decoding_request_handler.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
 		    mqtt/vp2_mqtt_subscriber.cpp\

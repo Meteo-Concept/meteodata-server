@@ -63,6 +63,8 @@ public:
 	 */
 	virtual inline bool looksValid() const = 0;
 
+	virtual boost::property_tree::ptree getDecodedMessage() const = 0;
+
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
 	 * timestamp (not part of the payload itself)

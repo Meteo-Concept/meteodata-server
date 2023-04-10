@@ -26,6 +26,7 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <observation.h>
 
@@ -36,6 +37,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 
 void BaraniAnemometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
@@ -109,6 +111,30 @@ Observation BaraniAnemometerMessage::getObservation(const CassUuid& station) con
 	}
 
 	return result;
+}
+
+pt::ptree BaraniAnemometerMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "barani_anemometer_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+	value.put("index", _obs.index);
+	value.put("battery_voltage", _obs.batteryVoltage);
+	value.put("wind_avg_10min_peed",_obs.windAvg10minSpeed);
+	value.put("wind_3s_gust_speed", _obs.wind3sGustSpeed);
+	value.put("wind_speed_stdev", _obs.windSpeedStdev);
+	value.put("wind_avg_10min_direction", _obs.windAvg10minDirection);
+	value.put("wind_3s_gust_direction", _obs.wind3sGustDirection);
+
+	std::ostringstream os;
+	using namespace date;
+	os << date::format("%FT%TZ", _obs.maxWindDatetime);
+	value.put("max_wind_datetime", os.str());
+
+	value.put("vector_or_scalar", _obs.vectorOrScalar);
+	value.put("alarm_sent", _obs.alarmSent);
+
+	return decoded;
 }
 
 }

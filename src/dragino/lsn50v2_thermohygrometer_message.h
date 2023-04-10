@@ -30,6 +30,7 @@
 #include <iterator>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <date.h>
 #include <observation.h>
 #include <cassandra.h>
@@ -62,6 +63,8 @@ public:
 	}
 
 	Observation getObservation(const CassUuid& station) const override;
+
+	boost::property_tree::ptree getDecodedMessage() const override;
 
 private:
 	/**

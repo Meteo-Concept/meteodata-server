@@ -65,6 +65,8 @@ public:
 
 	inline bool looksValid() const override { return _obs.valid; }
 
+	boost::property_tree::ptree getDecodedMessage() const override;
+
 private:
 	/**
 	 * @brief A struct used to store observation values to then populate the

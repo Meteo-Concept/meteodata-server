@@ -29,10 +29,12 @@
 #include <algorithm>
 #include <chrono>
 
+#include <dbconnection_observations.h>
+
 #include "http_connection.h"
 #include "davis/vantagepro2_http_request_handler.h"
-#include <dbconnection_observations.h>
-#include <cimel/cimel_http_request_handler.h>
+#include "cimel/cimel_http_request_handler.h"
+#include "liveobjects/liveobjects_http_decoding_request_handler.h"
 
 namespace meteodata
 {
@@ -105,6 +107,9 @@ void HttpConnection::processRequest()
 		handler.processRequest(_request, _response);
 	} else if (url.substr(0, 15) == "/imports/cimel/") {
 		CimelHttpRequestHandler handler{_db};
+		handler.processRequest(_request, _response);
+	} else if (url.substr(0, 28) == "/imports/decode/liveobjects") {
+		LiveobjectsHttpDecodingRequestHandler handler{_db};
 		handler.processRequest(_request, _response);
 	} else {
 		_response.result(http::status::not_found);

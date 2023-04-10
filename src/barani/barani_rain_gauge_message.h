@@ -80,6 +80,8 @@ public:
 
 	inline bool looksValid() const override { return _obs.valid; }
 
+	boost::property_tree::ptree getDecodedMessage() const override;
+
 private:
 	DbConnectionObservations& _db;
 

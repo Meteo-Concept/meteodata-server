@@ -29,6 +29,7 @@
 #include <systemd/sd-daemon.h>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <observation.h>
 #include <dbconnection_observations.h>
@@ -41,6 +42,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 LorainMessage::LorainMessage(DbConnectionObservations& db):
 	_db{db}
@@ -163,6 +165,32 @@ Observation LorainMessage::getObservation(const CassUuid& station) const
 	}
 
 	return result;
+}
+
+pt::ptree LorainMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "lorain_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+	value.put("battery_voltage", _obs.batteryVoltage);
+	value.put("rainfall_clicks", _obs.rainfallClicks);
+	value.put("rainfall", _obs.rainfall);
+	value.put("temperature", _obs.temperature);
+	value.put("min_temperature", _obs.minTemperature);
+	value.put("max_temperature", _obs.maxTemperature);
+	value.put("humidity", _obs.humidity);
+	value.put("min_humidity", _obs.minHumidity);
+	value.put("max_humidity", _obs.maxHumidity);
+	value.put("deltaT", _obs.deltaT);
+	value.put("min_deltaT", _obs.minDeltaT);
+	value.put("max_deltaT", _obs.maxDeltaT);
+	value.put("dewPoint", _obs.dewPoint);
+	value.put("min_dew_point", _obs.minDewPoint);
+	value.put("vapor_pressure_deficit", _obs.vaporPressureDeficit);
+	value.put("min_vapor_pressure_deficit", _obs.minVaporPressureDeficit);
+	value.put("leaf_wetness_timeratio", _obs.leafWetnessTimeRatio);
+
+	return decoded;
 }
 
 }

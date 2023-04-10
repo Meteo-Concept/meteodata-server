@@ -26,6 +26,7 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 #include <observation.h>
@@ -37,6 +38,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
+namespace pt = boost::property_tree;
 
 Oy1110ThermohygrometerMessage::Oy1110ThermohygrometerMessage(const CassUuid& station) :
 	_station{station}
@@ -109,6 +111,40 @@ Observation Oy1110ThermohygrometerMessage::getObservation(const CassUuid& statio
 	Observation obs = *it;
 	obs.station = station;
 	return obs;
+}
+
+pt::ptree Oy1110ThermohygrometerMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "talkpool_oy1110_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+
+	std::ostringstream os;
+	using namespace date;
+	os << date::format("%FT%TZ", _obs.basetime);
+	value.put("basetime", os.str());
+
+	value.put("offset", _obs.offset.count());
+
+	if (_obs.temperatures.size() == 1) {
+		value.put("temperature", _obs.temperatures[0]);
+	} else {
+		auto& valueTemperatures = decoded.put_child("temperature", pt::ptree{});
+		for (float f : _obs.temperatures) {
+			valueTemperatures.add("", f);
+		}
+	}
+
+	if (_obs.humidities.size() == 1) {
+		value.put("humidity", _obs.humidities[0]);
+	} else {
+		auto& valueHumidities = decoded.put_child("humidity", pt::ptree{});
+		for (float f : _obs.humidities) {
+			valueHumidities.add("", f);
+		}
+	}
+
+	return decoded;
 }
 
 }

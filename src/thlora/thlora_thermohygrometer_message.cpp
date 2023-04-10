@@ -26,6 +26,7 @@
 #include <vector>
 #include <cmath>
 
+#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <observation.h>
 
@@ -36,7 +37,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
-
+namespace pt = boost::property_tree;
 
 void ThloraThermohygrometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
 {
@@ -100,6 +101,22 @@ Observation ThloraThermohygrometerMessage::getObservation(const CassUuid& statio
 	}
 
 	return result;
+}
+
+pt::ptree ThloraThermohygrometerMessage::getDecodedMessage() const
+{
+	pt::ptree decoded;
+	decoded.put("model", "thlora_20230410");
+	auto& value = decoded.put_child("value", pt::ptree{});
+	value.put("header", _obs.header);
+	value.put("temperature", _obs.temperature);
+	value.put("humidity", _obs.humidity);
+	value.put("period", _obs.period);
+	value.put("rssi", _obs.rssi);
+	value.put("snr", _obs.snr);
+	value.put("battery", _obs.battery);
+
+	return decoded;
 }
 
 }
