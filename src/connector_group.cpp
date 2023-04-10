@@ -44,10 +44,8 @@ ConnectorGroup::~ConnectorGroup()
 	ConnectorGroup::stop();
 }
 
-std::string ConnectorGroup::getStatus()
+std::string ConnectorGroup::getStatus() const
 {
-	cleanupExpiredConnectors();
-
 	std::ostringstream os;
 	for (auto&& c : _connectors) {
 		if (std::shared_ptr<Connector> cc = c.lock()) {

@@ -58,7 +58,7 @@ public:
 	 */
 	void reload() override;
 
-	virtual std::string getStatus();
+	std::string getStatus() const override;
 
 	void addConnector(const std::weak_ptr<Connector>& connector);
 
