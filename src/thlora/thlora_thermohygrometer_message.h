@@ -31,7 +31,7 @@
 #include <optional>
 #include <cmath>
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/json.hpp>
 #include <date.h>
 #include <observation.h>
 #include <cassandra.h>
@@ -40,8 +40,6 @@
 
 namespace meteodata
 {
-
-namespace pt = boost::property_tree;
 
 /**
  * @brief A Message able to receive and store a Barani rain gauge IoT payload from a
@@ -64,7 +62,7 @@ public:
 
 	inline bool looksValid() const override { return _obs.valid; }
 
-	boost::property_tree::ptree getDecodedMessage() const override;
+	boost::json::object getDecodedMessage() const override;
 
 private:
 	/**

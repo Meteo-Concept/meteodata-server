@@ -31,7 +31,7 @@
 #include <optional>
 #include <cmath>
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/json.hpp>
 #include <date.h>
 #include <observation.h>
 #include <dbconnection_observations.h>
@@ -41,8 +41,6 @@
 
 namespace meteodata
 {
-
-namespace pt = boost::property_tree;
 
 /**
  * @brief A Message able to receive and store a Barani rain gauge IoT payload from a
@@ -69,9 +67,13 @@ public:
 	 * @param previousClicks The previous state of the rain gauge revolving counter
 	 * @param previousCorrectionClicks The previous state of the rain gauge correction revolving counter
 	 */
-	void ingest(const std::string& payload, const date::sys_seconds& datetime,
-				float rainGaugeResolution,
-				std::optional<int> previousClicks, std::optional<int> previousCorrectionClicks);
+	void ingest(
+		const std::string& payload,
+		const date::sys_seconds& datetime,
+		float rainGaugeResolution,
+		std::optional<int> previousClicks,
+		std::optional<int> previousCorrectionClicks
+	);
 
 
 	inline int getRainfallClicks() const { return _obs.rainfallClicks; }
@@ -80,7 +82,7 @@ public:
 
 	inline bool looksValid() const override { return _obs.valid; }
 
-	boost::property_tree::ptree getDecodedMessage() const override;
+	boost::json::object getDecodedMessage() const override;
 
 private:
 	DbConnectionObservations& _db;

@@ -33,6 +33,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
+#include <boost/json/src.hpp>
 #include <dbconnection_observations.h>
 #include <cassandra.h>
 

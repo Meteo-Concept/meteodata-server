@@ -34,6 +34,8 @@
 #include <boost/asio.hpp>
 #include <date.h>
 #include <boost/program_options.hpp>
+#include <boost/json.hpp>
+#include <boost/json/src.hpp>
 
 #include "cassandra_utils.h"
 #include "config.h"

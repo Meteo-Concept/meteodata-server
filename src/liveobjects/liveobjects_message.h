@@ -30,6 +30,7 @@
 #include <cassandra.h>
 #include <observation.h>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/json.hpp>
 #include <date.h>
 
 namespace meteodata {
@@ -63,7 +64,7 @@ public:
 	 */
 	virtual inline bool looksValid() const = 0;
 
-	virtual boost::property_tree::ptree getDecodedMessage() const = 0;
+	virtual boost::json::object getDecodedMessage() const = 0;
 
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
@@ -86,7 +87,12 @@ public:
 		// no-op
 	};
 
-	static std::unique_ptr<LiveobjectsMessage> parseMessage(DbConnectionObservations& db, const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp);
+	static std::unique_ptr<LiveobjectsMessage> parseMessage(
+		DbConnectionObservations& db,
+		const boost::property_tree::ptree& json,
+		const CassUuid& station,
+		date::sys_seconds& timestamp
+	);
 };
 
 }

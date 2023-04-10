@@ -27,6 +27,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/json/src.hpp>
 #include <boost/beast/http.hpp>
 #include <systemd/sd-daemon.h>
 #include <date.h>
@@ -41,6 +42,7 @@
 namespace meteodata
 {
 namespace pt = boost::property_tree;
+namespace json = boost::json;
 
 LiveobjectsHttpDecodingRequestHandler::LiveobjectsHttpDecodingRequestHandler(DbConnectionObservations& db) :
 	_db{db}
@@ -100,10 +102,8 @@ void LiveobjectsHttpDecodingRequestHandler::decodeMessage(const Request& request
 		auto m = LiveobjectsMessage::parseMessage(_db, jsonTree, _stations[urn], timestamp);
 
 		if (m && m->looksValid()) {
-			pt::ptree body = m->getDecodedMessage();
-			std::stringstream ss;
-			pt::json_parser::write_json(ss, body, false);
-			response.body() = ss.str();
+			json::object body = m->getDecodedMessage();
+			response.body() = json::serialize(body);
 			response.result(boost::beast::http::status::ok);
 		} else {
 			response.result(boost::beast::http::status::bad_request);

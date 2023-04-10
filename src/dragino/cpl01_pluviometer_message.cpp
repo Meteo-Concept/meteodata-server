@@ -27,7 +27,7 @@
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 #include <observation.h>
-#include <boost/property_tree/ptree.hpp>
+#include <boost/json.hpp>
 
 #include "cpl01_pluviometer_message.h"
 #include "hex_parser.h"
@@ -37,7 +37,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
-namespace pt = boost::property_tree;
+namespace json = boost::json;
 
 Cpl01PluviometerMessage::Cpl01PluviometerMessage(DbConnectionObservations& db):
 	_db{db}
@@ -93,8 +93,8 @@ void Cpl01PluviometerMessage::cacheValues(const CassUuid& station)
 		int ret = _db.cacheInt(station, CPL01_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.totalPulses);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
+				  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+				  << std::endl;
 	}
 }
 
@@ -108,18 +108,18 @@ Observation Cpl01PluviometerMessage::getObservation(const CassUuid& station) con
 	return obs;
 }
 
-pt::ptree Cpl01PluviometerMessage::getDecodedMessage() const
+json::object Cpl01PluviometerMessage::getDecodedMessage() const
 {
-	pt::ptree decoded;
-	decoded.put("model", "CPL01_pluviometer_20230410");
-	auto& value = decoded.put_child("value", pt::ptree{});
-	value.put("flag", _obs.flag);
-	value.put("alarm", _obs.alarm);
-	value.put("currently_open", _obs.currentlyOpen ? "true" : "false");
-	value.put("total_pulses", _obs.totalPulses);
-	value.put("rainfall", _obs.rainfall);
-
-	return decoded;
+	return json::object{
+		{ "model", "CPL01_pluviometer_20230411" },
+		{ "value", {
+			{ "flag", _obs.flag },
+			{ "alarm", _obs.alarm },
+			{ "currently_open", _obs.currentlyOpen },
+			{ "total_pulses", _obs.totalPulses },
+			{ "rainfall", _obs.rainfall }
+		} }
+	};
 }
 
 }

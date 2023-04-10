@@ -43,6 +43,7 @@
 
 namespace meteodata
 {
+namespace pt = boost::property_tree;
 
 LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
 		asio::io_context& ioContext, DbConnectionObservations& db) :

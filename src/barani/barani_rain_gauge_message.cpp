@@ -26,7 +26,6 @@
 #include <vector>
 #include <cmath>
 
-#include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <observation.h>
@@ -40,7 +39,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
-namespace pt = boost::property_tree;
+namespace json = boost::json;
 
 BaraniRainGaugeMessage::BaraniRainGaugeMessage(DbConnectionObservations& db):
 	_db{db}
@@ -132,13 +131,13 @@ void BaraniRainGaugeMessage::cacheValues(const CassUuid& station)
 		int ret = _db.cacheInt(station, BARANI_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.rainfallClicks);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
+				  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+				  << std::endl;
 		ret = _db.cacheInt(station, BARANI_RAINFALL_CORRECTION_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.correction);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
-					  << "Couldn't update the rainfall number of clicks, accumulation error possible"
-					  << std::endl;
+				  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+				  << std::endl;
 	}
 }
 
@@ -157,21 +156,21 @@ Observation BaraniRainGaugeMessage::getObservation(const CassUuid& station) cons
 	return result;
 }
 
-pt::ptree BaraniRainGaugeMessage::getDecodedMessage() const
+json::object BaraniRainGaugeMessage::getDecodedMessage() const
 {
-	pt::ptree decoded;
-	decoded.put("model", "barani_pluviometer_20230410");
-	auto& value = decoded.put_child("value", pt::ptree{});
-	value.put("index", _obs.index);
-	value.put("battery_voltage", _obs.batteryVoltage);
-	value.put("rainfall_clicks",_obs.rainfallClicks);
-	value.put("min_time_between_clicks", _obs.minTimeBetweenClicks);
-	value.put("max_rainrate", _obs.maxRainrate);
-	value.put("temp_over_2C", _obs.tempOver2C);
-	value.put("heater_switched_on", _obs.heaterSwitchedOn);
-	value.put("correction", _obs.correction);
-
-	return decoded;
+	return json::object{
+		{ "model", "barani_pluviometer_20230411" },
+		{ "value", {
+			{ "index", _obs.index },
+			{ "battery_voltage", _obs.batteryVoltage },
+			{ "rainfall_clicks",_obs.rainfallClicks },
+			{ "min_time_between_clicks", _obs.minTimeBetweenClicks },
+			{ "max_rainrate", _obs.maxRainrate },
+			{ "temp_over_2C", _obs.tempOver2C },
+			{ "heater_switched_on", _obs.heaterSwitchedOn },
+			{ "correction", _obs.correction }
+		} }
+	};
 }
 
 }

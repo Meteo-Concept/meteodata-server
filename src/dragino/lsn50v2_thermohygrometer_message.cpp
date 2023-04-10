@@ -24,7 +24,7 @@
 #include <string>
 #include <cmath>
 
-#include <boost/property_tree/ptree.hpp>
+#include <boost/json.hpp>
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 #include <observation.h>
@@ -37,7 +37,7 @@ namespace meteodata
 {
 
 namespace chrono = std::chrono;
-namespace pt = boost::property_tree;
+namespace json = boost::json;
 
 void Lsn50v2ThermohygrometerMessage::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
 {
@@ -81,15 +81,15 @@ Observation Lsn50v2ThermohygrometerMessage::getObservation(const CassUuid& stati
 	return obs;
 }
 
-pt::ptree Lsn50v2ThermohygrometerMessage::getDecodedMessage() const
+json::object Lsn50v2ThermohygrometerMessage::getDecodedMessage() const
 {
-	pt::ptree decoded;
-	decoded.put("model", "dragino_lsn50v2_20230410");
-	auto& value = decoded.put_child("value", pt::ptree{});
-	value.put("temperature", _obs.temperature);
-	value.put("humidity", _obs.humidity);
-
-	return decoded;
+	return json::object{
+		{ "model", "dragino_lsn50v2_20230411" },
+		{ "value", {
+			{ "temperature", _obs.temperature },
+			{ "humidity", _obs.humidity }
+		} }
+	};
 }
 
 }
