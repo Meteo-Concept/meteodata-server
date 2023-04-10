@@ -35,6 +35,8 @@
 
 using namespace meteodata;
 namespace po = boost::program_options;
+namespace asio = boost::asio;
+namespace sys = boost::system;
 
 int main(int argc, char** argv)
 {
@@ -89,12 +91,39 @@ int main(int argc, char** argv)
 		std::cout << "> " << query;
 		boost::asio::write(socket, boost::asio::buffer(query));
 
+		asio::basic_waitable_timer<chrono::steady_clock> timer{ioContext};
+
 		std::string reply;
 		size_t replyLength = 0;
 		do {
-			replyLength = boost::asio::read_until(socket, boost::asio::dynamic_buffer(reply), '\n');
-			std::cout << reply;
 			replyLength = 0;
+
+			timer.expires_from_now(chrono::seconds(1));
+			timer.async_wait([&socket](const sys::error_code& ec) {
+				if (ec == sys::errc::operation_canceled) {
+					// operation completed
+					return;
+				} else {
+					// no response received
+					socket.cancel();
+				}
+			});
+			boost::asio::async_read_until(socket, boost::asio::dynamic_buffer(reply), '\n',
+				[&](const sys::error_code& ec, std::size_t length) {
+					timer.cancel();
+					if (ec == sys::errc::success) {
+						replyLength = length;
+						std::cout << reply;
+					} else {
+						replyLength = 0;
+					}
+					ioContext.stop();
+				}
+			);
+
+			ioContext.restart();
+			ioContext.run_for(chrono::seconds{5});
+			reply.clear();
 		} while (replyLength > 0);
 
 		socket.close();
