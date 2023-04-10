@@ -24,8 +24,13 @@
 #ifndef LIVEOBJECTS_MESSAGE_H
 #define LIVEOBJECTS_MESSAGE_H
 
+#include <memory>
+
+#include <dbconnection_observations.h>
 #include <cassandra.h>
 #include <observation.h>
+#include <boost/property_tree/ptree.hpp>
+#include <date.h>
 
 namespace meteodata {
 
@@ -78,6 +83,8 @@ public:
 	{
 		// no-op
 	};
+
+	static std::unique_ptr<LiveobjectsMessage> parseMessage(DbConnectionObservations& db, const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp);
 };
 
 }

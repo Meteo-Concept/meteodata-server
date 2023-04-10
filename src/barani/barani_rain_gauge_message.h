@@ -37,7 +37,7 @@
 #include <dbconnection_observations.h>
 #include <cassandra.h>
 
-#include "mqtt/liveobjects_message.h"
+#include "liveobjects/liveobjects_message.h"
 
 namespace meteodata
 {
@@ -51,7 +51,7 @@ namespace pt = boost::property_tree;
 class BaraniRainGaugeMessage : public LiveobjectsMessage
 {
 public:
-	BaraniRainGaugeMessage(DbConnectionObservations& db);
+	explicit BaraniRainGaugeMessage(DbConnectionObservations& db);
 
 	Observation getObservation(const CassUuid& station) const override;
 

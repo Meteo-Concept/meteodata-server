@@ -9,6 +9,7 @@ bin_PROGRAMS = \
 	       meteodata-static-standalone \
 	       meteodata-fieldclimate-api-standalone\
 	       meteodata-csv-standalone\
+	       meteodata-liveobjects-api-standalone\
 	       meteodata-objenious-api-standalone\
 	       meteodata-cimel-standalone\
 	       meteodata-mqtt-vp2-standalone\
@@ -104,8 +105,8 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_txt_downloader.h\
 		    mbdata/mbdata_download_scheduler.cpp\
 		    mbdata/mbdata_download_scheduler.h\
-		    mqtt/liveobjects_message.cpp\
-		    mqtt/liveobjects_message.h\
+		    liveobjects/liveobjects_message.cpp\
+		    liveobjects/liveobjects_message.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
 		    mqtt/vp2_mqtt_subscriber.cpp\
@@ -354,6 +355,33 @@ meteodata_csv_standalone_SOURCES = \
 		    davis/mileos_message.h\
 		    davis/csv_import_standalone.cpp
 
+meteodata_liveobjects_api_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    liveobjects/liveobjects_api_downloader_standalone.cpp\
+		    liveobjects/liveobjects_api_downloader.cpp\
+		    liveobjects/liveobjects_api_downloader.h\
+		    liveobjects/liveobjects_message.cpp\
+		    liveobjects/liveobjects_message.h\
+		    barani/barani_anemometer_message.cpp\
+		    barani/barani_anemometer_message.h\
+		    barani/barani_rain_gauge_message.cpp\
+		    barani/barani_rain_gauge_message.h\
+		    dragino/lsn50v2_thermohygrometer_message.cpp\
+		    dragino/lsn50v2_thermohygrometer_message.h\
+		    dragino/cpl01_pluviometer_message.cpp\
+		    dragino/cpl01_pluviometer_message.h\
+		    thlora/thlora_thermohygrometer_message.cpp\
+		    thlora/thlora_thermohygrometer_message.h\
+		    talkpool/oy1110_thermohygrometer_message.cpp\
+		    talkpool/oy1110_thermohygrometer_message.h\
+		    pessl/lorain_message.cpp\
+		    pessl/lorain_message.h
+
 meteodata_objenious_api_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -451,6 +479,11 @@ meteodata_csv_standalone_CPPFLAGS = $(basecppflags)
 meteodata_csv_standalone_CXXFLAGS =
 meteodata_csv_standalone_LDFLAGS = $(baseldflags)
 meteodata_csv_standalone_LDADD = $(baselibs)
+
+meteodata_liveobjects_api_standalone_CPPFLAGS = $(basecppflags)
+meteodata_liveobjects_api_standalone_CXXFLAGS =
+meteodata_liveobjects_api_standalone_LDFLAGS = $(baseldflags)
+meteodata_liveobjects_api_standalone_LDADD = $(baselibs)
 
 meteodata_objenious_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_objenious_api_standalone_CXXFLAGS =

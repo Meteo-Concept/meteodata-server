@@ -38,14 +38,8 @@
 
 #include "mqtt_subscriber.h"
 #include "liveobjects_mqtt_subscriber.h"
+#include "liveobjects/liveobjects_api_downloader.h"
 #include "cassandra_utils.h"
-#include "dragino/cpl01_pluviometer_message.h"
-#include "dragino/lsn50v2_thermohygrometer_message.h"
-#include "barani/barani_anemometer_message.h"
-#include "barani/barani_rain_gauge_message.h"
-#include "pessl/lorain_message.h"
-#include "thlora/thlora_thermohygrometer_message.h"
-#include "talkpool/oy1110_thermohygrometer_message.h"
 
 namespace meteodata
 {
@@ -139,40 +133,7 @@ void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::u
 
 std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp)
 {
-	auto sensor = json.get<std::string>("extra.sensors", "");
-	auto payload = json.get<std::string>("value.payload");
-	auto port = json.get<int>("metadata.network.lora.port", -1);
-
-	std::unique_ptr<LiveobjectsMessage> m;
-	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
-		m = std::make_unique<Cpl01PluviometerMessage>(_db);
-	} else if (sensor == "dragino-lsn50v2" && port == 2) {
-		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
-	} else if (sensor == "barani-meteowind") {
-		m = std::make_unique<BaraniAnemometerMessage>();
-	} else if (sensor == "barani-meteorain") {
-		m = std::make_unique<BaraniRainGaugeMessage>(_db);
-	} else if (sensor == "lorain-pluviometer") {
-		m = std::make_unique<LorainMessage>(_db);
-	} else if (sensor == "thlora-thermohygrometer") {
-		m = std::make_unique<ThloraThermohygrometerMessage>();
-	} else if (sensor == "talkpool-oy1110") {
-		m = std::make_unique<Oy1110ThermohygrometerMessage>(station);
-	}
-
-	if (!m) {
-		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] protocol: "
-				  << "Misconfigured sensor, unknown sensor type! Aborting." << std::endl;
-		return {};
-	}
-
-	auto t = json.get<std::string>("timestamp");
-	std::istringstream is{t};
-	// don't bother parsing the seconds and subseconds
-	is >> date::parse("%Y-%m-%dT%H:%M:", timestamp);
-
-	m->ingest(station, payload, timestamp);
-	return m;
+	return LiveobjectsMessage::parseMessage(_db, json, station, timestamp);
 }
 
 void LiveobjectsMqttSubscriber::addStation(const std::string& topic, const CassUuid& station,

@@ -37,7 +37,7 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "mqtt/liveobjects_message.h"
+#include "liveobjects/liveobjects_message.h"
 
 namespace meteodata
 {
@@ -51,7 +51,7 @@ namespace pt = boost::property_tree;
 class LorainMessage : public LiveobjectsMessage
 {
 public:
-	LorainMessage(DbConnectionObservations& db);
+	explicit LorainMessage(DbConnectionObservations& db);
 
 	Observation getObservation(const CassUuid& station) const override;
 

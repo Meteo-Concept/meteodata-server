@@ -34,7 +34,7 @@
 #include <observation.h>
 #include <cassandra.h>
 
-#include "mqtt/liveobjects_message.h"
+#include "liveobjects/liveobjects_message.h"
 
 namespace meteodata
 {
