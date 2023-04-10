@@ -40,8 +40,7 @@ namespace meteodata
 {
 
 Watchdog::Watchdog(asio::io_context& ioContext) :
-		_ioContext{ioContext},
-		_timer{ioContext}
+	_timer{ioContext}
 {
 }
 
@@ -50,17 +49,26 @@ void Watchdog::start()
 	const char* watchdogusec = getenv("WATCHDOG_USEC");
 	if (watchdogusec) {
 		_period = chrono::microseconds(std::strtoul(watchdogusec, nullptr, 10) / 2);
+		_stopped = false;
 		waitUntilNextNotification();
 	}
 	// in case no watchdog notification period is passed to us by systemd
 	// just bail off
 }
 
+void Watchdog::stop()
+{
+	_timer.cancel();
+	_stopped = true;
+}
+
 void Watchdog::waitUntilNextNotification()
 {
-	auto self(shared_from_this());
+	if (_stopped)
+		return;
+
 	_timer.expires_from_now(_period);
-	_timer.async_wait(std::bind(&Watchdog::checkDeadline, self, args::_1));
+	_timer.async_wait([this](const sys::error_code& ec) { checkDeadline(ec); });
 }
 
 void Watchdog::checkDeadline(const sys::error_code& e)
@@ -77,8 +85,7 @@ void Watchdog::checkDeadline(const sys::error_code& e)
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
-		auto self(shared_from_this());
-		_timer.async_wait(std::bind(&Watchdog::checkDeadline, self, args::_1));
+		_timer.async_wait([this](const sys::error_code& ec) { return checkDeadline(ec); });
 	}
 }
 

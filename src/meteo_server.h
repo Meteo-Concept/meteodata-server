@@ -33,6 +33,7 @@
 #include "connector_group.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
+#include "monitoring/watchdog.h"
 #include "config.h"
 
 namespace meteodata
@@ -126,6 +127,7 @@ public:
 		bool startMbdata = true;
 		bool startRest = true;
 		bool startVp2 = true;
+		bool daemonized = false;
 	};
 
 	/**
@@ -167,6 +169,8 @@ private:
 	bool _vp2DirectConnectorStopped;
 
 	bool _controlConnectionStopped;
+
+	Watchdog _watchdog;
 
 	/**
 	 * @brief The Boost::Asio object representing the endpoint receiving commands

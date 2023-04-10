@@ -80,12 +80,17 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 	_controlConnectionStopped{true},
 	_signalTimer{ioContext},
 	_configuration{config},
-	_controlAcceptor{ioContext}
+	_controlAcceptor{ioContext},
+	_watchdog{ioContext}
 {
 	_configuration.password.clear();
 	signal(SIGINT, catchSignal);
 	signal(SIGTERM, catchSignal);
 	pollSignal(sys::errc::make_error_code(sys::errc::success));
+
+	if (_configuration.daemonized) {
+		_watchdog.start();
+	}
 
 	std::cerr << SD_INFO << "[Server] management: " << "Meteodata has started succesfully" << std::endl;
 }
@@ -290,6 +295,7 @@ void MeteoServer::stop()
 		if (c)
 			c->stop();
 	}
+
 	if (_vp2DirectConnectAcceptor.is_open()) {
 		_vp2DirectConnectorStopped = true;
 		_vp2DirectConnectAcceptor.close();
@@ -302,6 +308,10 @@ void MeteoServer::stop()
 	if (_controlAcceptor.is_open()) {
 		_controlConnectionStopped = true;
 		_controlAcceptor.close();
+	}
+
+	if (_watchdog.isStarted()) {
+		_watchdog.stop();
 	}
 }
 

@@ -43,14 +43,14 @@ using namespace std::placeholders;
 /**
  * @brief The watchdog that monitors Meteodata (in)activity and notifies systemd
  *
- * Under some rare circumstances, Meteodata can freeze. I guess it's due do some
- * race conditions around timeouts in HTTP requests that end up locking all
- * the download workers eventually...
+ * Under some rare circumstances (ok... bugs), Meteodata can freeze. I guess
+ * it's due do some race conditions around timeouts in HTTP requests that end up
+ * locking all the download workers eventually...
  *
  * Anyway, for safety purposes, it's best to have a watchdog that can trigger if
  * Meteodata is not active.
  */
-class Watchdog : public std::enable_shared_from_this<Watchdog>
+class Watchdog
 {
 public:
 	/**
@@ -59,26 +59,34 @@ public:
 	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
 	 */
-	Watchdog(asio::io_context& ioContext);
+	explicit Watchdog(asio::io_context& ioContext);
 
 	/**
 	 * @brief Start the periodic watchdog notification
 	 */
 	void start();
 
-private:
 	/**
-	 * @brief The Boost service that processes asynchronous events, timers,
-	 * etc.
+	 * @brief Stop the periodic watchdog notification to prepare for program exit
 	 */
-	asio::io_context& _ioContext;
+	void stop();
 
+	/**
+	 * @brief Tells whether the watchdog is armed
+	 * @return True if and only if the watchdog is scheduled to send periodic
+	 * notifications of liveness
+	 */
+	inline const bool isStarted() { return !_stopped; }
+
+private:
 	/**
 	 * @brief The timer used to periodically trigger the data downloads
 	 */
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 
 	chrono::microseconds _period;
+
+	bool _stopped = true;
 
 private:
 	/**

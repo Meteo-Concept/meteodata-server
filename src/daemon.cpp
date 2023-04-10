@@ -34,7 +34,6 @@
 
 #include "config.h"
 #include "meteo_server.h"
-#include "monitoring/watchdog.h"
 
 /**
  * @brief The configuration file default path
@@ -170,6 +169,10 @@ int main(int argc, char** argv)
 			serverConfig.startVp2 = true;
 	}
 
+	if (daemonized) {
+		serverConfig.daemonized = true;
+	}
+
 	cass_log_set_level(CASS_LOG_INFO);
 	CassLogCallback logCallback =
 		[](const CassLogMessage *message, void*) -> void {
@@ -188,11 +191,6 @@ int main(int argc, char** argv)
 	try {
 		curl_global_init(CURL_GLOBAL_SSL);
 		boost::asio::io_context ioContext;
-
-		if (daemonized) {
-			std::shared_ptr<Watchdog> watchdog = std::make_shared<Watchdog>(ioContext);
-			watchdog->start();
-		}
 
 		MeteoServer server(ioContext, std::move(serverConfig));
 		server.start();
