@@ -139,7 +139,7 @@ void VantagePro2Connector::waitForNextMeasure()
 			  << chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count() << "s " << std::endl;
 	_timer.expires_after(tp);
 	_status.nextDownload = date::floor<chrono::seconds>(now + tp);
-	_status.shortStatus = "SEtting the station clock";
+	_status.shortStatus = "Waiting for the next measure";
 	_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
 }
 
@@ -912,6 +912,15 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				operations can get here */
 			break;
 	}
+}
+
+std::string VantagePro2Connector::getStatus() const
+{
+	std::ostringstream os;
+	os << _stationName
+	   << " [" << _station << "]\n"
+	   << Connector::getStatus();
+	return os.str();
 }
 
 }

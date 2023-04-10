@@ -38,7 +38,7 @@ Connector::Connector(boost::asio::io_context& ioContext, DbConnectionObservation
 		_db{db}
 {}
 
-std::string Connector::getStatus()
+std::string Connector::getStatus() const
 {
 	using namespace date;
 

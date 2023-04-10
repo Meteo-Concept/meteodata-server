@@ -54,7 +54,7 @@ public:
 
 	virtual void reload() = 0;
 
-	virtual std::string getStatus();
+	virtual std::string getStatus() const;
 
 protected:
 	/**

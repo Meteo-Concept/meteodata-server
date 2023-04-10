@@ -100,6 +100,8 @@ public:
 	 */
 	boost::asio::ip::tcp::socket& socket() { return _sock; }
 
+	std::string getStatus() const override;
+
 private:
 	/**
 	 * @brief Represent a state in the state machine
