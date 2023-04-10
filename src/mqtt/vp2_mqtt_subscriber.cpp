@@ -76,7 +76,7 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 			if (topic.rfind(ARCHIVES_TOPIC) == topic.size() - 7) { // ends_with("/dmpaft")
 				std::string stationTopic = topic.substr(0, topic.size() - 7);
 				// Sending the GETTIME command will wake up the scheduler if it's stuck for some reason
-				_client->publish_at_least_once(stationTopic, "GETTIME");
+				_client->publish(stationTopic, "GETTIME", mqtt::qos::at_least_once);
 
 				// Reset the station clock for good measure as well
 				setClock(stationTopic, std::get<0>(station), timeOffseter);
@@ -86,8 +86,9 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 					// The 2h offset is somewhat arbitrary, it prevents missing observations in case of multiple
 					// disconnections over short periods of time
 					date::local_seconds archiveTime = timeOffseter.convertToLocalTime(lastArchive - chrono::hours(2));
-					_client->publish_at_least_once(topic.substr(0, topic.size() - 7),
-						date::format("DMPAFT %Y-%m-%d %H:%M", archiveTime));
+					_client->publish(topic.substr(0, topic.size() - 7),
+						date::format("DMPAFT %Y-%m-%d %H:%M", archiveTime),
+						mqtt::qos::at_least_once);
 				}
 			}
 		}
@@ -167,10 +168,10 @@ void VP2MqttSubscriber::setClock(const std::string& topic, const CassUuid& stati
 		// but the console is forced to use UTC
 		std::ostringstream os;
 		os << "SETTIME " << date::format("%Y-%m-%d %H:%M:%S", now);
-		_client->publish_at_least_once(topic, os.str());
+		_client->publish(topic, os.str(), mqtt::qos::at_least_once);
 	} else {
 		// Trust the vp2-interface to have the same timezone as the station
-		_client->publish_at_least_once(topic, "SETTIME");
+		_client->publish(topic, "SETTIME", mqtt::qos::at_least_once);
 	}
 	_clockResetTimes[topic] = now;
 }
