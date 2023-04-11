@@ -70,7 +70,7 @@ void Cpl01PluviometerMessage::ingest(const CassUuid& station, const std::string&
 		// the last rainfall datapoint is not too old, we can use
 		// it as a reference for the current number of clicks recorded
 		// by the pluviometer
-		if (_obs.totalPulses > previousClicks) {
+		if (_obs.totalPulses >= previousClicks) {
 			_obs.rainfall = (_obs.totalPulses - previousClicks) * CPL01_RAIN_GAUGE_RESOLUTION;
 		} else {
 			_obs.rainfall = ((0xFFFFFFu - previousClicks) + _obs.totalPulses) * CPL01_RAIN_GAUGE_RESOLUTION;
