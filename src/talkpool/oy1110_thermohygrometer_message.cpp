@@ -123,7 +123,7 @@ json::object Oy1110ThermohygrometerMessage::getDecodedMessage() const
 		{ "model", "talkpool_oy1110_20230411" },
 		{ "value", {
 			{ "basetime", os.str() },
-			{ "offset", _obs.offset.count() },
+			{ "offset", _obs.temperatures.size() > 1 ? _obs.offset.count() : 0 },
 			{ "temperatures", json::array(_obs.temperatures.begin(), _obs.temperatures.end()) },
 			{ "humidities", json::array(_obs.humidities.begin(), _obs.humidities.end()) },
 		} }
