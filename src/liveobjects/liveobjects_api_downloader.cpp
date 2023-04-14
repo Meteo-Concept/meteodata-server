@@ -29,6 +29,7 @@
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/json.hpp>
 #include <dbconnection_observations.h>
 #include <date.h>
 #include <systemd/sd-daemon.h>
@@ -45,17 +46,19 @@ namespace meteodata
 {
 
 constexpr char LiveobjectsApiDownloader::APIHOST[];
+constexpr char LiveobjectsApiDownloader::SEARCH_ROUTE[];
 const std::string LiveobjectsApiDownloader::BASE_URL = std::string{"https://"} + LiveobjectsApiDownloader::APIHOST + "/api";
 constexpr int LiveobjectsApiDownloader::PAGE_SIZE;
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
+namespace json = boost::json;
 
 using namespace meteodata;
 
 LiveobjectsApiDownloader::LiveobjectsApiDownloader(const CassUuid& station, const std::string& liveobjectsId,
-												   DbConnectionObservations& db, const std::string& apiKey) :
+	DbConnectionObservations& db, const std::string& apiKey) :
 		_station(station),
 		_liveobjectsUrn(liveobjectsId),
 		_db(db),
@@ -112,10 +115,10 @@ date::sys_seconds LiveobjectsApiDownloader::getLastDatetimeAvailable(CurlWrapper
 
 void LiveobjectsApiDownloader::download(CurlWrapper& client)
 {
-	download(client, _lastArchive);
+	download(client, _lastArchive, date::floor<chrono::seconds>(chrono::system_clock::now()));
 }
 
-void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_seconds& beginDate, bool force)
+void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_seconds& beginDate, const date::sys_seconds& endDate, bool force)
 {
 	std::cout << SD_INFO << "[Liveobjects " << _station << "] measurement: "
 			  << "Downloading historical data for Liveobjects station " << _stationName << std::endl;
@@ -139,26 +142,56 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 			  << date::floor<date::days>(lastAvailable - _lastArchive) << " days)" << std::endl;
 
 	bool insertionOk = true;
-	std::string previousBookmark, lastBookmark;
-	date::sys_seconds newest = _lastArchive, oldest = _lastArchive;
+	date::sys_seconds newest = _lastArchive;
+	date::sys_seconds date = beginDate;
 	do {
-		std::ostringstream routeBuilder;
-		routeBuilder << "/v0/data/streams/" << _liveobjectsUrn << "?"
-			<< "timerange=" << date::format("%FT%TZ", beginDate) << "," << date::format("%FT%TZ", lastAvailable) << "&"
-			<< "limit=" << PAGE_SIZE;
+		date::sys_seconds datep1 = date + chrono::hours{24}; // about right
 
-		if (!lastBookmark.empty())
-			routeBuilder << "&bookmarkId=" << lastBookmark;
+		std::ostringstream osDate;
+		osDate << date::format("%FT%TZ", date);
+		std::ostringstream osDatep1;
+		osDatep1 << date::format("%FT%TZ", datep1);
 
-		std::string route = routeBuilder.str();
+		json::object body{
+			{ "size", PAGE_SIZE },
+			{ "query", json::object{
+				{ "bool", json::object{
+					{ "must", json::array{ {
+						{ "term", {
+							{ "streamId", _liveobjectsUrn }
+						} }
+					} } },
+					{ "filter", json::array{ {
+						{ "range", {
+							{ "timestamp", {
+								{ "gt", osDate.str() },
+								{ "lte", osDatep1.str() }
+							} }
+						} }
+					} } }
+				} }
+			} },
+			{ "sort", json::array{ {
+				{ "timestamp", {
+					{ "order", "asc" }
+				} }
+			} } }
+		};
+
 
 		client.setHeader("X-API-Key", _apiKey);
+		client.setHeader("Content-Type", "application/json");
 		client.setHeader("Accept", "application/json");
 
-		std::cout << SD_DEBUG << "[Liveobjects " << _station << "] protocol: " << "GET " << route << " HTTP/1.1 "
-				  << "Host: " << APIHOST << " " << "Accept: application/json\n";
+		std::cout << SD_DEBUG << "[Liveobjects " << _station << "] protocol: "
+				  << "POST " << SEARCH_ROUTE << " HTTP/1.1\n"
+				  << "Host: " << APIHOST << "\n"
+				  << "Accept: application/json\n"
+				  << body << "\n";
 
-		CURLcode ret = client.download(BASE_URL + route, [&](const std::string& body) {
+		CURLcode ret = client.post(std::string{BASE_URL} + SEARCH_ROUTE,
+				json::serialize(body),
+				[&](const std::string& body) {
 			try {
 				std::istringstream responseStream(body);
 				pt::ptree jsonTree;
@@ -173,16 +206,15 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 							std::cerr << SD_ERR << "[Liveobjects " << _station << "] measurement: "
 									  << "Failed to insert archive observation for station " << _stationName << std::endl;
 							insertionOk = false;
-						} else if (timestamp > newest) {
-							newest = timestamp;
-						} else if (timestamp < oldest) {
-							oldest = timestamp;
+						} else {
+							m->cacheValues(_station);
+							if (timestamp > newest) {
+								newest = timestamp;
+							}
 						}
 					}
-
-					previousBookmark = lastBookmark;
-					lastBookmark = entry.second.get<std::string>("id");
 				}
+				date = newest;
 			} catch (const std::exception& e) {
 				std::cerr << SD_ERR << "[Liveobjects " << _station << "] protocol: "
 						  << "Failed to receive or parse an Liveobjects data message: " << e.what() << std::endl;
@@ -192,7 +224,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 		if (ret != CURLE_OK) {
 			logAndThrowCurlError(client);
 		}
-	} while (oldest >= beginDate && newest <= lastAvailable && insertionOk && lastBookmark != previousBookmark);
+	} while (insertionOk && date < endDate);
 
 	if (insertionOk) {
 		std::cout << SD_DEBUG << "[Liveobjects " << _station << "] measurement: "

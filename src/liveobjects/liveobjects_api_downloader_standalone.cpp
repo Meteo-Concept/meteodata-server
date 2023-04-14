@@ -74,6 +74,7 @@ int main(int argc, char** argv)
 	std::string apiKey;
 	std::vector<std::string> namedStations;
 	std::string begin;
+	std::string end;
 
 	constexpr char CLIENT_ID[] = "meteodata_standalone";
 
@@ -92,6 +93,7 @@ int main(int argc, char** argv)
 		("config-file", po::value<std::string>(), "alternative configuration file")
 		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations to download the data for (can be given multiple times, defaults to all MQTT VP2 stations)")
 		("begin", po::value<std::string>(&begin), "Start of the range to recover (by default, 24h ago)")
+		("end", po::value<std::string>(&end), "End of the range to recover (by default, now)")
 	;
 	desc.add(config);
 
@@ -134,6 +136,26 @@ int main(int argc, char** argv)
 		}
 	} else {
 		beginDate = date::floor<hours>(system_clock::now()) - date::days(1);
+	}
+
+	sys_seconds endDate;
+	if (vm.count("end")) {
+		std::istringstream in{end};
+		in >> date::parse("%Y-%m-%d %H:%M", endDate);
+		if (!in) {
+			std::cerr << "'" << end << "' does not look like a valid date and time, that's problematic (expected format : \"Y-m-d H:M\")" << std::endl;
+			return EINVAL;
+		}
+		if (endDate > system_clock::now()) {
+			std::cerr << endDate << " looks like it's in the future, that's problematic" << std::endl;
+			return EINVAL;
+		}
+		if (endDate < beginDate) {
+			std::cerr << endDate << " looks like it's before the beginning date, that's problematic" << std::endl;
+			return EINVAL;
+		}
+	} else {
+		endDate = date::floor<hours>(system_clock::now());
 	}
 
 	std::set<CassUuid> userSelection;
@@ -187,7 +209,7 @@ int main(int argc, char** argv)
 		std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
 		LiveobjectsApiDownloader downloader{std::get<0>(station), std::get<1>(station), db, apiKey};
 		try {
-			downloader.download(client, beginDate, true);
+			downloader.download(client, beginDate, endDate, true);
 			retry = 0;
 			++it;
 			std::this_thread::sleep_for(chrono::milliseconds(100));

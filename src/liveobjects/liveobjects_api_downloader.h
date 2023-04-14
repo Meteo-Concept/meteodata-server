@@ -76,12 +76,14 @@ public:
 	 *
 	 * @param client the client used to download data, already connected and
 	 * ready to read/write
-	 * @param beginDate The ebginning of the time range from which data should be downloaded
+	 * @param beginDate The beginning of the time range from which data should be downloaded
+	 * @param endDate The end of the time range from which data should be downloaded
 	 * @param force Whether to force retrieve the data even if the last available
 	 * data from Liveobjects is not newer than what we already have in database
 	 * @return True if the insertion of the values in the DB worked
 	 */
-	void download(CurlWrapper& client, const date::sys_seconds& beginDate, bool force=false);
+	void download(CurlWrapper& client, const date::sys_seconds& beginDate,
+		const date::sys_seconds& endDate, bool force=false);
 
 	/**
 	 * @brief The host name of the Liveobjects API server
@@ -90,7 +92,8 @@ public:
 
 	static const std::string BASE_URL;
 
-	static constexpr int PAGE_SIZE = 50;
+	// 1 message every ten minutes over a day = 144 messages
+	static constexpr int PAGE_SIZE = 200;
 
 private:
 	/**
@@ -130,6 +133,8 @@ private:
 	 * @brief The max size reserved for the buffers used in the requests
 	 */
 	static constexpr size_t MAXSIZE = 1024 * 1024; // 1MiB
+
+	static constexpr char SEARCH_ROUTE[] = "/v1/data/search/hits/";
 
 	/**
 	 * @brief Get the datetime of the last datapoint available from the
