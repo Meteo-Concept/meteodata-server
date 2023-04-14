@@ -90,26 +90,55 @@ CURLcode CurlWrapper::download(const std::string& url, const std::function<void(
 	return res;
 }
 
+CURLcode CurlWrapper::post(const std::string& url, const std::string& content,
+	const std::function<void(const std::string&)>& parser)
+{
+	if (_headers)
+		curl_easy_setopt(_handle.get(), CURLOPT_HTTPHEADER, _headers.get());
+	curl_easy_setopt(_handle.get(), CURLOPT_URL, url.data());
+	curl_easy_setopt(_handle.get(), CURLOPT_POST, 1);
+
+	curl_off_t size{static_cast<curl_off_t>(content.size())};
+	curl_easy_setopt(_handle.get(), CURLOPT_POSTFIELDSIZE_LARGE, size);
+	curl_easy_setopt(_handle.get(), CURLOPT_POSTFIELDS, content.data());
+
+	// Clear the buffer just in case, but it should be empty anyway
+	_buffer.clear();
+	// Do the query
+	CURLcode res = curl_easy_perform(_handle.get());
+	// remove all headers (and frees the list), we don't reuse them
+	_headers.reset();
+
+	// Call the callback only if the query was successful and clear the buffer in any case
+	if (res == CURLE_OK)
+		parser(_buffer);
+	_buffer.clear();
+
+	// The caller will have the status and know from there whether the callback has been called
+	return res;
+}
+
+
 std::string_view CurlWrapper::getLastError()
 {
-	return {_errorBuffer};
+		return {_errorBuffer};
 }
 
 long CurlWrapper::getLastRequestCode()
 {
-	long code;
-	curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
-	return code;
+		long code;
+		curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
+		return code;
 }
 
 std::size_t CurlWrapper::receiveData(void* buffer, std::size_t size, std::size_t nbemb, void* userp)
 {
-	// This function can be called several times by curl to output data from a HTTP query
-	auto* destination = reinterpret_cast<std::string*>(userp);
-	std::size_t realsize = size * nbemb;
-	if (realsize && buffer)
-		destination->append(reinterpret_cast<char*>(buffer), realsize);
-	return realsize;
+		// This function can be called several times by curl to output data from a HTTP query
+		auto* destination = reinterpret_cast<std::string*>(userp);
+		std::size_t realsize = size * nbemb;
+		if (realsize && buffer)
+				destination->append(reinterpret_cast<char*>(buffer), realsize);
+		return realsize;
 }
 
 }

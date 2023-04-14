@@ -67,6 +67,9 @@ public:
 	 */
 	CURLcode download(const std::string& url, const std::function<void(const std::string&)>& parser);
 
+	CURLcode post(const std::string& url, const std::string& content,
+		const std::function<void(const std::string&)>& parser);
+
 	/**
 	 * @brief Get the last error message returned by curl
 	 * @return The last error message written by curl in its error buffer (https://curl.se/libcurl/c/CURLOPT_ERRORBUFFER.html)
