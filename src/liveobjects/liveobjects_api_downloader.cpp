@@ -96,8 +96,11 @@ date::sys_seconds LiveobjectsApiDownloader::getLastDatetimeAvailable(CurlWrapper
 		pt::ptree jsonTree;
 		pt::read_json(bodyStream, jsonTree);
 
+		if (jsonTree.begin() == jsonTree.end())
+			return;
+
 		// use the first entry (there should be one in the general case anyway)
-		const std::string& maxDate = jsonTree.begin()->second.get<std::string>("lastUpdate");
+		const std::string& maxDate = jsonTree.begin()->second.get<std::string>("lastUpdate", 0);
 		std::istringstream dateStream{maxDate};
 		std::cerr << "last available: " << maxDate << std::endl;
 		// the date library won't parse the decimal part of the seconds on its
