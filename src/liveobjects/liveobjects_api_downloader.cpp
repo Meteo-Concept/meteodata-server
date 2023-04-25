@@ -217,7 +217,13 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 						}
 					}
 				}
-				date = newest;
+				if (date >= newest) {
+					// we've not made any progress, force advance the date in
+					// order not to keep stuck
+					date = datep1;
+				} else {
+					date = newest;
+				}
 			} catch (const std::exception& e) {
 				std::cerr << SD_ERR << "[Liveobjects " << _station << "] protocol: "
 						  << "Failed to receive or parse an Liveobjects data message: " << e.what() << std::endl;
