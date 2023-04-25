@@ -105,7 +105,9 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, wlv2structure
 void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType sensorType,
 		DataStructureType dataStructureType)
 {
-	if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+	if (isMainStationType(sensorType) &&
+			(dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD ||
+			 dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_ISS_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_last", INVALID_FLOAT);
 		if (!isInvalid(hum))
@@ -168,7 +170,8 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.soilTemperature[2] = data.get<float>("temp_soil_3", INVALID_FLOAT);
 		_obs.soilTemperature[3] = data.get<float>("temp_soil_4", INVALID_FLOAT);
 	} else if (sensorType == SensorType::SENSOR_SUITE &&
-			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD) {
+			   (dataStructureType == DataStructureType::WEATHERLINK_LIVE_ISS_ARCHIVE_RECORD ||
+			    dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_ISS_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		// This data package must be ingested after the ISS data
 		float hum = data.get<float>("hum_last", INVALID_FLOAT);
@@ -189,13 +192,15 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
-			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
+			   (dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD ||
+			    dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_BAROMETER_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
 			_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
 	} else if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
-			   dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD) {
+			   (dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD ||
+			    dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_LEAFSOIL_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		// The first two temperatures are put in both leaf and soil temperatures fields
 		// because we cannot know from the API where the user installed the sensors

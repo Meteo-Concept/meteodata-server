@@ -76,7 +76,9 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, wlv2structur
 void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType sensorType,
 	DataStructureType dataStructureType)
 {
-	if (isMainStationType(sensorType) && dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+	if (isMainStationType(sensorType) &&
+		(dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING ||
+		 dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_ISS_CURRENT_READING)) {
 		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum", INVALID_FLOAT);
 		if (!isInvalid(hum))
@@ -91,6 +93,11 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 		if (!isInvalid(rainRate))
 			_obs.rainRate = from_rainrate_to_mm(rainRate);
 		auto rainFall = data.get<int>("rainfall_daily_clicks", INVALID_INT);
+		if (isInvalid(rainFall)) {
+			// only difference (for what matters to Meteodata)
+			// between Weatherlink Live and Weatherlink Console
+			rainFall = data.get<int>("rainfall_day_clicks", INVALID_INT);
+		}
 		if (!isInvalid(rainFall)) {
 			_newDayRain = from_rainrate_to_mm(rainFall);
 			float diff = from_rainrate_to_mm(rainFall) - _dayRain;
@@ -184,7 +191,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 	}
 
 	if (sensorType == SensorType::SENSOR_SUITE &&
-		dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING) {
+		(dataStructureType == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING ||
+		 dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_ISS_CURRENT_READING)) {
 		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 		if (isInvalid(_obs.humidity)) {
 			float hum = data.get<float>("hum", INVALID_FLOAT);
@@ -224,7 +232,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 	}
 
 	if (sensorType == SensorType::BAROMETER &&
-		dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+		(dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING ||
+		 dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_BAROMETER_CURRENT_READING)) {
 		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 		_obs.pressure = data.get<float>("bar_sea_level", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
@@ -232,7 +241,8 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 	}
 
 	if (sensorType == SensorType::LEAF_SOIL_SUBSTATION &&
-		dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING) {
+		(dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_CURRENT_READING ||
+		 dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_LEAFSOIL_CURRENT_READING)) {
 		_obs.time = date::sys_time<chrono::milliseconds>(chrono::seconds(data.get<time_t>("ts")));
 		// The first two temperatures are put in both leaf and soil temperatures fields
 		// because we cannot know from the API where the user installed the sensors
