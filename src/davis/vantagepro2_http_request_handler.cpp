@@ -25,6 +25,7 @@
 #include <systemd/sd-daemon.h>
 #include <date.h>
 
+#include <sstream>
 #include <vector>
 #include <tuple>
 #include <regex>
@@ -83,8 +84,23 @@ bool VantagePro2HttpRequestHandler::getUuidAndCheckAccess(const Request& request
 {
 	cass_uuid_from_string(url[1].str().c_str(), &uuid);
 	const boost::beast::string_view httpUser = request.base()["X-Authenticated-User"];
-	if (httpUser.empty() || httpUser != _userAndTimezoneByStation[uuid].authorizedUser) {
+	if (httpUser.empty()) {
+		response.result(boost::beast::http::status::unauthorized);
+		response.body() = "Authenticated user required";
+		return false;
+	}
+
+	if (_userAndTimezoneByStation.count(uuid) == 0) {
 		response.result(boost::beast::http::status::forbidden);
+		response.body() = "Station " + url[1].str() + " unknown";
+		return false;
+	}
+
+	if (httpUser != _userAndTimezoneByStation[uuid].authorizedUser) {
+		response.result(boost::beast::http::status::forbidden);
+		std::ostringstream os;
+		os << "Access to station " << uuid << " by user " << httpUser << " forbidden";
+		response.body() = os.str();
 		return false;
 	}
 	return true;
