@@ -29,6 +29,7 @@
 #include "liveobjects_message.h"
 #include "dragino/cpl01_pluviometer_message.h"
 #include "dragino/lsn50v2_thermohygrometer_message.h"
+#include "dragino/thpllora_message.h"
 #include "barani/barani_anemometer_message.h"
 #include "barani/barani_rain_gauge_message.h"
 #include "pessl/lorain_message.h"
@@ -70,6 +71,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 		m = std::make_unique<Cpl01PluviometerMessage>(db);
 	} else if (sensor == "dragino-lsn50v2" && port == 2) {
 		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
+	} else if (sensor == "dragino-thpllora" && port == 2) {
+		m = std::make_unique<ThplloraMessage>(db);
 	} else if (sensor == "barani-meteowind") {
 		m = std::make_unique<BaraniAnemometerMessage>();
 	} else if (sensor == "barani-meteorain") {

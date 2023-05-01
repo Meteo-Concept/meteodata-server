@@ -88,6 +88,8 @@ meteodata_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
+		    dragino/thpllora_message.cpp\
+		    dragino/thpllora_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -377,6 +379,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
+		    dragino/thpllora_message.cpp\
+		    dragino/thpllora_message.h\
 		    thlora/thlora_thermohygrometer_message.cpp\
 		    thlora/thlora_thermohygrometer_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
