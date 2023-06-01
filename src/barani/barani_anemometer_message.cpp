@@ -124,7 +124,7 @@ json::object BaraniAnemometerMessage::getDecodedMessage() const
 		{ "value", {
 			{ "index", _obs.index },
 			{ "battery_voltage", _obs.batteryVoltage },
-			{ "wind_avg_10min_peed",_obs.windAvg10minSpeed },
+			{ "wind_avg_10min_speed",_obs.windAvg10minSpeed },
 			{ "wind_3s_gust_speed", _obs.wind3sGustSpeed },
 			{ "wind_speed_stdev", _obs.windSpeedStdev },
 			{ "wind_avg_10min_direction", _obs.windAvg10minDirection },
