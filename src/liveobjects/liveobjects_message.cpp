@@ -69,7 +69,7 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 	std::unique_ptr<LiveobjectsMessage> m;
 	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
 		m = std::make_unique<Cpl01PluviometerMessage>(db);
-	} else if (sensor == "dragino-lsn50v2" && port == 2) {
+	} else if ((sensor == "dragino-lsn50v2" || sensor == "dragino_lsn50v2") && port == 2) {
 		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
 	} else if (sensor == "dragino-thpllora" && port == 2) {
 		m = std::make_unique<ThplloraMessage>(db);
