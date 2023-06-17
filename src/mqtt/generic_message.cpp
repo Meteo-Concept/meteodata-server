@@ -55,6 +55,7 @@ GenericMessage GenericMessage::buildMessage(DbConnectionObservations& db,
 
 		std::cout << SD_DEBUG << "Parsing message with timestamp " << timestamp << std::endl;
 
+		m._obs.atmosphericPressure = m._content.get<float>("atmospheric_pressure", NAN);
 		m._obs.windAvg = m._content.get<float>("wind_avg", NAN);
 		m._obs.windMax = m._content.get<float>("wind_max", NAN);
 		m._obs.temperature = m._content.get<float>("temperature", NAN);
@@ -80,6 +81,7 @@ Observation GenericMessage::getObservation(const CassUuid& station) const
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;
 
+		result.barometer = { !std::isnan(_obs.atmosphericPressure), _obs.atmosphericPressure };
 		result.windspeed = { !std::isnan(_obs.windAvg), _obs.windAvg };
 		result.windgust = { !std::isnan(_obs.windMax), _obs.windMax };
 		result.winddir = { !std::isnan(_obs.windDir), _obs.windDir };
