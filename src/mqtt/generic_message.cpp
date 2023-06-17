@@ -45,9 +45,9 @@ GenericMessage GenericMessage::buildMessage(DbConnectionObservations& db,
 
 	auto inbandTimestamp = json.get<int>("timestamp", 0);
 	if (inbandTimestamp == 0) {
-		m._valid = false;
+		m._obs.valid = false;
 	} else {
-		m._valid = true;
+		m._obs.valid = true;
 
 		using namespace date;
 		m._obs.time = date::floor<chrono::seconds>(chrono::system_clock::from_time_t(inbandTimestamp));
@@ -75,7 +75,7 @@ Observation GenericMessage::getObservation(const CassUuid& station) const
 {
 	Observation result;
 
-	if (_valid) {
+	if (_obs.valid) {
 		result.station = station;
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;

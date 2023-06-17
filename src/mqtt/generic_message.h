@@ -99,7 +99,6 @@ private:
 	 */
 	DataPoint _obs;
 
-	bool _valid;
 	boost::property_tree::ptree _content;
 };
 
