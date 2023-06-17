@@ -42,6 +42,7 @@
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
 #include "mqtt/liveobjects_mqtt_subscriber.h"
+#include "mqtt/generic_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_download_scheduler.h"
 #include "synop/synop_download_scheduler.h"
@@ -143,6 +144,7 @@ void MeteoServer::start()
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsMqttSubscriber>> liveobjectsMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<GenericMqttSubscriber>> genericMqttSubscribers;
 		_db.getMqttStations(mqttStations);
 		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getAllLiveobjectsStations(liveobjectsStations);
@@ -183,9 +185,16 @@ void MeteoServer::start()
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != liveobjectsStations.end())
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
+			} else if (topic.substr(0, 8) == "generic/") {
+				auto mqttSubscribersIt = genericMqttSubscribers.find(details);
+				if (mqttSubscribersIt == genericMqttSubscribers.end()) {
+					std::shared_ptr<GenericMqttSubscriber> subscriber = std::make_shared<GenericMqttSubscriber>(details, _ioContext, _db);
+					mqttSubscribersIt = genericMqttSubscribers.emplace(details, subscriber).first;
+				}
+				mqttSubscribersIt->second->addStation(topic, uuid, tz);
 			} else {
 				std::cerr << SD_ERR << "[MQTT " << std::get<0>(station) << "] protocol: " << "Unrecognized topic "
-						  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
+					  << topic << " for MQTT station " << std::get<0>(station) << std::endl;
 			}
 		}
 
@@ -200,6 +209,10 @@ void MeteoServer::start()
 		for (auto&& mqttSubscriber : liveobjectsMqttSubscribers) {
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
+		for (auto&& mqttSubscriber : genericMqttSubscribers) {
+			mqttSubscriber.second->start();
+			_connectors.emplace("mqtt_generic_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 	}
 

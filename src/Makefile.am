@@ -111,6 +111,8 @@ meteodata_SOURCES = \
 		    liveobjects/liveobjects_message.h\
 		    liveobjects/liveobjects_http_decoding_request_handler.cpp\
 		    liveobjects/liveobjects_http_decoding_request_handler.h\
+		    mqtt/generic_message.cpp\
+		    mqtt/generic_message.h\
 		    mqtt/mqtt_subscriber.cpp\
 		    mqtt/mqtt_subscriber.h\
 		    mqtt/vp2_mqtt_subscriber.cpp\
@@ -119,6 +121,8 @@ meteodata_SOURCES = \
 		    mqtt/objenious_mqtt_subscriber.h\
 		    mqtt/liveobjects_mqtt_subscriber.cpp\
 		    mqtt/liveobjects_mqtt_subscriber.h\
+		    mqtt/generic_mqtt_subscriber.cpp\
+		    mqtt/generic_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
 		    ship_and_buoy/meteo_france_ship_and_buoy.h\
 		    ship_and_buoy/ship_and_buoy_downloader.cpp\
