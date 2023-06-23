@@ -64,7 +64,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 	   >> parse(temp, 4, 16)
 	   >> parse(hum, 4, 16);
 
-	_obs.battery = battery / 1000;
+	_obs.battery = float(battery) / 1000;
 
 	_obs.humidity = float(hum) / 10;
 	if (temp == 0xFFFF) {
