@@ -90,6 +90,7 @@ private:
 		float humidity = NAN;
 		uint16_t totalPulses;
 		float rainfall = NAN;
+		float rainrate = NAN;
 	};
 
 	/**

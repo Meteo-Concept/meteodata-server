@@ -54,17 +54,24 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 
 	_obs.time = datetime;
 	uint16_t battery;
+	uint16_t rainrate;
 	uint16_t temp;
 	uint16_t hum;
 
 	std::istringstream is{payload};
 	is >> parse(battery, 4, 16)
-	   >> ignore(4)
+	   >> parse(rainrate, 4, 16)
 	   >> parse(_obs.totalPulses, 8, 16)
 	   >> parse(temp, 4, 16)
 	   >> parse(hum, 4, 16);
 
 	_obs.battery = float(battery) / 1000;
+
+	if (rainrate == 0xFFFF) {
+		_obs.rainrate = NAN;
+	} else {
+		_obs.rainrate = float(rainrate) / 10;
+	}
 
 	_obs.humidity = float(hum) / 10;
 	if (temp == 0xFFFF) {
@@ -111,6 +118,7 @@ Observation ThplloraMessage::getObservation(const CassUuid& station) const
 	obs.day = date::floor<date::days>(_obs.time);
 	obs.time = _obs.time;
 	obs.rainfall = {!std::isnan(_obs.rainfall), _obs.rainfall};
+	obs.rainrate = {!std::isnan(_obs.rainrate), _obs.rainrate};
 	obs.outsidetemp = {!std::isnan(_obs.temperature), _obs.temperature};
 	obs.outsidehum = {!std::isnan(_obs.humidity), int(std::round(_obs.humidity))};
 	return obs;
@@ -119,13 +127,14 @@ Observation ThplloraMessage::getObservation(const CassUuid& station) const
 json::object ThplloraMessage::getDecodedMessage() const
 {
 	return json::object{
-		{ "model", "Thpllora_20230501" },
+		{ "model", "Thpllora_20230713" },
 		{ "value", {
 			{ "battery", _obs.battery },
 			{ "temperature", _obs.temperature },
 			{ "humidity", _obs.humidity },
 			{ "total_pulses", _obs.totalPulses },
-			{ "rainfall", _obs.rainfall }
+			{ "rainfall", _obs.rainfall },
+			{ "rainrate", _obs.rainrate },
 		} }
 	};
 }
