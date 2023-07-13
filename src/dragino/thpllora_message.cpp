@@ -67,7 +67,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 
 	_obs.battery = float(battery) / 1000;
 
-	if (rainrate == 0xFFFF) {
+	if (rainrate == 0x7FFF) {
 		_obs.rainrate = NAN;
 	} else {
 		_obs.rainrate = float(rainrate) / 10;
