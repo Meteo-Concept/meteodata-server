@@ -1,3 +1,11 @@
+2023-07-21	Laurent Georget <laurent.georget@meteo-concept.fr>
+
+	* Add a component able to schedule recomputations of the climatology
+	  and monitoring indices
+
+	In many cases, it will no longer be necessary to run jobs manually
+	when a station comes back online after days of lacking connectivity.
+
 2020-10-02	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Make all HTTP(S) queries using libcurl
