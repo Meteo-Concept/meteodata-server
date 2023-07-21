@@ -22,27 +22,19 @@
  */
 
 #include <iostream>
-#include <functional>
 #include <chrono>
 #include <optional>
 
 #include <systemd/sd-daemon.h>
 
-#include <boost/system/error_code.hpp>
-#include <boost/asio/io_context.hpp>
 #include <date.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../cassandra_utils.h"
-#include "static_txt_downloader.h"
-#include "static_message.h"
-
-// we do not expect the files to be big, so it's simpler and more
-// efficient to just slurp them, which means we'd better limit the
-// buffer size, for safety's sake
-#define BUFFER_MAX_SIZE 4096
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "cassandra_utils.h"
+#include "static/static_txt_downloader.h"
+#include "static/static_message.h"
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -58,13 +50,13 @@ StatICTxtDownloader::StatICTxtDownloader(DbConnectionObservations& db,
 	CassUuid station, const std::string& host,
 	const std::string& url, bool https, int timezone,
 	std::map<std::string, std::string> sensors) :
-		_db(db),
-		_station(station),
+		_db{db},
+		_station{station},
 		// any impossible date will do before the first download,
 		// if it's old enough, it cannot correspond to any date sent
 		// by the station
-		_lastDownloadTime(chrono::seconds(0)),
-		_sensors(std::move(sensors))
+		_lastDownloadTime{chrono::seconds(0)},
+		_sensors{std::move(sensors)}
 {
 	float latitude;
 	float longitude;

@@ -38,9 +38,10 @@
 #include <date.h>
 #include <tz.h>
 
-#include "../connector.h"
-#include "vantagepro2_message.h"
-#include "vantagepro2_archive_page.h"
+#include "connector.h"
+#include "async_job_publisher.h"
+#include "davis/vantagepro2_message.h"
+#include "davis/vantagepro2_archive_page.h"
 
 
 namespace meteodata
@@ -67,8 +68,10 @@ public:
 	 * @param ioContext the Boost::Asio service to use for all aynchronous
 	 * network operations
 	 * @param db The handle to the database
+	 * @param db The handle to the asynchronous jobs database
 	 */
-	VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db);
+	VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db,
+						 AsyncJobPublisher* jobPublisher);
 
 	//main loop
 	void start() override;
@@ -464,6 +467,24 @@ private:
 	 * retrieved from the station
 	 */
 	date::sys_seconds _lastArchive{};
+
+	/**
+	 * @brief The timestamp of the oldest archive recovered from the station,
+	 * it determines the span of climatology data that should be recomputed
+	 */
+	date::sys_seconds _oldestArchive{date::floor<chrono::seconds>(chrono::system_clock::now())};
+
+	/**
+	 * @brief The timestamp of the newest archive recovered from the station,
+	 * it determines the span of climatology data that should be recomputed
+	 */
+	date::sys_seconds _newestArchive{};
+
+	/**
+	 * @brief The component responsible for scheduling recomputations of
+	 * climatological and monitoring indices
+	 */
+	AsyncJobPublisher* _jobPublisher;
 
 	/**
 	 * @brief The \a TimeOffseter to use to convert timestamps between the

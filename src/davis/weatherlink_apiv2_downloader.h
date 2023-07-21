@@ -36,6 +36,7 @@
 #include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <dbconnection_observations.h>
+#include "async_job_publisher.h"
 
 #include "../time_offseter.h"
 #include "abstract_weatherlink_downloader.h"
@@ -57,15 +58,13 @@ class WeatherlinkApiv2Downloader : public AbstractWeatherlinkDownloader
 {
 public:
 	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
-							   std::map<int, CassUuid>  mapping,
-							   std::map<int, std::map<std::string, std::string>> parsers,
-							   const std::string& apiKey, const std::string& apiSecret,
-							   DbConnectionObservations& db, TimeOffseter&& to);
+		std::map<int, CassUuid>  mapping, std::map<int, std::map<std::string, std::string>> parsers,
+		const std::string& apiKey, const std::string& apiSecret,
+		DbConnectionObservations& db, TimeOffseter&& to, AsyncJobPublisher* jobPublisher = nullptr);
 	WeatherlinkApiv2Downloader(const CassUuid& station, std::string  weatherlinkId,
-							   std::map<int, CassUuid>  mapping,
-							   std::map<int, std::map<std::string, std::string>> parsers,
-							   const std::string& apiKey, const std::string& apiSecret,
-							   DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz);
+		std::map<int, CassUuid>  mapping, std::map<int, std::map<std::string, std::string>> parsers,
+		const std::string& apiKey, const std::string& apiSecret,
+		DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr);
 	void download(CurlWrapper& client, bool force = false);
 	void downloadRealTime(CurlWrapper& client);
 	static std::unordered_map<std::string, boost::property_tree::ptree>

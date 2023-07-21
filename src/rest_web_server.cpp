@@ -30,6 +30,7 @@
 
 #include "rest_web_server.h"
 #include "connector.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
@@ -39,11 +40,10 @@ namespace asio = boost::asio;
 namespace chrono = std::chrono;
 using tcp = boost::asio::ip::tcp;
 
-RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db) :
+RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db,
+							 AsyncJobPublisher* jobPublisher) :
 	Connector{io, db},
-	_io{io},
 	_acceptor{io, tcp::endpoint{tcp::v4(), 5887}},
-	_db{db},
 	_stopped{true}
 {
 	_status.shortStatus = "IDLE";
@@ -79,7 +79,7 @@ void RestWebServer::acceptConnection()
 		return;
 
 	auto self = shared_from_this();
-	auto connection = std::make_shared<HttpConnection>(_io, _db);
+	auto connection = std::make_shared<HttpConnection>(_ioContext, _db, _jobPublisher);
 	_acceptor.async_accept(connection->getSocket(), [self, this, connection](const boost::system::error_code& error) {
 		serveHttpConnection(connection, error);
 	});

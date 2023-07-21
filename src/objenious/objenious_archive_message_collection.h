@@ -130,6 +130,20 @@ public:
 		return _messages.front()._obs.time;
 	}
 
+	/**
+	 * @brief Get the oldest timestamp available among the parsed messages
+	 *
+	 * Calling this method before parse() or if the list of messages is
+	 * empty will result in undefined behaviour.
+	 *
+	 * @return The oldest datetime which will be inserted in the database thanks
+	 * to this messages collection
+	 */
+	inline date::sys_seconds getOldestMessageTime() const
+	{
+		return _messages.back()._obs.time;
+	}
+
 	inline bool mayHaveMore() const
 	{
 		return _mayHaveMore;

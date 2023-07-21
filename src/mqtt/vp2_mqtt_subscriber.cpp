@@ -47,8 +47,8 @@ namespace meteodata
 using namespace date;
 
 VP2MqttSubscriber::VP2MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-		asio::io_context& ioContext, DbConnectionObservations& db) :
-	MqttSubscriber(details, ioContext, db)
+		asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	MqttSubscriber{details, ioContext, db, jobPublisher}
 {
 }
 
@@ -132,11 +132,15 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 
 	if (ret) {
 		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Archive data stored for datetime " << msg.getTimestamp() << std::endl;
-		time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
+		auto timestamp = msg.getTimestamp();
+		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
 				<< "Couldn't update last archive download time" << std::endl;
+
+		if (_jobPublisher)
+			_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);
 	} else {
 		std::cerr << SD_ERR << "[MQTT " << station << "] measurement: " << "Failed to store archive for MQTT station "
 			<< stationName << "! Aborting" << std::endl;

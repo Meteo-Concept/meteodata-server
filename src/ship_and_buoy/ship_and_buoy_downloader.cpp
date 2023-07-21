@@ -32,10 +32,10 @@
 #include <dbconnection_observations.h>
 #include <date.h>
 
-#include "ship_and_buoy_downloader.h"
-#include "meteo_france_ship_and_buoy.h"
-#include "../cassandra_utils.h"
-#include "../abstract_download_scheduler.h"
+#include "cassandra_utils.h"
+#include "abstract_download_scheduler.h"
+#include "ship_and_buoy/ship_and_buoy_downloader.h"
+#include "ship_and_buoy/meteo_france_ship_and_buoy.h"
 
 namespace chrono = std::chrono;
 
@@ -43,8 +43,10 @@ namespace meteodata
 {
 using namespace date;
 
-ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db) :
-		AbstractDownloadScheduler{chrono::hours(POLLING_PERIOD_HOURS), ioContext, db}
+ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext,
+	DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		AbstractDownloadScheduler{chrono::hours(POLLING_PERIOD_HOURS), ioContext, db},
+		_jobPublisher{jobPublisher}
 {
 	_status.shortStatus = "IDLE";
 }
@@ -75,7 +77,8 @@ void ShipAndBuoyDownloader::download()
 			   if (uuidIt != _icaos.end()) {
 				   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
 							 << "UUID identified: " << uuidIt->second << std::endl;
-				   bool ret = _db.insertV2DataPoint(m.getObservation(uuidIt->second));
+				   auto obs = m.getObservation(uuidIt->second);
+				   bool ret = _db.insertV2DataPoint(obs);
 				   if (ret) {
 					   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second
 								 << "] measurement: "
@@ -87,6 +90,9 @@ void ShipAndBuoyDownloader::download()
 								 << "Failed to insert SHIP ou BUOY data into database for station "
 								 << uuidIt->second << std::endl;
 				   }
+
+				   if (_jobPublisher)
+					   _jobPublisher->publishJobsForPastDataInsertion(uuidIt->second, obs.time, obs.time);
 			   }
 		}
 	});

@@ -56,7 +56,7 @@ public:
 	 * hexadecimal string
 	 * @param datetime The timestamp of the data message
 	 */
-	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime);
+	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
 
 	inline bool looksValid() const override
 	{

@@ -74,7 +74,7 @@ protected:
 	 */
 	boost::asio::io_context& _ioContext;
 	/**
-	 * @brief The connection to the database
+	 * @brief The connection to the observations/climatology database
 	 */
 	DbConnectionObservations& _db;
 

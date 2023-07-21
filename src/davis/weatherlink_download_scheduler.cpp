@@ -51,18 +51,20 @@ namespace meteodata
 {
 using namespace date;
 
-WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-							   std::string apiId, std::string apiSecret) :
+WeatherlinkDownloadScheduler::WeatherlinkDownloadScheduler(
+	asio::io_context& ioContext, DbConnectionObservations& db,
+	std::string apiId, std::string apiSecret, AsyncJobPublisher* jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
-		_apiSecret{std::move(apiSecret)}
+		_apiSecret{std::move(apiSecret)},
+		_jobPublisher{jobPublisher}
 {
 }
 
 void WeatherlinkDownloadScheduler::add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
 				       TimeOffseter::PredefinedTimezone tz)
 {
-	_downloaders.emplace_back(std::make_shared<WeatherlinkDownloader>(station, auth, apiToken, _db, tz));
+	_downloaders.emplace_back(std::make_shared<WeatherlinkDownloader>(station, auth, apiToken, _db, tz, _jobPublisher));
 }
 
 void
@@ -72,7 +74,7 @@ WeatherlinkDownloadScheduler::addAPIv2(const CassUuid& station, bool archived, c
 {
 	_downloadersAPIv2.emplace_back(archived,
 		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, parsers,
-				_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to))
+				_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to), _jobPublisher)
 	);
 }
 
@@ -158,7 +160,7 @@ void WeatherlinkDownloadScheduler::reloadStations()
 			TimeOffseter::PredefinedTimezone(std::get<3>(station)));
 	}
 
-	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>> > > weatherlinkAPIv2Stations;
+	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>>>> weatherlinkAPIv2Stations;
 	_db.getAllWeatherlinkAPIv2Stations(weatherlinkAPIv2Stations);
 
 	CurlWrapper client;

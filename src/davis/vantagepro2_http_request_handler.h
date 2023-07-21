@@ -29,17 +29,19 @@
 #include <boost/asio.hpp>
 #include <systemd/sd-daemon.h>
 #include <date.h>
+#include <dbconnection_observations.h>
 
 #include <map>
 #include <vector>
 #include <tuple>
 #include <regex>
 
-#include "../http_connection.h"
-#include "../cassandra.h"
-#include "../cassandra_utils.h"
-#include "../time_offseter.h"
-#include "vantagepro2_archive_message.h"
+#include "async_job_publisher.h"
+#include "http_connection.h"
+#include "cassandra.h"
+#include "cassandra_utils.h"
+#include "time_offseter.h"
+#include "davis/vantagepro2_archive_message.h"
 
 namespace meteodata
 {
@@ -50,12 +52,14 @@ public:
 	using Request = boost::beast::http::request<boost::beast::http::string_body>;
 	using Response = boost::beast::http::response<boost::beast::http::string_body>;
 
-	explicit VantagePro2HttpRequestHandler(DbConnectionObservations& db);
+	explicit VantagePro2HttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 	void processRequest(const Request& request, Response& response);
 
 private:
 	DbConnectionObservations& _db;
+
+	AsyncJobPublisher* _jobPublisher;
 
 	struct ClientInformation
 	{

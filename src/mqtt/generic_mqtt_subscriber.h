@@ -28,6 +28,8 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
+
+#include "async_job_publisher.h"
 #include "generic_message.h"
 #include "mqtt_subscriber.h"
 
@@ -37,7 +39,8 @@ namespace meteodata
 class GenericMqttSubscriber : public MqttSubscriber
 {
 public:
-	GenericMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
+	GenericMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
+						  DbConnectionObservations& db, AsyncJobPublisher* jobScheduler = nullptr);
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;

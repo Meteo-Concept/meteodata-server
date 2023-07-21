@@ -22,32 +22,27 @@
  */
 
 #include <string>
-#include <tuple>
 #include <map>
 
-#include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <utility>
 #include <dbconnection_observations.h>
 #include <date.h>
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 
-#include "objenious_api_downloader.h"
-#include "objenious_archive_message_collection.h"
-#include "objenious_archive_message.h"
-#include "../time_offseter.h"
-#include "../http_utils.h"
-#include "../curl_wrapper.h"
-#include "../cassandra_utils.h"
+#include "objenious/objenious_api_downloader.h"
+#include "objenious/objenious_archive_message_collection.h"
+#include "objenious/objenious_archive_message.h"
+#include "http_utils.h"
+#include "cassandra_utils.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
-
-constexpr char ObjeniousApiDownloader::APIHOST[];
 const std::string ObjeniousApiDownloader::BASE_URL = std::string{"https://"} + ObjeniousApiDownloader::APIHOST + "/v2";
-constexpr size_t ObjeniousApiDownloader::PAGE_SIZE;
 
 namespace asio = boost::asio;
 namespace chrono = std::chrono;
@@ -55,14 +50,16 @@ namespace pt = boost::property_tree;
 
 using namespace meteodata;
 
-ObjeniousApiDownloader::ObjeniousApiDownloader(const CassUuid& station, const std::string& objeniousId,
-											   const std::map<std::string, std::string>& variables,
-											   DbConnectionObservations& db, const std::string& apiKey) :
-		_station(station),
-		_objeniousId(objeniousId),
-		_variables(variables),
-		_db(db),
-		_apiKey(apiKey)
+ObjeniousApiDownloader::ObjeniousApiDownloader(const CassUuid& station, std::string objeniousId,
+	const std::map<std::string, std::string>& variables, DbConnectionObservations& db, const std::string& apiKey,
+	AsyncJobPublisher* jobPublisher) :
+		_station{station},
+		_objeniousId{std::move(objeniousId)},
+		_variables{variables},
+		_db{db},
+		_jobPublisher{jobPublisher},
+		_apiKey{apiKey},
+		_pollingPeriod{0}
 {
 	time_t lastArchiveDownloadTime;
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -120,6 +117,9 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 
 	auto date = _lastArchive;
 
+	date::sys_seconds oldestArchive = date::floor<chrono::seconds>(chrono::system_clock::now());
+	date::sys_seconds newestArchive{};
+
 	// may throw
 	date::sys_seconds lastAvailable = getLastDatetimeAvailable(client);
 	if (lastAvailable <= _lastArchive) {
@@ -161,11 +161,17 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 				collection.parse(responseStream);
 
 				auto newestTimestampInCollection = collection.getNewestMessageTime();
+				auto oldestTimestampInCollection = collection.getOldestMessageTime();
 				// This condition is not true if we have several
 				// pages to download because the most recent
 				// timestamp will be found on the first page
 				if (newestTimestampInCollection > newestTimestamp)
 					newestTimestamp = newestTimestampInCollection;
+
+				if (newestTimestampInCollection > newestArchive)
+					newestArchive = newestTimestampInCollection;
+				if (oldestTimestampInCollection < oldestArchive)
+					oldestArchive = oldestTimestampInCollection;
 
 				for (const ObjeniousApiArchiveMessage& m : collection) {
 					int ret = _db.insertV2DataPoint(m.getObservation(_station));
@@ -203,6 +209,9 @@ void ObjeniousApiDownloader::download(CurlWrapper& client)
 		} else {
 			_lastArchive = newestTimestamp;
 		}
+
+		if (_jobPublisher)
+			_jobPublisher->publishJobsForPastDataInsertion(_station, oldestArchive, newestArchive);
 	}
 }
 

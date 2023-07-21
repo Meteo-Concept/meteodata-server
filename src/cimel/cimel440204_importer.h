@@ -38,8 +38,9 @@
 #include <dbconnection_observations.h>
 #include <message.h>
 
-#include "../time_offseter.h"
-#include "cimel_importer.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "cimel/cimel_importer.h"
 
 namespace meteodata
 {
@@ -65,9 +66,10 @@ public:
 	 * @param timezone The timezone of the station (all stations should be in UTC but with old stations, it's difficult
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
+	 * @param dbJobs The database connection to insert asynchronous job requests
 	 */
 	Cimel440204Importer(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
-					DbConnectionObservations& db);
+					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * Constructs a Cimel440204Importer
@@ -76,12 +78,12 @@ public:
 	 * the INSEE code of the city followed by the station number (it's also the prefix of export filenames)
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
+	 * @param dbJobs The database connection to insert asynchronous job requests
 	 */
 	Cimel440204Importer(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
-					DbConnectionObservations& db);
+					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
-	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-				bool updateLastArchiveDownloadTime) override;
+	bool doImport(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year);
 };
 
 }

@@ -36,11 +36,12 @@
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
-#include "../time_offseter.h"
-#include "../cassandra_utils.h"
-#include "mqtt_subscriber.h"
-#include "objenious_mqtt_subscriber.h"
-#include "../objenious/objenious_archive_message_collection.h"
+#include "time_offseter.h"
+#include "cassandra_utils.h"
+#include "async_job_publisher.h"
+#include "mqtt/mqtt_subscriber.h"
+#include "mqtt/objenious_mqtt_subscriber.h"
+#include "objenious/objenious_archive_message_collection.h"
 
 namespace sys = boost::system;
 
@@ -49,11 +50,10 @@ namespace meteodata
 
 using namespace date;
 
-constexpr char ObjeniousMqttSubscriber::ARCHIVES_TOPIC[];
-
-ObjeniousMqttSubscriber::ObjeniousMqttSubscriber(MqttSubscriber::MqttSubscriptionDetails details,
-												 asio::io_context& ioContext, DbConnectionObservations& db) :
-		MqttSubscriber(details, ioContext, db)
+ObjeniousMqttSubscriber::ObjeniousMqttSubscriber(
+		MqttSubscriber::MqttSubscriptionDetails details, asio::io_context& ioContext,
+		DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	MqttSubscriber{details, ioContext, db, jobPublisher}
 {
 }
 
@@ -93,8 +93,6 @@ void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& topicName,
 	std::cout << SD_INFO << "[MQTT " << station << "] measurement: " << "Now downloading for MQTT station "
 			  << stationName << std::endl;
 
-	// TODO: check if there's a more clever way of building a stream out of
-	// an iterable range of characters
 	std::string jsonString{content.begin(), content.end()};
 	std::istringstream input{jsonString};
 	pt::ptree jsonTree;
@@ -107,11 +105,15 @@ void ObjeniousMqttSubscriber::processArchive(const mqtt::string_view& topicName,
 		int ret = _db.insertV2DataPoint(msg.getObservation(station));
 		if (ret) {
 			std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Archive data stored\n" << std::endl;
-			time_t lastArchiveDownloadTime = msg.getTimestamp().time_since_epoch().count();
+			auto timestamp = msg.getTimestamp();
+			time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 			if (!ret)
 				std::cerr << SD_ERR << "[MQTT " << station << "] management: "
 						  << "Couldn't update last archive download time for station " << stationName << std::endl;
+
+			if (_jobPublisher)
+				_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);
 		} else {
 			std::cerr << SD_ERR << "[MQTT " << station << "] measurement: "
 					  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;

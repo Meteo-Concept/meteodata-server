@@ -32,8 +32,9 @@
 #include <dbconnection_observations.h>
 #include <cassandra.h>
 
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
@@ -64,7 +65,8 @@ public:
 	 */
 	FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
 		std::map<std::string, std::string> sensors, DbConnectionObservations& db,
-		TimeOffseter::PredefinedTimezone tz, const std::string& apiId, const std::string& apiSecret);
+		TimeOffseter::PredefinedTimezone tz, const std::string& apiId, const std::string& apiSecret,
+		AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored
@@ -115,6 +117,12 @@ private:
 	 * @brief The observations database (part Cassandra, part SQL) connector
 	 */
 	DbConnectionObservations& _db;
+
+	/**
+	 * @brief A component used to schedule computations of climatology and
+	 * monitoring indices
+	 */
+	AsyncJobPublisher* _jobPublisher;
 
 	/**
 	 * @brief A convenient object to perform datetime conversions because

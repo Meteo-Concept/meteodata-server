@@ -37,10 +37,11 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "objenious_api_downloader.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "abstract_download_scheduler.h"
+#include "objenious/objenious_api_downloader.h"
 
 namespace meteodata
 {
@@ -67,10 +68,12 @@ public:
 	 *
 	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
-	 * @param db the Météodata observations database connector
+	 * @param db the MétéoData observations database connector
+	 * @param dbJobs the MétéoData asynchronous jobs database connector
 	 * @param apiKey the Objenious API key
 	 */
-	ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, std::string  apiKey);
+	ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db, std::string apiKey,
+		AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * @brief Add a station to download the data for
@@ -92,6 +95,11 @@ private:
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<ObjeniousApiDownloader>> _downloaders;
+
+	/**
+	 * @brief The component used to schedule climatology recomputations
+	 */
+	AsyncJobPublisher* _jobPublisher{};
 
 private:
 	/**

@@ -30,11 +30,10 @@
 #include <systemd/sd-daemon.h>
 #include <dbconnection_observations.h>
 
-#include "ogimet_synop.h"
-#include "synop_download_scheduler.h"
-#include "synop_decoder/parser.h"
-#include "../cassandra_utils.h"
-#include "../abstract_download_scheduler.h"
+#include "cassandra_utils.h"
+#include "synop/ogimet_synop.h"
+#include "synop/synop_download_scheduler.h"
+#include "synop/synop_decoder/parser.h"
 
 namespace chrono = std::chrono;
 

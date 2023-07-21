@@ -100,8 +100,8 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 	std::map<int, CassUuid> mapping,
 	std::map<int, std::map<std::string, std::string>> parsers,
 	const std::string& apiKey, const std::string& apiSecret,
-	DbConnectionObservations& db, TimeOffseter&& to) :
-		AbstractWeatherlinkDownloader(station, db, std::forward<TimeOffseter&&>(to)),
+	DbConnectionObservations& db, TimeOffseter&& to, AsyncJobPublisher* jobPublisher) :
+		AbstractWeatherlinkDownloader(station, db, std::forward<TimeOffseter&&>(to), jobPublisher),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
 		_weatherlinkId(std::move(weatherlinkId)),
@@ -115,9 +115,8 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 	std::map<int, CassUuid> mapping,
 	std::map<int, std::map<std::string, std::string>> parsers,
 	const std::string& apiKey, const std::string& apiSecret,
-	DbConnectionObservations& db,
-	TimeOffseter::PredefinedTimezone tz) :
-		AbstractWeatherlinkDownloader(station, db, tz),
+	DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher) :
+		AbstractWeatherlinkDownloader(station, db, tz, jobPublisher),
 		_apiKey(apiKey),
 		_apiSecret(apiSecret),
 		_weatherlinkId(std::move(weatherlinkId)),
@@ -328,8 +327,21 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				auto newestTimestamp = page.getNewestMessageTime();
 				// find the oldest of all the newest records
 				// of each substation
-				if (newestTimestamp < referenceTimestamp || referenceTimestamp == _lastArchive)
+				if (newestTimestamp < referenceTimestamp || referenceTimestamp == _lastArchive) {
 					referenceTimestamp = newestTimestamp;
+
+					/* Keep track of the total oldest and newest archive entry downloaded
+					 * for the climatology computation later
+					 * Do so separately from the logic of the downloaded itself
+					 * in order to separate concerns and ease refactoring eventually.
+					 */
+					if (newestTimestamp < _oldestArchive) {
+						_oldestArchive = newestTimestamp;
+					}
+					if (newestTimestamp > _newestArchive) {
+						_newestArchive = newestTimestamp;
+					}
+				}
 
 				auto lastDay = date::floor<date::days>(end);
 				if (newestTimestamp <= _lastArchive) {
@@ -366,6 +378,10 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 							  << "couldn't update last archive download time" << std::endl;
 				} else {
 					_lastArchive = referenceTimestamp;
+				}
+
+				if (_jobPublisher) {
+					_jobPublisher->publishJobsForPastDataInsertion(_station, _oldestArchive, _newestArchive);
 				}
 			}
 		});

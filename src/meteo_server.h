@@ -27,10 +27,12 @@
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
 #include <dbconnection_observations.h>
+#include <dbconnection_jobs.h>
 
 #include "meteo_server.h"
 #include "connector.h"
 #include "connector_group.h"
+#include "async_job_publisher.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
 #include "monitoring/watchdog.h"
@@ -113,6 +115,10 @@ public:
 		std::string address;
 		std::string user;
 		std::string password;
+		std::string jobsDbAddress;
+		std::string jobsDbUsername;
+		std::string jobsDbPassword;
+		std::string jobsDbDatabase;
 		std::string weatherlinkApiV2Key;
 		std::string weatherlinkApiV2Secret;
 		std::string fieldClimateApiKey;
@@ -160,9 +166,15 @@ private:
 	std::shared_ptr<ConnectorGroup> _vp2DirectConnectorsGroup;
 
 	/**
-	 * @brief The connection to the database
+	 * @brief The connection to the observations/climatology database
 	 */
 	DbConnectionObservations _db;
+	/**
+	 * @brief The connection to the asynchronous jobs database
+	 */
+	DbConnectionJobs _dbJobs;
+
+	AsyncJobPublisher _jobPublisher;
 
 	MeteoServerConfiguration _configuration;
 

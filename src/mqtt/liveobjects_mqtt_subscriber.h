@@ -28,8 +28,10 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
-#include "../pessl/lorain_message.h"
+
+#include "async_job_publisher.h"
 #include "mqtt_subscriber.h"
+#include "pessl/lorain_message.h"
 
 namespace meteodata
 {
@@ -37,7 +39,8 @@ namespace meteodata
 class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
-	LiveobjectsMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
+	LiveobjectsMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
+							  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
 					const std::string& streamId);
 
@@ -45,9 +48,6 @@ protected:
 	bool handleConnAck(bool res, uint8_t packetId) override;
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
-
-	virtual void postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg);
-	virtual std::unique_ptr<LiveobjectsMessage> buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp);
 
 	const char* getConnectorSuffix() override
 	{

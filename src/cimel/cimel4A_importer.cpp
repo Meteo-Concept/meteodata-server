@@ -45,19 +45,18 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
-								 DbConnectionObservations& db) :
-		CimelImporter{station, cimelId, timezone, db}
+								 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		CimelImporter{station, cimelId, timezone, db, jobPublisher}
 {
 }
 
 Cimel4AImporter::Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
-								 DbConnectionObservations& db) :
-		CimelImporter{station, cimelId, std::forward<TimeOffseter&&>(timeOffseter), db}
+								 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		CimelImporter{station, cimelId, std::forward<TimeOffseter&&>(timeOffseter), db, jobPublisher}
 {
 }
 
-bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-							 bool updateLastArchiveDownloadTime)
+bool Cimel4AImporter::doImport(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year)
 {
 	using namespace hex_parser;
 
@@ -157,15 +156,8 @@ bool Cimel4AImporter::import(std::istream& input, date::sys_seconds& start, date
 				std::cerr << SD_ERR << "[Cimel4A " << _station << "]"
 						  << " measurement: failed to insert datapoint"
 						  << std::endl;
+				break;
 			}
-		}
-	}
-
-	if (updateLastArchiveDownloadTime) {
-		bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
-		if (!ret) {
-			std::cerr << SD_ERR << "[Cimel4A " << _station << "]"
-					  << " management: failed to update the last archive download datetime" << std::endl;
 		}
 	}
 	return true;

@@ -41,9 +41,10 @@
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
-#include "../time_offseter.h"
-#include "../davis/vantagepro2_archive_page.h"
-#include "../connector.h"
+#include "async_job_publisher.h"
+#include "time_offseter.h"
+#include "connector.h"
+#include "davis/vantagepro2_archive_page.h"
 
 namespace meteodata
 {
@@ -63,7 +64,8 @@ public:
 		friend bool operator<(const MqttSubscriptionDetails& s1, const MqttSubscriptionDetails& s2);
 	};
 
-	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
+	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
+				   DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start() override;
 	void stop() override;
@@ -73,6 +75,9 @@ protected:
 	MqttSubscriptionDetails _details;
 
 	std::map<std::uint16_t, std::string> _subscriptions;
+
+	AsyncJobPublisher* _jobPublisher;
+
 	/**
 	 * @brief Map from topic to station UUID, station name, polling period, last archive insertion datetime, time offseter
 	 */

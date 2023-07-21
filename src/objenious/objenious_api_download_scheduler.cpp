@@ -31,9 +31,9 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "objenious_api_download_scheduler.h"
-#include "objenious_api_downloader.h"
-#include "../abstract_download_scheduler.h"
+#include "objenious/objenious_api_download_scheduler.h"
+#include "objenious/objenious_api_downloader.h"
+#include "abstract_download_scheduler.h"
 
 namespace chrono = std::chrono;
 
@@ -41,9 +41,10 @@ namespace meteodata
 {
 using namespace date;
 
-ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-	std::string apiKey) :
+ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_context& ioContext,
+	DbConnectionObservations& db, std::string apiKey, AsyncJobPublisher* jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD},ioContext, db},
+		_jobPublisher{jobPublisher},
 		_apiKey{std::move(apiKey)}
 {
 }
@@ -51,7 +52,7 @@ ObjeniousApiDownloadScheduler::ObjeniousApiDownloadScheduler(asio::io_context& i
 void ObjeniousApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
 	const std::map<std::string, std::string>& variables)
 {
-	_downloaders.emplace_back(std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey));
+	_downloaders.emplace_back(std::make_shared<ObjeniousApiDownloader>(station, fieldClimateId, variables, _db, _apiKey, _jobPublisher));
 }
 
 void ObjeniousApiDownloadScheduler::download()

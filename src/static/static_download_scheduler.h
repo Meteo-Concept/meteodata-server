@@ -37,10 +37,10 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "static_txt_downloader.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../abstract_download_scheduler.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "abstract_download_scheduler.h"
+#include "static/static_txt_downloader.h"
 
 namespace meteodata
 {
@@ -64,7 +64,8 @@ public:
 	 *
 	 * @param ioContext the Boost object used to process asynchronous
 	 * events, timers, and callbacks
-	 * @param db the Météodata observations database connector
+	 * @param db the MétéoData observations database connector
+	 * @param jobPublisher the asynchronous job scheduler
 	 */
 	StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db);
 
@@ -87,7 +88,6 @@ private:
 	 */
 	std::vector<std::shared_ptr<StatICTxtDownloader>> _downloaders;
 
-private:
 	/**
 	 * @brief Reload the list of StatIC stations from the database and
 	 * recreate all downloaders

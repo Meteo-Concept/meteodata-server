@@ -43,14 +43,16 @@ namespace meteodata
 namespace chrono = std::chrono;
 namespace pt = boost::property_tree;
 
-const std::map<std::string, float ObjeniousApiArchiveMessage::DataPoint::*> ObjeniousApiArchiveMessage::FIELDS = {{"temperature", &ObjeniousApiArchiveMessage::DataPoint::temperature},
-																												  {"humidity",    &ObjeniousApiArchiveMessage::DataPoint::humidity},
-																												  {"wind",        &ObjeniousApiArchiveMessage::DataPoint::windSpeed},
-																												  {"gust",        &ObjeniousApiArchiveMessage::DataPoint::windGustSpeed},
-																												  {"direction",   &ObjeniousApiArchiveMessage::DataPoint::windDir},
-																												  {"rainrate",    &ObjeniousApiArchiveMessage::DataPoint::rainRate},
-																												  {"rainfall",    &ObjeniousApiArchiveMessage::DataPoint::rainFall},
-																												  {"uv",          &ObjeniousApiArchiveMessage::DataPoint::uvIndex}};
+const std::map<std::string, float ObjeniousApiArchiveMessage::DataPoint::*> ObjeniousApiArchiveMessage::FIELDS = {
+		{"temperature", &ObjeniousApiArchiveMessage::DataPoint::temperature},
+	  	{"humidity",    &ObjeniousApiArchiveMessage::DataPoint::humidity},
+	  	{"wind",        &ObjeniousApiArchiveMessage::DataPoint::windSpeed},
+	  	{"gust",        &ObjeniousApiArchiveMessage::DataPoint::windGustSpeed},
+	  	{"direction",   &ObjeniousApiArchiveMessage::DataPoint::windDir},
+	  	{"rainrate",    &ObjeniousApiArchiveMessage::DataPoint::rainRate},
+	  	{"rainfall",    &ObjeniousApiArchiveMessage::DataPoint::rainFall},
+	  	{"uv",          &ObjeniousApiArchiveMessage::DataPoint::uvIndex}
+};
 
 ObjeniousApiArchiveMessage::ObjeniousApiArchiveMessage(const std::map<std::string, std::string>* variables) :
 		_variables{variables}

@@ -33,11 +33,12 @@
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
 
-#include "fieldclimate_api_downloader.h"
-#include "fieldclimate_archive_message_collection.h"
-#include "fieldclimate_archive_message.h"
-#include "../http_utils.h"
-#include "../cassandra_utils.h"
+#include "http_utils.h"
+#include "cassandra_utils.h"
+#include "async_job_publisher.h"
+#include "pessl/fieldclimate_api_downloader.h"
+#include "pessl/fieldclimate_archive_message_collection.h"
+#include "pessl/fieldclimate_archive_message.h"
 
 namespace meteodata
 {
@@ -49,13 +50,15 @@ using namespace meteodata;
 
 FieldClimateApiDownloader::FieldClimateApiDownloader(const CassUuid& station, std::string fieldclimateId,
 	std::map<std::string, std::string> sensors, DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz,
-	const std::string& apiKey, const std::string& apiSecret) :
+	const std::string& apiKey, const std::string& apiSecret, AsyncJobPublisher* jobPublisher) :
 		_station{station},
 		_fieldclimateId{std::move(fieldclimateId)},
 		_sensors{std::move(sensors)},
-		_db(db),
+		_db{db},
+		_jobPublisher{jobPublisher},
 		_apiKey{apiKey},
-		_apiSecret{apiSecret}
+		_apiSecret{apiSecret},
+		_pollingPeriod{0}
 {
 	time_t lastArchiveDownloadTime;
 	db.getStationDetails(station, _stationName, _pollingPeriod, lastArchiveDownloadTime);
@@ -158,9 +161,9 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 			collection.parse(responseStream);
 
 			if (collection.begin() != collection.end()) {
-				// Not having data can happen if the station
-				// malfunctioned
+				// Not having data can happen if the station malfunctioned
 				auto newestTimestamp = collection.getNewestMessageTime();
+				auto oldestTimestamp = collection.getOldestMessageTime();
 				auto archiveDay = date::floor<date::days>(_lastArchive);
 				auto lastDay = date::floor<date::days>(newestTimestamp);
 				while (archiveDay <= lastDay) {
@@ -191,6 +194,9 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 					} else {
 						_lastArchive = newestTimestamp;
 					}
+
+					if (_jobPublisher)
+						_jobPublisher->publishJobsForPastDataInsertion(_station, oldestTimestamp, newestTimestamp);
 				}
 			}
 		});

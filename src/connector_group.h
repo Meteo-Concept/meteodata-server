@@ -41,7 +41,7 @@ class ConnectorGroup : public Connector
 public:
 	ConnectorGroup(boost::asio::io_context& ioContext, DbConnectionObservations& db);
 
-	~ConnectorGroup();
+	~ConnectorGroup() override;
 
 	/**
 	 * @brief Start all inner connectors

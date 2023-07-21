@@ -32,8 +32,10 @@
 #include <boost/asio.hpp>
 #include <date.h>
 #include <dbconnection_observations.h>
+#include "async_job_publisher.h"
 
-#include "../time_offseter.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
 
 
 namespace meteodata
@@ -50,8 +52,10 @@ using namespace meteodata;
 class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<AbstractWeatherlinkDownloader>
 {
 public:
-	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db, TimeOffseter&& to) :
+	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
+								  TimeOffseter&& to, AsyncJobPublisher* jobPublisher = nullptr) :
 			_db{db},
+			_jobPublisher{jobPublisher},
 			_station{station},
 			_timeOffseter{to},
 			_pollingPeriod{0}
@@ -71,9 +75,11 @@ public:
 	}
 
 	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
-								  TimeOffseter::PredefinedTimezone tz) :
-			_db(db),
-			_station(station)
+								  TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr) :
+			_db{db},
+			_jobPublisher{jobPublisher},
+			_station{station},
+			_pollingPeriod{0}
 	{
 		time_t lastArchiveDownloadTime;
 		bool storeInsideMeasurement;
@@ -91,7 +97,17 @@ public:
 	}
 
 protected:
+	/**
+	 * @brief A connection to the observations database, to store the data
+	 * that is downloaded
+	 */
 	DbConnectionObservations& _db;
+
+	/**
+	 * @brief An optional asynchronous job publisher, to schedule climatology
+	 * computations after downloads
+	 */
+	AsyncJobPublisher* _jobPublisher;
 
 	/**
 	 * @brief The connected station's identifier in the database
@@ -106,9 +122,21 @@ protected:
 
 	/**
 	 * @brief The timestamp (in POSIX time) of the last archive entry
-	 * retrieved from the station
+	 * recorded in the database
 	 */
 	date::sys_seconds _lastArchive;
+
+	/**
+	 * @brief The timestamp (in POSIX time) of the oldest archive entry
+	 * retrieved from the station
+	 */
+	date::sys_seconds _oldestArchive{date::floor<chrono::seconds>(std::chrono::system_clock::now())};
+
+	/**
+	 * @brief The timestamp (in POSIX time) of the newest archive entry
+	 * retrieved from the station
+	 */
+	date::sys_seconds _newestArchive{};
 
 	/**
 	 * @brief The \a TimeOffseter to use to convert timestamps between the
@@ -118,7 +146,9 @@ protected:
 
 public:
 	inline int getPollingPeriod() const
-	{ return _pollingPeriod; };
+	{
+		return _pollingPeriod;
+	};
 };
 
 }

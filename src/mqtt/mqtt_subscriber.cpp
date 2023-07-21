@@ -35,10 +35,11 @@
 #include <mqtt_client_cpp.hpp>
 #include <utility>
 
-#include "../time_offseter.h"
-#include "../cassandra_utils.h"
-#include "mqtt_subscriber.h"
-#include "../connector.h"
+#include "time_offseter.h"
+#include "cassandra_utils.h"
+#include "async_job_publisher.h"
+#include "connector.h"
+#include "mqtt/mqtt_subscriber.h"
 
 #define DEFAULT_VERIFY_PATH "/etc/ssl/certs"
 
@@ -52,10 +53,11 @@ namespace meteodata
 
 using namespace date;
 
-MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details, asio::io_context& ioContext,
-							   DbConnectionObservations& db) :
+MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
+	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 		Connector{ioContext, db},
 		_details{details},
+		_jobPublisher{jobPublisher},
 		_timer{ioContext}
 {
 	_status.shortStatus = "IDLE";

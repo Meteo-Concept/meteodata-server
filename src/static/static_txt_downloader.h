@@ -38,8 +38,8 @@
 #include <date.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
 
 namespace meteodata
 {
@@ -64,7 +64,6 @@ private:
 	CassUuid _station;
 	std::string _stationName;
 	std::string _query;
-	std::experimental::optional<float> _previousRainfall;
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter;
 	std::map<std::string, std::string> _sensors;

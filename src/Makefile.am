@@ -35,6 +35,8 @@ meteodata_SOURCES = \
 		    hex_parser.h\
 		    abstract_download_scheduler.cpp\
 		    abstract_download_scheduler.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    cimel/cimel_importer.cpp\
 		    cimel/cimel_importer.h\
 		    cimel/cimel4A_importer.cpp\
@@ -226,6 +228,8 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    davis/abstract_weatherlink_api_message.cpp\
 		    davis/abstract_weatherlink_api_message.h\
 		    davis/abstract_weatherlink_downloader.h\
@@ -267,6 +271,8 @@ meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    davis/abstract_weatherlink_api_message.cpp\
 		    davis/abstract_weatherlink_api_message.h\
 		    davis/abstract_weatherlink_downloader.h\
@@ -345,6 +351,8 @@ meteodata_fieldclimate_api_standalone_SOURCES = \
 		    curl_wrapper.h\
 		    connector.cpp\
 		    connector.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    pessl/fieldclimate_api_downloader_standalone.cpp \
 		    pessl/fieldclimate_api_downloader.cpp\
 		    pessl/fieldclimate_api_downloader.h\
@@ -370,6 +378,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    liveobjects/liveobjects_api_downloader_standalone.cpp\
 		    liveobjects/liveobjects_api_downloader.cpp\
 		    liveobjects/liveobjects_api_downloader.h\
@@ -399,6 +409,8 @@ meteodata_objenious_api_standalone_SOURCES = \
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    objenious/objenious_api_downloader_standalone.cpp\
 		    objenious/objenious_api_downloader.cpp\
 		    objenious/objenious_api_downloader.h\
@@ -411,6 +423,8 @@ meteodata_cimel_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
 		    hex_parser.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    cimel/cimel_importer.cpp\
 		    cimel/cimel_importer.h\
 		    cimel/cimel4A_importer.cpp\
@@ -421,6 +435,8 @@ meteodata_cimel_standalone_SOURCES = \
 
 meteodata_mqtt_vp2_standalone_SOURCES = \
 		    cassandra_utils.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
 		    mqtt/vp2_mqtt_subscriber_standalone.cpp
 
 meteodatactl_SOURCES = \

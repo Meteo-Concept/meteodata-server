@@ -39,13 +39,14 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "weatherlink_downloader.h"
-#include "weatherlink_apiv2_downloader.h"
-#include "../abstract_download_scheduler.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../cassandra_utils.h"
-#include "../connector.h"
+#include "async_job_publisher.h"
+#include "davis/weatherlink_downloader.h"
+#include "davis/weatherlink_apiv2_downloader.h"
+#include "abstract_download_scheduler.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "cassandra_utils.h"
+#include "connector.h"
 
 namespace meteodata
 {
@@ -61,8 +62,9 @@ using namespace std::placeholders;
 class WeatherlinkDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
-	WeatherlinkDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-		std::string apiId, std::string apiSecret);
+	WeatherlinkDownloadScheduler(asio::io_context& ioContext,
+		DbConnectionObservations& db, std::string apiId, std::string apiSecret,
+		AsyncJobPublisher* jobPublisher = nullptr);
 	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
 		TimeOffseter::PredefinedTimezone tz);
 	void addAPIv2(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
@@ -72,6 +74,7 @@ public:
 private:
 	const std::string _apiId;
 	const std::string _apiSecret;
+	AsyncJobPublisher* _jobPublisher;
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
 	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
 	bool _mustStop = false;

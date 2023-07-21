@@ -29,10 +29,11 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
-#include "static_download_scheduler.h"
-#include "static_txt_downloader.h"
-#include "../abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "time_offseter.h"
+#include "abstract_download_scheduler.h"
+#include "static/static_download_scheduler.h"
+#include "static/static_txt_downloader.h"
 
 namespace chrono = std::chrono;
 
@@ -40,7 +41,7 @@ namespace meteodata
 {
 using namespace date;
 
-StatICDownloadScheduler::StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db) :
+StatICDownloadScheduler::StatICDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db):
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db}
 {
 }

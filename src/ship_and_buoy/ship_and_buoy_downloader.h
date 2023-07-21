@@ -40,7 +40,8 @@
 #include <tz.h>
 #include <dbconnection_observations.h>
 
-#include "../abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "abstract_download_scheduler.h"
 
 namespace meteodata
 {
@@ -58,10 +59,13 @@ using namespace meteodata;
 class ShipAndBuoyDownloader : public AbstractDownloadScheduler
 {
 public:
-	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db);
+	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
+						  AsyncJobPublisher* jobPublisher = nullptr);
 
 private:
 	std::map<std::string, CassUuid> _icaos;
+
+	AsyncJobPublisher* _jobPublisher;
 
 	static constexpr char HOST[] = "donneespubliques.meteofrance.fr";
 	static constexpr char URL[] = "/donnees_libres/Txt/Marine/marine.%Y%m%d.csv";

@@ -38,7 +38,8 @@
 #include <dbconnection_observations.h>
 #include <message.h>
 
-#include "../time_offseter.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
@@ -64,9 +65,10 @@ public:
 	 * @param timezone The timezone of the station (all stations should be in UTC but with old stations, it's difficult
 	 * to be sure of the configuration)
 	 * @param db The database connection to insert data
+	 * @param jobPublisher The component able to schedule recomputations of the climatology
 	 */
 	CimelImporter(const CassUuid& station, std::string cimelId, const std::string& timezone,
-					DbConnectionObservations& db);
+					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * Constructs a Cimel4AImporter
@@ -75,20 +77,26 @@ public:
 	 * the INSEE code of the city followed by the station number (it's also the prefix of export filenames)
 	 * @param timeOffseter The timeOffseter this instance should use
 	 * @param db The database connection to insert data
+	 * @param jobPublisher The component able to schedule recomputations of the climatology
 	 */
 	CimelImporter(const CassUuid& station, std::string cimelId, TimeOffseter&& timeOffseter,
-					DbConnectionObservations& db);
+					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 	virtual ~CimelImporter() = default;
 
-	virtual bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-				bool updateLastArchiveDownloadTime) = 0;
+	bool import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
+				bool updateLastArchiveDownloadTime);
 
 protected:
 	CassUuid _station;
 	std::string _cimelId;
 	DbConnectionObservations& _db;
 	TimeOffseter _tz;
+
+private:
+	AsyncJobPublisher* _jobPublisher = nullptr;
+
+	virtual bool doImport(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year) = 0;
 };
 
 }

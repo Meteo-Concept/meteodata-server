@@ -29,6 +29,7 @@
 #include <boost/asio.hpp>
 #include <systemd/sd-daemon.h>
 #include <date.h>
+#include <dbconnection_observations.h>
 
 #include <map>
 #include <memory>
@@ -36,11 +37,12 @@
 #include <tuple>
 #include <regex>
 
-#include "../http_connection.h"
-#include "../cassandra.h"
-#include "../cassandra_utils.h"
-#include "../time_offseter.h"
-#include "cimel_importer.h"
+#include "http_connection.h"
+#include "cassandra.h"
+#include "cassandra_utils.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "cimel/cimel_importer.h"
 
 namespace meteodata
 {
@@ -51,12 +53,14 @@ public:
 	using Request = boost::beast::http::request<boost::beast::http::string_body>;
 	using Response = boost::beast::http::response<boost::beast::http::string_body>;
 
-	explicit CimelHttpRequestHandler(DbConnectionObservations& db);
+	explicit CimelHttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 	void processRequest(const Request& request, Response& response);
 
 private:
 	DbConnectionObservations& _db;
+
+	AsyncJobPublisher* _jobPublisher;
 
 	struct StationInformation
 	{
@@ -71,7 +75,7 @@ private:
 	void getLastArchive(const Request& request, Response& response, std::cmatch&& url);
 	void postArchiveFile(const Request& request, Response& response, std::cmatch&& url);
 	std::unique_ptr<CimelImporter> makeImporter(const std::cmatch& url, const CassUuid& station,
-		const std::string& cimelId, TimeOffseter&& timeOffseter, DbConnectionObservations& db);
+		const std::string& cimelId, TimeOffseter&& timeOffseter);
 
 	using Route = void (CimelHttpRequestHandler::*)(const Request& request, Response& response, std::cmatch&& url);
 

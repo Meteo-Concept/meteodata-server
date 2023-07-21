@@ -34,9 +34,10 @@
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
-#include "../time_offseter.h"
-#include "../davis/vantagepro2_archive_page.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
 #include "mqtt_subscriber.h"
+#include "davis/vantagepro2_archive_page.h"
 
 namespace meteodata
 {
@@ -48,7 +49,8 @@ using namespace meteodata;
 class ObjeniousMqttSubscriber : public MqttSubscriber
 {
 public:
-	ObjeniousMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext, DbConnectionObservations& db);
+	ObjeniousMqttSubscriber(MqttSubscriptionDetails details, asio::io_context& ioContext,
+							DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
 					const std::string& objeniousId, const std::map<std::string, std::string>& variables);
 
@@ -75,7 +77,9 @@ protected:
 	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
 
 	const char* getConnectorSuffix() override
-	{ return "objenious"; }
+	{
+		return "objenious";
+	}
 };
 
 }

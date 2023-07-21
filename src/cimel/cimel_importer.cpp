@@ -30,10 +30,10 @@
 #include <date.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
-#include "../cassandra.h"
-#include "../cassandra_utils.h"
-#include "./cimel_importer.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "cassandra_utils.h"
+#include "cimel/cimel_importer.h"
 
 namespace meteodata
 {
@@ -45,21 +45,43 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, const std::string& timezone,
-								 DbConnectionObservations& db) :
+							 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 		_station{station},
 		_cimelId{std::move(cimelId)},
 		_db{db},
+		_jobPublisher{jobPublisher},
 		_tz{TimeOffseter::getTimeOffseterFor(timezone)}
 {
 }
 
 CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, TimeOffseter&& timeOffseter,
-								 DbConnectionObservations& db) :
+							 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 		_station{station},
 		_cimelId{std::move(cimelId)},
 		_db{db},
+		_jobPublisher{jobPublisher},
 		_tz{timeOffseter}
 {
 }
+
+bool CimelImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
+						   bool updateLastArchiveDownloadTime)
+{
+	bool importSucceeded = doImport(input, start, end, year);
+	if (importSucceeded && updateLastArchiveDownloadTime) {
+		bool ret = _db.updateLastArchiveDownloadTime(_station, chrono::system_clock::to_time_t(end));
+		if (!ret) {
+			std::cerr << SD_ERR << "[Cimel " << _station << "]"
+					  << " management: failed to update the last archive download datetime" << std::endl;
+		}
+
+		if (_jobPublisher) {
+			_jobPublisher->publishJobsForPastDataInsertion(_station, start, end);
+		}
+	}
+	return true;
+}
+
+
 
 }

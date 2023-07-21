@@ -30,17 +30,19 @@
 #include <tuple>
 #include <regex>
 
-#include "../http_connection.h"
-#include "../cassandra.h"
-#include "../cassandra_utils.h"
-#include "../time_offseter.h"
-#include "vantagepro2_archive_message.h"
-#include "vantagepro2_http_request_handler.h"
+#include "http_connection.h"
+#include "cassandra.h"
+#include "cassandra_utils.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "davis/vantagepro2_archive_message.h"
+#include "davis/vantagepro2_http_request_handler.h"
 
 namespace meteodata
 {
-VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObservations& db) :
-		_db{db}
+VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		_db{db},
+		_jobPublisher{jobPublisher}
 {
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, std::size_t, std::string, int>> mqttStations;
 	_db.getMqttStations(mqttStations);
@@ -154,6 +156,9 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 				std::chrono::system_clock::from_time_t(lastDownload));
 		auto start = lastArchive;
 
+		date::sys_seconds oldestArchive = date::floor<chrono::seconds>(chrono::system_clock::now());
+		date::sys_seconds newestArchive{};
+
 		const auto* dataPoint = reinterpret_cast<const VantagePro2ArchiveMessage::ArchiveDataPoint*>(content.data());
 		const VantagePro2ArchiveMessage::ArchiveDataPoint* pastLastDataPoint =
 				dataPoint + (size / sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
@@ -163,6 +168,18 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 
 			if (message.looksValid()) {
 				lastArchive = message.getTimestamp();
+
+				// Construct the span of the entire archive page
+				if (lastArchive < oldestArchive) {
+					oldestArchive = lastArchive;
+				}
+				if (lastArchive > newestArchive) {
+					newestArchive = lastArchive;
+				}
+
+				// Remove the data that may already be in place to replace it
+				// with the archive (which may or may not be available at the
+				// same measurement interval)
 				auto end = lastArchive;
 				auto day = date::floor<date::days>(start);
 				auto lastDay = date::floor<date::days>(end);
@@ -193,6 +210,10 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 			if (!ret)
 				std::cerr << SD_ERR << "[VP2 HTTP " << uuid << "] management: "
 						  << "couldn't update last archive download time for station " << name << std::endl;
+
+			if (_jobPublisher) {
+				_jobPublisher->publishJobsForPastDataInsertion(uuid, oldestArchive, newestArchive);
+			}
 		} else {
 			std::cerr << SD_ERR << "[VP2 HTTP " << uuid << "] measurement: " << "failed to store archive for station "
 					  << name << "! Aborting" << std::endl;

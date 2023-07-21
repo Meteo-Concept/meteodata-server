@@ -32,7 +32,7 @@
 #include <date.h>
 #include <tz.h>
 
-#include "../abstract_download_scheduler.h"
+#include "abstract_download_scheduler.h"
 
 namespace meteodata
 {

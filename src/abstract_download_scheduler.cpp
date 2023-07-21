@@ -53,7 +53,10 @@ namespace meteodata
 
 using namespace date;
 
-AbstractDownloadScheduler::AbstractDownloadScheduler(chrono::steady_clock::duration period, asio::io_context& ioContext, DbConnectionObservations& db) :
+AbstractDownloadScheduler::AbstractDownloadScheduler(
+		chrono::steady_clock::duration period, asio::io_context& ioContext,
+		DbConnectionObservations& db
+	) :
 		Connector{ioContext, db},
 		_period{period},
 		_timer{ioContext}

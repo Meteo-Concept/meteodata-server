@@ -32,8 +32,9 @@
 #include <dbconnection_observations.h>
 #include <cassandra.h>
 
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
@@ -58,10 +59,12 @@ public:
 	 * @param db the observations database to insert (meta-)data into
 	 * @param apiId the Objenious API key public part
 	 * @param apiSecret the Objenious API key private part
+	 * @param jobPublisher an optional component used to schedule climatology
+	 * and monitoring computations
 	 */
-	ObjeniousApiDownloader(const CassUuid& station, const std::string& objeniousId,
+	ObjeniousApiDownloader(const CassUuid& station, std::string  objeniousId,
 						   const std::map<std::string, std::string>& variables, DbConnectionObservations& db,
-						   const std::string& apiId);
+						   const std::string& apiId, AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored
@@ -113,6 +116,12 @@ private:
 	DbConnectionObservations& _db;
 
 	/**
+	 * @brief A component used to schedule recomputations of climatology and
+	 * monitoring indices
+	 */
+	AsyncJobPublisher* _jobPublisher;
+
+	/**
 	 * @brief The SPOT API key
 	 *
 	 * Requests to the API are authenticated by a simple very much
@@ -131,7 +140,7 @@ private:
 	 * TODO this is currently not used, we get data at a fix interval, in
 	 * the ObjeniousApiDownloadScheduler class.
 	 */
-	int _pollingPeriod;
+	int _pollingPeriod{};
 
 	/**
 	 * @brief The last datetime for which data is stored in the Météodata

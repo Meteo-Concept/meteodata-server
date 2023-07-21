@@ -35,9 +35,10 @@
 #include <cassandra.h>
 #include <date.h>
 
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "liveobjects_message.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "async_job_publisher.h"
+#include "liveobjects/liveobjects_message.h"
 
 namespace meteodata
 {
@@ -58,9 +59,12 @@ public:
 	 * @param liveobjectsUrn the Liveobjects platform station identifier
 	 * @param db the observations database to insert (meta-)data into
 	 * @param apiKey the Liveobjects API key with privileges DATA_R
+	 * @param jobPublisher an optional component able to scheduler recomputation
+	 * 	of the climatology
 	 */
 	LiveobjectsApiDownloader(const CassUuid& station, const std::string& liveobjectsUrn,
-						   DbConnectionObservations& db, const std::string& apiKey);
+						   DbConnectionObservations& db, const std::string& apiKey,
+						   AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * @brief Download the archive since the last archive timestamp stored
@@ -110,6 +114,12 @@ private:
 	 * @brief The observations database (part Cassandra, part SQL) connector
 	 */
 	DbConnectionObservations& _db;
+
+	/**
+	 * @brief The component able to schedule recomputations of climatology over
+	 * past data once it's downloaded
+	 */
+	AsyncJobPublisher* _jobPublisher;
 
 	/**
 	 * @brief The Liveobjects API key

@@ -21,11 +21,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <chrono>
 #include <map>
 #include <iterator>
 #include <functional>
-#include <memory>
 #include <iostream>
 
 #include <mqtt_client_cpp.hpp>
@@ -46,8 +44,8 @@ namespace meteodata
 namespace pt = boost::property_tree;
 
 GenericMqttSubscriber::GenericMqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-	asio::io_context& ioContext, DbConnectionObservations& db) :
-	MqttSubscriber(details, ioContext, db)
+	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		MqttSubscriber{details, ioContext, db, jobPublisher}
 {
 }
 
@@ -108,6 +106,9 @@ void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, c
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT Generic " << station << "] management: "
 					  << "Couldn't update last archive download time" << std::endl;
+
+		if (_jobPublisher)
+			_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);
 
 		msg.cacheValues(station);
 	} else {

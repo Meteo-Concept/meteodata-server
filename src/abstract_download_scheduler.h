@@ -34,8 +34,8 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "./curl_wrapper.h"
-#include "./connector.h"
+#include "curl_wrapper.h"
+#include "connector.h"
 
 namespace meteodata
 {
@@ -47,7 +47,9 @@ namespace chrono = std::chrono;
 using namespace std::placeholders;
 
 /**
- * @brief The orchestrator for all requests to websites offering StatIC-formatted files
+ * @brief The orchestrator for all requests to websites offering a HTTP API (be
+ * it a simple file updated every so often, a full-fledged REST API, or anything
+ * in-between)
  *
  * We normally need only one instance of this class (several can be used to
  * parallelize requests to the API). Instances of this class are responsible to
@@ -63,7 +65,8 @@ public:
 	 * events, timers, and callbacks
 	 * @param db the Météodata observations database connector
 	 */
-	AbstractDownloadScheduler(chrono::steady_clock::duration period, asio::io_context& ioContext, DbConnectionObservations& db);
+	AbstractDownloadScheduler(chrono::steady_clock::duration period, asio::io_context& ioContext,
+							  DbConnectionObservations& db);
 
 	/**
 	 * @brief Start the periodic downloads

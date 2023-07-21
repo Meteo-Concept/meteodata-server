@@ -29,19 +29,19 @@
 #include <tuple>
 #include <regex>
 
-#include "../http_connection.h"
-#include "../cassandra.h"
-#include "../cassandra_utils.h"
-#include "../time_offseter.h"
-#include "cimel_importer.h"
-#include "cimel4A_importer.h"
-#include "cimel440204_importer.h"
-#include "cimel_http_request_handler.h"
+#include "cassandra.h"
+#include "cassandra_utils.h"
+#include "time_offseter.h"
+#include "cimel/cimel_importer.h"
+#include "cimel/cimel4A_importer.h"
+#include "cimel/cimel440204_importer.h"
+#include "cimel/cimel_http_request_handler.h"
 
 namespace meteodata
 {
-CimelHttpRequestHandler::CimelHttpRequestHandler(DbConnectionObservations& db) :
-		_db{db}
+CimelHttpRequestHandler::CimelHttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		_db{db},
+		_jobPublisher{jobPublisher}
 {
 	std::vector<std::tuple<CassUuid, std::string, int>> cimelStations;
 	_db.getAllCimelStations(cimelStations);
@@ -118,7 +118,7 @@ void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& 
 		timeOffseter.setElevation(elevation);
 
 		date::sys_seconds start, end;
-		auto importer = makeImporter(url, uuid, info.cimelId, std::move(timeOffseter), _db);
+		auto importer = makeImporter(url, uuid, info.cimelId, std::move(timeOffseter));
 		if (!importer) {
 			std::cerr << SD_ERR << "[CIMEL HTTP " << uuid << "] protocol: " << "Unsupported station "
 				  << name << "! Aborting. Please check the station type." << std::endl;
@@ -136,6 +136,7 @@ void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& 
 			using namespace date;
 			std::ostringstream os;
 			os << "Data imported\n" << start << "\n" << end << "\n";
+
 			response.body() = os.str();
 			response.result(boost::beast::http::status::ok);
 		} else {
@@ -147,17 +148,16 @@ void CimelHttpRequestHandler::postArchiveFile(const Request& request, Response& 
 }
 
 std::unique_ptr<CimelImporter> CimelHttpRequestHandler::makeImporter(const std::cmatch& url,
-	const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
-	DbConnectionObservations& db)
+	const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter)
 {
 	std::string type = url[1].str();
 
 	if (type == "4A") {
 		return std::make_unique<Cimel4AImporter>(station, cimelId,
-			std::forward<TimeOffseter&&>(timeOffseter), db);
+			std::forward<TimeOffseter&&>(timeOffseter), _db, _jobPublisher);
 	} else if (type == "440204") {
 		return std::make_unique<Cimel440204Importer>(station, cimelId,
-			std::forward<TimeOffseter&&>(timeOffseter), db);
+			std::forward<TimeOffseter&&>(timeOffseter), _db, _jobPublisher);
 	} else {
 		return {};
 	}

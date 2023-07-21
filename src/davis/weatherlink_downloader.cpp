@@ -27,6 +27,7 @@
 #include <iterator>
 #include <chrono>
 #include <sstream>
+#include <utility>
 #include <cstring>
 #include <cctype>
 #include <systemd/sd-daemon.h>
@@ -63,12 +64,12 @@ const std::string WeatherlinkDownloader::REALTIME_BASE_URL =
 		std::string{"https://"} + WeatherlinkDownloadScheduler::APIHOST;
 const std::string WeatherlinkDownloader::ARCHIVE_BASE_URL = std::string{"http://"} + WeatherlinkDownloadScheduler::HOST;
 
-WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, const std::string& auth,
-											 const std::string& apiToken, DbConnectionObservations& db,
-											 TimeOffseter::PredefinedTimezone tz) :
+WeatherlinkDownloader::WeatherlinkDownloader(const CassUuid& station, std::string auth,
+			std::string apiToken, DbConnectionObservations& db,
+			TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher) :
 		AbstractWeatherlinkDownloader(station, db, tz),
-		_authentication{auth},
-		_apiToken{apiToken}
+		_authentication{std::move(auth)},
+		_apiToken{std::move(apiToken)}
 {}
 
 void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
@@ -177,21 +178,27 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			day += date::days(1);
 		}
 
-		for (auto it = messages.begin() ; it != messages.end() && ret ; ++it) {
-			VantagePro2ArchiveMessage& message = *it;
-
-			_lastArchive = message.getTimestamp();
+		for (auto&& message : messages) {
+			auto lastArchive = message.getTimestamp();
+			if (lastArchive < _oldestArchive)
+				_oldestArchive = lastArchive;
+			if (lastArchive > _newestArchive)
+				_newestArchive = lastArchive;
 			ret = _db.insertV2DataPoint(message.getObservation(_station));
 		}
 
 		if (ret) {
 			std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: " << "archive data stored\n"
 					  << std::endl;
-			time_t lastArchiveDownloadTime = _lastArchive.time_since_epoch().count();
+			time_t lastArchiveDownloadTime = _newestArchive.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 			if (!ret)
 				std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
 						  << "couldn't update last archive download time" << std::endl;
+
+			if (_jobPublisher) {
+				_jobPublisher->publishJobsForPastDataInsertion(_station, _oldestArchive, _newestArchive);
+			}
 		} else {
 			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] measurement: "
 					  << "failed to store archive! Aborting" << std::endl;

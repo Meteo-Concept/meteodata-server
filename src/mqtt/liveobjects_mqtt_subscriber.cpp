@@ -21,7 +21,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <chrono>
 #include <map>
 #include <iterator>
 #include <functional>
@@ -36,18 +35,17 @@
 #include <boost/property_tree/ptree.hpp>
 #include <systemd/sd-daemon.h>
 
-#include "mqtt_subscriber.h"
-#include "liveobjects_mqtt_subscriber.h"
-#include "liveobjects/liveobjects_api_downloader.h"
 #include "cassandra_utils.h"
+#include "mqtt/mqtt_subscriber.h"
+#include "mqtt/liveobjects_mqtt_subscriber.h"
 
 namespace meteodata
 {
 namespace pt = boost::property_tree;
 
 LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-		asio::io_context& ioContext, DbConnectionObservations& db) :
-		MqttSubscriber(details, ioContext, db)
+	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+		MqttSubscriber{details, ioContext, db, jobPublisher}
 {
 }
 
@@ -98,7 +96,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 
 
 	date::sys_seconds timestamp;
-	std::unique_ptr<LiveobjectsMessage> msg = buildMessage(jsonTree, station, timestamp);
+	std::unique_ptr<LiveobjectsMessage> msg = LiveobjectsMessage::parseMessage(_db, jsonTree, station, timestamp);
 
 	int ret = false;
 	if (msg && msg->looksValid()) {
@@ -117,24 +115,16 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 			std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] management: "
 					  << "Couldn't update last archive download time" << std::endl;
 
+		msg->cacheValues(station);
 
-		postInsert(station, msg);
+		if (_jobPublisher)
+			_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);
 	} else {
 		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] measurement: "
 				  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}
-}
-
-void LiveobjectsMqttSubscriber::postInsert(const CassUuid& station, const std::unique_ptr<LiveobjectsMessage>& msg)
-{
-	msg->cacheValues(station);
-}
-
-std::unique_ptr<LiveobjectsMessage> LiveobjectsMqttSubscriber::buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp)
-{
-	return LiveobjectsMessage::parseMessage(_db, json, station, timestamp);
 }
 
 void LiveobjectsMqttSubscriber::addStation(const std::string& topic, const CassUuid& station,

@@ -37,10 +37,11 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "fieldclimate_api_downloader.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "abstract_download_scheduler.h"
+#include "pessl/fieldclimate_api_downloader.h"
 
 namespace meteodata
 {
@@ -71,8 +72,9 @@ public:
 	 * @param apiId the public part of the FieldClimate API key
 	 * @param apiSecret the private part of the FieldClimate API key
 	 */
-	FieldClimateApiDownloadScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-		std::string apiId, std::string apiSecret);
+	FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
+		DbConnectionObservations& db, std::string apiId, std::string apiSecret,
+		AsyncJobPublisher* jobPublisher = nullptr);
 
 	/**
 	 * @brief Add a station to download the data for
@@ -96,6 +98,12 @@ private:
 	 * @brief The private part of the FieldClimate API key
 	 */
 	const std::string _apiSecret;
+
+	/**
+	 * @brief The component able to schedule computations of climatology and
+	 * monitoring indices
+	 */
+	AsyncJobPublisher* _jobPublisher;
 
 	/**
 	 * @brief The list of all downloaders (one per station)

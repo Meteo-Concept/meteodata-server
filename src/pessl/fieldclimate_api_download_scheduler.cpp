@@ -31,10 +31,11 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "../time_offseter.h"
-#include "fieldclimate_api_download_scheduler.h"
-#include "fieldclimate_api_downloader.h"
-#include "../abstract_download_scheduler.h"
+#include "time_offseter.h"
+#include "abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "pessl/fieldclimate_api_download_scheduler.h"
+#include "pessl/fieldclimate_api_downloader.h"
 
 namespace chrono = std::chrono;
 
@@ -44,10 +45,12 @@ namespace meteodata
 using namespace date;
 
 FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
-	DbConnectionObservations& db, std::string apiId, std::string apiSecret) :
+	DbConnectionObservations& db, std::string apiId, std::string apiSecret,
+	AsyncJobPublisher* jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
-		_apiSecret{std::move(apiSecret)}
+		_apiSecret{std::move(apiSecret)},
+		_jobPublisher{jobPublisher}
 {
 }
 
@@ -55,7 +58,7 @@ void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::s
 	TimeOffseter::PredefinedTimezone tz, const std::map<std::string, std::string>& sensors)
 {
 	_downloaders.emplace_back(
-		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret)
+		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret, _jobPublisher)
 	);
 }
 

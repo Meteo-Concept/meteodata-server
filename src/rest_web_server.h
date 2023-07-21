@@ -35,6 +35,7 @@
 
 #include "http_connection.h"
 #include "connector.h"
+#include "async_job_publisher.h"
 
 namespace meteodata
 {
@@ -42,20 +43,20 @@ namespace meteodata
 class RestWebServer : public Connector
 {
 public:
-	RestWebServer(boost::asio::io_context& io, DbConnectionObservations& db);
+	RestWebServer(boost::asio::io_context& io, DbConnectionObservations& db,
+				  AsyncJobPublisher* jobPublisher = nullptr);
 
 	// Start accepting incoming connections
-	void start();
+	void start() override;
 
-	void stop();
+	void stop() override;
 
-	void reload();
+	void reload() override;
 
 
 private:
-	boost::asio::io_context& _io;
+	AsyncJobPublisher* _jobPublisher;
 	boost::asio::ip::tcp::acceptor _acceptor;
-	DbConnectionObservations& _db;
 	bool _stopped;
 
 	void serveHttpConnection(const std::shared_ptr<HttpConnection>& connection, const boost::system::error_code& error);

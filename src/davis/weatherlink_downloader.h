@@ -38,6 +38,7 @@
 #include <date.h>
 #include <tz.h>
 #include <dbconnection_observations.h>
+#include "async_job_publisher.h"
 
 #include "abstract_weatherlink_downloader.h"
 #include "vantagepro2_archive_page.h"
@@ -59,8 +60,8 @@ using namespace meteodata;
 class WeatherlinkDownloader : public AbstractWeatherlinkDownloader
 {
 public:
-	WeatherlinkDownloader(const CassUuid& station, const std::string& auth, const std::string& apiToken,
-						  DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz);
+	WeatherlinkDownloader(const CassUuid& station, std::string auth, std::string apiToken,
+		DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr);
 	void download(CurlWrapper& client);
 	void downloadRealTime(CurlWrapper& client);
 

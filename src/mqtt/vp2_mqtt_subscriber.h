@@ -41,9 +41,10 @@
 #include <dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
-#include "../time_offseter.h"
-#include "../davis/vantagepro2_archive_page.h"
-#include "mqtt_subscriber.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "mqtt/mqtt_subscriber.h"
+#include "davis/vantagepro2_archive_page.h"
 
 namespace meteodata
 {
@@ -55,7 +56,8 @@ using namespace meteodata;
 class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
-	VP2MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext, DbConnectionObservations& db);
+	VP2MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
+					  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";

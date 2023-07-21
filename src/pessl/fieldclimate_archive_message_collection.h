@@ -135,6 +135,21 @@ public:
 	{
 		return _messages.back()._obs.time;
 	}
+
+	/**
+	 * @brief Get the lowest timestamp (i.e. oldest datetime)
+	 * available among the parsed messages
+	 *
+	 * Calling this method before parse() or if the list of messages will
+	 * result in undefined behaviour.
+	 *
+	 * @return The oldest datetime which will be inserted in the
+	 * database thanks to this messages collection
+	 */
+	inline date::sys_seconds getOldestMessageTime() const
+	{
+		return _messages.front()._obs.time;
+	}
 };
 
 }

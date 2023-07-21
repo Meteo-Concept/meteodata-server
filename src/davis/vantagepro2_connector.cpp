@@ -32,12 +32,13 @@
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 
-#include "../cassandra_utils.h"
-#include "../connector.h"
-#include "../time_offseter.h"
-#include "vantagepro2_connector.h"
-#include "vantagepro2_message.h"
-#include "vantagepro2_archive_page.h"
+#include "cassandra_utils.h"
+#include "connector.h"
+#include "time_offseter.h"
+#include "async_job_publisher.h"
+#include "davis/vantagepro2_connector.h"
+#include "davis/vantagepro2_message.h"
+#include "davis/vantagepro2_archive_page.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -50,11 +51,13 @@ namespace meteodata
 using namespace std::placeholders;
 using namespace date;
 
-VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db) :
-		Connector(ioContext, db),
+VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db,
+										   AsyncJobPublisher* jobPublisher) :
+		Connector{ioContext, db},
 		_sock{ioContext},
 		_timer{ioContext},
-		_setTimeTimer{ioContext}
+		_setTimeTimer{ioContext},
+		_jobPublisher{jobPublisher}
 {
 }
 
@@ -69,7 +72,6 @@ void VantagePro2Connector::start()
 	_sock.set_option(keepaliveInterval);
 	_sock.set_option(keepaliveProbes);
 
-	auto self(std::static_pointer_cast<VantagePro2Connector>(shared_from_this()));
 	_currentState = State::STARTING;
 
 	_status.shortStatus = "Starting";
@@ -747,9 +749,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 						std::cout << SD_DEBUG << "[Direct " << _station << "] management: "
 								  << "Archive data page stored, updating the archive download time" << std::endl;
 
-						time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(
-								_archivePage.lastArchiveRecordDateTime());
-						ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+						if (_archivePage.lastArchiveRecordDateTime() > _newestArchive) {
+							_newestArchive = _archivePage.lastArchiveRecordDateTime();
+							time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(_archivePage.lastArchiveRecordDateTime());
+							ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+						}
+						if (_archivePage.lastArchiveRecordDateTime() < _oldestArchive) {
+							_oldestArchive = _archivePage.lastArchiveRecordDateTime();
+						}
 						if (!ret)
 							std::cerr << SD_ERR << "[Direct " << _station << "] management: "
 									  << "couldn't update last archive download time" << std::endl;
@@ -798,6 +805,11 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Archive data stored"
 							  << std::endl;
+
+					if (_jobPublisher && date::floor<date::days>(_oldestArchive) < date::floor<date::days>(chrono::system_clock::now())) {
+						_jobPublisher->publishJobsForPastDataInsertion(_station, _oldestArchive, _newestArchive);
+					}
+
 					if (_setTimeRequested) {
 						std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Station " << _stationName
 								  << "'s clock has to be set" << std::endl;

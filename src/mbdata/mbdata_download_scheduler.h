@@ -37,11 +37,12 @@
 #include <cassandra.h>
 #include <dbconnection_observations.h>
 
-#include "mbdata_txt_downloader.h"
-#include "../time_offseter.h"
-#include "../curl_wrapper.h"
-#include "../connector.h"
-#include "../abstract_download_scheduler.h"
+#include "async_job_publisher.h"
+#include "time_offseter.h"
+#include "curl_wrapper.h"
+#include "connector.h"
+#include "abstract_download_scheduler.h"
+#include "mbdata/mbdata_txt_downloader.h"
 
 namespace meteodata
 {

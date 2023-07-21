@@ -58,11 +58,12 @@ namespace json = boost::json;
 using namespace meteodata;
 
 LiveobjectsApiDownloader::LiveobjectsApiDownloader(const CassUuid& station, const std::string& liveobjectsId,
-	DbConnectionObservations& db, const std::string& apiKey) :
-		_station(station),
-		_liveobjectsUrn(liveobjectsId),
-		_db(db),
-		_apiKey(apiKey)
+	DbConnectionObservations& db, const std::string& apiKey, AsyncJobPublisher* jobPublisher) :
+		_station{station},
+		_liveobjectsUrn{liveobjectsId},
+		_db{db},
+		_jobPublisher{jobPublisher},
+		_apiKey{apiKey}
 {
 	time_t lastArchiveDownloadTime;
 	int pollingPeriod;
@@ -146,6 +147,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 
 	bool insertionOk = true;
 	date::sys_seconds newest = _lastArchive;
+	date::sys_seconds oldest = date::floor<chrono::seconds>(chrono::system_clock::now());
 	date::sys_seconds date = beginDate;
 	do {
 		date::sys_seconds datep1 = date + chrono::hours{24}; // about right
@@ -214,6 +216,9 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 							if (timestamp > newest) {
 								newest = timestamp;
 							}
+							if (timestamp < oldest) {
+								oldest = timestamp;
+							}
 						}
 					}
 				}
@@ -245,6 +250,10 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 					  << "couldn't update last archive download time for station " << _stationName << std::endl;
 		} else {
 			_lastArchive = newest;
+		}
+
+		if (_jobPublisher) {
+			_jobPublisher->publishJobsForPastDataInsertion(_station, oldest, newest);
 		}
 	}
 }
