@@ -77,8 +77,6 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 	_ioContext{ioContext},
 	_vp2DirectConnectAcceptor{ioContext},
 	_db{config.address, config.user, config.password},
-	_dbJobs{config.jobsDbAddress, config.jobsDbUsername, config.jobsDbPassword, config.jobsDbDatabase},
-	_jobPublisher{ioContext, _dbJobs},
 	_vp2DirectConnectorStopped{true},
 	_controlConnectionStopped{true},
 	_signalTimer{ioContext},
@@ -94,6 +92,14 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 	if (_configuration.daemonized) {
 		_watchdog.start();
 	}
+
+	if (_configuration.publishJobs) {
+		_jobPublisher = std::make_unique<AsyncJobPublisher>(
+				ioContext, config.jobsDbAddress, config.jobsDbUsername,
+				config.jobsDbPassword, config.jobsDbDatabase
+		);
+	}
+	_configuration.jobsDbPassword.clear();
 
 	std::cerr << SD_INFO << "[Server] management: " << "Meteodata has started succesfully" << std::endl;
 }
@@ -161,7 +167,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
 				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
 					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
-						details, _ioContext, _db, &_jobPublisher
+						details, _ioContext, _db, _jobPublisher.get()
 					);
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -170,7 +176,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
 				if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
 					std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
-						details, _ioContext, _db, &_jobPublisher
+						details, _ioContext, _db, _jobPublisher.get()
 					);
 					mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -184,7 +190,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = liveobjectsMqttSubscribers.find(details);
 				if (mqttSubscribersIt == liveobjectsMqttSubscribers.end()) {
 					std::shared_ptr<LiveobjectsMqttSubscriber> subscriber = std::make_shared<LiveobjectsMqttSubscriber>(
-						details, _ioContext, _db, &_jobPublisher
+						details, _ioContext, _db, _jobPublisher.get()
 					);
 					mqttSubscribersIt = liveobjectsMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -196,7 +202,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = genericMqttSubscribers.find(details);
 				if (mqttSubscribersIt == genericMqttSubscribers.end()) {
 					std::shared_ptr<GenericMqttSubscriber> subscriber = std::make_shared<GenericMqttSubscriber>(
-						details, _ioContext, _db, &_jobPublisher
+						details, _ioContext, _db, _jobPublisher.get()
 					);
 					mqttSubscribersIt = genericMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -235,7 +241,7 @@ void MeteoServer::start()
 
 	if (_configuration.startShip) {
 		// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
-		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db, &_jobPublisher);
+		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db, _jobPublisher.get());
 		meteofranceDownloader->start();
 		_connectors.emplace("ship", meteofranceDownloader);
 	}
@@ -252,7 +258,7 @@ void MeteoServer::start()
 		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(
 			_ioContext, _db,
 			std::move(_configuration.weatherlinkApiV2Key), std::move(_configuration.weatherlinkApiV2Secret),
-			&_jobPublisher
+			_jobPublisher.get()
 		);
 		weatherlinkScheduler->start();
 		_connectors.emplace("weatherlink", weatherlinkScheduler);
@@ -264,7 +270,7 @@ void MeteoServer::start()
 		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(
 			_ioContext, _db,
 			_configuration.fieldClimateApiKey, _configuration.fieldClimateApiSecret,
-			&_jobPublisher
+			_jobPublisher.get()
 		);
 		fieldClimateScheduler->start();
 		_connectors.emplace("fieldclimate", fieldClimateScheduler);
@@ -279,7 +285,7 @@ void MeteoServer::start()
 	if (_configuration.startRest) {
 		// Start the Web server for the REST API
 		auto restWebServer = std::make_shared<RestWebServer>(
-			_ioContext, _db, &_jobPublisher
+			_ioContext, _db, _jobPublisher.get()
 		);
 		restWebServer->start();
 		_connectors.emplace("rest", restWebServer);
@@ -350,7 +356,7 @@ void MeteoServer::startAcceptingVp2DirectConnect()
 	if (_vp2DirectConnectorStopped)
 		return;
 
-	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db, &_jobPublisher);
+	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db, _jobPublisher.get());
 	_vp2DirectConnectAcceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
 		runNewVp2DirectConnector(newConnector, error);
 	});

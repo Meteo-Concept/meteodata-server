@@ -63,6 +63,10 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&serverConfig.user), "database username")
 		("password,p", po::value<std::string>(&serverConfig.password), "database password")
 		("host,h", po::value<std::string>(&serverConfig.address), "database IP address or domain name")
+		("jobs-db-user", po::value<std::string>(&serverConfig.jobsDbUsername), "asynchronous jobs database username")
+		("jobs-db-password", po::value<std::string>(&serverConfig.jobsDbPassword), "asynchronous jobs database password")
+		("jobs-db-host", po::value<std::string>(&serverConfig.jobsDbAddress), "asynchronous jobs database IP address or domain name")
+		("jobs-db-database", po::value<std::string>(&serverConfig.jobsDbDatabase), "asynchronous jobs database name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(&serverConfig.weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(&serverConfig.weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
 		("threads", po::value<unsigned long>(&threads), "number of threads to start to listen to ASIO events, defaults to 1")
@@ -77,6 +81,7 @@ int main(int argc, char** argv)
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
 		("no-daemon,D", "tell the program that it's not daemonized and that it should not try to notify systemd")
+		("no-async-jobs", "tell the program that it shouldn't try to schedule asynchronous jobs")
 		("no-mqtt", "don't start the MQTT downloaders")
 		("no-synop", "don't start the SYNOP downloaders")
 		("no-ship", "don't start the SHIP and BUOY downloader")
@@ -125,6 +130,7 @@ int main(int argc, char** argv)
 	}
 
 	daemonized = !vm.count("no-daemon");
+	serverConfig.publishJobs = !vm.count("no-jobs");
 
 	serverConfig.startMqtt = !vm.count("no-mqtt");
 	serverConfig.startSynop = !vm.count("no-synop");

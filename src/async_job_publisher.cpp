@@ -39,9 +39,10 @@ namespace sys = boost::system;
 
 using namespace std::chrono_literals;
 
-AsyncJobPublisher::AsyncJobPublisher(boost::asio::io_context& ioContext, meteodata::DbConnectionJobs& dbJobs) :
-	_io{ioContext},
-	_dbJobs{dbJobs}
+AsyncJobPublisher::AsyncJobPublisher(boost::asio::io_context& ioContext,
+	const std::string& dbAddr, const std::string& dbUsername, const std::string& dbPassword, const std::string& dbName) :
+		_io{ioContext},
+		_dbJobs{dbAddr, dbUsername, dbPassword, dbName}
 {}
 
 void AsyncJobPublisher::publishJobsForPastDataInsertion(const CassUuid& station, const date::sys_seconds& begin, const date::sys_seconds& end)

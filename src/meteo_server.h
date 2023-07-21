@@ -124,6 +124,7 @@ public:
 		std::string fieldClimateApiKey;
 		std::string fieldClimateApiSecret;
 		std::string objeniousApiKey;
+		bool publishJobs = true;
 		bool startMqtt = true;
 		bool startSynop = true;
 		bool startShip = true;
@@ -169,12 +170,8 @@ private:
 	 * @brief The connection to the observations/climatology database
 	 */
 	DbConnectionObservations _db;
-	/**
-	 * @brief The connection to the asynchronous jobs database
-	 */
-	DbConnectionJobs _dbJobs;
 
-	AsyncJobPublisher _jobPublisher;
+	std::unique_ptr<AsyncJobPublisher> _jobPublisher;
 
 	MeteoServerConfiguration _configuration;
 
