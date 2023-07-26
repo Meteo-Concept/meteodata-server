@@ -23,10 +23,8 @@
 
 #include <boost/beast.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/asio/socket_base.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/system/error_code.hpp>
-#include <algorithm>
 #include <chrono>
 
 #include <dbconnection_observations.h>
