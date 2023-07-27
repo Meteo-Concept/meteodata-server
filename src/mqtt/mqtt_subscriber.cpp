@@ -56,6 +56,7 @@ using namespace date;
 MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
 	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 		Connector{ioContext, db},
+		_stopped{true},
 		_details{details},
 		_jobPublisher{jobPublisher},
 		_timer{ioContext}
@@ -128,9 +129,14 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 	if (e == sys::errc::operation_canceled)
 		return;
 
+	/* Don't restart the subscriber if it has to be stopped */
+	if (_stopped)
+		return;
+
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		start();
+		if (_stopped)
+			start();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
@@ -146,6 +152,9 @@ void MqttSubscriber::handleClose()
 
 void MqttSubscriber::handleError(sys::error_code const&)
 {
+	if (_stopped)
+		return;
+
 	// wait a little and restart, up to three times
 	auto self{shared_from_this()};
 	if (_retries < MAX_RETRIES) {
@@ -186,6 +195,8 @@ bool MqttSubscriber::handlePublish(std::uint8_t, boost::optional<std::uint16_t>,
 
 void MqttSubscriber::start()
 {
+	_stopped = false;
+
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "About to start the MQTT client  " << std::endl;
 	_client = mqtt::make_tls_client(_ioContext, _details.host, _details.port);
 
@@ -257,17 +268,18 @@ void MqttSubscriber::start()
 
 void MqttSubscriber::stop()
 {
-	_client->disconnect();
 	_status.shortStatus = "STOPPED";
+	_stopped = true;
+	_timer.cancel();
+	_client->disconnect();
 }
 
 void MqttSubscriber::reload()
 {
 	auto self{shared_from_this()};
-	_client->set_close_handler([this, self]() {
-		start();
-	});
 	_client->disconnect();
+	if (!_stopped)
+		start();
 }
 
 }

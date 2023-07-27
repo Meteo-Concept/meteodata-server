@@ -72,6 +72,8 @@ public:
 	void reload() override;
 
 protected:
+	bool _stopped;
+
 	MqttSubscriptionDetails _details;
 
 	std::map<std::uint16_t, std::string> _subscriptions;
