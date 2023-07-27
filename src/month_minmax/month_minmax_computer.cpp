@@ -84,8 +84,7 @@ bool MonthMinmaxComputer::computeMonthMinmax(const CassUuid& station, const date
 	auto stationsWithNormals = _dbNormals.getStationsWithNormalsNearby(station);
 
 	bool ret = true;
-	year_month selectedDate = begin;
-	while (selectedDate <= end) {
+	for (year_month selectedDate = begin ; selectedDate <= end ; selectedDate += date::months{1}) {
 		int y = int(selectedDate.year());
 		int m = static_cast<int>(unsigned(selectedDate.month()));
 
@@ -124,7 +123,6 @@ bool MonthMinmaxComputer::computeMonthMinmax(const CassUuid& station, const date
 		}
 
 		ret = ret && _dbMonthMinmax.insertDataPoint(station, y, m, values);
-		selectedDate += date::months{1};
 
 		continue;
 

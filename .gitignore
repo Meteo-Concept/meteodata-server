@@ -54,3 +54,4 @@ src/meteodata-cimel-standalone
 src/meteodata-mqtt-vp2-standalone
 src/meteodatactl
 src/meteodata-minmax-worker
+src/meteodata-month-minmax-worker

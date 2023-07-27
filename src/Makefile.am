@@ -3,6 +3,7 @@ bin_PROGRAMS = \
 	       meteodata-minmax \
 	       meteodata-minmax-worker \
 	       meteodata-month-minmax \
+	       meteodata-month-minmax-worker \
 	       meteodata-records \
 	       meteodata-synop-standalone \
 	       meteodata-weatherlink-oldxml-standalone \
@@ -205,9 +206,16 @@ meteodata_minmax_worker_SOURCES = \
 		    minmax/minmax_computer.h
 
 meteodata_month_minmax_SOURCES = \
-		    month_minmax.cpp\
-		    month_minmax_computer.cpp\
-		    month_minmax_computer.h
+		    month_minmax/month_minmax.cpp\
+		    month_minmax/month_minmax_computer.cpp\
+		    month_minmax/month_minmax_computer.h
+
+meteodata_month_minmax_worker_SOURCES = \
+		    month_minmax/month_minmax_daemon.cpp\
+		    month_minmax/month_minmax_worker.cpp\
+		    month_minmax/month_minmax_worker.h\
+		    month_minmax/month_minmax_computer.cpp\
+		    month_minmax/month_minmax_computer.h
 
 meteodata_records_SOURCES = \
 		    records.cpp
@@ -483,6 +491,11 @@ meteodata_month_minmax_CPPFLAGS = $(basecppflags)
 meteodata_month_minmax_CXXFLAGS =
 meteodata_month_minmax_LDFLAGS = $(baseldflags)
 meteodata_month_minmax_LDADD = $(baselibs)
+
+meteodata_month_minmax_worker_CPPFLAGS = $(allcppflags)
+meteodata_month_minmax_worker_CXXFLAGS =
+meteodata_month_minmax_worker_LDFLAGS = $(allldflags)
+meteodata_month_minmax_worker_LDADD = $(alllibs)
 
 meteodata_records_CPPFLAGS = $(basecppflags)
 meteodata_records_CXXFLAGS =

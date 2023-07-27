@@ -47,6 +47,10 @@ AsyncJobPublisher::AsyncJobPublisher(boost::asio::io_context& ioContext,
 
 void AsyncJobPublisher::publishJobsForPastDataInsertion(const CassUuid& station, const date::sys_seconds& begin, const date::sys_seconds& end)
 {
+	date::sys_days today = date::floor<date::days>(chrono::system_clock::now());
+	if (begin > end || date::floor<date::days>(begin) >= today)
+		return; // ignore if it's not in the past enough
+
 	auto it = _debouncing.find(station);
 	if (it == _debouncing.end()) {
 		Timer timer{_io};
