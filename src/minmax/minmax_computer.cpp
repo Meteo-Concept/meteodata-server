@@ -45,8 +45,8 @@ bool MinmaxComputer::computeMinmax(const CassUuid& station, const date::sys_seco
 	DbConnectionMinmax::Values values;
 	bool ret = true;
 
-	date::sys_days selectedDate = date::floor<date::days>(begin);
-	while (selectedDate <= end) {
+	for (date::sys_days selectedDate = date::floor<date::days>(begin) ; selectedDate <= end ; selectedDate += date::days{1})
+	{
 		std::pair<bool, float> rainToday, etToday, rainYesterday, etYesterday, rainBeginMonth, etBeginMonth;
 		auto ymd = date::year_month_day(selectedDate);
 		date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
@@ -115,7 +115,6 @@ bool MinmaxComputer::computeMinmax(const CassUuid& station, const date::sys_seco
 		values.winddir.first = true;
 
 		ret = ret && _dbMinmax.insertDataPoint(station, selectedDate, values);
-		selectedDate += date::days{1};
 
 		continue;
 
