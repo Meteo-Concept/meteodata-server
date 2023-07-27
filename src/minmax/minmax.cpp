@@ -29,11 +29,7 @@
 
 #include <fstream>
 #include <sstream>
-#include <unistd.h>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <unistd.h>
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
@@ -41,6 +37,8 @@
 #include <date.h>
 
 #include "config.h"
+#include "minmax_computer.h"
+#include "cassandra_utils.h"
 
 
 /**
@@ -58,14 +56,6 @@ inline std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& pair)
 {
 	os << "(" << pair.first << ", " << pair.second << ")";
 	return os;
-}
-
-inline constexpr bool operator<(CassUuid u1, CassUuid u2)
-{
-	if (u1.time_and_version == u2.time_and_version)
-		return u1.clock_seq_and_node < u2.clock_seq_and_node;
-	else
-		return u1.time_and_version < u2.time_and_version;
 }
 
 /**
@@ -102,8 +92,6 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
-		("weatherlink-apiv2-key,k", po::value<std::string>(), "Ignored")
-		("weatherlink-apiv2-secret,s", po::value<std::string>(), "Ignored")
 	;
 	desc.add(config);
 
@@ -182,8 +170,8 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		DbConnectionMinmax db(address, user, password);
-		DbConnectionMinmax::Values values;
+		DbConnectionMinmax dbMinmax{address, user, password};
+		MinmaxComputer minmaxComputer{dbMinmax};
 
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
@@ -194,7 +182,7 @@ int main(int argc, char** argv)
 
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
-		db.getAllStations(allStations);
+		dbMinmax.getAllStations(allStations);
 		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
@@ -219,84 +207,12 @@ int main(int argc, char** argv)
 								  userSelection.cend(), std::back_inserter(stations));
 		}
 
-		sys_days selectedDate = beginDate;
-		while (selectedDate <= endDate) {
-			std::cerr << "Selected date: " << selectedDate << std::endl;
-			for (const CassUuid& station : stations) {
-				std::cerr << "Getting values from 6h to 6h (Tx, rainfall)" << std::endl;
-				db.getValues6hTo6h(station, selectedDate, values);
-				std::cerr << "Getting values from 18h to 18h (Tn)" << std::endl;
-				db.getValues18hTo18h(station, selectedDate, values);
-				std::cerr << "Getting values from 0h to 0h (wind, pressure, etc.)" << std::endl;
-				db.getValues0hTo0h(station, selectedDate, values);
-
-				std::cerr << "rainfall: " << values.rainfall << " | et: " << values.et << std::endl;
-
-				std::cerr << "Getting rain and evapotranspiration cumulative values" << std::endl;
-				std::pair<bool, float> rainToday, etToday, rainYesterday, etYesterday, rainBeginMonth, etBeginMonth;
-
-				auto ymd = date::year_month_day(selectedDate);
-				if (unsigned(ymd.month()) == 1 && unsigned(ymd.day()) == 1) {
-					rainToday = values.rainfall;
-					etToday = values.et;
-				} else {
-					db.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday);
-					compute(rainToday, values.rainfall, rainYesterday, std::plus<>());
-					compute(etToday, values.et, etYesterday, std::plus<>());
-				}
-
-				if (unsigned(ymd.month()) == 1) {
-					values.monthRain = rainToday;
-					values.monthEt = etToday;
-				} else {
-					date::sys_days beginningOfMonth = selectedDate - date::days(unsigned(ymd.day()));
-					db.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth);
-					compute(values.monthRain, rainToday, rainBeginMonth, std::minus<>());
-					compute(values.monthEt, etToday, etBeginMonth, std::minus<>());
-				}
-
-				values.dayRain = values.rainfall;
-				values.yearRain = rainToday;
-				values.dayEt = values.et;
-				values.yearEt = etToday;
-
-				computeMean(values.outsideTemp_avg, values.outsideTemp_max, values.outsideTemp_min);
-				computeMean(values.insideTemp_avg, values.insideTemp_max, values.insideTemp_min);
-
-				for (int i = 0 ; i < 2 ; i++)
-					computeMean(values.leafTemp_avg[i], values.leafTemp_max[i], values.leafTemp_min[i]);
-				for (int i = 0 ; i < 4 ; i++)
-					computeMean(values.soilTemp_avg[i], values.soilTemp_max[i], values.soilTemp_min[i]);
-				for (int i = 0 ; i < 3 ; i++)
-					computeMean(values.extraTemp_avg[i], values.extraTemp_max[i], values.extraTemp_min[i]);
-
-				std::vector<std::pair<int, float>> winds;
-				std::cerr << "Getting wind values for day " << selectedDate << std::endl;
-				db.getWindValues(station, selectedDate, winds);
-
-				int count = 0;
-				std::array<int, 16> dirs = {0};
-				for (auto&& w : winds) {
-					if (w.second / 3.6 >= 2.0) {
-						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
-						dirs[rounded % 16]++;
-						count++;
-					}
-				}
-
-				values.winddir.second.resize(16);
-				for (int i = 0 ; i < 16 ; i++) {
-					int v = dirs[i];
-					std::cerr << "v = " << v << " | count = " << count << std::endl;
-					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
-				}
-				values.winddir.first = true;
-
-				std::cerr << "Inserting into database" << std::endl;
-				db.insertDataPoint(station, selectedDate, values);
-				std::cerr << "-----------------------" << std::endl;
+		for (const CassUuid& station : stations) {
+			if (minmaxComputer.computeMinmax(station, beginDate, endDate)) {
+				std::cerr << "Minmax for " << station << ": success" << std::endl;
+			} else {
+				std::cerr << "Minmax for " << station << ": error" << std::endl;
 			}
-			selectedDate += date::days{1};
 		}
 		std::cerr << "Done" << std::endl;
 	} catch (std::exception& e) {

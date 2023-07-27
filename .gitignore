@@ -53,3 +53,4 @@ src/meteodata-liveobjects-api-standalone
 src/meteodata-cimel-standalone
 src/meteodata-mqtt-vp2-standalone
 src/meteodatactl
+src/meteodata-minmax-worker

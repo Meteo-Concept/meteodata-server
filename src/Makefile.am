@@ -1,5 +1,7 @@
 bin_PROGRAMS = \
-	       meteodata meteodata-minmax \
+	       meteodata\
+	       meteodata-minmax \
+	       meteodata-minmax-worker \
 	       meteodata-month-minmax \
 	       meteodata-records \
 	       meteodata-synop-standalone \
@@ -191,10 +193,21 @@ meteodata_SOURCES = \
 		    control/general_query_handler.cpp
 
 meteodata_minmax_SOURCES = \
-		    minmax.cpp
+		    minmax/minmax.cpp\
+		    minmax/minmax_computer.cpp\
+		    minmax/minmax_computer.h
+
+meteodata_minmax_worker_SOURCES = \
+		    minmax/minmax_daemon.cpp\
+		    minmax/minmax_worker.cpp\
+		    minmax/minmax_worker.h\
+		    minmax/minmax_computer.cpp\
+		    minmax/minmax_computer.h
 
 meteodata_month_minmax_SOURCES = \
-		    month_minmax.cpp
+		    month_minmax.cpp\
+		    month_minmax_computer.cpp\
+		    month_minmax_computer.h
 
 meteodata_records_SOURCES = \
 		    records.cpp
@@ -460,6 +473,11 @@ meteodata_minmax_CPPFLAGS = $(basecppflags)
 meteodata_minmax_CXXFLAGS =
 meteodata_minmax_LDFLAGS = $(baseldflags)
 meteodata_minmax_LDADD = $(baselibs)
+
+meteodata_minmax_worker_CPPFLAGS = $(allcppflags)
+meteodata_minmax_worker_CXXFLAGS =
+meteodata_minmax_worker_LDFLAGS = $(allldflags)
+meteodata_minmax_worker_LDADD = $(alllibs)
 
 meteodata_month_minmax_CPPFLAGS = $(basecppflags)
 meteodata_month_minmax_CXXFLAGS =

@@ -28,11 +28,7 @@
 #include <array>
 
 #include <fstream>
-#include <unistd.h>
 #include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <unistd.h>
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
@@ -41,6 +37,8 @@
 #include <dbconnection_normals.h>
 
 #include "config.h"
+#include "month_minmax_computer.h"
+#include "cassandra_utils.h"
 
 
 /**
@@ -58,42 +56,6 @@ inline std::ostream& operator<<(std::ostream& os, const std::pair<T1, T2>& pair)
 {
 	os << "(" << pair.first << ", " << pair.second << ")";
 	return os;
-}
-
-inline constexpr bool operator<(CassUuid u1, CassUuid u2)
-{
-	if (u1.time_and_version == u2.time_and_version)
-		return u1.clock_seq_and_node < u2.clock_seq_and_node;
-	else
-		return u1.time_and_version < u2.time_and_version;
-}
-
-void compareMinmaxWithNormals(DbConnectionMonthMinmax::Values& values, const DbConnectionNormals::Values& normals)
-{
-	if (values.outsideTemp_avg.first && normals.tm.first)
-		values.diff_outsideTemp_avg = {true, values.outsideTemp_avg.second - normals.tm.second};
-	else
-		values.diff_outsideTemp_avg = {false, .0f};
-
-	if (values.outsideTemp_min_min.first && normals.tn.first)
-		values.diff_outsideTemp_min_min = {true, values.outsideTemp_min_min.second - normals.tn.second};
-	else
-		values.diff_outsideTemp_min_min = {false, .0f};
-
-	if (values.outsideTemp_max_max.first && normals.tx.first)
-		values.diff_outsideTemp_max_max = {true, values.outsideTemp_max_max.second - normals.tx.second};
-	else
-		values.diff_outsideTemp_max_max = {false, .0f};
-
-	if (values.rainfall.first && normals.rainfall.first)
-		values.diff_rainfall = {true, values.rainfall.second - normals.rainfall.second};
-	else
-		values.diff_rainfall = {false, .0f};
-
-	if (values.insolationTime.first && normals.insolationTime.first)
-		values.diff_insolationTime = {true, values.insolationTime.second - normals.insolationTime.second};
-	else
-		values.diff_insolationTime = {false, .0f};
 }
 
 /**
@@ -219,10 +181,10 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnectionMonthMinmax db(dataAddress, dataUser, dataPassword);
-		DbConnectionMonthMinmax::Values values;
+		DbConnectionMonthMinmax dbMonthMinmax(dataAddress, dataUser, dataPassword);
 		DbConnectionNormals dbNormals(stationsAddress, stationsUser, stationsPassword, stationsDatabase);
-		DbConnectionNormals::Values normals;
+
+		MonthMinmaxComputer minmaxComputer{dbMonthMinmax, dbNormals};
 
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {
@@ -234,7 +196,7 @@ int main(int argc, char** argv)
 
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
-		db.getAllStations(allStations);
+		dbMonthMinmax.getAllStations(allStations);
 		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
@@ -259,53 +221,12 @@ int main(int argc, char** argv)
 								  userSelection.cend(), std::back_inserter(stations));
 		}
 
-		year_month selectedDate = beginDate;
-		while (selectedDate <= endDate) {
-			for (const CassUuid& station : stations) {
-				std::cerr << "Selected date: " << selectedDate << std::endl;
-				int y = int(selectedDate.year());
-				int m = static_cast<int>(unsigned(selectedDate.month()));
-				std::cerr << "Getting daily values (all except wind)" << std::endl;
-				db.getDailyValues(station, y, m, values);
-
-				auto day = sys_days{year_month_day{year{y} / m / 1}};
-				auto end = sys_days{year_month_day{year{y} / m / last}};
-
-				std::vector<std::pair<int, float>> winds;
-				while (day <= end && day <= today) {
-					std::cerr << "Getting wind values for day " << day << std::endl;
-					db.getWindValues(station, day, winds);
-					day += days{1};
-				}
-
-				int count = 0;
-				std::array<int, 16> dirs = {0};
-				for (auto&& w : winds) {
-					if (w.second / 3.6 >= 2.0) {
-						int rounded = ((w.first % 360) * 100 + 1125) / 2250;
-						dirs[rounded % 16]++;
-						count++;
-					}
-				}
-				values.winddir.second.resize(16);
-				for (int i = 0 ; i < 16 ; i++) {
-					int v = dirs[i];
-					std::cerr << "v = " << v << " | count = " << count << std::endl;
-					values.winddir.second[i] = count == 0 ? 0 : v * 1000 / count;
-				}
-				values.winddir.first = true;
-
-				auto stationsWithNormals = dbNormals.getStationsWithNormalsNearby(station);
-				if (!stationsWithNormals.empty()) {
-					dbNormals.getMonthNormals(stationsWithNormals[0].id, normals, selectedDate.month());
-					compareMinmaxWithNormals(values, normals);
-				}
-
-				std::cerr << "Inserting into database" << std::endl;
-				db.insertDataPoint(station, y, m, values);
-				std::cerr << "-----------------------" << std::endl;
+		for (const CassUuid& station : stations) {
+			if (minmaxComputer.computeMonthMinmax(station, beginDate, endDate)) {
+				std::cerr << "Minmax for " << station << ": success" << std::endl;
+			} else {
+				std::cerr << "Minmax for " << station << ": error" << std::endl;
 			}
-			selectedDate += date::months{1};
 		}
 		std::cerr << "Done" << std::endl;
 	} catch (std::exception& e) {
