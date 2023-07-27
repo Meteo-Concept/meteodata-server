@@ -12,7 +12,6 @@ Group = meteodata
 Type = notify
 ExecStart = /usr/local/bin/meteodata-month-minmax-worker
 Restart = on-abnormal
-WatchdogSec = 60
 NotifyAccess = all
 
 [Install]
