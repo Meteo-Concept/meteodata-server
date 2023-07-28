@@ -27,6 +27,7 @@
 #include <map>
 #include <tuple>
 #include <chrono>
+#include <mutex>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -55,6 +56,8 @@ private:
 	DbConnectionJobs _dbJobs;
 
 	std::map<CassUuid, std::tuple<date::sys_seconds, date::sys_seconds, Timer>> _debouncing;
+
+	std::mutex _mutex;
 
 	void doPublish(const CassUuid& station);
 

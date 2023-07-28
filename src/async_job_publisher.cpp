@@ -51,6 +51,8 @@ void AsyncJobPublisher::publishJobsForPastDataInsertion(const CassUuid& station,
 	if (begin > end || date::floor<date::days>(begin) >= today)
 		return; // ignore if it's not in the past enough
 
+	std::lock_guard<std::mutex> synchronization{_mutex};
+
 	auto it = _debouncing.find(station);
 	if (it == _debouncing.end()) {
 		Timer timer{_io};
@@ -73,13 +75,20 @@ void AsyncJobPublisher::publishJobsForPastDataInsertion(const CassUuid& station,
 
 void AsyncJobPublisher::doPublish(const CassUuid& station)
 {
+	std::lock_guard<std::mutex> synchronization{_mutex};
+
 	auto it = _debouncing.find(station);
 	if (it != _debouncing.end()) {
 		std::get<2>(it->second).cancel();
-		time_t b = std::get<0>(it->second).time_since_epoch().count();
-		time_t e = std::get<1>(it->second).time_since_epoch().count();
-		_dbJobs.publishMinmax(station, b, e);
-		_dbJobs.publishAnomalyMonitoring(station, b, e);
+		/* Ultimately, if the starting date is not in the past enough, just
+		 * ignore the job */
+		if (date::floor<date::days>(std::get<0>(it->second)) < date::floor<date::days>(chrono::system_clock::now())) {
+			time_t b = std::get<0>(it->second).time_since_epoch().count();
+			time_t e = std::get<1>(it->second).time_since_epoch().count();
+			_dbJobs.publishMinmax(station, b, e);
+			_dbJobs.publishAnomalyMonitoring(station, b, e);
+		}
+		_debouncing.erase(it);
 	}
 }
 
