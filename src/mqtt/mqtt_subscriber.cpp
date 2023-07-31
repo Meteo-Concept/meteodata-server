@@ -276,7 +276,6 @@ void MqttSubscriber::stop()
 
 void MqttSubscriber::reload()
 {
-	auto self{shared_from_this()};
 	_client->disconnect();
 	if (!_stopped)
 		start();
