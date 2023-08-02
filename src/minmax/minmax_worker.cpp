@@ -25,14 +25,13 @@
 #include <iostream>
 
 #include <date.h>
-#include <dbconnection_minmax.h>
 #include <dbconnection_jobs.h>
 #include <systemd/sd-daemon.h>
-#include <date/date.h>
 
 #include "minmax_worker.h"
 #include "minmax_computer.h"
 #include "cassandra_utils.h"
+#include "date_utils.h"
 
 namespace meteodata {
 
@@ -93,7 +92,8 @@ void MinmaxWorker::processJobs()
 					<< nextMinmaxJob->station << " between times "
 					<< b << " and " << e << std::endl;
 				_dbJobs.markJobAsFinished(nextMinmaxJob->id, std::time(nullptr), 0);
-				_dbJobs.publishMonthMinmax(nextMinmaxJob->station, chrono::system_clock::to_time_t(b), chrono::system_clock::to_time_t(e));
+				if (to_year_month(b) < to_year_month(chrono::system_clock::now()))
+					_dbJobs.publishMonthMinmax(nextMinmaxJob->station, chrono::system_clock::to_time_t(b), chrono::system_clock::to_time_t(e));
 			} else {
 				std::cerr << SD_ERR << "Minmax computation failed at least partially for station "
 					<< nextMinmaxJob->station << " between times "
