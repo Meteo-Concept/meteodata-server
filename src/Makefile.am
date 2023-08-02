@@ -199,6 +199,7 @@ meteodata_minmax_SOURCES = \
 		    minmax/minmax_computer.h
 
 meteodata_minmax_worker_SOURCES = \
+            date_utils.h\
 		    minmax/minmax_daemon.cpp\
 		    minmax/minmax_worker.cpp\
 		    minmax/minmax_worker.h\
@@ -206,11 +207,13 @@ meteodata_minmax_worker_SOURCES = \
 		    minmax/minmax_computer.h
 
 meteodata_month_minmax_SOURCES = \
+            date_utils.h\
 		    month_minmax/month_minmax.cpp\
 		    month_minmax/month_minmax_computer.cpp\
 		    month_minmax/month_minmax_computer.h
 
 meteodata_month_minmax_worker_SOURCES = \
+            date_utils.h\
 		    month_minmax/month_minmax_daemon.cpp\
 		    month_minmax/month_minmax_worker.cpp\
 		    month_minmax/month_minmax_worker.h\

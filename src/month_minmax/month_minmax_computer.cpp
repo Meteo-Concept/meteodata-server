@@ -31,6 +31,7 @@
 
 #include "month_minmax_computer.h"
 #include "cassandra_utils.h"
+#include "date_utils.h"
 
 namespace meteodata
 {
@@ -138,13 +139,9 @@ bool MonthMinmaxComputer::computeMonthMinmax(const CassUuid& station, const date
 bool MonthMinmaxComputer::computeMonthMinmax(const CassUuid& station, const date::sys_seconds& begin,
 										const date::sys_seconds& end)
 {
-	date::year_month_day ymdb{date::floor<date::days>(begin)};
-	date::year_month_day ymde{date::floor<date::days>(end)};
-	return computeMonthMinmax(
-		station,
-		date::year_month{ymdb.year(), ymdb.month()},
-		date::year_month{ymde.year(), ymde.month()}
-	);
+	date::year_month ymb = to_year_month(begin);
+	date::year_month yme = to_year_month(end);
+	return computeMonthMinmax(station, ymb, yme);
 }
 
 } // meteodata
