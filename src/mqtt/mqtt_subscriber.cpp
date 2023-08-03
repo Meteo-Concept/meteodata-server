@@ -27,6 +27,7 @@
 #include <iterator>
 #include <chrono>
 #include <thread>
+#include <cmath>
 #include <systemd/sd-daemon.h>
 
 #include <cassandra.h>
@@ -155,15 +156,10 @@ void MqttSubscriber::handleError(sys::error_code const&)
 	if (_stopped)
 		return;
 
-	// wait a little and restart, up to three times
+	// wait a little and restart with exponential backoff
 	auto self{shared_from_this()};
-	if (_retries < MAX_RETRIES) {
-		_timer.expires_from_now(chrono::minutes(_retries));
-		_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
-	} else {
-		std::cerr << SD_ERR << "[MQTT] protocol: " << "impossible to reconnect" << std::endl;
-		// bail off
-	}
+	_timer.expires_from_now(chrono::seconds(10 + static_cast<long>(std::pow(2, std::min(_retries, MAX_RETRIES_EXPONENTIAL_BACKOFF)))));
+	_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
 }
 
 bool MqttSubscriber::handlePubAck(uint16_t)

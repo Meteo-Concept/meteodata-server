@@ -91,7 +91,7 @@ protected:
 	 */
 	std::uint16_t _pid = 0;
 
-	static constexpr int MAX_RETRIES = 3;
+	static constexpr int MAX_RETRIES_EXPONENTIAL_BACKOFF = 8;
 
 	/**
 	 * @brief The number of times we have tried to restart
