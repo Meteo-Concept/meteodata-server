@@ -136,8 +136,7 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 
 	// verify that the timeout is not spurious
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
-		if (_stopped)
-			start();
+		start();
 	} else {
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
