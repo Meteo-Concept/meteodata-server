@@ -95,15 +95,13 @@ void AsyncJobPublisher::doPublish(const CassUuid& station)
 void AsyncJobPublisher::resetTimer(Timer& timer, const CassUuid& station)
 {
 	timer.expires_after(1min);
-	timer.async_wait([this, &timer, &station](const sys::error_code& e) {
+	timer.async_wait([this, &station](const sys::error_code& e) {
 		if (e != sys::errc::operation_canceled) {
 			try {
 				doPublish(station);
 			} catch (std::exception& e) {
 				std::cerr << SD_ERR << "Failed publishing a job for station " << station
 					<< ": " << e.what() << std::endl;
-				// better luck next time?
-				resetTimer(timer, station);
 			}
 		}
 	});
