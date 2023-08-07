@@ -65,20 +65,20 @@ bool MinmaxComputer::computeMinmax(const CassUuid& station, const date::sys_seco
 			rainToday = values.rainfall;
 			etToday = values.et;
 		} else {
-			if (!_dbMinmax.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday))
-				goto skipped;
-			compute(rainToday, values.rainfall, rainYesterday, std::plus<>());
-			compute(etToday, values.et, etYesterday, std::plus<>());
+			if (_dbMinmax.getYearlyValues(station, selectedDate - date::days(1), rainYesterday, etYesterday)) {
+				compute(rainToday, values.rainfall, rainYesterday, std::plus<>());
+				compute(etToday, values.et, etYesterday, std::plus<>());
+			}
 		}
 
 		if (unsigned(ymd.month()) == 1) {
 			values.monthRain = rainToday;
 			values.monthEt = etToday;
 		} else {
-			if (!_dbMinmax.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth))
-				goto skipped;
-			compute(values.monthRain, rainToday, rainBeginMonth, std::minus<>());
-			compute(values.monthEt, etToday, etBeginMonth, std::minus<>());
+			if (_dbMinmax.getYearlyValues(station, beginningOfMonth, rainBeginMonth, etBeginMonth)) {
+				compute(values.monthRain, rainToday, rainBeginMonth, std::minus<>());
+				compute(values.monthEt, etToday, etBeginMonth, std::minus<>());
+			}
 		}
 
 		values.dayRain = values.rainfall;
