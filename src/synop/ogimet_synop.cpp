@@ -89,7 +89,9 @@ Observation OgimetSynop::getObservations(const CassUuid station) const
 	if (_data._evapoMaybeTranspiRation) {
 		result.et = {true, (*_data._evapoMaybeTranspiRation)._amount};
 	} else if (_data._meanTemperature && _wind_mps && _humidity && _data._globalSolarRadiationLastHour) {
-		float etp = evapotranspiration(*_data._meanTemperature / 10., *_humidity, *_wind_mps,
+		float wind2m = *_wind_mps * 0.70; // this relies on the assumption that SYNOP stations are at least class 2
+										  // and measures the wind at the standard height of 10m
+		float etp = evapotranspiration(*_data._meanTemperature / 10., *_humidity, wind2m,
 			*_data._globalSolarRadiationLastHour, _timeOffseter->getLatitude(),
 			_timeOffseter->getLongitude(), _timeOffseter->getElevation(),
 			date::round<chrono::seconds>(_data._observationTime).time_since_epoch().count(),
