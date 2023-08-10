@@ -158,6 +158,8 @@ meteodata_SOURCES = \
 		    synop/synop_decoder/synop_message.h\
 		    barani/barani_anemometer_message.cpp\
 		    barani/barani_anemometer_message.h\
+		    barani/barani_anemometer_2023_message.cpp\
+		    barani/barani_anemometer_2023_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    thlora/thlora_thermohygrometer_message.cpp\
@@ -411,6 +413,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    liveobjects/liveobjects_message.h\
 		    barani/barani_anemometer_message.cpp\
 		    barani/barani_anemometer_message.h\
+		    barani/barani_anemometer_2023_message.cpp\
+		    barani/barani_anemometer_2023_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
