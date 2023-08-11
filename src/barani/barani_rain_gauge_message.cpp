@@ -98,8 +98,8 @@ void BaraniRainGaugeMessage::ingest(const CassUuid& station, const std::string& 
 	// bytes 13-24: rainfall, in number of clicks
 	uint16_t rainClicks = ((raw[1] & 0b0000'0111) << 11) + (raw[2] << 1) + ((raw[3] & 0b1000'0000) >> 7);
 	_obs.rainfallClicks = rainClicks;
-	if (previousClicks) {
-		if (rainClicks > previousClicks) {
+	if (prev) {
+		if (rainClicks > *prev) {
 			_obs.rainfall = (rainClicks - *prev) * BARANI_RAIN_GAUGE_RESOLUTION;
 		} else {
 			_obs.rainfall = (4096 - *prev + rainClicks ) * BARANI_RAIN_GAUGE_RESOLUTION;
@@ -116,8 +116,8 @@ void BaraniRainGaugeMessage::ingest(const CassUuid& station, const std::string& 
 	// byte 35-46: rain correction, in number of clicks
 	uint16_t rainCorrectionClicks = ((raw[4] & 0b0001'1111) << 5) + ((raw[5] & 0b1111'1110) >> 1);
 	_obs.correction = rainCorrectionClicks;
-	if (previousCorrectionClicks) {
-		if (rainCorrectionClicks > previousCorrectionClicks) {
+	if (prevCorr) {
+		if (rainCorrectionClicks > *prevCorr) {
 			_obs.rainfall += (rainCorrectionClicks - *prevCorr) * 0.01f * BARANI_RAIN_GAUGE_RESOLUTION;
 		} else {
 			_obs.rainfall += (4096 - *prevCorr + rainCorrectionClicks) * 0.01f * BARANI_RAIN_GAUGE_RESOLUTION;
