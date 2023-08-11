@@ -701,6 +701,67 @@ evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiatio
 	return ET_0;
 }
 
+/*
+ * Compute the pressure reduced to sea level from the absolute pressure reading
+ * from the temperature and humidity, using the hygrometric equation, the ideal
+ * gas law, and the troposphere equation.
+ */
+inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hum = 70)
+{
+	float t_kelvin = t_celsius + 273.15f;
+
+	// Saturation vapour pressure (kPa)
+	double e_s = 0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3));
+	// Vapour pressure (kPa)
+	double e_a = e_s * hum / 100;
+	// Specific humidity (dimensionless)
+	double q = 0.622 * e_a * 10 / (pressure_hpa - e_a * 10);
+	// Virtual temperature (K)
+	double tv = t_kelvin * (1 + 0.61 * q);
+
+	// Main sea-level pressure (hPa)
+	double pressure_0_hpa = 1013.5;
+	// Universal gas constant (J / (mol . K))
+	double R = 8.3144598;
+	// Molar mass of the air (kg / mol)
+	double M = 0.0289644;
+	// Earth gravitational constant (m / s²)
+	double g = 9.80665;
+	// Lapse rate (K / m) in the troposphere (0 to 11000m)
+	double L = 0.0065;
+
+	// Altitude (m) - hypsometric equation
+	double h = (R * tv / g) * std::log(pressure_hpa / pressure_0_hpa);
+
+	// corrected pressure (hPa) - atmosphere equation
+	double p = pressure_hpa * std::pow(t_kelvin / (t_kelvin + L * h), (g * M) / (R * L));
+
+	return p;
+}
+
+/*
+ * Compute the pressure reduced to sea level from the absolute pressure reading
+ * and the altitude, using the common troposphere equation.
+ */
+inline float seaLevelPressureFromAltitude(float pressure_hpa, int altitude, float t_celsius = 15.f)
+{
+	float t_kelvin = t_celsius + 273.15f;
+
+	// Universal gas constant (J / (mol . K))
+	double R = 8.3144598;
+	// Molar mass of the air (kg / mol)
+	double M = 0.0289644;
+	// Earth gravitational constant (m / s²)
+	double g = 9.80665;
+	// Lapse rate (K / m) in the troposphere
+	double L = 0.0065;
+
+	// corrected pressure (hPa) - atmosphere equation
+	double p = pressure_hpa * std::pow(t_kelvin / (t_kelvin + L * altitude), (g * M) / (R * L));
+
+	return p;
+}
+
 }
 
 #endif /* VANTAGEPRO2MESSAGE_H */

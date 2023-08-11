@@ -33,6 +33,7 @@
 #include "barani/barani_anemometer_message.h"
 #include "barani/barani_anemometer_2023_message.h"
 #include "barani/barani_rain_gauge_message.h"
+#include "barani/barani_thermohygro_message.h"
 #include "pessl/lorain_message.h"
 #include "thlora/thlora_thermohygrometer_message.h"
 #include "talkpool/oy1110_thermohygrometer_message.h"
@@ -74,12 +75,14 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
 	} else if (sensor == "dragino-thpllora" && port == 2) {
 		m = std::make_unique<ThplloraMessage>(db);
-	} else if (sensor == "barani-meteowind") {
+	} else if (sensor == "barani-meteowind" && port == 1) {
 		m = std::make_unique<BaraniAnemometerMessage>();
-	} else if (sensor == "barani-meteowind-v2023") {
+	} else if (sensor == "barani-meteowind-v2023" && port == 1) {
 		m = std::make_unique<BaraniAnemometer2023Message>();
-	} else if (sensor == "barani-meteorain") {
+	} else if (sensor == "barani-meteorain" && port == 1) {
 		m = std::make_unique<BaraniRainGaugeMessage>(db);
+	} else if (sensor == "barani-meteohelix" && port == 1) {
+		m = std::make_unique<BaraniThermohygroMessage>(db);
 	} else if (sensor == "lorain-pluviometer") {
 		m = std::make_unique<LorainMessage>(db);
 	} else if (sensor == "thlora-thermohygrometer") {
