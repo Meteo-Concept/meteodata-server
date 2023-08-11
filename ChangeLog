@@ -1,3 +1,8 @@
+2023-08-11  Laurent Georget <laurent.georget@meteo-concept.fr>
+
+    * Implement the decoder for the new MeteoWind format and the
+    MeteoHelix
+
 2023-07-21	Laurent Georget <laurent.georget@meteo-concept.fr>
 
 	* Add a component able to schedule recomputations of the climatology
