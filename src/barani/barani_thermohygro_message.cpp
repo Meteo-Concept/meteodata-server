@@ -92,13 +92,13 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 	_obs.batteryVoltage = battery == 0b1'1111 ? NAN : (3 + battery * 0.05f);
 	// bytes 7-17: temperature, resolution 0.1°C, offset -100°C
 	uint16_t temperature = ((raw[0] & 0b0000'0001) << 10) + (raw[1] << 2) + ((raw[2] & 0b1100'0000) >> 6);
-	_obs.temperature = temperature == 0b111'1111'1111 ? NAN : (-100 + temperature * 0.1f);
+	_obs.temperature = temperature == 0b111'1111'1111 ? NAN : -100 + temperature * 0.1f;
 	// bytes 18-23: min temperature, resolution 0.1°C, subtracted from temperature
 	uint16_t minTemp = (raw[2] & 0b0011'1111);
-	_obs.minTemperature = minTemp == 0b11'1111 ? NAN : (-100 + temperature - minTemp) * 0.1f;
+	_obs.minTemperature = minTemp == 0b11'1111 ? NAN : -100 + (temperature - minTemp) * 0.1f;
 	// bytes 24-29: max temperature, resolution 0.1°C, added to temperature
 	uint16_t maxTemp = (raw[3] & 0b1111'1100) >> 2;
-	_obs.maxTemperature = maxTemp == 0b11'1111 ? NAN : (-100 + temperature + maxTemp) * 0.1f;
+	_obs.maxTemperature = maxTemp == 0b11'1111 ? NAN : -100 + (temperature + maxTemp) * 0.1f;
 	// bytes 30-38: humidity, resolution 0.2%, offset 0
 	uint16_t humidity = ((raw[3] & 0b0000'0011) << 7) + ((raw[4] & 0b1111'1110) >> 1);
 	_obs.humidity = humidity == 0b111'1111 ? NAN : humidity * 0.2f;
