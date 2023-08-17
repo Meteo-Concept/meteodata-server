@@ -68,6 +68,8 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	}
 	result.outsidehum = {!isInvalid(_obs.humidity), _obs.humidity};
 	result.outsidetemp = {!isInvalid(_obs.temperature), _obs.temperature};
+	result.min_outside_temperature = {!isInvalid(_obs.minTemperature), _obs.minTemperature};
+	result.max_outside_temperature = {!isInvalid(_obs.maxTemperature), _obs.maxTemperature};
 	result.rainrate = {!isInvalid(_obs.rainRate), _obs.rainRate};
 	result.rainfall = {!isInvalid(_obs.rainFall), _obs.rainFall};
 

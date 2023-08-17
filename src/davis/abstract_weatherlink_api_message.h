@@ -178,7 +178,11 @@ public:
 		float pressure = INVALID_FLOAT;
 		int humidity = INVALID_INT;
 		float temperature = INVALID_FLOAT;
+		float minTemperature = INVALID_FLOAT;
+		float maxTemperature = INVALID_FLOAT;
 		float temperatureF = INVALID_FLOAT;
+		float temperatureMinF = INVALID_FLOAT;
+		float temperatureMaxF = INVALID_FLOAT;
 		int windDir = INVALID_INT;
 		float windSpeed = INVALID_FLOAT;
 		float windGustSpeed = INVALID_FLOAT;

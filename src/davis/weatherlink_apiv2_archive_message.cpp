@@ -115,6 +115,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
 			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
+		_obs.temperatureMinF = data.get<float>("temp_lo", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMinF))
+			_obs.minTemperature = from_Farenheit_to_Celsius(_obs.temperatureMinF);
+		_obs.temperatureMaxF = data.get<float>("temp_hi", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMaxF))
+			_obs.maxTemperature = from_Farenheit_to_Celsius(_obs.temperatureMaxF);
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
@@ -136,6 +142,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.temperatureF = data.get<float>("temp_out", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
 			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
+		_obs.temperatureMinF = data.get<float>("temp_out_lo", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMinF))
+			_obs.minTemperature = from_Farenheit_to_Celsius(_obs.temperatureMinF);
+		_obs.temperatureMaxF = data.get<float>("temp_out_hi", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMaxF))
+			_obs.maxTemperature = from_Farenheit_to_Celsius(_obs.temperatureMaxF);
 		_obs.pressure = data.get<float>("bar", INVALID_FLOAT);
 		if (!isInvalid(_obs.pressure))
 			_obs.pressure = from_inHg_to_bar(_obs.pressure) * 1000;
@@ -180,6 +192,12 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.temperatureF = data.get<float>("temp_last", INVALID_FLOAT);
 		if (!isInvalid(_obs.temperatureF))
 			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
+		_obs.temperatureMinF = data.get<float>("temp_lo", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMinF))
+			_obs.minTemperature = from_Farenheit_to_Celsius(_obs.temperatureMinF);
+		_obs.temperatureMaxF = data.get<float>("temp_hi", INVALID_FLOAT);
+		if (!isInvalid(_obs.temperatureMaxF))
+			_obs.maxTemperature = from_Farenheit_to_Celsius(_obs.temperatureMaxF);
 		_obs.windDir = data.get<int>("wind_dir_of_prevail", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_avg", INVALID_FLOAT);
 		_obs.windGustSpeed = data.get<float>("wind_speed_hi", INVALID_FLOAT);
