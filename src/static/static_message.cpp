@@ -167,6 +167,15 @@ Observation StatICMessage::getObservation(const CassUuid station) const
 		result.insolation_time = {true, ins ? _timeOffseter.getMeasureStep() : 0};
 	}
 
+	if (_airTemp && _wind && _humidity && _solarRad) {
+		float etp = evapotranspiration(*_airTemp, *_humidity, from_kph_to_mps(*_wind),
+									   *_solarRad, _timeOffseter.getLatitude(),
+									   _timeOffseter.getLongitude(), _timeOffseter.getElevation(),
+									   chrono::system_clock::to_time_t(_datetime),
+									   _timeOffseter.getMeasureStep());
+		result.et = {true, etp};
+	}
+
 	for (auto&& [s,v] : _additionalValuesInt) {
 		result.set(s, v);
 	}
