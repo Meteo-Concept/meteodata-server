@@ -715,12 +715,12 @@ inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hu
 	// Vapour pressure (Pa)
 	double e_a = e_s * hum / 100;
 	// Specific humidity (dimensionless)
-	double q = 0.622 * e_a * 10 / (pressure_hpa - e_a * 10);
+	double q = 0.622 * e_a / (pressure_hpa * 100 - e_a);
 	// Virtual temperature (K)
 	double tv = t_kelvin * (1 + 0.61 * q);
 
 	// Main sea-level pressure (hPa)
-	double pressure_0_hpa = 1013.5;
+	double pressure_0_hpa = 1013.25;
 	// Universal gas constant (J / (mol . K))
 	double R = 8.3144598;
 	// Molar mass of the air (kg / mol)
@@ -728,13 +728,13 @@ inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hu
 	// Earth gravitational constant (m / s²)
 	double g = 9.80665;
 	// Lapse rate (K / m) in the troposphere (0 to 11000m)
-	double L = 0.0065;
+	double L = -0.0065;
 
 	// Altitude (m) - hypsometric equation
-	double h = (R * tv / g) * std::log(pressure_hpa / pressure_0_hpa);
+	double h = ((R * tv) / (g * M)) * std::log(pressure_hpa / pressure_0_hpa);
 
 	// corrected pressure (hPa) - atmosphere equation
-	double p = pressure_hpa * std::pow(t_kelvin / (t_kelvin + L * h), (g * M) / (R * L));
+	double p = pressure_hpa * std::pow((t_kelvin + L * h) /  t_kelvin, (g * M) / (R * L));
 
 	return p;
 }
@@ -754,10 +754,10 @@ inline float seaLevelPressureFromAltitude(float pressure_hpa, int altitude, floa
 	// Earth gravitational constant (m / s²)
 	double g = 9.80665;
 	// Lapse rate (K / m) in the troposphere
-	double L = 0.0065;
+	double L = -0.0065;
 
 	// corrected pressure (hPa) - atmosphere equation
-	double p = pressure_hpa * std::pow(t_kelvin / (t_kelvin + L * altitude), (g * M) / (R * L));
+	double p = pressure_hpa * std::pow((t_kelvin + L * altitude) / t_kelvin, (g * M) / (R * L));
 
 	return p;
 }

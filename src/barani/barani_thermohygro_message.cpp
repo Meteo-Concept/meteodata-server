@@ -109,7 +109,7 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 	_obs.humidity = humidity == 0b111'1111 ? NAN : humidity * 0.2f;
 	// bytes 39-52: atmospheric absolute pressure, resolution 5Pa, offset 50000Pa
 	uint16_t pressure = ((raw[4] & 0b0000'0001) << 13) + (raw[5] << 5) + ((raw[6] & 0b1111'1000) >> 3);
-	_obs.pressure = pressure == 0b11'1111'1111'1111 ? NAN : seaLevelPressureFromAltitude((pressure * 5 + 50000) * 0.01f, altitude);
+	_obs.pressure = pressure == 0b11'1111'1111'1111 ? NAN : seaLevelPressureFromAltitude((pressure * 5 + 50000) * 0.01f, altitude, _obs.temperature);
 	// bytes 53-62: global radiation, resolution 2W/m², offset 0W/m²
 	uint16_t radiation = ((raw[6] & 0b0000'0111) << 7) + ((raw[7] & 0b1111'1110) >> 1);
 	_obs.radiation = radiation == 0b11'1111'1111 ? NAN : radiation * 2.f;
