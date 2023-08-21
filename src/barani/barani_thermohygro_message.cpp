@@ -69,6 +69,11 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 		is >> parse(raw[byte], 2, 16);
 	}
 
+	float latitude, longitude;
+	int altitude;
+	std::string name;
+	int pollPeriod;
+	_db.getStationCoordinates(station, latitude, longitude, altitude, name, pollPeriod);
 
 	time_t lastUpdate;
 	int previousClicks;
@@ -104,7 +109,7 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 	_obs.humidity = humidity == 0b111'1111 ? NAN : humidity * 0.2f;
 	// bytes 39-52: atmospheric absolute pressure, resolution 5Pa, offset 50000Pa
 	uint16_t pressure = ((raw[4] & 0b0000'0001) << 13) + (raw[5] << 5) + ((raw[6] & 0b1111'1000) >> 3);
-	_obs.pressure = pressure == 0b11'1111'1111'1111 ? NAN : seaLevelPressure((pressure * 5 + 50000) * 0.01f, _obs.temperature, _obs.humidity);
+	_obs.pressure = pressure == 0b11'1111'1111'1111 ? NAN : seaLevelPressureFromAltitude((pressure * 5 + 50000) * 0.01f, altitude);
 	// bytes 53-62: global radiation, resolution 2W/m², offset 0W/m²
 	uint16_t radiation = ((raw[6] & 0b0000'0111) << 7) + ((raw[7] & 0b1111'1110) >> 1);
 	_obs.radiation = radiation == 0b11'1111'1111 ? NAN : radiation * 2.f;
@@ -150,6 +155,10 @@ Observation BaraniThermohygroMessage::getObservation(const CassUuid& station) co
 		result.max_outside_temperature = { _obs.maxTemperature != NAN, _obs.maxTemperature };
 		result.min_outside_temperature = { _obs.minTemperature != NAN, _obs.minTemperature };
 		result.outsidehum = { _obs.humidity != NAN, _obs.humidity };
+		if (_obs.temperature != NAN && _obs.humidity != NAN) {
+			result.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
+			result.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
+		}
 		result.barometer = { _obs.pressure != NAN, _obs.pressure };
 		result.solarrad = { _obs.radiation != NAN, _obs.radiation };
 		result.rainfall = { _obs.rainfall != NAN, _obs.rainfall };

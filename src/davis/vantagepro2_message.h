@@ -710,9 +710,9 @@ inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hu
 {
 	float t_kelvin = t_celsius + 273.15f;
 
-	// Saturation vapour pressure (kPa)
-	double e_s = 0.6108 * std::exp((17.27 * t_celsius) / (t_celsius + 237.3));
-	// Vapour pressure (kPa)
+	// Saturation vapour pressure (Pa)
+	double e_s = std::exp(23.3265 - (3802.7 - (t_celsius + 273.18) - std::pow(472.68/(t_celsius + 237.18), 2)));
+	// Vapour pressure (Pa)
 	double e_a = e_s * hum / 100;
 	// Specific humidity (dimensionless)
 	double q = 0.622 * e_a * 10 / (pressure_hpa - e_a * 10);

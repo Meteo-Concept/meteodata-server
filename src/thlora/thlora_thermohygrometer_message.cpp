@@ -32,6 +32,7 @@
 
 #include "thlora_thermohygrometer_message.h"
 #include "hex_parser.h"
+#include "davis/vantagepro2_message.h"
 
 namespace meteodata
 {
@@ -98,6 +99,8 @@ Observation ThloraThermohygrometerMessage::getObservation(const CassUuid& statio
 		result.time = _obs.time;
 		result.outsidetemp = { true, _obs.temperature };
 		result.outsidehum = { true, int(_obs.humidity) };
+		result.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
+		result.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
 	}
 
 	return result;

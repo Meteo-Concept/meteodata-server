@@ -32,6 +32,7 @@
 #include "lsn50v2_thermohygrometer_message.h"
 #include "hex_parser.h"
 #include "cassandra_utils.h"
+#include "davis/vantagepro2_message.h"
 
 namespace meteodata
 {
@@ -78,6 +79,10 @@ Observation Lsn50v2ThermohygrometerMessage::getObservation(const CassUuid& stati
 	obs.time = _obs.time;
 	obs.outsidetemp = {!std::isnan(_obs.temperature), _obs.temperature};
 	obs.outsidehum = {!std::isnan(_obs.humidity), int(std::round(_obs.humidity))};
+	if (!std::isnan(_obs.temperature) && !std::isnan(_obs.humidity)) {
+		obs.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
+		obs.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
+	}
 	return obs;
 }
 
