@@ -107,10 +107,10 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 	_obs.pressure = pressure == 0b11'1111'1111'1111 ? NAN : seaLevelPressure((pressure * 5 + 50000) * 0.01f, _obs.temperature, _obs.humidity);
 	// bytes 53-62: global radiation, resolution 2W/m², offset 0W/m²
 	uint16_t radiation = ((raw[6] & 0b0000'0111) << 7) + ((raw[7] & 0b1111'1110) >> 1);
-	_obs.radiation = radiation == 0b11'1111'1111 ? NAN : radiation * 0.2f;
+	_obs.radiation = radiation == 0b11'1111'1111 ? NAN : radiation * 2.f;
 	// bytes 63-71: max global radiation, resolution 2W/m², added to radiation
 	uint16_t maxRadiation = ((raw[7] & 0b0000'0001) << 8) + raw[8];
-	_obs.maxRadiation = maxRadiation == 0b1'1111'1111 ? NAN : (radiation + maxRadiation) * 0.2f;
+	_obs.maxRadiation = maxRadiation == 0b1'1111'1111 ? NAN : (radiation + maxRadiation) * 2.f;
 	// bytes 72-79: rainfall clicks, resolution dependent on rain gauge, set to 0.2mm by default
 	uint16_t rainClicks = raw[9];
 	_obs.rainfallClicks = rainClicks;
