@@ -113,18 +113,24 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: " << " now downloading for station "
 			  << _stationName << std::endl;
 	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
-	auto daypoint = date::floor<date::days>(time);
-	auto ymd = date::year_month_day(daypoint);   // calendar date
-	auto tod = date::make_time(time - daypoint); // Yields time_of_day type
 
-	// Obtain individual components as integers
-	auto y = int(ymd.year());
-	auto m = unsigned(ymd.month());
-	auto d = unsigned(ymd.day());
-	auto h = tod.hours().count();
-	auto min = tod.minutes().count();
+	// by default, download the entire datalogger archive
+	std::uint32_t timestamp = 0;
+	if (_lastArchive > chrono::system_clock::now() - chrono::hours{96}) {
+		// if the last archive is not too old, use that one as reference
+		auto daypoint = date::floor<date::days>(time);
+		auto ymd = date::year_month_day(daypoint);   // calendar date
+		auto tod = date::make_time(time - daypoint); // Yields time_of_day type
 
-	std::uint32_t timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
+		// Obtain individual components as integers
+		auto y = int(ymd.year());
+		auto m = unsigned(ymd.month());
+		auto d = unsigned(ymd.day());
+		auto h = tod.hours().count();
+		auto min = tod.minutes().count();
+
+		timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
+	}
 
 	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: " << "GET " << "/webdl.php?timestamp="
 			  << timestamp << "&user=XXXXXXXXXX&password=XXXXXXXXX&action=data" << " HTTP/1.1 " << "Host: "
@@ -149,7 +155,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		const VantagePro2ArchiveMessage::ArchiveDataPoint* pastLastDataPoint = dataPoint + pagesLeft;
 
 		bool ret = true;
-		auto start = _lastArchive;
+		auto start = date::floor<chrono::seconds>(chrono::system_clock::now());
 		auto end = _lastArchive;
 
 		std::vector<VantagePro2ArchiveMessage> messages;
@@ -159,7 +165,11 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			VantagePro2ArchiveMessage message{*dataPoint, &_timeOffseter};
 
 			if (message.looksValid()) {
-				end = message.getTimestamp();
+				auto time = message.getTimestamp();
+				if (time < start)
+					start = time;
+				if (time > end)
+					end = time;
 				messages.emplace_back(message);
 			} else {
 				std::cerr << SD_WARNING << "[Weatherlink_v1 " << _station << "] measurement: "
@@ -169,15 +179,35 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 
 		auto day = date::floor<date::days>(start);
 		auto lastDay = date::floor<date::days>(end);
+		int i = 0;
+		int LOG_FLOODING_LIMIT = 100;
 		while (day <= lastDay) {
 			ret = _db.deleteDataPoints(_station, day, start, end);
 
 			if (!ret)
 				std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] management: "
-						  << "couldn't delete temporary realtime observations" << std::endl;
+					  << "couldn't delete temporary realtime observations "
+					  << "between " << date::format("%Y-%m-%dT%H:%M", start)
+					  << " and " << date::format("%Y-%m-%dT%H:%M", end)
+					  << std::endl;
 			day += date::days(1);
-		}
 
+			// avoid flooding the log too much
+			if (i % LOG_FLOODING_LIMIT == 0) {
+				std::cerr << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: "
+					  << "Data deleted until "
+					  << date::format("%Y-%m-%d", day)
+					  << std::endl;
+			}
+			i++;
+		}
+		std::cerr << SD_INFO << "[Weatherlink_v1 " << _station << "] management: "
+			  << "Deleted temporary data "
+			  << "between " << date::format("%Y-%m-%dT%H:%M", start)
+			  << " and " << date::format("%Y-%m-%dT%H:%M", end)
+			  << std::endl;
+
+		i = 0;
 		for (auto&& message : messages) {
 			auto lastArchive = message.getTimestamp();
 			if (lastArchive < _oldestArchive)
@@ -185,6 +215,14 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			if (lastArchive > _newestArchive)
 				_newestArchive = lastArchive;
 			ret = _db.insertV2DataPoint(message.getObservation(_station));
+			// avoid flooding the log too much
+			if (i % LOG_FLOODING_LIMIT == 0) {
+				std::cerr << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: "
+					  << "Data inserted until "
+					  << date::format("%Y-%m-%dT%H:%M", lastArchive)
+					  << std::endl;
+			}
+			i++;
 		}
 
 		if (ret) {
