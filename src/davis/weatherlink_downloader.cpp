@@ -225,7 +225,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			i++;
 		}
 
-		if (ret) {
+		if (!messages.empty() && ret) {
 			std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: " << "archive data stored\n"
 					  << std::endl;
 			time_t lastArchiveDownloadTime = _newestArchive.time_since_epoch().count();
