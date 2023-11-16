@@ -37,6 +37,7 @@
 #include "time_offseter.h"
 #include "davis/vantagepro2_connector.h"
 #include "davis/weatherlink_download_scheduler.h"
+#include "davis/weatherlink_apiv2_download_scheduler.h"
 #include "mbdata/mbdata_download_scheduler.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
@@ -253,15 +254,25 @@ void MeteoServer::start()
 	}
 
 	if (_configuration.startWeatherlink) {
-		// Start the Weatherlink download scheduler (one for all Weatherlink stations, one downloader per station but they
-		// share a single HTTP client)
+		// Start the Weatherlink download schedulers (one for all Weatherlink stations, one downloader per station but
+		// they share a single HTTP client)
 		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(
+			_ioContext, _db, _jobPublisher.get()
+		);
+		weatherlinkScheduler->start();
+		_connectors.emplace("weatherlink", weatherlinkScheduler);
+	}
+
+	if (_configuration.startWeatherlinkV2) {
+		// Start the Weatherlink APIv2 download schedulers (one for all Weatherlink stations, one downloader per station
+		// but they share a single HTTP client)
+		auto weatherlinkApiv2Scheduler = std::make_shared<WeatherlinkApiv2DownloadScheduler>(
 			_ioContext, _db,
 			std::move(_configuration.weatherlinkApiV2Key), std::move(_configuration.weatherlinkApiV2Secret),
 			_jobPublisher.get()
 		);
-		weatherlinkScheduler->start();
-		_connectors.emplace("weatherlink", weatherlinkScheduler);
+		weatherlinkApiv2Scheduler->start();
+		_connectors.emplace("weatherlink_v2", weatherlinkApiv2Scheduler);
 	}
 
 	if (_configuration.startFieldclimate) {

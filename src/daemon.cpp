@@ -87,6 +87,7 @@ int main(int argc, char** argv)
 		("no-ship", "don't start the SHIP and BUOY downloader")
 		("no-static", "don't start the StatIC downloaders")
 		("no-weatherlink", "don't start the Weatherlink downloaders")
+		("no-weatherlink-v2", "don't start the Weatherlink APIv2 downloaders")
 		("no-fieldclimate", "don't start the Fieldclimate downloaders")
 		("no-mbdata", "don't start the MBData downloaders")
 		("no-rest", "don't start the REST server")
@@ -96,6 +97,7 @@ int main(int argc, char** argv)
 		("only-ship", "start only the SHIP and BUOY downloader")
 		("only-static", "start only the StatIC downloaders")
 		("only-weatherlink", "start only the Weatherlink downloaders")
+		("only-weatherlink-v2", "start only the Weatherlink APIv2 downloaders")
 		("only-fieldclimate", "start only the Fieldclimate downloaders")
 		("only-mbdata", "start only the MBData downloaders")
 		("only-rest", "start only the REST server")
@@ -137,19 +139,21 @@ int main(int argc, char** argv)
 	serverConfig.startShip = !vm.count("no-ship");
 	serverConfig.startStatic = !vm.count("no-static");
 	serverConfig.startWeatherlink = !vm.count("no-weatherlink");
+	serverConfig.startWeatherlinkV2 = !vm.count("no-weatherlink-v2");
 	serverConfig.startFieldclimate = !vm.count("no-fieldclimate");
 	serverConfig.startMbdata = !vm.count("no-mbdata");
 	serverConfig.startRest = !vm.count("no-rest");
 	serverConfig.startVp2 = !vm.count("no-vp2");
 
 	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") || vm.count("only-static") ||
-		vm.count("only-weatherlink") || vm.count("only-fieldclimate") || vm.count("only-mbdata") ||
-		vm.count("only-rest") || vm.count("only-vp2")) {
+		vm.count("only-weatherlink") || vm.count("only-weatherlink-v2") || vm.count("only-fieldclimate") ||
+		vm.count("only-mbdata") || vm.count("only-rest") || vm.count("only-vp2")) {
 		serverConfig.startMqtt = false;
 		serverConfig.startSynop = false;
 		serverConfig.startShip = false;
 		serverConfig.startStatic = false;
 		serverConfig.startWeatherlink = false;
+		serverConfig.startWeatherlinkV2 = false;
 		serverConfig.startFieldclimate = false;
 		serverConfig.startMbdata = false;
 		serverConfig.startRest = false;
@@ -165,6 +169,8 @@ int main(int argc, char** argv)
 			serverConfig.startStatic = true;
 		if (vm.count("only-weatherlink"))
 			serverConfig.startWeatherlink = true;
+		if (vm.count("only-weatherlink-v2"))
+			serverConfig.startWeatherlinkV2 = true;
 		if (vm.count("only-fieldclimate"))
 			serverConfig.startFieldclimate = true;
 		if (vm.count("only-mbdata"))

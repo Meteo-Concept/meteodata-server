@@ -104,7 +104,7 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 	});
 
 	if (ret != CURLE_OK) {
-		logAndThrowCurlError(client, WeatherlinkDownloadScheduler::APIHOST);
+		logAndThrowCurlError(client, WeatherlinkDownloadScheduler::HOST);
 	}
 }
 

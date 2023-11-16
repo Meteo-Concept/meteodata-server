@@ -1,8 +1,8 @@
 /**
- * @file weatherlinkdownloadscheduler.h
- * @brief Definition of the WeatherlinkDownloadScheduler class
+ * @file weatherlink_apiv2_download_scheduler.h
+ * @brief Definition of the WeatherlinkApiv2DownloadScheduler class
  * @author Laurent Georget
- * @date 2019-03-07
+ * @date 2023-11-16
  */
 /*
  * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WEATHERLINKDOWNLOADSCHEDULER_H
-#define WEATHERLINKDOWNLOADSCHEDULER_H
+#ifndef WEATHERLINKAPIV2DOWNLOADSCHEDULER_H
+#define WEATHERLINKAPIV2DOWNLOADSCHEDULER_H
 
 #include <memory>
 #include <vector>
@@ -40,7 +40,6 @@
 #include <dbconnection_observations.h>
 
 #include "async_job_publisher.h"
-#include "davis/weatherlink_downloader.h"
 #include "davis/weatherlink_apiv2_downloader.h"
 #include "abstract_download_scheduler.h"
 #include "time_offseter.h"
@@ -59,21 +58,24 @@ using namespace std::placeholders;
 
 /**
  */
-class WeatherlinkDownloadScheduler : public AbstractDownloadScheduler
+class WeatherlinkApiv2DownloadScheduler : public AbstractDownloadScheduler
 {
 public:
-	WeatherlinkDownloadScheduler(asio::io_context& ioContext,
-		DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
-	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
-		TimeOffseter::PredefinedTimezone tz);
+	WeatherlinkApiv2DownloadScheduler(asio::io_context& ioContext,
+		DbConnectionObservations& db, std::string apiId, std::string apiSecret,
+		AsyncJobPublisher* jobPublisher = nullptr);
+	void add(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
+		const std::map<int, std::map<std::string, std::string>>& parsers,
+		const std::string& weatherlinkId, TimeOffseter&& to);
 
 private:
+	const std::string _apiId;
+	const std::string _apiSecret;
 	AsyncJobPublisher* _jobPublisher;
-	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
+	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
 	bool _mustStop = false;
 
 public:
-	static constexpr char HOST[] = "weatherlink.com";
 	static constexpr char APIHOST[] = "api.weatherlink.com";
 
 private:
@@ -94,7 +96,7 @@ private:
 				std::this_thread::sleep_for(chrono::milliseconds(100) - (end - start));
 			}
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "[Weatherlink] protocol: " << "Runtime error, impossible to download " << e.what()
+			std::cerr << SD_ERR << "[Weatherlink v2] protocol: " << "Runtime error, impossible to download " << e.what()
 					  << ", moving on..." << std::endl;
 		}
 	}

@@ -130,6 +130,7 @@ public:
 		bool startShip = true;
 		bool startStatic = true;
 		bool startWeatherlink = true;
+		bool startWeatherlinkV2 = true;
 		bool startFieldclimate = true;
 		bool startMbdata = true;
 		bool startRest = true;

@@ -50,7 +50,7 @@
 #include "weatherlink_apiv2_archive_page.h"
 #include "weatherlink_apiv2_archive_message.h"
 #include "weatherlink_apiv2_downloader.h"
-#include "weatherlink_download_scheduler.h"
+#include "weatherlink_apiv2_download_scheduler.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -63,7 +63,7 @@ namespace meteodata
 using namespace date;
 
 const std::string WeatherlinkApiv2Downloader::BASE_URL =
-		std::string{"https://"} + WeatherlinkDownloadScheduler::APIHOST;
+		std::string{"https://"} + WeatherlinkApiv2DownloadScheduler::APIHOST;
 
 void WeatherlinkApiv2Downloader::initialize() {
 	for (const auto& s : _substations) {
@@ -148,7 +148,7 @@ WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::
 		  << params["api-signature"] << "&" << "t=" << params["t"];
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2] protocol: " << "GET " << queryStr << " HTTP/1.1 " << "Host: "
-			  << WeatherlinkDownloadScheduler::APIHOST << " " << "Accept: application/json ";
+			  << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
 
@@ -183,7 +183,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 		  << params["api-signature"] << "&" << "t=" << params["t"];
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
-			  << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " " << "Accept: application/json ";
+			  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
 
@@ -304,7 +304,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			  << params["start-timestamp"] << "&" << "end-timestamp=" << params["end-timestamp"];
 		std::string queryStr = query.str();
 		std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
-				  << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " " << "Accept: application/json ";
+				  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 		client.setHeader("Accept", "application/json");
 
@@ -397,7 +397,7 @@ void WeatherlinkApiv2Downloader::logAndThrowCurlError(CurlWrapper& client)
 {
 	std::string_view error = client.getLastError();
 	std::ostringstream errorStream;
-	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkDownloadScheduler::APIHOST << ": "
+	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkApiv2DownloadScheduler::APIHOST << ": "
 				<< error;
 	std::string errorMsg = errorStream.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << errorMsg << std::endl;
