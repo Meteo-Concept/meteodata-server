@@ -75,8 +75,6 @@ private:
 
 	const std::string& _apiSecret;
 
-	using Params = std::map<std::string, std::string>; // a map sorted by its keys in asciibetical order
-
 	/**
 	 * @brief The Weatherlink station id
 	 */
@@ -106,8 +104,6 @@ private:
 	void initialize();
 
 	float getDayRainfall(const CassUuid& uuid);
-
-	static std::string computeApiSignature(const Params& params, const std::string& apiSecret);
 
 	void logAndThrowCurlError(CurlWrapper& client);
 

@@ -126,31 +126,18 @@ WeatherlinkApiv2Downloader::WeatherlinkApiv2Downloader(const CassUuid& station, 
 	initialize();
 }
 
-std::string WeatherlinkApiv2Downloader::computeApiSignature(const Params& params, const std::string& apiSecret)
-{
-	std::string allParamsButApiSignature;
-	for (const auto& param : params)
-		allParamsButApiSignature += param.first + param.second;
-	return computeHMACWithSHA256(allParamsButApiSignature, apiSecret);
-}
-
 std::unordered_map<std::string, pt::ptree>
 WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::string& apiId,
 	const std::string& apiSecret)
 {
-	WeatherlinkApiv2Downloader::Params params = {
-		{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-		{"api-key", apiId}
-	};
-	params.emplace("api-signature", computeApiSignature(params, apiSecret));
 	std::ostringstream query;
-	query << "/v2/stations" << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
-		  << params["api-signature"] << "&" << "t=" << params["t"];
+	query << "/v2/stations" << "?" << "api-key=" << apiId;
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2] protocol: " << "GET " << queryStr << " HTTP/1.1 " << "Host: "
 			  << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
+	client.setHeader("X-Api-Secret", apiSecret);
 
 	std::unordered_map<std::string, pt::ptree> stations;
 	client.download(BASE_URL + queryStr, [&](const std::string& content) {
@@ -172,20 +159,14 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
 			  << "downloading real-time data for station " << _stationName << std::endl;
 
-	WeatherlinkApiv2Downloader::Params params = {
-		{"t", std::to_string( chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-		{"station-id", _weatherlinkId},
-		{"api-key",    _apiKey}
-	};
-	params.emplace("api-signature", computeApiSignature(params, _apiSecret));
 	std::ostringstream query;
-	query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
-		  << params["api-signature"] << "&" << "t=" << params["t"];
+	query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << _apiKey;
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
 			  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
+	client.setHeader("X-Api-Secret", _apiSecret);
 
 	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 		for (const auto& u : _uuids) {
@@ -242,17 +223,11 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	bool stationIsDisconnected = false;
 	if (days.count() > 1) {
-		WeatherlinkApiv2Downloader::Params params = {
-			{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-			{"station-id", _weatherlinkId},
-			{"api-key",    _apiKey}
-		};
-		params.emplace("api-signature", computeApiSignature(params, _apiSecret));
 		std::ostringstream query;
-		query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
-			  << params["api-signature"] << "&" << "t=" << params["t"];
+		query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << _apiKey;
 		std::string queryStr = query.str();
 		client.setHeader("Accept", "application/json");
+		client.setHeader("X-Api-Secret", _apiSecret);
 
 		CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 			std::vector<date::sys_seconds> lastUpdates;
@@ -290,23 +265,17 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	while (date < end) {
 		auto datePlus24Hours = date + chrono::hours{24};
-		WeatherlinkApiv2Downloader::Params params = {
-			{"t", std::to_string(chrono::system_clock::to_time_t(chrono::system_clock::now()))},
-			{"station-id",      _weatherlinkId},
-			{"api-key",         _apiKey},
-			{"start-timestamp", std::to_string(chrono::system_clock::to_time_t(date))},
-			{"end-timestamp",   std::to_string(chrono::system_clock::to_time_t(datePlus24Hours))}
-		};
-		params.emplace("api-signature", computeApiSignature(params, _apiSecret));
+
 		std::ostringstream query;
-		query << "/v2/historic/" << _weatherlinkId << "?" << "api-key=" << params["api-key"] << "&" << "api-signature="
-			  << params["api-signature"] << "&" << "t=" << params["t"] << "&" << "start-timestamp="
-			  << params["start-timestamp"] << "&" << "end-timestamp=" << params["end-timestamp"];
+		query << "/v2/historic/" << _weatherlinkId << "?" << "api-key=" << _apiKey
+			  << "&" << "start-timestamp=" << std::to_string(chrono::system_clock::to_time_t(date))
+			  << "&" << "end-timestamp=" << std::to_string(chrono::system_clock::to_time_t(datePlus24Hours));
 		std::string queryStr = query.str();
 		std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
 				  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 		client.setHeader("Accept", "application/json");
+		client.setHeader("X-Api-Secret", _apiSecret);
 
 		CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 			bool insertionOk = true;
