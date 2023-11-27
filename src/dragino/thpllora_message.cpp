@@ -75,7 +75,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 	}
 
 	_obs.humidity = float(hum) / 10;
-	if (temp == 0xFFFF) {
+	if (temp == 0xFFFF && hum == 0xFFFF) {
 		_obs.temperature = NAN;
 		_obs.humidity = NAN;
 	} else if ((temp & 0x8000) == 0) {

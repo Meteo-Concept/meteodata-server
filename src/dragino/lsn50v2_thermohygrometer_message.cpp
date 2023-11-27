@@ -59,7 +59,7 @@ void Lsn50v2ThermohygrometerMessage::ingest(const CassUuid&, const std::string& 
 	   >> parse(hum, 4, 16);
 
 	_obs.humidity = float(hum) / 10;
-	if (temp == 0xFFFF) {
+	if (temp == 0xFFFF && hum == 0xFFFF) {
 		_obs.temperature = NAN;
 		_obs.humidity = NAN;
 	} else if ((temp & 0x8000) == 0) {
