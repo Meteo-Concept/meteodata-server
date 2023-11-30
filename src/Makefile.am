@@ -93,6 +93,8 @@ meteodata_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
+		    dragino/llms01_leaf_sensor_message.cpp\
+		    dragino/llms01_leaf_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
@@ -425,6 +427,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    barani/barani_thermohygro_message.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
+		    dragino/llms01_leaf_sensor_message.cpp\
+		    dragino/llms01_leaf_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
