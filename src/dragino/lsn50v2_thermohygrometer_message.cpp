@@ -54,7 +54,8 @@ void Lsn50v2ThermohygrometerMessage::ingest(const CassUuid&, const std::string& 
 	std::istringstream is{payload};
 	uint16_t temp;
 	uint16_t hum;
-	is >> ignore(14)
+	is >> parse(_obs.battery, 4, 16)
+	   >> ignore(10)
 	   >> parse(temp, 4, 16)
 	   >> parse(hum, 4, 16);
 
@@ -89,8 +90,9 @@ Observation Lsn50v2ThermohygrometerMessage::getObservation(const CassUuid& stati
 json::object Lsn50v2ThermohygrometerMessage::getDecodedMessage() const
 {
 	return json::object{
-		{ "model", "dragino_lsn50v2_20230411" },
+		{ "model", "dragino_lsn50v2_20231204" },
 		{ "value", {
+			{ "battery", _obs.battery },
 			{ "temperature", _obs.temperature },
 			{ "humidity", _obs.humidity }
 		} }

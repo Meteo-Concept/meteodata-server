@@ -75,6 +75,7 @@ private:
 	{
 		bool valid = false;
 		date::sys_seconds time;
+		uint16_t battery = 0U;
 		float temperature = NAN;
 		float humidity = NAN;
 	};

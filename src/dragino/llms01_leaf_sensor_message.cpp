@@ -53,14 +53,18 @@ void Llms01LeafSensorMessage::ingest(const CassUuid&, const std::string& payload
 	std::istringstream is{payload};
 	uint16_t temp;
 	uint16_t wet;
-	is >> ignore(8)
+	is >> parse(_obs.battery, 4, 16)
+	   >> ignore(4)
+	   >> parse(wet, 4, 16)
 	   >> parse(temp, 4, 16)
-	   >> parse(wet, 4, 16);
+	   >> ignore(6);
 
 	if (temp == 0xFFFF) {
 		_obs.leafTemperature = NAN;
-	} else {
+	} else if ((temp & 0x8000) == 0) {
 		_obs.leafTemperature = float(temp) / 10;
+	} else {
+		_obs.leafTemperature = (float(temp) - 65536) / 10;
 	}
 
 	if (wet == 0xFFFF) {
@@ -86,8 +90,9 @@ Observation Llms01LeafSensorMessage::getObservation(const CassUuid& station) con
 json::object Llms01LeafSensorMessage::getDecodedMessage() const
 {
 	return json::object{
-		{ "model", "dragino_llms01_20231130" },
+		{ "model", "dragino_llms01_20231204" },
 		{ "value", {
+			{ "battery", _obs.battery },
 			{ "leaf_temperature", _obs.leafTemperature },
 			{ "leaf_wetness", _obs.leafWetness }
 		} }
