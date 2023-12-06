@@ -61,21 +61,14 @@ int main(int argc, char** argv)
 	std::string format;
 
 	po::options_description desc("Allowed options");
-	desc.add_options()("help", "display the help message and exit")("version",
-																	"display the version of Meteodata and exit")(
-			"config-file", po::value<std::string>(&fileName), "alternative configuration file")("input-file",
-																								po::value<std::string>(
-																										&inputFile),
-																								"input data file")(
-			"format", po::value<std::string>(&format), R"(file format ("wlk" or "mileos"))")("station",
-																							 po::value<std::string>(
-																									 &uuid),
-																							 "station UUID")("timezone",
-																											 po::value<std::string>(
-																													 &tz),
-																											 R"(timezone identifier (like "UTC" or "Europe/Paris"))")(
-			"update-last-download-time,t",
-			"update the last archive download time of the station to the most recent datetime in the imported data");
+	desc.add_options()("help", "display the help message and exit")
+			  ("version", "display the version of Meteodata and exit")
+			  ("config-file", po::value<std::string>(&fileName), "alternative configuration file")
+			  ("input-file", po::value<std::string>(&inputFile), "input data file")
+			  ( "format", po::value<std::string>(&format), R"(file format ("wlk" or "mileos"))")
+			  ("station", po::value<std::string>(&uuid), "station UUID")
+			  ("timezone", po::value<std::string>(&tz), R"(timezone identifier (like "UTC" or "Europe/Paris"))")
+			  ( "update-last-download-time,t", "update the last archive download time of the station to the most recent datetime in the imported data");
 
 	po::positional_options_description pd;
 	pd.add("input-file", 1);
@@ -83,13 +76,9 @@ int main(int argc, char** argv)
 	pd.add("timezone", 1);
 
 	po::options_description config("Configuration");
-	config.add_options()("user,u", po::value<std::string>(&user), "database username")("password,p",
-																					   po::value<std::string>(
-																							   &password),
-																					   "database password")("host,h",
-																											po::value<std::string>(
-																													&address),
-																											"database IP address or domain name");
+	config.add_options()("user,u", po::value<std::string>(&user), "database username")
+			    ("password,p", po::value<std::string>(&password), "database password")
+			    ("host,h", po::value<std::string>(&address), "database IP address or domain name");
 	desc.add(config);
 
 	po::variables_map vm;
