@@ -214,21 +214,26 @@ void MeteoServer::start()
 			}
 		}
 
+		int mqttIndex = 0;
 		for (auto&& mqttSubscriber : vp2MqttSubscribers) {
+			mqttIndex++;
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_vp2_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_vp2_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 		for (auto&& mqttSubscriber : objeniousMqttSubscribers) {
+			mqttIndex++;
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 		for (auto&& mqttSubscriber : liveobjectsMqttSubscribers) {
+			mqttIndex++;
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 		for (auto&& mqttSubscriber : genericMqttSubscribers) {
+			mqttIndex++;
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_generic_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_generic_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 	}
 
