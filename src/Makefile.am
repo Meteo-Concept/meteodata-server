@@ -130,6 +130,8 @@ meteodata_SOURCES = \
 		    mqtt/objenious_mqtt_subscriber.h\
 		    mqtt/liveobjects_mqtt_subscriber.cpp\
 		    mqtt/liveobjects_mqtt_subscriber.h\
+		    mqtt/liveobjects_external_mqtt_subscriber.cpp\
+		    mqtt/liveobjects_external_mqtt_subscriber.h\
 		    mqtt/generic_mqtt_subscriber.cpp\
 		    mqtt/generic_mqtt_subscriber.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\

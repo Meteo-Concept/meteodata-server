@@ -43,6 +43,7 @@
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
 #include "mqtt/liveobjects_mqtt_subscriber.h"
+#include "mqtt/liveobjects_external_mqtt_subscriber.h"
 #include "mqtt/generic_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_download_scheduler.h"
@@ -151,12 +152,14 @@ void MeteoServer::start()
 		std::vector<std::tuple<CassUuid, std::string, std::map<std::string, std::string>>> objeniousStations;
 		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsMqttSubscriber>> liveobjectsMqttSubscribers;
+		std::shared_ptr<LiveobjectsMqttSubscriber> liveobjectsMqttSubscriber;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsExternalMqttSubscriber>> liveobjectsExternalMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<GenericMqttSubscriber>> genericMqttSubscribers;
 		_db.getMqttStations(mqttStations);
 		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getAllLiveobjectsStations(liveobjectsStations);
+		int externalLiveobjects = 0;
 		for (auto&& station : mqttStations) {
 			MqttSubscriber::MqttSubscriptionDetails details{std::get<1>(station), std::get<2>(station),
 				std::get<3>(station), std::string(std::get<4>(station).get(), std::get<5>(station))};
@@ -187,18 +190,30 @@ void MeteoServer::start()
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
-			} else if (topic.substr(0, 5) == "fifo/") {
-				auto mqttSubscribersIt = liveobjectsMqttSubscribers.find(details);
-				if (mqttSubscribersIt == liveobjectsMqttSubscribers.end()) {
-					std::shared_ptr<LiveobjectsMqttSubscriber> subscriber = std::make_shared<LiveobjectsMqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
+			} else if (topic == "fifo/meteoconcept") {
+				auto mqttSubscribersIt = liveobjectsExternalMqttSubscribers.find(details);
+				if (mqttSubscribersIt == liveobjectsExternalMqttSubscribers.end()) {
+					// take care of generating a unique client id for each connection
+					std::shared_ptr<LiveobjectsExternalMqttSubscriber> subscriber = std::make_shared<LiveobjectsExternalMqttSubscriber>(
+						std::to_string(externalLiveobjects++), details, _ioContext, _db, _jobPublisher.get()
 					);
-					mqttSubscribersIt = liveobjectsMqttSubscribers.emplace(details, subscriber).first;
+					mqttSubscribersIt = liveobjectsExternalMqttSubscribers.emplace(details, subscriber).first;
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != liveobjectsStations.end())
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it));
+			} else if (topic.substr(0, 5) == "fifo/") {
+				// All the Liveobjects stations on the internal Liveobjects connection will share a single connection
+				if (!liveobjectsMqttSubscriber) {
+					liveobjectsMqttSubscriber = std::make_shared<LiveobjectsMqttSubscriber>(
+						details, _ioContext, _db, _jobPublisher.get()
+					);
+				}
+				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+					[&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+				if (it != liveobjectsStations.end())
+					liveobjectsMqttSubscriber->addStation(topic, uuid, tz, std::get<1>(*it));
 			} else if (topic.substr(0, 8) == "generic/") {
 				auto mqttSubscribersIt = genericMqttSubscribers.find(details);
 				if (mqttSubscribersIt == genericMqttSubscribers.end()) {
@@ -225,10 +240,15 @@ void MeteoServer::start()
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
-		for (auto&& mqttSubscriber : liveobjectsMqttSubscribers) {
+		if (liveobjectsMqttSubscriber) {
+			mqttIndex++;
+			liveobjectsMqttSubscriber->start();
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_liveobjects", liveobjectsMqttSubscriber);
+		}
+		for (auto&& mqttSubscriber : liveobjectsExternalMqttSubscribers) {
 			mqttIndex++;
 			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_liveobjects_" + mqttSubscriber.first.host, mqttSubscriber.second);
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_external_liveobjects", mqttSubscriber.second);
 		}
 		for (auto&& mqttSubscriber : genericMqttSubscribers) {
 			mqttIndex++;
