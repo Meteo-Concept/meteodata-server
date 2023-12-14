@@ -70,6 +70,20 @@ private:
 		if (std::get<0>(entry1) == SensorType::SENSOR_SUITE && isMainStationType(std::get<0>(entry2)))
 			return false;
 
+		// If we have two main station packets but one of them has only the wind and not the
+		// rainfall, we want to parse the wind first, otherwise the rain will be set to 0
+		// (absent rain is coded 0, not null).
+		if (isMainStationType(std::get<0>(entry1)) && isMainStationType(std::get<0>(entry2)) &&
+		    (std::get<1>(entry1) == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING ||
+		     std::get<1>(entry1) == DataStructureType::WEATHERLINK_CONSOLE_ISS_CURRENT_READING) &&
+		    (std::get<1>(entry2) == DataStructureType::WEATHERLINK_LIVE_CURRENT_READING ||
+		     std::get<1>(entry2) == DataStructureType::WEATHERLINK_CONSOLE_ISS_CURRENT_READING)) {
+			float rainFall1 = std::get<2>(entry1)._obs.rainFall;
+			float rainFall2 = std::get<2>(entry2)._obs.rainFall;
+			return !isInvalid(rainFall1) && !isInvalid(rainFall2) &&
+				rainFall2 == 0 && rainFall1 > 0;
+		}
+
 		return true;
 	}
 
