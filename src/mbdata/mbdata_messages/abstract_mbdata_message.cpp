@@ -34,10 +34,15 @@ namespace meteodata
 
 namespace chrono = std::chrono;
 
-AbstractMBDataMessage::AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content,
-											 const TimeOffseter& timeOffseter) :
+AbstractMBDataMessage::AbstractMBDataMessage(date::sys_seconds datetime,
+	const std::string& content, const TimeOffseter& timeOffseter) :
 		_datetime(datetime),
 		_content(content),
+		_timeOffseter(timeOffseter)
+{
+}
+
+AbstractMBDataMessage::AbstractMBDataMessage(const TimeOffseter& timeOffseter) :
 		_timeOffseter(timeOffseter)
 {
 }

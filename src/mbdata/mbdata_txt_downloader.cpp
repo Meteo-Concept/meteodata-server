@@ -42,11 +42,6 @@
 #include "../time_offseter.h"
 #include "../curl_wrapper.h"
 
-// we do not expect the files to be big, so it's simpler and more
-// efficient to just slurp them, which means we'd better limit the
-// buffer size, for safety's sake
-#define BUFFER_MAX_SIZE 4096
-
 namespace asio = boost::asio;
 namespace args = std::placeholders;
 

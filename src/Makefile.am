@@ -112,6 +112,8 @@ meteodata_SOURCES = \
 		    mbdata/mbdata_messages/mbdata_weatherlink_message.h\
 		    mbdata/mbdata_messages/mbdata_wswin_message.cpp\
 		    mbdata/mbdata_messages/mbdata_wswin_message.h\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.cpp\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.h\
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h\
 		    mbdata/mbdata_download_scheduler.cpp\
@@ -361,6 +363,8 @@ meteodata_mbdata_standalone_SOURCES = \
 		    mbdata/mbdata_messages/mbdata_weatherlink_message.h\
 		    mbdata/mbdata_messages/mbdata_wswin_message.cpp\
 		    mbdata/mbdata_messages/mbdata_wswin_message.h\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.cpp\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.h\
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h
 

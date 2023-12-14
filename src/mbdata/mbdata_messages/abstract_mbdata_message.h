@@ -98,6 +98,24 @@ public:
 		return AbstractMBDataMessage::ptr(new T(datetime, std::ref(content), std::ref(timeOffseter)));
 	}
 
+	/**
+	 * @brief Instantiate a new MBdata message parser.
+	 *
+	 * @tparam T The actual MBdata message type
+	 * @param entry The input stream containing the message
+	 * @param rainfall A previous rainfall to compute the difference
+	 * @param timeOffseter A object able to perform time conversions from and
+	 * since the timezone used in the message
+	 *
+	 * @return An auto-managed shared pointer to the message
+	 */
+	template<typename T>
+	static typename std::enable_if<std::is_base_of<AbstractMBDataMessage, T>::value, AbstractMBDataMessage::ptr>::type
+	create(std::istream& entry, std::optional<float> rainfall, const TimeOffseter& timeOffseter)
+	{
+		return AbstractMBDataMessage::ptr(new T(std::ref(entry), rainfall, std::ref(timeOffseter)));
+	}
+
 	inline operator bool() const
 	{
 		return _valid;
@@ -117,10 +135,11 @@ public:
 
 protected:
 	AbstractMBDataMessage(date::sys_seconds datetime, const std::string& content, const TimeOffseter& timeOffseter);
+	explicit AbstractMBDataMessage(const TimeOffseter& timeOffseter);
 
 	date::sys_seconds _datetime;
 	std::string _content;
-	bool _valid;
+	bool _valid = false;
 	const TimeOffseter& _timeOffseter;
 	static constexpr int POLLING_PERIOD = 10;
 

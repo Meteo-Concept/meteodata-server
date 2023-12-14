@@ -37,6 +37,7 @@
 #include "mbdata_weathercat_message.h"
 #include "mbdata_wswin_message.h"
 #include "mbdata_weatherdisplay_message.h"
+#include "mbdata_meteobridge_message.h"
 
 namespace meteodata
 {
@@ -111,6 +112,13 @@ public:
 		  const TimeOffseter& timeOffseter)
 	{
 		using namespace date;
+
+		// The meteobridge is a much larger file, with a format very
+		// different from the other MBData files
+		if (type == "meteobridge") {
+			std::optional<float> rainfall = getDayRainfall(db, station, timeOffseter);
+			return AbstractMBDataMessage::create<MBDataMeteobridgeMessage>(entry, rainfall, timeOffseter);
+		}
 
 		auto lastMeasureSpan = chrono::minutes(AbstractMBDataMessage::POLLING_PERIOD);
 		std::string content = cleanInput(entry);
