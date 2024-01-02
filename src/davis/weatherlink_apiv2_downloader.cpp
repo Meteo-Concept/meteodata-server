@@ -210,9 +210,15 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 	auto date = _lastArchive;
 
 	using namespace date;
-	auto days = date::floor<date::days>(end - date);
+	auto delay = end - date;
+	auto days = date::floor<date::days>(delay);
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: " << "Last archive dates back from "
-			  << _lastArchive << "; now is " << end << "\n" << "(approximately " << days << " days)" << std::endl;
+			  << _lastArchive << "; now is " << end << "\n" << "(approximately " << days.count() << " days)" << std::endl;
+
+	// Work around a strange bug in WLv2 API where the rainfall is sometimes not present in the last archives
+	// by rewinding a little
+	if (delay < chrono::hours(12))
+		date -= chrono::hours(12);
 
 	if (days.count() > MAX_DISCONNECTION_DAYS && !force) {
 		std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connection: " << "Station " << _stationName
