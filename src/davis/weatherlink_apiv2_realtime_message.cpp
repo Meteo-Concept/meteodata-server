@@ -127,7 +127,7 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 			_obs.temperature = from_Farenheit_to_Celsius(_obs.temperatureF);
 		_obs.windDir = data.get<int>("wind_dir", INVALID_INT);
 		_obs.windSpeed = data.get<float>("wind_speed_10_min_avg", INVALID_FLOAT);
-		_obs.windGustSpeed = data.get<float>("wind_speed", INVALID_FLOAT);
+		_obs.windGustSpeed = data.get<float>("wind_gust_10_min", INVALID_FLOAT);
 		auto rainRate = data.get<int>("rain_rate_clicks", INVALID_INT);
 		if (!isInvalid(rainRate))
 			_obs.rainRate = from_rainrate_to_mm(rainRate);
