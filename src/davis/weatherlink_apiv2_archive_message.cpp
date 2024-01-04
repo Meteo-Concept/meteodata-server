@@ -133,8 +133,8 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
 	} else if (isMainStationType(sensorType) &&
-			   (dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
-				dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
+			(dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
+			 dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
 		_obs.time = date::floor<chrono::milliseconds>(chrono::system_clock::from_time_t(data.get<time_t>("ts")));
 		float hum = data.get<float>("hum_out", INVALID_FLOAT);
 		if (!isInvalid(hum))
