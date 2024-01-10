@@ -110,6 +110,7 @@ Observation BaraniAnemometer2023Message::getObservation(const CassUuid& station)
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;
 		result.windspeed = { !std::isnan(_obs.windAvg10minSpeed), _obs.windAvg10minSpeed };
+		result.min_windspeed = { !std::isnan(_obs.wind3sMinSpeed), _obs.wind3sMinSpeed };
 		result.windgust = { !std::isnan(_obs.wind3sGustSpeed), _obs.wind3sGustSpeed };
 		result.winddir = { _obs.windAvg10minDirection >= 0, _obs.windAvg10minDirection };
 	}
@@ -124,13 +125,14 @@ json::object BaraniAnemometer2023Message::getDecodedMessage() const
 	os << date::format("%FT%TZ", _obs.maxWindDatetime);
 
 	return json::object{
-		{ "model", "barani_anemometer_v2023_20230811" },
+		{ "model", "barani_anemometer_v2023_20240110" },
 		{ "value", {
 			{ "index", _obs.index },
 			{ "battery_voltage", _obs.batteryVoltage },
 			{ "wind_avg_10min_speed",_obs.windAvg10minSpeed },
 			{ "wind_3s_gust_speed", _obs.wind3sGustSpeed },
 			{ "wind_1s_gust_speed", _obs.wind1sGustSpeed },
+			{ "wind_3s_min_speed", _obs.wind3sMinSpeed },
 			{ "wind_speed_stdev", _obs.windSpeedStdev },
 			{ "wind_avg_10min_direction", _obs.windAvg10minDirection },
 			{ "wind_1s_gust_direction", _obs.wind1sGustDirection },
