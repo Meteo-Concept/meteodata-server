@@ -59,6 +59,11 @@ StatICMessage::StatICMessage(std::istream& file, const TimeOffseter& timeOffsete
 		if (std::regex_match(st, baseMatch, normalLine) && baseMatch.size() == 3) {
 			std::string var = baseMatch[1].str();
 			std::string value = baseMatch[2].str();
+
+			// The decimal point may be a comma (in files produced by Weewx
+			// typically), replace it by a dot to avoid having to mess with locales
+			std::replace(value.begin(), value.end(), ',', '.');
+
 			// empty values are equal to zero, but it can be zero int or zero float so we leave the conversion for later
 			if (value.empty() || value == "Néant")
 				value = "0";
