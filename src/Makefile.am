@@ -16,6 +16,7 @@ bin_PROGRAMS = \
 	       meteodata-objenious-api-standalone\
 	       meteodata-cimel-standalone\
 	       meteodata-mqtt-vp2-standalone\
+	       meteodata-meteofrance-api-standalone\
 	       meteodatactl
 
 meteodata_SOURCES = \
@@ -122,6 +123,12 @@ meteodata_SOURCES = \
 		    liveobjects/liveobjects_message.h\
 		    liveobjects/liveobjects_http_decoding_request_handler.cpp\
 		    liveobjects/liveobjects_http_decoding_request_handler.h\
+		    meteo_france/meteo_france_api_download_scheduler.cpp\
+		    meteo_france/meteo_france_api_download_scheduler.h\
+		    meteo_france/meteo_france_api_downloader.cpp\
+		    meteo_france/meteo_france_api_downloader.h\
+		    meteo_france/mf_radome_message.cpp\
+		    meteo_france/mf_radome_message.h\
 		    mqtt/generic_message.cpp\
 		    mqtt/generic_message.h\
 		    mqtt/mqtt_subscriber.cpp\
@@ -483,6 +490,21 @@ meteodata_mqtt_vp2_standalone_SOURCES = \
 		    async_job_publisher.h\
 		    mqtt/vp2_mqtt_subscriber_standalone.cpp
 
+meteodata_meteofrance_api_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    meteo_france/meteo_france_api_downloader.cpp\
+		    meteo_france/meteo_france_api_downloader.h\
+		    meteo_france/mf_radome_message.cpp\
+		    meteo_france/mf_radome_message.h\
+		    meteo_france/meteo_france_api_downloader_standalone.cpp
+
 meteodatactl_SOURCES = \
 		    control/meteodatactl.cpp
 
@@ -579,6 +601,11 @@ meteodata_mqtt_vp2_standalone_CPPFLAGS = $(basecppflags) $(BOOST_SYSTEM_CPPFLAGS
 meteodata_mqtt_vp2_standalone_CXXFLAGS =
 meteodata_mqtt_vp2_standalone_LDFLAGS = $(baseldflags) $(BOOST_SYSTEM_LDFLAGS)
 meteodata_mqtt_vp2_standalone_LDADD = $(baselibs) $(BOOST_SYSTEM_LIBS)
+
+meteodata_meteofrance_api_standalone_CPPFLAGS = $(basecppflags)
+meteodata_meteofrance_api_standalone_CXXFLAGS =
+meteodata_meteofrance_api_standalone_LDFLAGS = $(baseldflags)
+meteodata_meteofrance_api_standalone_LDADD = $(baselibs)
 
 meteodatactl_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(DATE_CFLAGS)
 meteodatactl_CXXFLAGS =

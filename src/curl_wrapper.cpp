@@ -121,24 +121,33 @@ CURLcode CurlWrapper::post(const std::string& url, const std::string& content,
 
 std::string_view CurlWrapper::getLastError()
 {
-		return {_errorBuffer};
+	return {_errorBuffer};
 }
 
 long CurlWrapper::getLastRequestCode()
 {
-		long code;
-		curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
-		return code;
+	long code;
+	curl_easy_getinfo(_handle.get(), CURLINFO_RESPONSE_CODE, &code);
+	return code;
 }
 
 std::size_t CurlWrapper::receiveData(void* buffer, std::size_t size, std::size_t nbemb, void* userp)
 {
-		// This function can be called several times by curl to output data from a HTTP query
-		auto* destination = reinterpret_cast<std::string*>(userp);
-		std::size_t realsize = size * nbemb;
-		if (realsize && buffer)
-				destination->append(reinterpret_cast<char*>(buffer), realsize);
-		return realsize;
+	// This function can be called several times by curl to output data from a HTTP query
+	auto* destination = reinterpret_cast<std::string*>(userp);
+	std::size_t realsize = size * nbemb;
+	if (realsize && buffer)
+			destination->append(reinterpret_cast<char*>(buffer), realsize);
+	return realsize;
+}
+
+CurlWrapper::CurlStr CurlWrapper::escape(const std::string& value) const
+{
+	char* output = curl_easy_escape(_handle.get(),
+			value.data(),
+			value.length());
+
+	return CurlStr(output, &curl_free);
 }
 
 }

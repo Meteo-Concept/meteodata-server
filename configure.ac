@@ -1,15 +1,15 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
-AC_INIT([Meteodata], [2.12], [contact@meteo-concept.fr])
+AC_PREREQ([2.71])
+AC_INIT([Meteodata],[2.13],[contact@meteo-concept.fr])
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([src/davis/vantagepro2_connector.h])
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror subdir-objects])
 
-AC_LANG_CPLUSPLUS
+AC_LANG([C++])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -51,7 +51,7 @@ LT_INIT
 AX_PTHREAD
 AX_CHECK_OPENSSL
 LIBCURL_CHECK_CONFIG
-BOOST_REQUIRE([1.64])
+BOOST_REQUIRE([1.75])
 BOOST_SYSTEM
 BOOST_ASIO
 BOOST_PROGRAM_OPTIONS

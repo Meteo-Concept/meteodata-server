@@ -40,6 +40,20 @@ namespace meteodata
  */
 class CurlWrapper
 {
+private:
+	/**
+	 * @brief An alias for the curl library bare handle
+	 */
+	using CurlHandle = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>;
+	/**
+	 * @brief An alias for the curl library headers list type
+	 */
+	using CurlHeadersList = std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)>;
+	/**
+	 * @brief An alias for a string-like object allocated by the curl library
+	 */
+	using CurlStr = std::unique_ptr<char, decltype(&curl_free)>;
+
 public:
 	/**
 	 * @brief Construct the wrapper
@@ -70,6 +84,8 @@ public:
 	CURLcode post(const std::string& url, const std::string& content,
 		const std::function<void(const std::string&)>& parser);
 
+	CurlStr escape(const std::string& value) const;
+
 	/**
 	 * @brief Get the last error message returned by curl
 	 * @return The last error message written by curl in its error buffer (https://curl.se/libcurl/c/CURLOPT_ERRORBUFFER.html)
@@ -83,15 +99,6 @@ public:
 	long getLastRequestCode();
 
 private:
-	/**
-	 * @brief An alias for the curl library bare handle
-	 */
-	using CurlHandle = std::unique_ptr<CURL, decltype(&curl_easy_cleanup)>;
-	/**
-	 * @brief An alias for the curl library headers list type
-	 */
-	using CurlHeadersList = std::unique_ptr<curl_slist, decltype(&curl_slist_free_all)>;
-
 	/**
 	 * @brief A curl object to call curl functions upon
 	 */

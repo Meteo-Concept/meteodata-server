@@ -124,6 +124,7 @@ public:
 		std::string fieldClimateApiKey;
 		std::string fieldClimateApiSecret;
 		std::string objeniousApiKey;
+		std::string meteofranceApiKey;
 		bool publishJobs = true;
 		bool startMqtt = true;
 		bool startSynop = true;
@@ -135,6 +136,7 @@ public:
 		bool startMbdata = true;
 		bool startRest = true;
 		bool startVp2 = true;
+		bool startMeteoFrance = true;
 		bool daemonized = false;
 	};
 

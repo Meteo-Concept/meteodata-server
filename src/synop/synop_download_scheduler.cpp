@@ -50,7 +50,8 @@ void SynopDownloadScheduler::reloadStations()
 {
 	_groups.clear();
 
-	add(GROUP_FR, chrono::minutes(20), chrono::hours(3));
+	// FR stations are downloaded via the MeteoFrance API since v2.13
+	// add(GROUP_FR, chrono::minutes(20), chrono::hours(3));
 	add(GROUP_LU, chrono::minutes(20), chrono::hours(3));
 
 	// Add the deferred SYNOPs

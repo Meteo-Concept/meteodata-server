@@ -39,6 +39,7 @@
 #include "davis/weatherlink_download_scheduler.h"
 #include "davis/weatherlink_apiv2_download_scheduler.h"
 #include "mbdata/mbdata_download_scheduler.h"
+#include "meteo_france/meteo_france_api_download_scheduler.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
 #include "mqtt/objenious_mqtt_subscriber.h"
@@ -270,6 +271,20 @@ void MeteoServer::start()
 		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db, _jobPublisher.get());
 		meteofranceDownloader->start();
 		_connectors.emplace("ship", meteofranceDownloader);
+	}
+
+	if (_configuration.startMeteoFrance) {
+		// Start the Meteo France API download scheduler (one for all
+		// SYNOP and RADOME stations, there's one downloader per
+		// station but they all share the same HTTP client)
+		auto meteofranceScheduler = std::make_shared<MeteoFranceApiDownloadScheduler>(
+			_ioContext,
+			_db,
+			std::move(_configuration.meteofranceApiKey),
+			_jobPublisher.get()
+		);
+		meteofranceScheduler->start();
+		_connectors.emplace("meteofrance", meteofranceScheduler);
 	}
 
 	if (_configuration.startStatic) {

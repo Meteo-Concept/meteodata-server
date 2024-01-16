@@ -477,6 +477,18 @@ inline float from_mps_to_kph(int mps)
 }
 
 /**
+ * @brief Convert a radiation from J/cm² to a mean radiation intensity in W/m²
+ *
+ * @param the value to convert
+ *
+ * @return the parameter value converted to W/m²
+ */
+inline float from_Jpsqcm_to_Wpsqm(float jpsqcm)
+{
+	return 3600.f * jpsqcm / 10000.f;
+}
+
+/**
  * @brief Convert a distance from inches to millimeters,
  * when the the value in inches is given as an integer
  *

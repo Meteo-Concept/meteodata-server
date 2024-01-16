@@ -73,6 +73,7 @@ int main(int argc, char** argv)
 		("fieldclimate-key", po::value<std::string>(&serverConfig.fieldClimateApiKey), "api.fieldclimate.com key")
 		("fieldclimate-secret", po::value<std::string>(&serverConfig.fieldClimateApiSecret), "api.fieldclimate.com secret")
 		("objenious-key", po::value<std::string>(&serverConfig.objeniousApiKey), "api.objenious.com key")
+		("meteofrance-key", po::value<std::string>(&serverConfig.meteofranceApiKey), "Météo France developer portal API key")
 	;
 
 	po::options_description desc("Allowed options");
@@ -85,6 +86,7 @@ int main(int argc, char** argv)
 		("no-mqtt", "don't start the MQTT downloaders")
 		("no-synop", "don't start the SYNOP downloaders")
 		("no-ship", "don't start the SHIP and BUOY downloader")
+		("no-meteofrance", "don't start the Météo France API downloader")
 		("no-static", "don't start the StatIC downloaders")
 		("no-weatherlink", "don't start the Weatherlink downloaders")
 		("no-weatherlink-v2", "don't start the Weatherlink APIv2 downloaders")
@@ -95,6 +97,7 @@ int main(int argc, char** argv)
 		("only-mqtt", "start only the MQTT downloaders")
 		("only-synop", "start only the SYNOP downloaders")
 		("only-ship", "start only the SHIP and BUOY downloader")
+		("only-meteofrance", "start only the Météo France API downloader")
 		("only-static", "start only the StatIC downloaders")
 		("only-weatherlink", "start only the Weatherlink downloaders")
 		("only-weatherlink-v2", "start only the Weatherlink APIv2 downloaders")
@@ -137,6 +140,7 @@ int main(int argc, char** argv)
 	serverConfig.startMqtt = !vm.count("no-mqtt");
 	serverConfig.startSynop = !vm.count("no-synop");
 	serverConfig.startShip = !vm.count("no-ship");
+	serverConfig.startMeteoFrance = !vm.count("no-meteofrance");
 	serverConfig.startStatic = !vm.count("no-static");
 	serverConfig.startWeatherlink = !vm.count("no-weatherlink");
 	serverConfig.startWeatherlinkV2 = !vm.count("no-weatherlink-v2");
@@ -145,12 +149,14 @@ int main(int argc, char** argv)
 	serverConfig.startRest = !vm.count("no-rest");
 	serverConfig.startVp2 = !vm.count("no-vp2");
 
-	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") || vm.count("only-static") ||
+	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") ||
+		vm.count("only-meteofrance") || vm.count("only-static") ||
 		vm.count("only-weatherlink") || vm.count("only-weatherlink-v2") || vm.count("only-fieldclimate") ||
 		vm.count("only-mbdata") || vm.count("only-rest") || vm.count("only-vp2")) {
 		serverConfig.startMqtt = false;
 		serverConfig.startSynop = false;
 		serverConfig.startShip = false;
+		serverConfig.startMeteoFrance = false;
 		serverConfig.startStatic = false;
 		serverConfig.startWeatherlink = false;
 		serverConfig.startWeatherlinkV2 = false;
@@ -165,6 +171,8 @@ int main(int argc, char** argv)
 			serverConfig.startSynop = true;
 		if (vm.count("only-ship"))
 			serverConfig.startShip = true;
+		if (vm.count("only-meteofrance"))
+			serverConfig.startMeteoFrance = true;
 		if (vm.count("only-static"))
 			serverConfig.startStatic = true;
 		if (vm.count("only-weatherlink"))
