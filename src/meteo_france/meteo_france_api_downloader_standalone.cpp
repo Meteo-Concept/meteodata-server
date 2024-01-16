@@ -212,7 +212,6 @@ int main(int argc, char** argv)
 			downloader.download(client, beginDate, endDate, true);
 			retry = 0;
 			++it;
-			std::this_thread::sleep_for(chrono::seconds(1));
 		} catch (const std::runtime_error& e) {
 			retry++;
 			if (retry >= 2) {

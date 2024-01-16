@@ -77,6 +77,10 @@ void MeteoFranceApiDownloadScheduler::reloadStations()
 
 	std::vector<std::tuple<CassUuid, std::string, std::string, int, float, float, int, int>> mfStations;
 	_db.getMeteoFranceStations(mfStations);
+
+	for (auto&& station : mfStations) {
+		add(std::get<0>(station), std::get<2>(station));
+	}
 }
 
 }
