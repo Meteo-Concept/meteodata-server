@@ -44,8 +44,10 @@ public:
 	void parse(pt::ptree&& payload, date::sys_seconds& timestamp);
 	Observation getObservation(const CassUuid station) const;
 	inline bool looksValid() const { return _valid; };
+	inline std::string getMfId() const { return _mfId; };
 
 private:
+	std::string _mfId;
 	bool _valid = false;
 	date::sys_seconds _timestamp;
 	boost::optional<float> _rr1;

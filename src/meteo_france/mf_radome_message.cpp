@@ -43,6 +43,7 @@ void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_second
 	_valid = bool(is);
 
 	if (_valid) {
+		_mfId = json.get<std::string>("geo_id_insee");
 		_rr1 = json.get_optional<float>("rr1");
 		_ff = json.get_optional<float>("ff");
 		_dd = json.get_optional<float>("dd");

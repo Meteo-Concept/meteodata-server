@@ -34,6 +34,7 @@
 
 #include "meteo_france/meteo_france_api_download_scheduler.h"
 #include "meteo_france/meteo_france_api_downloader.h"
+#include "meteo_france/meteo_france_api_bulk_downloader.h"
 #include "http_utils.h"
 #include "abstract_download_scheduler.h"
 
@@ -65,22 +66,19 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto minutes = tod.minutes().count();
 
 	if (minutes < POLLING_PERIOD) { // will trigger once per hour
-		for (const auto& it : _downloaders) {
-			it->download(_client);
-		}
+		MeteoFranceApiBulkDownloader downloader{_db, _apiKey, _jobPublisher};
+		downloader.download(_client);
+	}
+
+	for (const auto& it : _downloaders) {
+		it->download(_client);
 	}
 }
 
 void MeteoFranceApiDownloadScheduler::reloadStations()
 {
 	_downloaders.clear();
-
-	std::vector<std::tuple<CassUuid, std::string, std::string, int, float, float, int, int>> mfStations;
-	_db.getMeteoFranceStations(mfStations);
-
-	for (auto&& station : mfStations) {
-		add(std::get<0>(station), std::get<2>(station));
-	}
+	// There are no mechanisms yet to load specific stations automatically
 }
 
 }

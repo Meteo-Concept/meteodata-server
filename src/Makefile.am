@@ -127,6 +127,8 @@ meteodata_SOURCES = \
 		    meteo_france/meteo_france_api_download_scheduler.h\
 		    meteo_france/meteo_france_api_downloader.cpp\
 		    meteo_france/meteo_france_api_downloader.h\
+		    meteo_france/meteo_france_api_bulk_downloader.cpp\
+		    meteo_france/meteo_france_api_bulk_downloader.h\
 		    meteo_france/mf_radome_message.cpp\
 		    meteo_france/mf_radome_message.h\
 		    mqtt/generic_message.cpp\
