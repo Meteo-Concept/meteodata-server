@@ -54,7 +54,6 @@ public:
 
 private:
 	std::optional<float> _rainfallSince0h;
-	std::optional<int> _uv;
 };
 
 }

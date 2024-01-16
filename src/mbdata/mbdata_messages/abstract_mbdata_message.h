@@ -152,6 +152,7 @@ protected:
 	std::optional<float> _gust;
 	std::optional<float> _rainRate;
 	std::optional<int> _solarRad;
+	std::optional<float> _uv;
 	std::optional<float> _computedRainfall;
 
 	friend MBDataMessageFactory;

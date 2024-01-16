@@ -70,9 +70,23 @@ Observation AbstractMBDataMessage::getObservation(const CassUuid station) const
 	result.solarrad = {bool(_solarRad), *_solarRad};
 	if (_solarRad) {
 		bool ins = insolated(*_solarRad, _timeOffseter.getLatitude(), _timeOffseter.getLongitude(),
-							 date::floor<chrono::seconds>(_datetime).time_since_epoch().count());
+			date::floor<chrono::seconds>(_datetime).time_since_epoch().count());
 		result.insolation_time = {true, ins ? _timeOffseter.getMeasureStep() : 0};
 	}
+		if (_solarRad) {
+		bool ins = insolated(*_solarRad, _timeOffseter.getLatitude(), _timeOffseter.getLongitude(),
+			date::floor<chrono::seconds>(_datetime).time_since_epoch().count());
+		result.insolation_time = {true, ins ? _timeOffseter.getMeasureStep() : 0};
+	}
+	if (_airTemp && _wind && _humidity && _solarRad) {
+		float etp = evapotranspiration(*_airTemp, *_humidity, from_kph_to_mps(*_wind),
+			*_solarRad, _timeOffseter.getLatitude(),
+			_timeOffseter.getLongitude(), _timeOffseter.getElevation(),
+			chrono::system_clock::to_time_t(_datetime),
+			_timeOffseter.getMeasureStep());
+		result.et = {true, etp};
+	}
+	result.uv = {bool(_uv), *_uv * 10};
 
 	return result;
 }
