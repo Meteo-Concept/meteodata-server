@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
-		("apikey,k", po::value<std::string>(&apiKey), "Météo France API key from an appropriate subscription")
+		("meteofrance-key,k", po::value<std::string>(&apiKey), "Météo France API key from an appropriate subscription")
 	;
 
 	po::options_description desc("Allowed options");

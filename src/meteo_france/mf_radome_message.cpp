@@ -65,7 +65,7 @@ void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_second
 	}
 }
 
-Observation MfRadomeMessage::getObservation(const CassUuid station) const
+Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 {
 	Observation result;
 
@@ -73,22 +73,22 @@ Observation MfRadomeMessage::getObservation(const CassUuid station) const
 		result.station = station;
 		result.day = date::floor<date::days>(_timestamp);
 		result.time = _timestamp;
-		result.rainfall = { _rr1.has_value(), _rr1.value_or(0.f) };
-		result.windspeed = { _ff.has_value(), from_mps_to_kph(_ff.value_or(0.f))  };
-		result.winddir = { _dd.has_value(), _dd.value_or(0) };
-		result.windgust = { _fxy.has_value(), from_mps_to_kph(_fxy.value_or(0.f)) };
-		result.outsidetemp = { _t.has_value(), from_Kelvin_to_Celsius(_t.value_or(0.f)) };
-		result.dewpoint = { _td.has_value(), from_Kelvin_to_Celsius(_td.value_or(0.f)) };
-		result.min_outside_temperature = { _tn.has_value(), from_Kelvin_to_Celsius(_tn.value_or(0.f)) };
-		result.max_outside_temperature = { _tx.has_value(), from_Kelvin_to_Celsius(_tx.value_or(0.f)) };
-		result.outsidehum = { _u.has_value(), _u.value_or(0) };
-		if (_pmer.has_value()) {
+		result.rainfall = { bool(_rr1), _rr1.value_or(0.f) };
+		result.windspeed = { bool(_ff), from_mps_to_kph(_ff.value_or(0.f))  };
+		result.winddir = { bool(_dd), _dd.value_or(0) };
+		result.windgust = { bool(_fxy), from_mps_to_kph(_fxy.value_or(0.f)) };
+		result.outsidetemp = { bool(_t), from_Kelvin_to_Celsius(_t.value_or(0.f)) };
+		result.dewpoint = { bool(_td), from_Kelvin_to_Celsius(_td.value_or(0.f)) };
+		result.min_outside_temperature = { bool(_tn), from_Kelvin_to_Celsius(_tn.value_or(0.f)) };
+		result.max_outside_temperature = { bool(_tx), from_Kelvin_to_Celsius(_tx.value_or(0.f)) };
+		result.outsidehum = { bool(_u), _u.value_or(0) };
+		if (bool(_pmer)) {
 			result.barometer = { true, *_pmer / 100.f };
-		} else if (_pres.has_value() && _t.has_value() && _u.has_value()) {
+		} else if (bool(_pres) && bool(_t) && bool(_u)) {
 			result.barometer = { true, seaLevelPressure(*_pres, from_Kelvin_to_Celsius(*_t), *_u) };
 		}
-		result.solarrad = { _glo.has_value(), from_Jpsqcm_to_Wpsqm(_glo.value_or(0.f)) };
-		result.insolation_time = { _inso1h.has_value(), _inso1h.value_or(0) };
+		result.solarrad = { bool(_glo), from_Jpsqcm_to_Wpsqm(_glo.value_or(0.f)) };
+		result.insolation_time = { bool(_inso1h), _inso1h.value_or(0) };
 	}
 
 	return result;
