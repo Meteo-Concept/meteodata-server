@@ -65,7 +65,7 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
 
-	if (minutes < POLLING_PERIOD) { // will trigger once per hour
+	if (minutes > POLLING_PERIOD && minutes <= 2 * POLLING_PERIOD) { // will trigger once per hour, POLLING_PERIOD after the hour
 		MeteoFranceApiBulkDownloader downloader{_db, _apiKey, _jobPublisher};
 		downloader.download(_client);
 	}

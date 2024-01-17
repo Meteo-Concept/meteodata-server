@@ -73,10 +73,10 @@ Observation MfRadomeMessage::getObservation(const CassUuid station) const
 		result.station = station;
 		result.day = date::floor<date::days>(_timestamp);
 		result.time = _timestamp;
-		result.rainfall = { _rr1.has_value(), _rr1.value_or(0.f) / 10.f };
-		result.windspeed = { _ff.has_value(), from_mps_to_kph(_ff.value_or(0.f) / 10.f)  };
+		result.rainfall = { _rr1.has_value(), _rr1.value_or(0.f) };
+		result.windspeed = { _ff.has_value(), from_mps_to_kph(_ff.value_or(0.f))  };
 		result.winddir = { _dd.has_value(), _dd.value_or(0) };
-		result.windgust = { _fxy.has_value(), from_mps_to_kph(_fxy.value_or(0.f) / 10.f) };
+		result.windgust = { _fxy.has_value(), from_mps_to_kph(_fxy.value_or(0.f)) };
 		result.outsidetemp = { _t.has_value(), from_Kelvin_to_Celsius(_t.value_or(0.f)) };
 		result.dewpoint = { _td.has_value(), from_Kelvin_to_Celsius(_td.value_or(0.f)) };
 		result.min_outside_temperature = { _tn.has_value(), from_Kelvin_to_Celsius(_tn.value_or(0.f)) };
