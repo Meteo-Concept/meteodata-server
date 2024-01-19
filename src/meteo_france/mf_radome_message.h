@@ -61,9 +61,9 @@ private:
 	boost::optional<float> _td;
 	boost::optional<float> _tn;
 	boost::optional<float> _tx;
-	boost::optional<int> _u;
-	boost::optional<int> _un;
-	boost::optional<int> _ux;
+	boost::optional<float> _u;
+	boost::optional<float> _un;
+	boost::optional<float> _ux;
 	boost::optional<float> _pmer;
 	boost::optional<float> _pres;
 	boost::optional<float> _glo;

@@ -55,9 +55,9 @@ void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_second
 		_td = json.get_optional<float>("td");
 		_tn = json.get_optional<float>("tn");
 		_tx = json.get_optional<float>("tx");
-		_u = json.get_optional<int>("u");
-		_un = json.get_optional<int>("un");
-		_ux = json.get_optional<int>("ux");
+		_u = json.get_optional<float>("u");
+		_un = json.get_optional<float>("un");
+		_ux = json.get_optional<float>("ux");
 		_pmer = json.get_optional<float>("pmer");
 		_pres = json.get_optional<float>("pres");
 		_glo = json.get_optional<float>("ray_glo01");
@@ -81,11 +81,11 @@ Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 		result.dewpoint = { bool(_td), from_Kelvin_to_Celsius(_td.value_or(0.f)) };
 		result.min_outside_temperature = { bool(_tn), from_Kelvin_to_Celsius(_tn.value_or(0.f)) };
 		result.max_outside_temperature = { bool(_tx), from_Kelvin_to_Celsius(_tx.value_or(0.f)) };
-		result.outsidehum = { bool(_u), _u.value_or(0) };
+		result.outsidehum = { bool(_u), ::roundf(_u.value_or(0)) };
 		if (bool(_pmer)) {
 			result.barometer = { true, *_pmer / 100.f };
 		} else if (bool(_pres) && bool(_t) && bool(_u)) {
-			result.barometer = { true, seaLevelPressure(*_pres, from_Kelvin_to_Celsius(*_t), *_u) };
+			result.barometer = { true, seaLevelPressure(*_pres, from_Kelvin_to_Celsius(*_t), ::roundf(*_u)) };
 		}
 		result.solarrad = { bool(_glo), from_Jpsqcm_to_Wpsqm(_glo.value_or(0.f)) };
 		result.insolation_time = { bool(_inso1h), _inso1h.value_or(0) };
