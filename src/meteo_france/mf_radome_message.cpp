@@ -76,7 +76,7 @@ Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 		result.rainfall = { bool(_rr1), _rr1.value_or(0.f) };
 		result.windspeed = { bool(_ff), from_mps_to_kph(_ff.value_or(0.f))  };
 		result.winddir = { bool(_dd), _dd.value_or(0) };
-		result.windgust = { bool(_fxy), from_mps_to_kph(_fxy.value_or(0.f)) };
+		result.windgust = { bool(_fxi), from_mps_to_kph(_fxi.value_or(0.f)) };
 		result.outsidetemp = { bool(_t), from_Kelvin_to_Celsius(_t.value_or(0.f)) };
 		result.dewpoint = { bool(_td), from_Kelvin_to_Celsius(_td.value_or(0.f)) };
 		result.min_outside_temperature = { bool(_tn), from_Kelvin_to_Celsius(_tn.value_or(0.f)) };
