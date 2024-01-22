@@ -61,7 +61,7 @@ void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_second
 		_pmer = json.get_optional<float>("pmer");
 		_pres = json.get_optional<float>("pres");
 		_glo = json.get_optional<float>("ray_glo01");
-		_inso1h = json.get_optional<int>("inso1h");
+		_insolh = json.get_optional<int>("insolh");
 	}
 }
 
@@ -88,7 +88,7 @@ Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 			result.barometer = { true, seaLevelPressure(*_pres, from_Kelvin_to_Celsius(*_t), ::roundf(*_u)) };
 		}
 		result.solarrad = { bool(_glo), from_Jpsqcm_to_Wpsqm(_glo.value_or(0.f)) };
-		result.insolation_time = { bool(_inso1h), _inso1h.value_or(0) };
+		result.insolation_time = { bool(_insolh), _insolh.value_or(0) };
 	}
 
 	return result;
