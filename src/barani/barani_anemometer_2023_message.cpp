@@ -68,21 +68,21 @@ void BaraniAnemometer2023Message::ingest(const CassUuid&, const std::string& pay
 	// byte 8: battery index from which battery voltage is computed, resolution 0.2V, offset 3V
 	uint16_t battery = (raw[1] & 0b1000'0000) >> 7;
 	_obs.batteryVoltage = battery ? (3.3f + (_obs.index % 10) * 0.2f - (_obs.index % 10 > 4)) : NAN;
-	// bytes 9-20: wind 10-min avg speed, resolution 0.02m/s
+	// bytes 9-20: wind 10-min avg speed, resolution 0.02Hz
 	uint16_t windAvg10minSpeed = ((raw[1] & 0b0111'1111) << 5) + ((raw[2] & 0b1111'1000) >> 3);
-	_obs.windAvg10minSpeed = windAvg10minSpeed == 0b1111'1111'1111 ? NAN : windAvg10minSpeed * 0.02f * 3.6f;
-	// bytes 21-29: wind 3-s gust, resolution 0.1m/s
+	_obs.windAvg10minSpeed = windAvg10minSpeed == 0b1111'1111'1111 ? NAN : windAvg10minSpeed == 0b0000'0000'0000 ? 0 : (windAvg10minSpeed * 0.02f * 0.6335 + 0.3582) * 3.6f;
+	// bytes 21-29: wind 3-s gust, resolution 0.1Hz
 	uint16_t wind3sGustSpeed = ((raw[2] & 0b0000'0111) << 6) + ((raw[3] & 0b1111'1100) >> 2);
-	_obs.wind3sGustSpeed = wind3sGustSpeed == 0b1'1111'1111 ? NAN : (windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f) * 3.6f;
-	// bytes 30-37: wind 1-s gust, resolution 0.1m/s
+	_obs.wind3sGustSpeed = wind3sGustSpeed == 0b1'1111'1111 ? NAN : wind3sGustSpeed == 0b0'0000'0000 ? 0 : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
+	// bytes 30-37: wind 1-s gust, resolution 0.1Hz
 	uint16_t wind1sGustSpeed = ((raw[3] & 0b0000'0011) << 6) + ((raw[4] & 0b1111'1100) >> 2);
-	_obs.wind3sMinSpeed = wind1sGustSpeed == 0b1111'1111 ? NAN : (windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f + wind1sGustSpeed * 0.1f) * 3.6f;
-	// bytes 38-46: wind 3-s gust min, resolution 0.1m/s
+	_obs.wind3sMinSpeed = wind1sGustSpeed == 0b1111'1111 ? NAN : wind1sGustSpeed == 0b0000'0000 ? 0 : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f + wind1sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
+	// bytes 38-46: wind 3-s gust min, resolution 0.1Hz
 	uint16_t wind3sMinSpeed = ((raw[4] & 0b0000'0011) << 7) + ((raw[5] & 0b1111'1110) >> 1);
-	_obs.wind3sMinSpeed = wind3sMinSpeed == 0b1'1111'1111 ? NAN : wind3sMinSpeed * 0.1f * 3.6f;
-	// bytes 47-54: 1-s wind speed std deviation, resolution 0.1m/s
+	_obs.wind3sMinSpeed = wind3sMinSpeed == 0b1'1111'1111 ? NAN : wind3sMinSpeed == 0b0'0000'0000 ? 0 : (wind3sMinSpeed * 0.1f * 0.6335 + 0.3582) * 3.6f;
+	// bytes 47-54: 1-s wind speed std deviation, resolution 0.1Hz
 	uint16_t windSpeedStdev = ((raw[5] & 0b0000'0001) << 7) + ((raw[6] & 0b1111'1110) >> 1);
-	_obs.windSpeedStdev = windSpeedStdev == 0b1111'1111 ? NAN : windSpeedStdev * 0.1f * 3.6f;
+	_obs.windSpeedStdev = windSpeedStdev == 0b1111'1111 ? NAN : windSpeedStdev == 0b0000'0000 ? 0 : (windSpeedStdev * 0.1f * 0.6335 + 0.3582) * 3.6f;
 	// bytes 55-63: wind 10-min direction, resolution 1°
 	uint16_t windAvg10minDirection = ((raw[6] & 0b0000'0001) << 8) + raw[7];
 	_obs.windAvg10minDirection = windAvg10minDirection == 0b1'1111'1111 ? -1 : windAvg10minDirection;
