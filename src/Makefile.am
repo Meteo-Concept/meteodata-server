@@ -17,6 +17,7 @@ bin_PROGRAMS = \
 	       meteodata-cimel-standalone\
 	       meteodata-mqtt-vp2-standalone\
 	       meteodata-meteofrance-api-standalone\
+	       meteodata-meteofrance-all-stations-api-standalone\
 	       meteodatactl
 
 meteodata_SOURCES = \
@@ -509,6 +510,22 @@ meteodata_meteofrance_api_standalone_SOURCES = \
 		    meteo_france/mf_radome_message.h\
 		    meteo_france/meteo_france_api_downloader_standalone.cpp
 
+meteodata_meteofrance_all_stations_api_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    meteo_france/meteo_france_api_6m_downloader.cpp\
+		    meteo_france/meteo_france_api_6m_downloader.h\
+		    meteo_france/meteo_france_api_downloader.h\
+		    meteo_france/mf_radome_message.cpp\
+		    meteo_france/mf_radome_message.h\
+		    meteo_france/meteo_france_api_all_stations_downloader_standalone.cpp
+
 meteodatactl_SOURCES = \
 		    control/meteodatactl.cpp
 
@@ -610,6 +627,11 @@ meteodata_meteofrance_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_meteofrance_api_standalone_CXXFLAGS =
 meteodata_meteofrance_api_standalone_LDFLAGS = $(baseldflags)
 meteodata_meteofrance_api_standalone_LDADD = $(baselibs)
+
+meteodata_meteofrance_all_stations_api_standalone_CPPFLAGS = $(basecppflags)
+meteodata_meteofrance_all_stations_api_standalone_CXXFLAGS =
+meteodata_meteofrance_all_stations_api_standalone_LDFLAGS = $(baseldflags)
+meteodata_meteofrance_all_stations_api_standalone_LDADD = $(baselibs)
 
 meteodatactl_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(DATE_CFLAGS)
 meteodatactl_CXXFLAGS =
