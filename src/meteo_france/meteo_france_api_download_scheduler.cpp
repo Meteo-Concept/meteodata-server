@@ -52,6 +52,7 @@ MeteoFranceApiDownloadScheduler::MeteoFranceApiDownloadScheduler(
 		_apiKey{std::move(apiKey)},
 		_jobPublisher{jobPublisher}
 {
+	_offset = chrono::minutes{4};
 }
 
 void MeteoFranceApiDownloadScheduler::add(const CassUuid& station, const std::string& mfId)
