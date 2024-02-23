@@ -67,7 +67,7 @@ private:
 	boost::optional<float> _pmer;
 	boost::optional<float> _pres;
 	boost::optional<float> _glo;
-	boost::optional<int> _insolh;
+	boost::optional<float> _insolh;
 };
 
 }

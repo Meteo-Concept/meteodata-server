@@ -35,6 +35,7 @@
 #include "meteo_france/meteo_france_api_download_scheduler.h"
 #include "meteo_france/meteo_france_api_downloader.h"
 #include "meteo_france/meteo_france_api_bulk_downloader.h"
+#include "meteo_france/meteo_france_api_6m_downloader.h"
 #include "http_utils.h"
 #include "abstract_download_scheduler.h"
 
@@ -64,6 +65,10 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto daypoint = date::floor<date::days>(now);
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
+
+	// will trigger every POLLING_PERIOD
+	MeteoFranceApi6mDownloader downloader{_db, _apiKey, _jobPublisher};
+	downloader.download(_client);
 
 	// will trigger once per hour, 2*POLLING_PERIOD after the hour
 	if (minutes > 2 * POLLING_PERIOD && minutes <= 3 * POLLING_PERIOD) {
