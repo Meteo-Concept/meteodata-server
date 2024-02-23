@@ -477,15 +477,27 @@ inline float from_mps_to_kph(int mps)
 }
 
 /**
+ * @brief Convert a radiation from J/m² to a mean radiation intensity in W/m²
+ *
+ * @param the value to convert
+ *
+ * @return the parameter value converted to W/m²
+ */
+inline float from_Jpsqm_to_Wpsqm(float jpsqm, std::chrono::seconds sec)
+{
+	return jpsqm / sec.count();
+}
+
+/**
  * @brief Convert a radiation from J/cm² to a mean radiation intensity in W/m²
  *
  * @param the value to convert
  *
  * @return the parameter value converted to W/m²
  */
-inline float from_Jpsqcm_to_Wpsqm(float jpsqcm)
+inline float from_Jpsqcm_to_Wpsqm(float jpsqcm, std::chrono::seconds sec)
 {
-	return 3600.f * jpsqcm / 10000.f;
+	return jpsqcm * 10000.f / sec.count();
 }
 
 /**

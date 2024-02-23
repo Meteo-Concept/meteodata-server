@@ -33,6 +33,9 @@
 
 namespace meteodata
 {
+MfRadomeMessage::MfRadomeMessage(std::chrono::seconds duration) :
+	_duration{duration}
+{}
 
 void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_seconds& timestamp)
 {
@@ -45,12 +48,18 @@ void MfRadomeMessage::parse(boost::property_tree::ptree&& json, date::sys_second
 	if (_valid) {
 		_mfId = json.get<std::string>("geo_id_insee");
 		_rr1 = json.get_optional<float>("rr1");
+		if (!_rr1)
+			_rr1 = json.get_optional<float>("rr_per");
 		_ff = json.get_optional<float>("ff");
 		_dd = json.get_optional<float>("dd");
 		_fxy = json.get_optional<float>("fxy");
 		_dxy = json.get_optional<int>("dxy");
 		_fxi = json.get_optional<float>("fxi");
+		if (!_fxi)
+			_fxi = json.get_optional<float>("fxi10");
 		_dxi = json.get_optional<int>("dxi");
+		if (!_dxi)
+			_dxi = json.get_optional<float>("dxi10");
 		_t = json.get_optional<float>("t");
 		_td = json.get_optional<float>("td");
 		_tn = json.get_optional<float>("tn");
@@ -87,7 +96,7 @@ Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 		} else if (bool(_pres) && bool(_t) && bool(_u)) {
 			result.barometer = { true, seaLevelPressure(*_pres, from_Kelvin_to_Celsius(*_t), ::roundf(*_u)) };
 		}
-		result.solarrad = { bool(_glo), ::roundf(from_Jpsqcm_to_Wpsqm(_glo.value_or(0.f))) };
+		result.solarrad = { bool(_glo), ::roundf(from_Jpsqm_to_Wpsqm(_glo.value_or(0.f), _duration)) };
 		result.insolation_time = { bool(_insolh), ::roundf(_insolh.value_or(0.f)) };
 	}
 

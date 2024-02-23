@@ -79,6 +79,8 @@ public:
 
 	static const std::string BASE_URL;
 
+	using UpdatePeriod = std::chrono::duration<int, std::ratio_multiply<std::ratio<6>, std::chrono::minutes::period>>;
+
 private:
 	/**
 	 * @brief The observations database (part Cassandra, part SQL) connector
@@ -108,8 +110,6 @@ private:
 	static constexpr size_t MAXSIZE = 10 * 1024 * 1024; // 10MiB
 
 	static constexpr char DOWNLOAD_ROUTE[] = "/public/DPPaquetObs/v1/paquet/stations/infrahoraire-6m";
-
-	using UpdatePeriod = std::chrono::duration<int, std::ratio_multiply<std::ratio<6>, std::chrono::minutes::period>>;
 
 	/**
 	 * @brief Display the last error message from Curl and throw an

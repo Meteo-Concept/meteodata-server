@@ -106,13 +106,14 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 
 			for (auto&& entry : jsonTree) {
 				date::sys_seconds timestamp;
-				MfRadomeMessage m;
+				MfRadomeMessage m{UpdatePeriod{1}};
 				m.parse(std::move(entry.second), timestamp);
 				std::string mfId = m.getMfId();
 				auto st = _stations.find(mfId);
 				if (m.looksValid() && st != _stations.end()) {
 					auto&& station = st->second;
-					int ret = _db.insertV2DataPoint(m.getObservation(station));
+					auto&& obs = m.getObservation(station);
+					int ret = _db.insertV2DataPoint(obs);
 					if (!ret) {
 						std::cerr << SD_ERR << "[MeteoFrance " << station << "] measurement: "
 							  << "Failed to insert archive observation for station " << station << std::endl;

@@ -67,8 +67,8 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto minutes = tod.minutes().count();
 
 	// will trigger every POLLING_PERIOD
-	MeteoFranceApi6mDownloader downloader{_db, _apiKey, _jobPublisher};
-	downloader.download(_client);
+	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
+	downloader6m.download(_client);
 
 	// will trigger once per hour, 2*POLLING_PERIOD after the hour
 	if (minutes > 2 * POLLING_PERIOD && minutes <= 3 * POLLING_PERIOD) {
