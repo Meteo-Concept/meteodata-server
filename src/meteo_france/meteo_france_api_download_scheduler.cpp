@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include <memory>
+#include <thread>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -68,8 +69,12 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto minutes = tod.minutes().count();
 
 	// will trigger every POLLING_PERIOD
+	// Download last hour in case we missed observations for some stations
 	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
-	downloader6m.download(_client);
+	for (auto d = now - chrono::hours{1} ; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
+		downloader6m.download(_client, date::floor<chrono::seconds>(d));
+		std::this_thread::sleep_for(chrono::milliseconds(MeteoFranceApiDownloader::MIN_DELAY));
+	}
 
 	// will trigger once per hour, 2*POLLING_PERIOD after the hour
 	if (minutes > 2 * POLLING_PERIOD && minutes <= 3 * POLLING_PERIOD) {

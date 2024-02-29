@@ -98,8 +98,6 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 				  << "Host: " << APIHOST << "\n"
 				  << "Accept: application/json\n";
 
-		auto tick = chrono::system_clock::now();
-
 		CURLcode ret = client.download(std::string{BASE_URL} + osUrl.str(),
 				[&](const std::string& body) {
 			try {
@@ -133,11 +131,8 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 			logAndThrowCurlError(client);
 		}
 
-		auto elapsed = chrono::system_clock::now() - tick;
-		if (elapsed < MIN_DELAY) {
-			// cap at 50 requests / minute
-			std::this_thread::sleep_for(MIN_DELAY - elapsed);
-		}
+		// cap at 50 requests / minute
+		std::this_thread::sleep_for(MIN_DELAY);
 	}
 
 	if (insertionOk) {
