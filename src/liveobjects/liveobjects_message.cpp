@@ -35,6 +35,7 @@
 #include "barani/barani_anemometer_2023_message.h"
 #include "barani/barani_rain_gauge_message.h"
 #include "barani/barani_thermohygro_message.h"
+#include "barani/barani_meteoag_2022_message.h"
 #include "pessl/lorain_message.h"
 #include "thlora/thlora_thermohygrometer_message.h"
 #include "talkpool/oy1110_thermohygrometer_message.h"
@@ -86,6 +87,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 		m = std::make_unique<BaraniRainGaugeMessage>(db);
 	} else if (sensor == "barani-meteohelix" && port == 1) {
 		m = std::make_unique<BaraniThermohygroMessage>(db);
+	} else if (sensor == "barani-meteoag-2022" && port == 1) {
+		m = std::make_unique<BaraniMeteoAg2022Message>(db);
 	} else if (sensor == "lorain-pluviometer") {
 		m = std::make_unique<LorainMessage>(db);
 	} else if (sensor == "thlora-thermohygrometer") {
