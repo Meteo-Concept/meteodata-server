@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <thread>
 #include <tuple>
 #include <unordered_map>

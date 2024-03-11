@@ -115,7 +115,16 @@ void AbstractDownloadScheduler::checkDeadline(const sys::error_code& e)
 	if (_timer.expires_at() <= chrono::steady_clock::now()) {
 		++_status.nbDownloads;
 		_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
-		download();
+		try {
+			download();
+		} catch (std::runtime_error& e) {
+			// If the error comes from cURL, there will be details in log
+			// already at this point
+			std::cerr << SD_ERR << "[Scheduler] management: "
+				<< "Failed to download at scheduled time: " << e.what() << "\n"
+				<< "Giving up for now, will retry at next scheduled time."
+				<< std::endl;
+		}
 		waitUntilNextDownload();
 	} else {
 		/* spurious handler call, restart the timer without changing the
