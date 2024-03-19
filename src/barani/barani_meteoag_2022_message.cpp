@@ -123,7 +123,7 @@ Observation BaraniMeteoAg2022Message::getObservation(const CassUuid& station) co
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;
 
-		if (_obs.selectorF == 1) {
+		if (_obs.selectorF == 2) {
 			result.soiltemp10cm = result.extratemp[0] = parse6470(_obs.sensorF1);
 			result.soiltemp20cm = result.extratemp[1] = parse6470(_obs.sensorF2);
 			result.soiltemp30cm = result.extratemp[2] = parse6470(_obs.sensorF3);
@@ -157,7 +157,7 @@ Observation BaraniMeteoAg2022Message::getObservation(const CassUuid& station) co
 
 std::pair<bool, float> BaraniMeteoAg2022Message::parseSS200(float v, float temp)
 {
-	float r0  =  (15345. / (v * 0.00080566)) - 5120;
+	float r0  =  (15345000. / v) - 5120;
 	if (r0 < 550)
 	      return { true, 0 };
 	else if (r0 < 1000)
@@ -171,7 +171,7 @@ std::pair<bool, float> BaraniMeteoAg2022Message::parseSS200(float v, float temp)
 std::pair<bool, float> BaraniMeteoAg2022Message::parse6470(float v)
 {
 	if (v != 0) {
-		float lr0  =  std::log(15345. / (v * 0.00080566) - 5120);
+		float lr0  =  std::log(15345000. / v - 5120);
 		return { true, -273.15 + 1 / (1.140e-3 + 2.320e-4 * lr0 + 9.860e-8*std::pow(lr0, 3)) };
 	} else {
 		return { false, 0.f };
