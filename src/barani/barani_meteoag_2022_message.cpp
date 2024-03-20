@@ -71,11 +71,11 @@ void BaraniMeteoAg2022Message::ingest(const CassUuid& station, const std::string
 	uint16_t battery = (raw[1] & 0b1110'0000) >> 5;
 	_obs.batteryVoltage = battery == 0b0111 ? NAN : (3.2 + battery * 0.15f);
 	// bytes 11-13: selector E position
-	uint16_t selectorE = (raw[1] & 0b0001'1100) >> 2;
+	_obs.selectorE = (raw[1] & 0b0001'1100) >> 2;
 	// bytes 14-16: selector F position
-	uint16_t selectorF = ((raw[1] & 0b0000'0011) << 1) + ((raw[2] & 0b1000'0000) >> 7);
+	_obs.selectorF = ((raw[1] & 0b0000'0011) << 1) + ((raw[2] & 0b1000'0000) >> 7);
 	// bytes 17-19: selector G position
-	uint16_t selectorG = (raw[2] & 0b0111'0000) >> 4;
+	_obs.selectorG = (raw[2] & 0b0111'0000) >> 4;
 	// bytes 20-31: sensor E1 voltage, resolution 0.80566, offset 0mV
 	uint16_t sensorE1 = ((raw[2] & 0b0000'1111) << 8) + raw[3];
 	_obs.sensorE1 = sensorE1 * 0.80566f;
@@ -100,16 +100,16 @@ void BaraniMeteoAg2022Message::ingest(const CassUuid& station, const std::string
 
 
 	_obs.valid = true;
-	if ((selectorE >= 3 && selectorE <= 5) || selectorE > 7) {
+	if ((_obs.selectorE >= 3 && _obs.selectorE <= 5) || _obs.selectorE > 7) {
 		_obs.valid = false;
 	}
-	if ((selectorF >= 3 && selectorF <= 6) || selectorF > 7) {
+	if ((_obs.selectorF >= 3 && _obs.selectorF <= 6) || _obs.selectorF > 7) {
 		_obs.valid = false;
 	}
-	if ((selectorG >= 4 && selectorG <= 5) || selectorG > 7) {
+	if ((_obs.selectorG >= 4 && _obs.selectorG <= 5) || _obs.selectorG > 7) {
 		_obs.valid = false;
 	}
-	if (selectorE == 7 && selectorF == 7) {
+	if (_obs.selectorE == 7 && _obs.selectorF == 7) {
 		_obs.valid = false;
 	}
 }
