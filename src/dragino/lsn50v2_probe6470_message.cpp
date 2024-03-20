@@ -50,13 +50,14 @@ void Lsn50v2Probe6470Message::ingest(const CassUuid&, const std::string& payload
 
 	std::istringstream is{payload};
 	uint16_t bat;
+	uint16_t resistance;
 	uint16_t adc0;
 	is >> parse(bat, 4, 16)
-	   >> ignore(4)
+	   >> parse(resistance, 4, 16)
 	   >> parse(adc0, 4, 16)
 	   >> ignore(10);
 
-	float lr0 = std::log(adc0*1e4/(bat-adc0));
+	float lr0 = std::log(adc0*resistance/(bat-adc0));
 	_obs.temperature = -273.15 + 1/(1.140e-3 + 2.320e-4 * lr0 + 9.860e-8 * std::pow(lr0, 3));
 	_obs.battery = bat;
 
