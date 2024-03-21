@@ -77,12 +77,6 @@ void MeteoFranceApiDownloadScheduler::download()
 		std::this_thread::sleep_for(chrono::milliseconds(MeteoFranceApiDownloader::MIN_DELAY));
 	}
 
-	// will trigger once per hour, 2*POLLING_PERIOD after the hour
-	if (minutes > 2 * POLLING_PERIOD && minutes <= 3 * POLLING_PERIOD) {
-		MeteoFranceApiBulkDownloader downloader{_db, _apiKey, _jobPublisher};
-		downloader.download(_client);
-	}
-
 	for (const auto& it : _downloaders) {
 		it->download(_client);
 	}
