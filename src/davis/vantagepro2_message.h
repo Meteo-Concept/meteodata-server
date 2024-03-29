@@ -434,7 +434,7 @@ inline float from_Celsius_to_Farenheit(float c)
  *
  * @return the parameter value converted to meters per second
  */
-inline float from_mph_to_mps(int mph)
+inline float from_mph_to_mps(float mph)
 {
 	return mph * 0.44704;
 }
@@ -446,7 +446,7 @@ inline float from_mph_to_mps(int mph)
  *
  * @return the parameter value converted to kilometers per hour
  */
-inline float from_mph_to_kph(int mph)
+inline float from_mph_to_kph(float mph)
 {
 	return mph * 1.609;
 }
@@ -471,7 +471,7 @@ inline float from_kph_to_mps(float kph)
  *
  * @return the parameter value converted to kilometers per hour
  */
-inline float from_mps_to_kph(int mps)
+inline float from_mps_to_kph(float mps)
 {
 	return mps * 3.6;
 }
@@ -502,19 +502,6 @@ inline float from_Jpsqcm_to_Wpsqm(float jpsqcm, std::chrono::seconds sec)
 
 /**
  * @brief Convert a distance from inches to millimeters,
- * when the the value in inches is given as an integer
- *
- * @param in the value to convert
- *
- * @return the parameter value converted to millimeters
- */
-inline float from_in_to_mm(int in)
-{
-	return in * 25.4;
-}
-
-/**
- * @brief Convert a distance from inches to millimeters,
  * when the the value in inches is given as a float
  *
  * @param in the value to convert
@@ -533,7 +520,7 @@ inline float from_in_to_mm(float in)
  *
  * @return the parameter value converted to millimeters of rain
  */
-inline float from_rainrate_to_mm(int rr)
+inline float from_rainrate_to_mm(float rr)
 {
 	//assume the raw value is in 0.2mm/hour, this is configurable
 	return rr * 0.2;
@@ -541,7 +528,7 @@ inline float from_rainrate_to_mm(int rr)
 
 
 // Formula of Magnus-Tetens
-inline float dew_point(float t_celsius, int hum)
+inline float dew_point(float t_celsius, float hum)
 {
 	float rh = hum / 100.0f - 1;
 	float alpha = (17.27 * t_celsius) / (237.7 + t_celsius) + std::log1p(rh);
@@ -550,7 +537,7 @@ inline float dew_point(float t_celsius, int hum)
 }
 
 // Formula of NWS (See http://www.wpc.ncep.noaa.gov/html/heatindex_equation.shtml)
-inline float heat_index(float t_farenheight, int hum)
+inline float heat_index(float t_farenheight, float hum)
 {
 	float hi_farenheight = 0.5 * (t_farenheight + 61.0 + (t_farenheight - 68.0) * 1.2 + hum * 0.094);
 
@@ -582,13 +569,13 @@ inline float wind_chill(float t_farenheight, float wind_mph)
 }
 
 // Formula from Norms of apparent temperature in Australia, Aust. Met. Mag., 1994, Vol 43, 1-16 (see http://www.bom.gov.au/info/thermal_stress/#atapproximation))
-inline float thsw_index(float t_celsius, int hum, float wind_ms, float netRad)
+inline float thsw_index(float t_celsius, float hum, float wind_ms, float netRad)
 {
 	float waterVaporPressure = (hum / 100.0f) * 6.105 * std::exp(17.27 * t_celsius / (237.7 + t_celsius));
 	return t_celsius + 0.348 * waterVaporPressure - 0.70 * wind_ms + 0.70 * netRad / (wind_ms + 10.0) - 4.25;
 }
 
-inline float thsw_index(float t_celsius, int hum, float wind_ms)
+inline float thsw_index(float t_celsius, float hum, float wind_ms)
 {
 	float waterVaporPressure = (hum / 100.0f) * 6.105 * std::exp(17.27 * t_celsius / (237.7 + t_celsius));
 	return t_celsius + 0.33 * waterVaporPressure - 0.70 * wind_ms - 4.0;
@@ -648,7 +635,7 @@ inline bool insolated(float solarRad, float latitude, float longitude, time_t ti
 
 // Formula of Penman-Monteith, from the methodology by the FAO http://www.fao.org/3/X0490E/x0490e04.htm
 inline float
-evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiation, float latitude, float longitude,
+evapotranspiration(float t_celsius, float hum, float wind_ms, float solar_radiation, float latitude, float longitude,
 				   int elevation, time_t timestamp, int polling_period)
 {
 	using namespace date;
@@ -730,7 +717,7 @@ evapotranspiration(float t_celsius, int hum, float wind_ms, float solar_radiatio
  * from the temperature and humidity, using the hygrometric equation, the ideal
  * gas law, and the troposphere equation.
  */
-inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hum = 70)
+inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, float hum = 70.)
 {
 	float t_kelvin = t_celsius + 273.15f;
 
@@ -767,7 +754,7 @@ inline float seaLevelPressure(float pressure_hpa, float t_celsius = 15.f, int hu
  * Compute the pressure reduced to sea level from the absolute pressure reading
  * and the altitude, using the common troposphere equation.
  */
-inline float seaLevelPressureFromAltitude(float pressure_hpa, int altitude, float t_celsius = 15.f)
+inline float seaLevelPressureFromAltitude(float pressure_hpa, float altitude, float t_celsius = 15.f)
 {
 	float t_kelvin = t_celsius + 273.15f;
 
