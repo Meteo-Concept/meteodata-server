@@ -120,7 +120,7 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 	uint16_t rainClicks = raw[9];
 	_obs.rainfallClicks = rainClicks;
 	if (prev) {
-		if (rainClicks > *prev) {
+		if (rainClicks >= *prev) {
 			_obs.rainfall = (rainClicks - *prev) * DEFAULT_RAIN_GAUGE_RESOLUTION;
 		} else {
 			_obs.rainfall = (4096 - *prev + rainClicks ) * DEFAULT_RAIN_GAUGE_RESOLUTION;
