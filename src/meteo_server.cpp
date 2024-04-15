@@ -52,6 +52,7 @@
 #include "pessl/fieldclimate_api_download_scheduler.h"
 #include "rest_web_server.h"
 #include "control/control_connector.h"
+#include "virtual/virtual_computation_scheduler.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -331,6 +332,13 @@ void MeteoServer::start()
 		auto mbdataDownloadScheduler = std::make_shared<MBDataDownloadScheduler>(_ioContext, _db);
 		mbdataDownloadScheduler->start();
 		_connectors.emplace("mbdata", mbdataDownloadScheduler);
+	}
+
+	if (_configuration.startVirtual) {
+		// Start the virtual observations computing connector
+		auto virtualComputingScheduler = std::make_shared<VirtualComputationScheduler>(_ioContext, _db, _jobPublisher.get());
+		virtualComputingScheduler->start();
+		_connectors.emplace("mbdata", virtualComputingScheduler);
 	}
 
 	if (_configuration.startRest) {

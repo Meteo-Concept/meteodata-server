@@ -92,6 +92,7 @@ int main(int argc, char** argv)
 		("no-weatherlink-v2", "don't start the Weatherlink APIv2 downloaders")
 		("no-fieldclimate", "don't start the Fieldclimate downloaders")
 		("no-mbdata", "don't start the MBData downloaders")
+		("no-virtual", "don't start the virtual observations computer")
 		("no-rest", "don't start the REST server")
 		("no-vp2", "don't start the main Vantage Pro 2 server")
 		("only-mqtt", "start only the MQTT downloaders")
@@ -103,6 +104,7 @@ int main(int argc, char** argv)
 		("only-weatherlink-v2", "start only the Weatherlink APIv2 downloaders")
 		("only-fieldclimate", "start only the Fieldclimate downloaders")
 		("only-mbdata", "start only the MBData downloaders")
+		("only-virtual", "start only the virtual observations computer")
 		("only-rest", "start only the REST server")
 		("only-vp2", "start only the main Vantage Pro 2 server")
 	;
@@ -152,7 +154,8 @@ int main(int argc, char** argv)
 	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") ||
 		vm.count("only-meteofrance") || vm.count("only-static") ||
 		vm.count("only-weatherlink") || vm.count("only-weatherlink-v2") || vm.count("only-fieldclimate") ||
-		vm.count("only-mbdata") || vm.count("only-rest") || vm.count("only-vp2")) {
+		vm.count("only-mbdata") || vm.count("only-virtual") ||
+		vm.count("only-rest") || vm.count("only-vp2")) {
 		serverConfig.startMqtt = false;
 		serverConfig.startSynop = false;
 		serverConfig.startShip = false;
@@ -162,6 +165,7 @@ int main(int argc, char** argv)
 		serverConfig.startWeatherlinkV2 = false;
 		serverConfig.startFieldclimate = false;
 		serverConfig.startMbdata = false;
+		serverConfig.startVirtual = false;
 		serverConfig.startRest = false;
 		serverConfig.startVp2 = false;
 
@@ -183,6 +187,8 @@ int main(int argc, char** argv)
 			serverConfig.startFieldclimate = true;
 		if (vm.count("only-mbdata"))
 			serverConfig.startMbdata = true;
+		if (vm.count("only-virtual"))
+			serverConfig.startVirtual = true;
 		if (vm.count("only-rest"))
 			serverConfig.startRest = true;
 		if (vm.count("only-vp2"))

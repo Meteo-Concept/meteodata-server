@@ -137,6 +137,7 @@ public:
 		bool startRest = true;
 		bool startVp2 = true;
 		bool startMeteoFrance = true;
+		bool startVirtual = true;
 		bool daemonized = false;
 	};
 

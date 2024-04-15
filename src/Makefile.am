@@ -18,6 +18,7 @@ bin_PROGRAMS = \
 	       meteodata-mqtt-vp2-standalone\
 	       meteodata-meteofrance-api-standalone\
 	       meteodata-meteofrance-all-stations-api-standalone\
+	       meteodata-virtual-standalone\
 	       meteodatactl
 
 meteodata_SOURCES = \
@@ -210,6 +211,10 @@ meteodata_SOURCES = \
 		    objenious/objenious_archive_message_collection.h\
 		    objenious/objenious_archive_message.cpp\
 		    objenious/objenious_archive_message.h\
+		    virtual/virtual_computation_scheduler.cpp\
+		    virtual/virtual_computation_scheduler.h\
+		    virtual/virtual_obs_computer.cpp\
+		    virtual/virtual_obs_computer.h\
 		    monitoring/watchdog.h\
 		    monitoring/watchdog.cpp\
 		    control/control_connector.h\
@@ -534,6 +539,13 @@ meteodata_meteofrance_all_stations_api_standalone_SOURCES = \
 		    meteo_france/mf_radome_message.h\
 		    meteo_france/meteo_france_api_all_stations_downloader_standalone.cpp
 
+meteodata_virtual_standalone_SOURCES = \
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    virtual/virtual_obs_computer.cpp\
+		    virtual/virtual_obs_computer.h\
+		    virtual/virtual_obs_computer_standalone.cpp
+
 meteodatactl_SOURCES = \
 		    control/meteodatactl.cpp
 
@@ -640,6 +652,11 @@ meteodata_meteofrance_all_stations_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_meteofrance_all_stations_api_standalone_CXXFLAGS =
 meteodata_meteofrance_all_stations_api_standalone_LDFLAGS = $(baseldflags)
 meteodata_meteofrance_all_stations_api_standalone_LDADD = $(baselibs)
+
+meteodata_virtual_standalone_CPPFLAGS = $(basecppflags)
+meteodata_virtual_standalone_CXXFLAGS =
+meteodata_virtual_standalone_LDFLAGS = $(baseldflags)
+meteodata_virtual_standalone_LDADD = $(baselibs)
 
 meteodatactl_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(DATE_CFLAGS)
 meteodatactl_CXXFLAGS =
