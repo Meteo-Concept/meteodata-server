@@ -78,6 +78,7 @@ int main(int argc, char** argv)
 	std::string end;
 
 	constexpr char CLIENT_ID[] = "meteodata_all_stations_standalone";
+	constexpr char SCHEDULER_ID[] = "meteo_france";
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -92,8 +93,8 @@ int main(int argc, char** argv)
 		("help", "display the help message and exit")
 		("version", "display the version of Meteodata and exit")
 		("config-file", po::value<std::string>(), "alternative configuration file")
-		("begin", po::value<std::string>(&begin), "Start of the range to recover (by default, 24h ago)")
-		("end", po::value<std::string>(&end), "End of the range to recover (by default, now)")
+		("begin", po::value<std::string>(&begin), "Start of the range to recover (by default, last download time)")
+		("end", po::value<std::string>(&end), "End of the range to recover (by default, now, will update the last download time in this case)")
 	;
 	desc.add(config);
 
@@ -122,6 +123,8 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
+	DbConnectionObservations db{address, user, password};
+
 	sys_seconds beginDate;
 	if (vm.count("begin")) {
 		std::istringstream in{begin};
@@ -135,10 +138,17 @@ int main(int argc, char** argv)
 			return EINVAL;
 		}
 	} else {
-		beginDate = date::floor<hours>(system_clock::now()) - chrono::hours(1);
+		time_t time;
+		bool ret = db.getLastSchedulerDownloadTime(SCHEDULER_ID, time);
+		if (ret) {
+			beginDate = date::floor<seconds>(chrono::system_clock::from_time_t(time)) + MeteoFranceApi6mDownloader::UpdatePeriod{1};
+		} else {
+			beginDate = date::floor<hours>(system_clock::now()) - chrono::hours(1);
+		}
 	}
 
 	sys_seconds endDate;
+	bool updateLastDownloadDate = false;
 	if (vm.count("end")) {
 		std::istringstream in{end};
 		in >> date::parse("%Y-%m-%d %H:%M", endDate);
@@ -156,6 +166,7 @@ int main(int argc, char** argv)
 		}
 	} else {
 		endDate = date::floor<hours>(system_clock::now());
+		updateLastDownloadDate = true;
 	}
 
 	std::set<CassUuid> userSelection;
@@ -185,8 +196,6 @@ int main(int argc, char** argv)
 				  << message->file << ", line " << message->line << std::endl;
 	};
 	cass_log_set_callback(logCallback, nullptr);
-
-	DbConnectionObservations db{address, user, password};
 
 	std::vector<std::tuple<CassUuid, std::string, std::string, int, float, float, int, int>> mfStations;
 	db.getMeteoFranceStations(mfStations);
@@ -218,6 +227,14 @@ int main(int argc, char** argv)
 			std::cerr << e.what() << std::endl;
 			curl_global_cleanup();
 			return 255;
+		}
+
+		if (updateLastDownloadDate) {
+			// might fail but there's nothing more we can do about it
+			bool ret = db.insertLastSchedulerDownloadTime(SCHEDULER_ID, chrono::system_clock::to_time_t(d));
+			if (!ret) {
+				std::cerr << "Failed updating the last download time" << std::endl;
+			}
 		}
 
 		d += MeteoFranceApi6mDownloader::UpdatePeriod{1};
