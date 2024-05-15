@@ -99,7 +99,7 @@ public:
 
 	static const std::string BASE_URL;
 
-	static constexpr std::chrono::milliseconds MIN_DELAY{1200};
+	static constexpr std::chrono::milliseconds MIN_DELAY{2500};
 
 private:
 	/**

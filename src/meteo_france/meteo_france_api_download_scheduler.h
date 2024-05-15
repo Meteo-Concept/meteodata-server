@@ -106,6 +106,11 @@ private:
 	 * realtime data more frequently than others, in minutes
 	 */
 	static constexpr int POLLING_PERIOD = 6;
+
+	/**
+	 * The scheduler identifier for use in database
+	 */
+	static constexpr char SCHEDULER_ID[] = "meteo_france";
 };
 
 }

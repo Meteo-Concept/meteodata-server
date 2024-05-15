@@ -69,12 +69,27 @@ void MeteoFranceApiDownloadScheduler::download()
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
 
+	// Download at most 3 hours
+	auto d = now - chrono::hours{3};
+	time_t lastDownload;
+	bool ret = _db.getLastSchedulerDownloadTime(SCHEDULER_ID, lastDownload);
+	if (ret) {
+		// Download some past observations in case not all stations
+		// were available
+		d = chrono::system_clock::from_time_t(lastDownload) - chrono::minutes{48};
+	}
+
 	// will trigger every POLLING_PERIOD
-	// Download last hour in case we missed observations for some stations
 	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
-	for (auto d = now - chrono::hours{1} ; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
+	for (; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
 		downloader6m.download(_client, date::floor<chrono::seconds>(d));
 		std::this_thread::sleep_for(chrono::milliseconds(MeteoFranceApiDownloader::MIN_DELAY));
+	}
+
+	ret = _db.insertLastSchedulerDownloadTime(SCHEDULER_ID, lastDownload);
+	if (!ret) {
+		std::cerr << SD_ERR << "[MeteoFrance] protocol: " << "Failed to update the last download time "
+			  << ", we'll likely download the same data again next time..." << std::endl;
 	}
 
 	for (const auto& it : _downloaders) {
