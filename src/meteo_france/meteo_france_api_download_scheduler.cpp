@@ -74,9 +74,9 @@ void MeteoFranceApiDownloadScheduler::download()
 	time_t lastDownload;
 	bool ret = _db.getLastSchedulerDownloadTime(SCHEDULER_ID, lastDownload);
 	if (ret) {
-		// Download some past observations in case not all stations
-		// were available
-		d = chrono::system_clock::from_time_t(lastDownload) - chrono::minutes{48};
+		// Re-download some past observations in case not all stations
+		// were available back then
+		d = chrono::system_clock::from_time_t(lastDownload) - chrono::minutes{12};
 	}
 
 	// will trigger every POLLING_PERIOD

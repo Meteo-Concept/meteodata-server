@@ -41,6 +41,7 @@
 #include <cassandra.h>
 
 #include "meteo_france/meteo_france_api_6m_downloader.h"
+#include "meteo_france/meteo_france_api_downloader.h"
 #include "meteo_france/mf_radome_message.h"
 #include "async_job_publisher.h"
 #include "http_utils.h"
@@ -93,42 +94,52 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 	      << "format=json";
 
 	std::cout << SD_DEBUG << "[MeteoFrance 6m] protocol: "
-			  << "GET " << osUrl.str() << " HTTP/1.1\n"
-			  << "Host: " << APIHOST << "\n"
-			  << "Accept: application/json\n";
+		  << "GET " << osUrl.str() << " HTTP/1.1\n"
+		  << "Host: " << APIHOST << "\n"
+		  << "Accept: application/json\n";
 
-	CURLcode ret = client.download(std::string{BASE_URL} + osUrl.str(),
-			[&](const std::string& body) {
-		try {
-			std::istringstream responseStream(body);
-			pt::ptree jsonTree;
-			pt::read_json(responseStream, jsonTree);
+	bool success = false;
+	CURLcode ret = CURLE_OK;
+	int tries = 0;
+	for (; tries < 3 || success ; tries++) {
+		ret = client.download(std::string{BASE_URL} + osUrl.str(),
+				[&](const std::string& body) {
+			try {
+				std::istringstream responseStream(body);
+				pt::ptree jsonTree;
+				pt::read_json(responseStream, jsonTree);
 
-			for (auto&& entry : jsonTree) {
-				date::sys_seconds timestamp;
-				MfRadomeMessage m{UpdatePeriod{1}};
-				m.parse(std::move(entry.second), timestamp);
-				std::string mfId = m.getMfId();
-				auto st = _stations.find(mfId);
-				if (m.looksValid() && st != _stations.end()) {
-					auto&& station = st->second;
-					auto&& obs = m.getObservation(station);
-					int ret = _db.insertV2DataPoint(obs);
-					if (!ret) {
-						std::cerr << SD_ERR << "[MeteoFrance " << station << "] measurement: "
-							  << "Failed to insert archive observation for station " << station << std::endl;
-						insertionOk = false;
+				for (auto&& entry : jsonTree) {
+					date::sys_seconds timestamp;
+					MfRadomeMessage m{UpdatePeriod{1}};
+					m.parse(std::move(entry.second), timestamp);
+					std::string mfId = m.getMfId();
+					auto st = _stations.find(mfId);
+					if (m.looksValid() && st != _stations.end()) {
+						auto&& station = st->second;
+						auto&& obs = m.getObservation(station);
+						int ret = _db.insertV2DataPoint(obs);
+						if (!ret) {
+							std::cerr << SD_ERR << "[MeteoFrance " << station << "] measurement: "
+								  << "Failed to insert archive observation for station " << station << std::endl;
+							insertionOk = false;
+						}
 					}
 				}
-			}
-		} catch (const std::exception& e) {
-			std::cerr << SD_ERR << "[MeteoFrance 6m] protocol: "
+				success = true;
+			} catch (const std::exception& e) {
+				std::cerr << SD_ERR << "[MeteoFrance 6m] protocol: "
 					  << "Failed to receive or parse an MeteoFrance data message: " << e.what() << std::endl;
-		}
-	});
+			}
+		});
+		std::this_thread::sleep_for(MeteoFranceApiDownloader::MIN_DELAY);
+	}
 
 	if (ret != CURLE_OK) {
 		logAndThrowCurlError(client);
+	} else if (tries > 0) {
+		std::cout << SD_WARNING << "[MeteoFrance 6m] measurement: "
+			  << "Data downloading after " << tries << " failures" << std::endl;
 	}
 
 	if (insertionOk) {
