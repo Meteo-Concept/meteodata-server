@@ -80,21 +80,16 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 		_stations.emplace(std::move(std::get<2>(s)), std::move(std::get<0>(s)));
 	}
 
-	boost::asio::streambuf request;
-	std::ostream requestStream(&request);
-
 	bool insertionOk = true;
-	client.setHeader("apikey", _apiKey);
-	client.setHeader("Content-Type", "application/json");
-	client.setHeader("Accept", "application/json");
 
 	std::ostringstream osUrl;
 	osUrl << DOWNLOAD_ROUTE << "?"
 	      << "date=" << date::format("%Y-%m-%dT%H:%M:00Z", date::floor<UpdatePeriod>(d)) << "&"
 	      << "format=json";
+	std::string url = osUrl.str();
 
 	std::cout << SD_DEBUG << "[MeteoFrance 6m] protocol: "
-		  << "GET " << osUrl.str() << " HTTP/1.1\n"
+		  << "GET " << url << " HTTP/1.1\n"
 		  << "Host: " << APIHOST << "\n"
 		  << "Accept: application/json\n";
 
@@ -102,7 +97,10 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 	CURLcode ret = CURLE_OK;
 	int tries = 0;
 	for (; tries < 3 && !success ; tries++) {
-		ret = client.download(std::string{BASE_URL} + osUrl.str(),
+		client.setHeader("apikey", _apiKey);
+		client.setHeader("Content-Type", "application/json");
+		client.setHeader("Accept", "application/json");
+		ret = client.download(std::string{BASE_URL} + url,
 				[&](const std::string& body) {
 			try {
 				std::istringstream responseStream(body);
@@ -137,9 +135,9 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 
 	if (ret != CURLE_OK) {
 		logAndThrowCurlError(client);
-	} else if (tries > 0) {
+	} else if (tries > 1) {
 		std::cout << SD_WARNING << "[MeteoFrance 6m] measurement: "
-			  << "Data downloading after " << tries << " failures" << std::endl;
+			  << "Data downloaded after " << tries << " failures" << std::endl;
 	}
 
 	if (insertionOk) {
