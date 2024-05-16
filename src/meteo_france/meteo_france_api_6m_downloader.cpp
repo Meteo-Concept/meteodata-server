@@ -101,7 +101,7 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 	bool success = false;
 	CURLcode ret = CURLE_OK;
 	int tries = 0;
-	for (; tries < 3 || success ; tries++) {
+	for (; tries < 3 && !success ; tries++) {
 		ret = client.download(std::string{BASE_URL} + osUrl.str(),
 				[&](const std::string& body) {
 			try {
