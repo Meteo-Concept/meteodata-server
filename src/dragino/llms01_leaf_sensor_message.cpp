@@ -29,6 +29,7 @@
 #include <cassandra.h>
 #include <observation.h>
 
+#include "davis/vantagepro2_message.h"
 #include "llms01_leaf_sensor_message.h"
 #include "hex_parser.h"
 #include "cassandra_utils.h"
@@ -84,17 +85,19 @@ Observation Llms01LeafSensorMessage::getObservation(const CassUuid& station) con
 	obs.time = _obs.time;
 	obs.leaftemp[0] = {!std::isnan(_obs.leafTemperature), _obs.leafTemperature};
 	obs.leafwetness_percent1 = {!std::isnan(_obs.leafWetness), _obs.leafWetness};
+	obs.leafwetnesses[0] = {!std::isnan(_obs.leafWetness), percentToLeafWetnessIndex(_obs.leafWetness)};
 	return obs;
 }
 
 json::object Llms01LeafSensorMessage::getDecodedMessage() const
 {
 	return json::object{
-		{ "model", "dragino_llms01_20231204" },
+		{ "model", "dragino_llms01_20240516" },
 		{ "value", {
 			{ "battery", _obs.battery },
 			{ "leaf_temperature", _obs.leafTemperature },
-			{ "leaf_wetness", _obs.leafWetness }
+			{ "leaf_wetness_pct", _obs.leafWetness },
+			{ "leaf_wetness", percentToLeafWetnessIndex(_obs.leafWetness) }
 		} }
 	};
 }

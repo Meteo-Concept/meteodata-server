@@ -773,6 +773,11 @@ inline float seaLevelPressureFromAltitude(float pressure_hpa, float altitude, fl
 	return p;
 }
 
+inline float percentToLeafWetnessIndex(float leafWetnessPct)
+{
+	return leafWetnessPct * 15.f / 100.f;
+}
+
 }
 
 #endif /* VANTAGEPRO2MESSAGE_H */
