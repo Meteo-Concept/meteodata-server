@@ -386,14 +386,19 @@ void MeteoServer::start()
 void MeteoServer::stop()
 {
 	for (auto&& connector : _connectors) {
+		std::cerr << SD_INFO << "[Server] management: Stopping connector " << connector.first << std::endl;
 		auto c = connector.second.lock();
-		if (c)
+		if (c) {
 			c->stop();
+			std::cerr << SD_INFO << "[Server] management: Stopped connector " << connector.first << std::endl;
+		}
 	}
 
 	if (_vp2DirectConnectAcceptor.is_open()) {
+		std::cerr << SD_INFO << "[Server] management: Stopping connector vp2_direct_connect" << std::endl;
 		_vp2DirectConnectorStopped = true;
 		_vp2DirectConnectAcceptor.close();
+		std::cerr << SD_INFO << "[Server] management: Stopped connector vp2_direct_connect" << std::endl;
 	}
 
 	if (_vp2DirectConnectorsGroup) {
@@ -401,12 +406,16 @@ void MeteoServer::stop()
 	}
 
 	if (_controlAcceptor.is_open()) {
+		std::cerr << SD_INFO << "[Server] management: Stopping connector control_connection" << std::endl;
 		_controlConnectionStopped = true;
 		_controlAcceptor.close();
+		std::cerr << SD_INFO << "[Server] management: Stopped connector control_connection" << std::endl;
 	}
 
 	if (_watchdog.isStarted()) {
+		std::cerr << SD_INFO << "[Server] management: Stopping watchdog" << std::endl;
 		_watchdog.stop();
+		std::cerr << SD_INFO << "[Server] management: Stopped watchdog" << std::endl;
 	}
 }
 
