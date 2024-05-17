@@ -84,7 +84,7 @@ void MeteoFranceApiDownloadScheduler::download()
 	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
 	for (; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
 		downloader6m.download(_client, date::floor<chrono::seconds>(d));
-		ret = _db.insertLastSchedulerDownloadTime(SCHEDULER_ID, chrono::system_clock::to_time_t(d));
+		ret = _db.insertLastSchedulerDownloadTime(SCHEDULER_ID, std::max(lastDownload, chrono::system_clock::to_time_t(d)));
 		if (!ret) {
 			std::cerr << SD_ERR << "[MeteoFrance] protocol: " << "Failed to update the last download time "
 				  << ", we'll likely download the same data again next time..." << std::endl;
