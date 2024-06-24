@@ -95,6 +95,7 @@ int main(int argc, char** argv)
 		("no-virtual", "don't start the virtual observations computer")
 		("no-rest", "don't start the REST server")
 		("no-vp2", "don't start the main Vantage Pro 2 server")
+		("no-udp", "don't start the UDP server")
 		("only-mqtt", "start only the MQTT downloaders")
 		("only-synop", "start only the SYNOP downloaders")
 		("only-ship", "start only the SHIP and BUOY downloader")
@@ -107,6 +108,7 @@ int main(int argc, char** argv)
 		("only-virtual", "start only the virtual observations computer")
 		("only-rest", "start only the REST server")
 		("only-vp2", "start only the main Vantage Pro 2 server")
+		("only-udp", "start only the UDP server")
 	;
 	desc.add(config);
 
@@ -150,12 +152,13 @@ int main(int argc, char** argv)
 	serverConfig.startMbdata = !vm.count("no-mbdata");
 	serverConfig.startRest = !vm.count("no-rest");
 	serverConfig.startVp2 = !vm.count("no-vp2");
+	serverConfig.startUdp = !vm.count("no-udp");
 
 	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") ||
 		vm.count("only-meteofrance") || vm.count("only-static") ||
 		vm.count("only-weatherlink") || vm.count("only-weatherlink-v2") || vm.count("only-fieldclimate") ||
 		vm.count("only-mbdata") || vm.count("only-virtual") ||
-		vm.count("only-rest") || vm.count("only-vp2")) {
+		vm.count("only-rest") || vm.count("only-vp2") || vm.count("only-udp")) {
 		serverConfig.startMqtt = false;
 		serverConfig.startSynop = false;
 		serverConfig.startShip = false;
@@ -168,6 +171,7 @@ int main(int argc, char** argv)
 		serverConfig.startVirtual = false;
 		serverConfig.startRest = false;
 		serverConfig.startVp2 = false;
+		serverConfig.startUdp = false;
 
 		if (vm.count("only-mqtt"))
 			serverConfig.startMqtt = true;
@@ -193,6 +197,8 @@ int main(int argc, char** argv)
 			serverConfig.startRest = true;
 		if (vm.count("only-vp2"))
 			serverConfig.startVp2 = true;
+		if (vm.count("only-udp"))
+			serverConfig.startUdp = true;
 	}
 
 	if (daemonized) {

@@ -35,6 +35,7 @@
 #include "async_job_publisher.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
+#include "udp_connection.h"
 #include "monitoring/watchdog.h"
 #include "config.h"
 
@@ -138,6 +139,7 @@ public:
 		bool startVp2 = true;
 		bool startMeteoFrance = true;
 		bool startVirtual = true;
+		bool startUdp = true;
 		bool daemonized = false;
 	};
 
@@ -169,6 +171,12 @@ private:
 	 */
 	boost::asio::ip::tcp::acceptor _vp2DirectConnectAcceptor;
 	std::shared_ptr<ConnectorGroup> _vp2DirectConnectorsGroup;
+
+	/**
+	 * @brief The Boost::Asio object that handles the accept()
+	 * operations
+	 */
+	std::shared_ptr<UdpConnection> _udpConnection;
 
 	/**
 	 * @brief The connection to the observations/climatology database

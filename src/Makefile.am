@@ -29,6 +29,8 @@ meteodata_SOURCES = \
 		    daemon.cpp\
 		    http_connection.cpp\
 		    http_connection.h\
+		    udp_connection.cpp\
+		    udp_connection.h\
 		    http_utils.h\
 		    curl_wrapper.cpp\
 		    curl_wrapper.h\
@@ -104,6 +106,8 @@ meteodata_SOURCES = \
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
 		    dragino/thpllora_message.h\
+		    dragino/thplnbiot_message.cpp\
+		    dragino/thplnbiot_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -151,6 +155,8 @@ meteodata_SOURCES = \
 		    mqtt/liveobjects_external_mqtt_subscriber.h\
 		    mqtt/generic_mqtt_subscriber.cpp\
 		    mqtt/generic_mqtt_subscriber.h\
+		    nbiot/nbiot_udp_request_handler.cpp\
+		    nbiot/nbiot_udp_request_handler.h\
 		    ship_and_buoy/meteo_france_ship_and_buoy.cpp\
 		    ship_and_buoy/meteo_france_ship_and_buoy.h\
 		    ship_and_buoy/ship_and_buoy_downloader.cpp\

@@ -362,6 +362,12 @@ void MeteoServer::start()
 		startAcceptingVp2DirectConnect();
 	}
 
+	if (_configuration.startUdp) {
+		_udpConnection = std::make_shared<UdpConnection>(_ioContext, _db);
+		_connectors.emplace("udp", _udpConnection);
+		_udpConnection->start();
+	}
+
 	int lock = -1;
 	_lockFileDescriptor = open(SOCKET_LOCK_PATH, O_WRONLY | O_CREAT, 0644);
 	if (_lockFileDescriptor >= 0) {
@@ -403,6 +409,12 @@ void MeteoServer::stop()
 
 	if (_vp2DirectConnectorsGroup) {
 		_vp2DirectConnectorsGroup.reset();
+	}
+
+	if (_udpConnection) {
+		_udpConnection->stop();
+		_udpConnection.reset();
+		std::cerr << SD_INFO << "[Server] management: Stopped connector udp" << std::endl;
 	}
 
 	if (_controlAcceptor.is_open()) {
