@@ -30,6 +30,7 @@
 #include <vector>
 #include <tuple>
 #include <regex>
+#include <string>
 
 #include "cassandra_utils.h"
 #include "udp_connection.h"
@@ -37,6 +38,7 @@
 #include "dragino/thplnbiot_message.h"
 #include "nbiot/nbiot_udp_request_handler.h"
 #include "hex_parser.h"
+#include "http_utils.h"
 
 namespace meteodata
 {
@@ -70,6 +72,22 @@ void NbiotUdpRequestHandler::processRequest(const std::string& body)
 	if (it != _infosByStation.end()) {
 		const NbiotStation& st = it->second;
 		const CassUuid& uuid = st.station;
+
+		std::string message = body.substr(0, body.size() - 64);
+		std::string key;
+		std::istringstream keyIs{st.hmacKey};
+		key.resize(st.hmacKey.size() / 2);
+		for (int i=0 ; i < key.size() ; i++) {
+			keyIs >> parse(key[i], 2, 16);
+		}
+		std::string expectedHmac = computeHMACWithSHA256(message, key);
+		std::string receivedHmac = body.substr(body.size() - 64);
+		if (expectedHmac != receivedHmac) {
+			std::cerr << "HMAC " << receivedHmac << " does not validate "
+				  << "for message " << message << ", "
+				  << "expected " << expectedHmac << std::endl;
+			// TODO fail with an error here
+		}
 
 		std::string name;
 		int pollingPeriod;
