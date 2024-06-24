@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <memory>
 #include <stdexcept>
+#include <iostream>
 
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
@@ -84,6 +85,20 @@ inline std::string computeHMACWithSHA256(const std::string& str, const std::stri
 	for (unsigned int i = 0 ; i < finalSize ; i++)
 		output << std::setw(2) << std::setfill('0') << (int) rawOutput[i];
 	return output.str();
+}
+
+template<typename String>
+inline std::string hexify(const String& str)
+{
+	static constexpr char digits[] = "0123456789abcdef";
+
+	std::string output;
+	output.reserve(str.size() * 2);
+	for (char c: str) {
+		output.push_back(digits[(c & 0xF0) >> 4]);
+		output.push_back(digits[c & 0x0F]);
+	}
+	return output;
 }
 
 }

@@ -53,18 +53,27 @@ NbiotUdpRequestHandler::NbiotUdpRequestHandler(DbConnectionObservations& db, Asy
 	}
 }
 
-void NbiotUdpRequestHandler::processRequest(const std::string& body)
+void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 {
 	using namespace hex_parser;
 
-	if (body.size() < 16) {
+	if (rawBody.size() < 16) {
+		std::cerr << SD_ERR << "[UDP] protocol: UDP message too short" << std::endl;
 		return;
 	}
 
+	// We convert the string to an hexadecimal string to process its content
+	// even if the internal converters will probably have to un-hexify part
+	// of it to parse integers or floats
+	std::string body{hexify(rawBody)};
+	std::cerr << SD_DEBUG << "[UDP] protocol: Parsing UDP message (" << rawBody.size() << " bytes)\n"
+		  << body << std::endl;
+
 	std::istringstream is{body};
 
-	is >> ignore(1);
+	// IMEI is 15 hexadecimal characters
 	char imeiRaw[15];
+	is >> ignore(1);
 	is.read(imeiRaw, 15);
 	std::string imei{imeiRaw, 15};
 

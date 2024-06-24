@@ -68,6 +68,7 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 
 	if (!validateInput(payload)) {
 		_valid = false;
+		std::cerr << SD_ERR << "[UDP NB-IoT] protocol: Invalid payload" << std::endl;
 		return;
 	}
 
@@ -95,13 +96,6 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 		   >> parse(obs.count, 8, 16)
 		   >> parse(intensity, 4, 16)
 		   >> parse(timestamp, 8, 16);
-
-		std::cerr << SD_DEBUG << "[UDP NB-IoT] measurement: "
-			  << " message " << i << " contains\n"
-			  << "temp: " << temp << "\n"
-			  << "hum: " << hum << "\n"
-			  << "intensity: " << intensity << "\n"
-			  << "timestamp: " << timestamp << "\n";
 
 		obs.humidity = float(hum) / 10.f;
 		if (temp == 0xFFFF && hum == 0xFFFF) {
