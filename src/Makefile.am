@@ -100,6 +100,8 @@ meteodata_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/sn50v3_probe6470_message.cpp\
+		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
 		    dragino/llms01_leaf_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
@@ -464,6 +466,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/sn50v3_probe6470_message.cpp\
+		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
 		    dragino/llms01_leaf_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
