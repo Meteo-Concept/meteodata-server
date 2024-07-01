@@ -57,9 +57,9 @@ void Sn50v3Probe6470Message::ingest(const CassUuid&, const std::string& payload,
 	   >> parse(adc0, 4, 16)
 	   >> ignore(10);
 
-	resistance *= 100;
+	long unsigned int r0 = resistance * 100;
 
-	float lr0 = std::log(adc0*resistance/(bat-adc0));
+	float lr0 = std::log(adc0*r0/(bat-adc0));
 	_obs.temperature = -273.15 + 1/(1.140e-3 + 2.320e-4 * lr0 + 9.860e-8 * std::pow(lr0, 3));
 	_obs.battery = bat;
 
