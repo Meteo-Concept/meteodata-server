@@ -58,6 +58,8 @@ public:
 	 */
 	void ingest(const CassUuid& station, const std::string& payload);
 
+	void cacheValues(const CassUuid& station);
+
 	std::vector<Observation> getObservations(const CassUuid& station) const;
 
 private:

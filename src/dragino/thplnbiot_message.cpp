@@ -21,6 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
 #include <string>
 #include <cmath>
 #include <vector>
@@ -33,6 +34,7 @@
 #include "dragino/thplnbiot_message.h"
 #include "hex_parser.h"
 #include "davis/vantagepro2_message.h"
+#include "cassandra_utils.h"
 
 namespace meteodata
 {
@@ -120,27 +122,42 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 		_obs[i] = std::move(obs);
 	}
 
-	// Go over all messages again, in chronological order, to compute the
-	// rainfall amount
-	for (DataPoint& dp : _obs) {
-		if (!dp.valid)
-			continue;
+	time_t lastUpdate;
+	int previousClicks;
+	bool result = _db.getCachedInt(station, THPLNBIOT_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
+	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - chrono::hours{24}) {
+		// the last rainfall datapoint is not too old, we can use
+		// it as a reference for the current number of clicks recorded
+		// by the pluviometer
 
-		time_t lastUpdate;
-		int previousClicks;
-		bool result = _db.getCachedInt(station, THPLNBIOT_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-		if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - chrono::hours{24}) {
-			// the last rainfall datapoint is not too old, we can use
-			// it as a reference for the current number of clicks recorded
-			// by the pluviometer
+		// Go over all messages again, in chronological order, to compute the
+		// rainfall amount
+		for (DataPoint& dp : _obs) {
+			if (!dp.valid)
+				continue;
 			if (dp.count >= previousClicks) {
 				dp.rainfall = (dp.count - previousClicks) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
 			} else {
 				dp.rainfall = ((0xFFFFFFFFu - previousClicks) + dp.count) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
 			}
+			previousClicks = dp.count;
 		}
 	}
 }
+
+
+void ThplnbiotMessage::cacheValues(const CassUuid& station)
+{
+	auto it = std::find_if(_obs.crbegin(), _obs.crend(), [](auto&& dp) { return dp.valid; });
+	if (it != _obs.crend()) {
+		int ret = _db.cacheInt(station, THPLNBIOT_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(it->time), it->count);
+		if (!ret)
+			std::cerr << SD_ERR << "[UDP NB-IoT " << station << "] management: "
+				  << "Couldn't update the rainfall number of clicks, accumulation error possible"
+				  << std::endl;
+	}
+}
+
 
 std::vector<Observation> ThplnbiotMessage::getObservations(const CassUuid& station) const
 {

@@ -125,6 +125,7 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 				if (!ret)
 					std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] management: "
 							  << "couldn't update last archive download time for station " << name << std::endl;
+				msg.cacheValues(uuid);
 			} else {
 				std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] measurement: " << "failed to store an observation for station "
 						  << name << "! Trying the other ones..." << std::endl;
