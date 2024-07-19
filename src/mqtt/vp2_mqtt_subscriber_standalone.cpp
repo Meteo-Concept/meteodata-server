@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 		for (const auto & station : mqttStations) {
 			CassUuid uuid = std::get<0>(station);
 			const std::string& topic = std::get<6>(station);
-			if (topic.substr(0, 4) != "vp2/" && topic.rfind("/dmpaft") == topic.size() - 7) {
+			if (topic.substr(0, 4) != "vp2/" || topic.rfind("/dmpaft") != topic.size() - 7) {
 				continue;
 			}
 			if (!userSelection.empty()) {
