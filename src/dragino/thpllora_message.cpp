@@ -48,7 +48,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 {
 	using namespace hex_parser;
 
-	if (!validateInput(payload, 24)) {
+	if (!validateInput(payload, {24, 32})) {
 		_obs.valid = false;
 		return;
 	}
@@ -58,6 +58,9 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 	uint16_t rainrate;
 	uint16_t temp;
 	uint16_t hum;
+	uint16_t windPulses = 0U;
+	uint8_t gustPulses = 0U;
+	uint8_t windDir = 0xFF;
 
 	std::istringstream is{payload};
 	is >> parse(battery, 4, 16)
@@ -82,6 +85,29 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 		_obs.temperature = float(temp) / 10;
 	} else {
 		_obs.temperature = (float(temp) - 65536) / 10;
+	}
+
+
+	if (payload.length() == 32) {
+		float latitude, longitude;
+		int elevation;
+		int pollingPeriod;
+		std::string name;
+		bool res = _db.getStationCoordinates(station, latitude, longitude, elevation, name, pollingPeriod);
+		if (!res) {
+			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
+				  << "Couldn't get the polling period of the station, assuming 10 minutes"
+				  << std::endl;
+			pollingPeriod = 10;
+		}
+		is >> parse(windPulses, 4, 16)
+		   >> parse(gustPulses, 2, 16)
+		   >> parse(windDir, 2, 16);
+		_obs.windSpeed = from_mph_to_kph(windPulses * 2.25 / (pollingPeriod * 60));
+		_obs.gustSpeed = from_mph_to_kph(gustPulses);
+		if (windDir != 0xFF) {
+			_obs.windDir = windDir;
+		}
 	}
 
 	time_t lastUpdate;
@@ -126,13 +152,16 @@ Observation ThplloraMessage::getObservation(const CassUuid& station) const
 		obs.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
 		obs.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
 	}
+	obs.windspeed = {!std::isnan(_obs.windSpeed), _obs.windSpeed};
+	obs.windgust = {!std::isnan(_obs.gustSpeed), _obs.gustSpeed};
+	obs.winddir = {!std::isnan(_obs.windDir), int(std::round(_obs.windDir))};
 	return obs;
 }
 
 json::object ThplloraMessage::getDecodedMessage() const
 {
 	return json::object{
-		{ "model", "Thpllora_20230713" },
+		{ "model", "Thplvlora_20240719" },
 		{ "value", {
 			{ "battery", _obs.battery },
 			{ "temperature", _obs.temperature },
@@ -140,6 +169,9 @@ json::object ThplloraMessage::getDecodedMessage() const
 			{ "total_pulses", _obs.totalPulses },
 			{ "rainfall", _obs.rainfall },
 			{ "rainrate", _obs.rainrate },
+			{ "wind_speed", _obs.windSpeed },
+			{ "wind_gust", _obs.gustSpeed },
+			{ "wind_direction", _obs.windDir },
 		} }
 	};
 }

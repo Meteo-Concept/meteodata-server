@@ -22,6 +22,7 @@
  */
 
 #include <algorithm>
+#include <initializer_list>
 #include <iostream>
 #include <string>
 #include <systemd/sd-daemon.h>
@@ -46,11 +47,11 @@
 namespace meteodata
 {
 
-bool LiveobjectsMessage::validateInput(const std::string& payload, int expectedSize)
+bool LiveobjectsMessage::validateInput(const std::string& payload, std::initializer_list<int> expectedSize)
 {
-	if (payload.length() != expectedSize) {
-		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Invalid size " << payload.length() << " for payload "
-				  << payload << ", should be " << expectedSize << std::endl;
+	if (std::none_of(expectedSize.begin(), expectedSize.end(), [&payload](int s) { return payload.length() == s; })) {
+		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Invalid size " << payload.length()
+			  << " for payload " << payload << std::endl;
 		return false;
 	}
 
@@ -58,11 +59,46 @@ bool LiveobjectsMessage::validateInput(const std::string& payload, int expectedS
 		return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
 	})) {
 		std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "Payload " << payload
-				  << " contains invalid characters" << std::endl;
+			  << " contains invalid characters" << std::endl;
 		return false;
 	}
 
 	return true;
+}
+
+std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbConnectionObservations& db,
+	const std::string& sensor, int port, const CassUuid& station)
+{
+	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
+		return std::make_unique<Cpl01PluviometerMessage>(db);
+	} else if ((sensor == "dragino-lsn50v2" || sensor == "dragino_lsn50v2") && port == 2) {
+		return std::make_unique<Lsn50v2ThermohygrometerMessage>();
+	} else if (sensor == "dragino-thpllora" && port == 2) {
+		return std::make_unique<ThplloraMessage>(db);
+	} else if (sensor == "dragino-llms01" && port == 2) {
+		return std::make_unique<Llms01LeafSensorMessage>();
+	} else if (sensor == "dragino-probe6470" && port == 2) {
+		return std::make_unique<Lsn50v2Probe6470Message>();
+	} else if (sensor == "dragino-sn50v3-probe6470" && port == 2) {
+		return std::make_unique<Sn50v3Probe6470Message>();
+	} else if (sensor == "barani-meteowind" && port == 1) {
+		return std::make_unique<BaraniAnemometerMessage>();
+	} else if (sensor == "barani-meteowind-v2023" && port == 1) {
+		return std::make_unique<BaraniAnemometer2023Message>();
+	} else if (sensor == "barani-meteorain" && port == 1) {
+		return std::make_unique<BaraniRainGaugeMessage>(db);
+	} else if (sensor == "barani-meteohelix" && port == 1) {
+		return std::make_unique<BaraniThermohygroMessage>(db);
+	} else if (sensor == "barani-meteoag-2022" && port == 1) {
+		return std::make_unique<BaraniMeteoAg2022Message>(db);
+	} else if (sensor == "lorain-pluviometer") {
+		return std::make_unique<LorainMessage>(db);
+	} else if (sensor == "thlora-thermohygrometer") {
+		return std::make_unique<ThloraThermohygrometerMessage>();
+	} else if (sensor == "talkpool-oy1110") {
+		return std::make_unique<Oy1110ThermohygrometerMessage>(station);
+	}
+	return {};
 }
 
 std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectionObservations& db,
@@ -72,36 +108,7 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 	auto payload = json.get<std::string>("value.payload");
 	auto port = json.get<int>("metadata.network.lora.port", -1);
 
-	std::unique_ptr<LiveobjectsMessage> m;
-	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
-		m = std::make_unique<Cpl01PluviometerMessage>(db);
-	} else if ((sensor == "dragino-lsn50v2" || sensor == "dragino_lsn50v2") && port == 2) {
-		m = std::make_unique<Lsn50v2ThermohygrometerMessage>();
-	} else if (sensor == "dragino-thpllora" && port == 2) {
-		m = std::make_unique<ThplloraMessage>(db);
-	} else if (sensor == "dragino-llms01" && port == 2) {
-		m = std::make_unique<Llms01LeafSensorMessage>();
-	} else if (sensor == "dragino-probe6470" && port == 2) {
-		m = std::make_unique<Lsn50v2Probe6470Message>();
-	} else if (sensor == "dragino-sn50v3-probe6470" && port == 2) {
-		m = std::make_unique<Sn50v3Probe6470Message>();
-	} else if (sensor == "barani-meteowind" && port == 1) {
-		m = std::make_unique<BaraniAnemometerMessage>();
-	} else if (sensor == "barani-meteowind-v2023" && port == 1) {
-		m = std::make_unique<BaraniAnemometer2023Message>();
-	} else if (sensor == "barani-meteorain" && port == 1) {
-		m = std::make_unique<BaraniRainGaugeMessage>(db);
-	} else if (sensor == "barani-meteohelix" && port == 1) {
-		m = std::make_unique<BaraniThermohygroMessage>(db);
-	} else if (sensor == "barani-meteoag-2022" && port == 1) {
-		m = std::make_unique<BaraniMeteoAg2022Message>(db);
-	} else if (sensor == "lorain-pluviometer") {
-		m = std::make_unique<LorainMessage>(db);
-	} else if (sensor == "thlora-thermohygrometer") {
-		m = std::make_unique<ThloraThermohygrometerMessage>();
-	} else if (sensor == "talkpool-oy1110") {
-		m = std::make_unique<Oy1110ThermohygrometerMessage>(station);
-	}
+	std::unique_ptr<LiveobjectsMessage> m = instantiateMessage(db, sensor, port, station);
 
 	if (!m) {
 		std::cerr << SD_ERR << "[Liveobjects " << station << "] protocol: "

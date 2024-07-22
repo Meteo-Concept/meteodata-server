@@ -25,6 +25,7 @@
 #define LIVEOBJECTS_MESSAGE_H
 
 #include <memory>
+#include <initializer_list>
 
 #include <dbconnection_observations.h>
 #include <cassandra.h>
@@ -47,7 +48,19 @@ public:
 	 * @param expectedSize The length the payload should have
 	 * @return True if, and only if, the payload looks correct, before parsing
 	 */
-	virtual bool validateInput(const std::string& payload, int expectedSize);
+	inline virtual bool validateInput(const std::string& payload, int expectedSize)
+	{
+		return validateInput(payload, {expectedSize});
+	}
+
+	/**
+	 * Validate that the payload looks valid (only characters in the correct
+	 * character set, correct length, etc.)
+	 * @param payload The LoRa message payload
+	 * @param expectedSizes The possible lengths the payload should have
+	 * @return True if, and only if, the payload looks correct, before parsing
+	 */
+	virtual bool validateInput(const std::string& payload, std::initializer_list<int> expectedSizes);
 
 	/**
 	 * Get the observation built from the message
@@ -86,6 +99,13 @@ public:
 	{
 		// no-op
 	};
+
+	static std::unique_ptr<LiveobjectsMessage> instantiateMessage(
+		DbConnectionObservations& db,
+		const std::string& payload,
+		int port,
+		const CassUuid& station
+	);
 
 	static std::unique_ptr<LiveobjectsMessage> parseMessage(
 		DbConnectionObservations& db,

@@ -91,6 +91,9 @@ private:
 		uint16_t totalPulses;
 		float rainfall = NAN;
 		float rainrate = NAN;
+		float windSpeed = NAN;
+		float gustSpeed = NAN;
+		float windDir = NAN;
 	};
 
 	/**
