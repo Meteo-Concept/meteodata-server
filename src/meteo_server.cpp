@@ -46,6 +46,7 @@
 #include "mqtt/liveobjects_mqtt_subscriber.h"
 #include "mqtt/liveobjects_external_mqtt_subscriber.h"
 #include "mqtt/generic_mqtt_subscriber.h"
+#include "mqtt/chirpstack_mqtt_subscriber.h"
 #include "ship_and_buoy/ship_and_buoy_downloader.h"
 #include "static/static_download_scheduler.h"
 #include "synop/synop_download_scheduler.h"
@@ -158,6 +159,7 @@ void MeteoServer::start()
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsExternalMqttSubscriber>> liveobjectsExternalMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<GenericMqttSubscriber>> genericMqttSubscribers;
+		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ChirpstackMqttSubscriber>> chirpstackMqttSubscribers;
 		_db.getMqttStations(mqttStations);
 		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getAllLiveobjectsStations(liveobjectsStations);
@@ -188,7 +190,7 @@ void MeteoServer::start()
 				}
 
 				auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
-									   [&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+					[&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 				if (it != objeniousStations.end()) {
 					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
 				}
@@ -223,6 +225,15 @@ void MeteoServer::start()
 						details, _ioContext, _db, _jobPublisher.get()
 					);
 					mqttSubscribersIt = genericMqttSubscribers.emplace(details, subscriber).first;
+				}
+				mqttSubscribersIt->second->addStation(topic, uuid, tz);
+			} else if (topic.substr(0, 11) == "chirpstack/") {
+				auto mqttSubscribersIt = chirpstackMqttSubscribers.find(details);
+				if (mqttSubscribersIt == chirpstackMqttSubscribers.end()) {
+					std::shared_ptr<ChirpstackMqttSubscriber> subscriber = std::make_shared<ChirpstackMqttSubscriber>(
+						details, _ioContext, _db, _jobPublisher.get()
+					);
+					mqttSubscribersIt = chirpstackMqttSubscribers.emplace(details, subscriber).first;
 				}
 				mqttSubscribersIt->second->addStation(topic, uuid, tz);
 			} else {
