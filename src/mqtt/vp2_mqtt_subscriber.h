@@ -57,7 +57,7 @@ class VP2MqttSubscriber : public MqttSubscriber
 {
 public:
 	VP2MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-					  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
