@@ -116,6 +116,13 @@ void VantagePro2HttpRequestHandler::getLastArchive(const Request& request, Respo
 		int pollingPeriod;
 		time_t lastDownload;
 		_db.getStationDetails(uuid, name, pollingPeriod, lastDownload);
+
+		ModemStationConfiguration config;
+		config.id = 0;
+		bool r = _db.getLastConfiguration(uuid, config);
+		if (r && config.id) {
+			response.set("Meteodata-Config", std::to_string(config.id));
+		}
 		response.body() = std::to_string(lastDownload);
 	}
 }
@@ -224,4 +231,22 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		response.result(boost::beast::http::status::no_content);
 	}
 }
+
+void VantagePro2HttpRequestHandler::getConfiguration(const Request& request, Response& response, std::cmatch&& url)
+{
+	CassUuid uuid;
+	if (getUuidAndCheckAccess(request, response, uuid, url)) {
+		std::string configurationIdStr = url[2].str();
+		int configurationId = std::stoi(configurationIdStr);
+		ModemStationConfiguration config;
+		bool r = _db.getOneConfiguration(uuid, configurationId, config);
+		if (r && config.id == configurationId) {
+			response.body() = config.config;
+			response.result(boost::beast::http::status::ok);
+		} else {
+			response.result(boost::beast::http::status::not_found);
+		}
+	}
+}
+
 }
