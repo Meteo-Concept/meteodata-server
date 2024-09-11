@@ -268,6 +268,11 @@ void MeteoServer::start()
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_generic_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
+		for (auto&& mqttSubscriber : chirpstackMqttSubscribers) {
+			mqttIndex++;
+			mqttSubscriber.second->start();
+			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_chirpstack_" + mqttSubscriber.first.host, mqttSubscriber.second);
+		}
 	}
 
 	if (_configuration.startSynop) {
