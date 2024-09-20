@@ -13,7 +13,6 @@ bin_PROGRAMS = \
 	       meteodata-fieldclimate-api-standalone\
 	       meteodata-csv-standalone\
 	       meteodata-liveobjects-api-standalone\
-	       meteodata-objenious-api-standalone\
 	       meteodata-cimel-standalone\
 	       meteodata-mqtt-vp2-standalone\
 	       meteodata-mqtt-chirpstack-receiver-standalone\
@@ -150,8 +149,6 @@ meteodata_SOURCES = \
 		    mqtt/mqtt_subscriber.h\
 		    mqtt/vp2_mqtt_subscriber.cpp\
 		    mqtt/vp2_mqtt_subscriber.h\
-		    mqtt/objenious_mqtt_subscriber.cpp\
-		    mqtt/objenious_mqtt_subscriber.h\
 		    mqtt/liveobjects_mqtt_subscriber.cpp\
 		    mqtt/liveobjects_mqtt_subscriber.h\
 		    mqtt/liveobjects_external_mqtt_subscriber.cpp\
@@ -214,14 +211,6 @@ meteodata_SOURCES = \
 		    pessl/fieldclimate_archive_message.h\
 		    pessl/lorain_message.cpp\
 		    pessl/lorain_message.h\
-		    objenious/objenious_api_downloader.cpp\
-		    objenious/objenious_api_downloader.h\
-		    objenious/objenious_api_download_scheduler.cpp\
-		    objenious/objenious_api_download_scheduler.h\
-		    objenious/objenious_archive_message_collection.cpp\
-		    objenious/objenious_archive_message_collection.h\
-		    objenious/objenious_archive_message.cpp\
-		    objenious/objenious_archive_message.h\
 		    virtual/virtual_computation_scheduler.cpp\
 		    virtual/virtual_computation_scheduler.h\
 		    virtual/virtual_obs_computer.cpp\
@@ -484,23 +473,6 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    pessl/lorain_message.cpp\
 		    pessl/lorain_message.h
 
-meteodata_objenious_api_standalone_SOURCES = \
-		    time_offseter.cpp\
-		    time_offseter.h\
-		    cassandra_utils.h\
-		    http_utils.h\
-		    curl_wrapper.cpp\
-		    curl_wrapper.h\
-		    async_job_publisher.cpp\
-		    async_job_publisher.h\
-		    objenious/objenious_api_downloader_standalone.cpp\
-		    objenious/objenious_api_downloader.cpp\
-		    objenious/objenious_api_downloader.h\
-		    objenious/objenious_archive_message_collection.cpp\
-		    objenious/objenious_archive_message_collection.h\
-		    objenious/objenious_archive_message.cpp\
-		    objenious/objenious_archive_message.h
-
 meteodata_cimel_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -687,11 +659,6 @@ meteodata_liveobjects_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_liveobjects_api_standalone_CXXFLAGS =
 meteodata_liveobjects_api_standalone_LDFLAGS = $(baseldflags)
 meteodata_liveobjects_api_standalone_LDADD = $(baselibs)
-
-meteodata_objenious_api_standalone_CPPFLAGS = $(basecppflags)
-meteodata_objenious_api_standalone_CXXFLAGS =
-meteodata_objenious_api_standalone_LDFLAGS = $(baseldflags)
-meteodata_objenious_api_standalone_LDADD = $(baselibs)
 
 meteodata_cimel_standalone_CPPFLAGS = $(basecppflags)
 meteodata_cimel_standalone_CXXFLAGS =

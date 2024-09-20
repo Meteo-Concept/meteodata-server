@@ -55,6 +55,8 @@ protected:
 	{
 		return "fifo/meteoconcept";
 	}
+
+	void reload() override;
 };
 
 }

@@ -58,6 +58,8 @@ protected:
 	{
 		return "fifo/liveobjects";
 	}
+
+	void reload() override;
 };
 
 }

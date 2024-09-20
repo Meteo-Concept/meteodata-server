@@ -52,6 +52,7 @@ protected:
 	{
 		return "chirpstack";
 	}
+	void reload() override;
 };
 
 }

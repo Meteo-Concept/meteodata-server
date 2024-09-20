@@ -124,4 +124,35 @@ GenericMessage GenericMqttSubscriber::buildMessage(const boost::property_tree::p
 	return GenericMessage::buildMessage(_db, json, timestamp);
 }
 
+
+void GenericMqttSubscriber::reload()
+{
+	_client->disconnect();
+	if (!_stopped) {
+		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+		_db.getMqttStations(mqttStations);
+
+		_stations.clear();
+		for (auto&& station : mqttStations) {
+			const CassUuid& uuid = std::get<0>(station);
+			const std::string& topic = std::get<6>(station);
+			TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
+
+			if (topic.substr(0, 8) == "generic/") {
+				MqttSubscriber::MqttSubscriptionDetails details{
+					std::get<1>(station), std::get<2>(station),
+					std::get<3>(station),
+					std::string(std::get<4>(station).get(), std::get<5>(station))
+				};
+
+				if (_details == details) {
+					addStation(topic, uuid, tz);
+				}
+			}
+		}
+
+		start();
+	}
+}
+
 }

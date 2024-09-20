@@ -70,6 +70,8 @@ protected:
 
 	const char* getConnectorSuffix() override
 	{ return "vp2"; }
+
+	void reload() override;
 };
 
 }

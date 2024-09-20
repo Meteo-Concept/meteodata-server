@@ -52,6 +52,8 @@ protected:
 	{
 		return "generic";
 	}
+
+	void reload() override;
 };
 
 }

@@ -23,12 +23,12 @@
 
 #include <string>
 
-#include <boost/asio.hpp>
 #include <dbconnection_observations.h>
 
 #include "async_job_publisher.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/liveobjects_external_mqtt_subscriber.h"
+#include "cassandra_utils.h"
 
 namespace meteodata
 {
@@ -43,6 +43,41 @@ LiveobjectsExternalMqttSubscriber::LiveobjectsExternalMqttSubscriber(
 		LiveobjectsMqttSubscriber{details, ioContext, db, jobPublisher},
 		_clientIdentifier{std::move(clientIdentifier)}
 {
+}
+
+void LiveobjectsExternalMqttSubscriber::reload()
+{
+	_client->disconnect();
+	if (!_stopped) {
+		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+		_db.getMqttStations(mqttStations);
+		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;
+		_db.getAllLiveobjectsStations(liveobjectsStations);
+
+		_stations.clear();
+		for (auto&& station : mqttStations) {
+			const CassUuid& uuid = std::get<0>(station);
+			const std::string& topic = std::get<6>(station);
+			TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
+
+			if (topic == "fifo/meteoconcept") {
+				MqttSubscriber::MqttSubscriptionDetails details{
+					std::get<1>(station), std::get<2>(station),
+					std::get<3>(station),
+					std::string(std::get<4>(station).get(), std::get<5>(station))
+				};
+
+				if (_details == details ) {
+					auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
+						[&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
+					if (it != liveobjectsStations.end())
+						addStation(topic, uuid, tz, std::get<1>(*it));
+				}
+			}
+		}
+
+		start();
+	}
 }
 
 }

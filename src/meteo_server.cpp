@@ -42,7 +42,6 @@
 #include "meteo_france/meteo_france_api_download_scheduler.h"
 #include "mqtt/mqtt_subscriber.h"
 #include "mqtt/vp2_mqtt_subscriber.h"
-#include "mqtt/objenious_mqtt_subscriber.h"
 #include "mqtt/liveobjects_mqtt_subscriber.h"
 #include "mqtt/liveobjects_external_mqtt_subscriber.h"
 #include "mqtt/generic_mqtt_subscriber.h"
@@ -157,11 +156,9 @@ void MeteoServer::start()
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<VP2MqttSubscriber>> vp2MqttSubscribers;
 		std::shared_ptr<LiveobjectsMqttSubscriber> liveobjectsMqttSubscriber;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<LiveobjectsExternalMqttSubscriber>> liveobjectsExternalMqttSubscribers;
-		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ObjeniousMqttSubscriber>> objeniousMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<GenericMqttSubscriber>> genericMqttSubscribers;
 		std::map<MqttSubscriber::MqttSubscriptionDetails, std::shared_ptr<ChirpstackMqttSubscriber>> chirpstackMqttSubscribers;
 		_db.getMqttStations(mqttStations);
-		_db.getAllObjeniousApiStations(objeniousStations);
 		_db.getAllLiveobjectsStations(liveobjectsStations);
 		int externalLiveobjects = 0;
 		for (auto&& station : mqttStations) {
@@ -180,20 +177,6 @@ void MeteoServer::start()
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
 				mqttSubscribersIt->second->addStation(topic, uuid, tz);
-			} else if (topic.substr(0, 10) == "objenious/") {
-				auto mqttSubscribersIt = objeniousMqttSubscribers.find(details);
-				if (mqttSubscribersIt == objeniousMqttSubscribers.end()) {
-					std::shared_ptr<ObjeniousMqttSubscriber> subscriber = std::make_shared<ObjeniousMqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
-					);
-					mqttSubscribersIt = objeniousMqttSubscribers.emplace(details, subscriber).first;
-				}
-
-				auto it = std::find_if(objeniousStations.begin(), objeniousStations.end(),
-					[&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
-				if (it != objeniousStations.end()) {
-					mqttSubscribersIt->second->addStation(topic, uuid, tz, std::get<1>(*it), std::get<2>(*it));
-				}
 			} else if (topic == "fifo/meteoconcept") {
 				auto mqttSubscribersIt = liveobjectsExternalMqttSubscribers.find(details);
 				if (mqttSubscribersIt == liveobjectsExternalMqttSubscribers.end()) {
@@ -247,11 +230,6 @@ void MeteoServer::start()
 			mqttIndex++;
 			mqttSubscriber.second->start();
 			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_vp2_" + mqttSubscriber.first.host, mqttSubscriber.second);
-		}
-		for (auto&& mqttSubscriber : objeniousMqttSubscribers) {
-			mqttIndex++;
-			mqttSubscriber.second->start();
-			_connectors.emplace("mqtt_" + std::to_string(mqttIndex) + "_objenious_" + mqttSubscriber.first.host, mqttSubscriber.second);
 		}
 		if (liveobjectsMqttSubscriber) {
 			mqttIndex++;

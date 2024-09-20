@@ -85,6 +85,10 @@ bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubs
 	return false;
 }
 
+bool operator==(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2)
+{
+	return !(s1 < s2) && !(s2 < s1);
+}
 
 void MqttSubscriber::addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz)
 {
@@ -272,8 +276,29 @@ void MqttSubscriber::stop()
 void MqttSubscriber::reload()
 {
 	_client->disconnect();
-	if (!_stopped)
+	if (!_stopped) {
+		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
+		_db.getMqttStations(mqttStations);
+
+		_stations.clear();
+
+		for (auto&& station : mqttStations) {
+			MqttSubscriber::MqttSubscriptionDetails details{
+					std::get<1>(station), std::get<2>(station),
+					std::get<3>(station),
+					std::string(std::get<4>(station).get(), std::get<5>(station))
+			};
+
+			if (_details == details) {
+				const CassUuid& uuid = std::get<0>(station);
+				const std::string& topic = std::get<6>(station);
+				TimeOffseter::PredefinedTimezone tz{std::get<7>(station)};
+				addStation(topic, uuid, tz);
+			}
+		}
+
 		start();
+	}
 }
 
 }
