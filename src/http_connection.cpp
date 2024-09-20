@@ -93,7 +93,7 @@ void HttpConnection::readRequest()
 	auto self = shared_from_this();
 
 	http::async_read(_socket, _buffer, _request,
-					[self, this](beast::error_code ec, std::size_t) {
+		[self, this](beast::error_code ec, std::size_t) {
 		if (!ec)
 			processRequest();
 		// we only cancel the timeout and the end of the full round-trip
@@ -133,8 +133,11 @@ void HttpConnection::writeResponse()
 		if (ec) {
 			std::cerr << SD_ERR << "[HTTP] protocol: " << "Failed to send the response " << ec << std::endl;
 		}
-		if (_socket.is_open() && !_socket.shutdown(tcp::socket::shutdown_send, ec)) {
-			std::cerr << SD_ERR << "[HTTP] protocol: " << "Socket shutdown failure " << ec << std::endl;
+		if (_socket.is_open()) {
+			_socket.shutdown(tcp::socket::shutdown_both, ec);
+			if (ec) {
+				std::cerr << SD_ERR << "[HTTP] protocol: " << "Socket shutdown failure " << ec << std::endl;
+			}
 		}
 		_timeout.cancel();
 	});
