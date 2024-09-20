@@ -54,18 +54,18 @@ HttpConnection::HttpConnection(boost::asio::io_context& io, DbConnectionObservat
 
 void HttpConnection::start()
 {
-	readRequest();
 	_timeout.expires_from_now(chrono::seconds(60));
 	auto self = shared_from_this();
 	_timeout.async_wait([self, this](const sys::error_code& ec) {
 		checkDeadline(ec);
 	});
+	readRequest();
 }
 
 void HttpConnection::checkDeadline(const sys::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out, we have nothing more
-	 * to do here. It's our original caller's responsability to restart us
+	 * to do here. It's our original caller's responsibility to restart us
 	 * if needs be */
 	if (e == sys::errc::operation_canceled)
 		return;
@@ -76,7 +76,7 @@ void HttpConnection::checkDeadline(const sys::error_code& e)
 		// remote end
 		if (_socket.is_open()) {
 			_socket.cancel();
-			_socket.shutdown(tcp::socket::shutdown_send);
+			_socket.shutdown(tcp::socket::shutdown_both);
 		}
 	} else {
 		/* spurious handler call, restart the timer without changing the
@@ -92,9 +92,11 @@ void HttpConnection::readRequest()
 {
 	auto self = shared_from_this();
 
-	http::async_read(_socket, _buffer, _request, [self](beast::error_code ec, std::size_t) {
+	http::async_read(_socket, _buffer, _request,
+					[self, this](beast::error_code ec, std::size_t) {
 		if (!ec)
-			self->processRequest();
+			processRequest();
+		// we only cancel the timeout and the end of the full round-trip
 	});
 }
 
@@ -114,8 +116,8 @@ void HttpConnection::processRequest()
 	} else {
 		_response.result(http::status::not_found);
 	}
-	writeResponse();
 	_timeout.expires_from_now(chrono::seconds(60));
+	writeResponse();
 }
 
 
@@ -128,7 +130,13 @@ void HttpConnection::writeResponse()
 	_response.prepare_payload();
 
 	http::async_write(_socket, _response, [self, this](beast::error_code ec, std::size_t) {
-		_socket.shutdown(tcp::socket::shutdown_send, ec);
+		if (ec) {
+			std::cerr << SD_ERR << "[HTTP] protocol: " << "Failed to send the response " << ec << std::endl;
+		}
+		if (_socket.is_open() && !_socket.shutdown(tcp::socket::shutdown_send, ec)) {
+			std::cerr << SD_ERR << "[HTTP] protocol: " << "Socket shutdown failure " << ec << std::endl;
+		}
+		_timeout.cancel();
 	});
 }
 }
