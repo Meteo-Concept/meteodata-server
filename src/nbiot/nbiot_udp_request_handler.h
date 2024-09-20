@@ -43,6 +43,7 @@ class NbiotUdpRequestHandler
 public:
 	explicit NbiotUdpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void processRequest(const std::string& body);
+	void reloadStations();
 
 private:
 	DbConnectionObservations& _db;

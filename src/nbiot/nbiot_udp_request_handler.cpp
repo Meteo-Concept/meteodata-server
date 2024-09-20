@@ -46,6 +46,10 @@ NbiotUdpRequestHandler::NbiotUdpRequestHandler(DbConnectionObservations& db, Asy
 		_db{db},
 		_jobPublisher{jobPublisher}
 {
+}
+
+void NbiotUdpRequestHandler::reloadStations()
+{
 	std::vector<NbiotStation> nbiotStations;
 	_db.getAllNbiotStations(nbiotStations);
 	for (auto&& s : nbiotStations) {
@@ -62,7 +66,7 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 		return;
 	}
 
-	// We convert the string to an hexadecimal string to process its content
+	// We convert the string to a hexadecimal string to process its content
 	// even if the internal converters will probably have to un-hexify part
 	// of it to parse integers or floats
 	std::string body{hexify(rawBody)};
@@ -86,8 +90,8 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 		std::string key;
 		std::istringstream keyIs{st.hmacKey};
 		key.resize(st.hmacKey.size() / 2);
-		for (int i=0 ; i < key.size() ; i++) {
-			keyIs >> parse(key[i], 2, 16);
+		for (char& i : key) {
+			keyIs >> parse(i, 2, 16);
 		}
 		std::string expectedHmac = computeHMACWithSHA256(message, key);
 		std::string receivedHmac = body.substr(body.size() - 64);
@@ -114,13 +118,17 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 		ThplnbiotMessage msg{_db};
 		msg.ingest(uuid, body);
 
-		bool ret = true;
+		date::sys_seconds oldest = date::floor<chrono::seconds>(chrono::system_clock::now());
+		date::sys_seconds newest = date::sys_seconds{};
+
 		for (const Observation& obs : msg.getObservations(uuid)) {
-			ret = true && _db.insertV2DataPoint(obs);
+			bool ret = _db.insertV2DataPoint(obs);
 			if (ret) {
 				std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
 						  << name << std::endl;
 				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(obs.time);
+				oldest = std::min(obs.time, oldest);
+				newest = std::max(obs.time, newest);
 				ret = _db.updateLastArchiveDownloadTime(uuid, lastArchiveDownloadTime);
 				if (!ret)
 					std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] management: "
@@ -132,7 +140,9 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 			}
 		}
 
-		// TODO job publisher
+		if (oldest < newest) {
+			_jobPublisher->publishJobsForPastDataInsertion(uuid, oldest, newest);
+		}
 	}
 }
 }

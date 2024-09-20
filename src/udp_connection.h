@@ -34,6 +34,7 @@
 
 #include "connector.h"
 #include "async_job_publisher.h"
+#include "nbiot/nbiot_udp_request_handler.h"
 
 namespace meteodata
 {
@@ -50,9 +51,11 @@ private:
 	AsyncJobPublisher* _jobPublisher;
 	boost::asio::ip::udp::socket _socket;
 	boost::asio::ip::udp::endpoint _remote;
-	std::array<char, 4096> _buffer;
+	std::array<char, 4096> _buffer{};
 
 	bool _stopped = true;
+
+	NbiotUdpRequestHandler _nbiotHandler;
 
 	void readRequest();
 	void processRequest(std::size_t size);

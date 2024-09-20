@@ -21,9 +21,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <boost/asio.hpp>
 #include <boost/asio/ip/udp.hpp>
-#include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/system/error_code.hpp>
 #include <chrono>
 
@@ -42,12 +40,15 @@ using udp = boost::asio::ip::udp;
 UdpConnection::UdpConnection(boost::asio::io_context& io, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 	Connector{io, db},
 	_jobPublisher{jobPublisher},
-	_socket{io}
+	_socket{io},
+	_nbiotHandler{_db, _jobPublisher}
 {
 }
 
 void UdpConnection::start()
 {
+	_nbiotHandler.reloadStations();
+
 	_stopped = false;
 
 	_socket.open(udp::v4());
@@ -99,8 +100,7 @@ void UdpConnection::readRequest()
 
 void UdpConnection::processRequest(std::size_t size)
 {
-	NbiotUdpRequestHandler requestHandler{_db, _jobPublisher};
-	requestHandler.processRequest(std::string{_buffer.data(), size});
+	_nbiotHandler.processRequest(std::string{_buffer.data(), size});
 }
 
 
