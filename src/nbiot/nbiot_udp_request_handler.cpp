@@ -57,7 +57,7 @@ void NbiotUdpRequestHandler::reloadStations()
 	}
 }
 
-void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
+void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::function<void(const std::string&)> sendResponse)
 {
 	using namespace hex_parser;
 
@@ -100,6 +100,16 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody)
 				  << "for message " << message << ", "
 				  << "expected " << expectedHmac << std::endl;
 			// TODO fail with an error here
+		}
+
+		/* If we have a downlink to send, send it now while the remote sensor is
+		 * still awake. */
+		ModemStationConfiguration config;
+		config.id = 0;
+		bool r = _db.getLastConfiguration(uuid, config);
+		if (r && config.id) {
+			sendResponse(config.config);
+			_db.updateConfigurationStatus(uuid, config.id, false);
 		}
 
 		std::string name;

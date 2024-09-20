@@ -28,6 +28,7 @@
 #include <date.h>
 #include <dbconnection_observations.h>
 
+#include <functional>
 #include <map>
 #include <vector>
 #include <tuple>
@@ -42,7 +43,7 @@ class NbiotUdpRequestHandler
 {
 public:
 	explicit NbiotUdpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
-	void processRequest(const std::string& body);
+	void processRequest(const std::string& body, std::function<void(const std::string&)> sendResponse);
 	void reloadStations();
 
 private:

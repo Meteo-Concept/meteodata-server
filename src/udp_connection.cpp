@@ -100,7 +100,17 @@ void UdpConnection::readRequest()
 
 void UdpConnection::processRequest(std::size_t size)
 {
-	_nbiotHandler.processRequest(std::string{_buffer.data(), size});
+	auto self = shared_from_this();
+
+	_nbiotHandler.processRequest(std::string{_buffer.data(), size},
+		[this, self](const std::string& response) {
+			_socket.async_send_to(asio::buffer(response), _remote,
+				[this, self](sys::error_code ec, std::size_t size) {
+				 if (ec) {
+					std::cerr << SD_ERR << "[UDP] protocol: Failed sending downlink to " << _remote << std::endl;
+				 }
+			});
+	});
 }
 
 
