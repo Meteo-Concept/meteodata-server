@@ -83,6 +83,11 @@ public:
 	 */
 	 void reload() override;
 
+	 /**
+	  * @inherit
+	  */
+	std::string getStatus() const override;
+
 protected:
 	/**
 	 * @brief The CURL handler used to make HTTP requests

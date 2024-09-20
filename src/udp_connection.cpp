@@ -43,6 +43,7 @@ UdpConnection::UdpConnection(boost::asio::io_context& io, DbConnectionObservatio
 	_socket{io},
 	_nbiotHandler{_db, _jobPublisher}
 {
+	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
 }
 
 void UdpConnection::start()
@@ -56,8 +57,7 @@ void UdpConnection::start()
 	readRequest();
 
 	_status.shortStatus = "Waiting for requests";
-	_status.activeSince = date::floor<chrono::seconds>(chrono::system_clock::now());
-	_status.lastReloaded = _status.activeSince;
+	_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
 	_status.nbDownloads = 0;
 }
 
