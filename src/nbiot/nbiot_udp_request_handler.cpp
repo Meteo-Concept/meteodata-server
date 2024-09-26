@@ -108,8 +108,14 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::fun
 		config.id = 0;
 		bool r = _db.getLastConfiguration(uuid, config);
 		if (r && config.id) {
+			std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] protocol: "
+			          << "downlink " << config.id << " available"
+					  << std::endl;
 			sendResponse(config.config);
 			_db.updateConfigurationStatus(uuid, config.id, false);
+			std::cout << SD_NOTICE << "[THPLNBIOT UDP " << uuid << "] protocol: "
+					  << "downlink " << config.id << " sent"
+					  << std::endl;
 		}
 
 		std::string name;
@@ -150,7 +156,7 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::fun
 			}
 		}
 
-		if (oldest < newest) {
+		if (oldest < newest && _jobPublisher) {
 			_jobPublisher->publishJobsForPastDataInsertion(uuid, oldest, newest);
 		}
 	}
