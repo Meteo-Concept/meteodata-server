@@ -59,6 +59,8 @@ StatICDownloadScheduler::add(const CassUuid& station, const std::string& host, c
 void StatICDownloadScheduler::download()
 {
 	for (const auto & _downloader : _downloaders) {
+		if (_mustStop)
+			break;
 		try {
 			_downloader->download(_client);
 		} catch (const std::runtime_error& e) {

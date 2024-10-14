@@ -67,6 +67,8 @@ void FieldClimateApiDownloadScheduler::download()
 	++_status.nbDownloads;
 	_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 	for (const auto& downloader : _downloaders) {
+		if (_mustStop)
+			break;
 		try {
 			downloader->download(_client);
 			// Wait for 100ms to limit the number of requests

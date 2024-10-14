@@ -70,6 +70,8 @@ void SynopDownloadScheduler::reloadStations()
 void SynopDownloadScheduler::download()
 {
 	for (const SynopGroup& group : _groups) {
+		if (_mustStop)
+			break;
 		auto now = chrono::system_clock::now();
 		auto time = date::floor<chrono::minutes>(now - date::floor<date::days>(now));
 		if (time.count() % group.period.count() < MINIMAL_PERIOD_MINUTES) {

@@ -102,16 +102,16 @@ protected:
 	 */
 	chrono::minutes _offset{2};
 
+	/**
+	 * @brief Whether to stop collecting data
+	 */
+	bool _mustStop = false;
+
 private:
 	/**
 	 * @brief The timer used to periodically trigger the data downloads
 	 */
 	asio::basic_waitable_timer<chrono::steady_clock> _timer;
-
-	/**
-	 * @brief Whether to stop collecting data
-	 */
-	bool _mustStop = false;
 
 	/**
 	 * @brief The time between two measurements

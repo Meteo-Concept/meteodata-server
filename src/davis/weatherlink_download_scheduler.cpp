@@ -79,6 +79,8 @@ void WeatherlinkDownloadScheduler::download()
 void WeatherlinkDownloadScheduler::downloadRealTime(int minutes)
 {
 	for (const auto& downloader : _downloaders) {
+		if (_mustStop)
+			return;
 		if (downloader->getPollingPeriod() <= POLLING_PERIOD || minutes % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD)
 			genericDownload([&downloader](auto& client) { downloader->downloadRealTime(client); });
 	}
@@ -88,6 +90,8 @@ void WeatherlinkDownloadScheduler::downloadArchives(int minutes)
 {
 	if (minutes < POLLING_PERIOD) { // will trigger once per hour
 		for (const auto& downloader : _downloaders) {
+			if (_mustStop)
+				return;
 			genericDownload([&downloader](auto& client) { downloader->download(client); });
 		}
 	}

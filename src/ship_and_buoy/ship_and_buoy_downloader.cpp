@@ -53,6 +53,9 @@ ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext,
 
 void ShipAndBuoyDownloader::download()
 {
+	if (_mustStop)
+		return;
+
 	std::cout << SD_NOTICE << "[SHIP] measurement: " << "Now downloading SHIP and BUOY data " << std::endl;
 	auto ymd = date::year_month_day(date::floor<date::days>(chrono::system_clock::now() - date::days(1)));
 

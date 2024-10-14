@@ -85,6 +85,9 @@ void WeatherlinkApiv2DownloadScheduler::download()
 void WeatherlinkApiv2DownloadScheduler::downloadRealTime(int minutes)
 {
 	for (const auto& it : _downloadersAPIv2) {
+		if (_mustStop)
+			break;
+
 		// This function is called every POLLING_PERIOD minutes but
 		// stations have varying polling periods of their own, and we
 		// shouldn't download every POLLING_PERIOD minutes in some
@@ -124,6 +127,8 @@ void WeatherlinkApiv2DownloadScheduler::downloadArchives(int minutes)
 {
 	if (minutes < POLLING_PERIOD) { // will trigger once per hour
 		for (const auto& it : _downloadersAPIv2) {
+			if (_mustStop)
+				break;
 			if (it.first) { // only download archives from archived stations
 				genericDownload([&it](auto& client) { (it.second)->download(client); });
 			}

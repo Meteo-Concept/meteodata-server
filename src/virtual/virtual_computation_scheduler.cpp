@@ -54,6 +54,8 @@ void VirtualComputationScheduler::add(const VirtualStation& station)
 void VirtualComputationScheduler::download()
 {
 	for (const auto & _downloader : _downloaders) {
+		if (_mustStop)
+			break;
 		try {
 			_downloader->compute();
 		} catch (const std::runtime_error& e) {

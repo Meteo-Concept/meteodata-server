@@ -65,6 +65,9 @@ void MeteoFranceApiDownloadScheduler::add(const CassUuid& station, const std::st
 
 void MeteoFranceApiDownloadScheduler::download()
 {
+	if (_mustStop)
+		return;
+
 	auto now = chrono::system_clock::now();
 	auto daypoint = date::floor<date::days>(now);
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
@@ -83,6 +86,8 @@ void MeteoFranceApiDownloadScheduler::download()
 	// will trigger every POLLING_PERIOD
 	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
 	for (; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
+		if (_mustStop)
+			break;
 		downloader6m.download(_client, date::floor<chrono::seconds>(d));
 		ret = _db.insertLastSchedulerDownloadTime(SCHEDULER_ID, std::max(lastDownload, chrono::system_clock::to_time_t(d)));
 		if (!ret) {
