@@ -803,6 +803,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				} else {
 					_status.nbDownloads++;
 					_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
+					_lastArchive = _newestArchive;
 					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Archive data stored"
 							  << std::endl;
 
