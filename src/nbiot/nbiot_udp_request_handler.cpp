@@ -141,7 +141,7 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::fun
 			bool ret = _db.insertV2DataPoint(obs);
 			if (ret) {
 				std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
-						  << name << std::endl;
+					  << name << " for time " << date::format("%Y-%m-%dT%H:%M:%S+0000", obs.time) << std::endl;
 				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(obs.time);
 				oldest = std::min(obs.time, oldest);
 				newest = std::max(obs.time, newest);
