@@ -71,6 +71,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::string apiKey;
 	std::vector<std::string> namedStations;
 	std::string begin;
@@ -83,6 +86,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 		("apikey,k", po::value<std::string>(&apiKey), "Liveobjects API key with appropriate privileges")
 	;
 
@@ -186,7 +192,7 @@ int main(int argc, char** argv)
 	};
 	cass_log_set_callback(logCallback, nullptr);
 
-	DbConnectionObservations db{address, user, password};
+	DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 
 	std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;
 	db.getAllLiveobjectsStations(liveobjectsStations);

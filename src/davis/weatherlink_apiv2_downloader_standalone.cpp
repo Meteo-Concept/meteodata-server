@@ -70,6 +70,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::vector<std::string> namedStations;
 	std::string weatherlinkApiV2Key;
 	std::string weatherlinkApiV2Secret;
@@ -79,6 +82,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(&weatherlinkApiV2Key), "api.weatherlink.com/v2/ key")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(&weatherlinkApiV2Secret), "api.weatherlink.com/v2/ secret")
 	;
@@ -150,7 +156,7 @@ int main(int argc, char** argv)
 
 		// Start the Weatherlink downloaders workers (one per Weatherlink station)
 		std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>> >> weatherlinkStations;
-		DbConnectionObservations db{address, user, password};
+		DbConnectionObservations db{address, user, password, pgaddress, pguser, pgaddress};
 		db.getAllWeatherlinkAPIv2Stations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 

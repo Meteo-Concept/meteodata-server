@@ -55,6 +55,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::string fileName;
 	std::string inputFile;
 	std::string uuid;
@@ -88,6 +91,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 	;
 	desc.add(config);
 
@@ -136,7 +142,7 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		DbConnectionObservations db(address, user, password);
+		DbConnectionObservations db(address, user, password, pgaddress, pguser, pgpassword);
 		CassUuid station;
 		cass_uuid_from_string(uuid.c_str(), &station);
 

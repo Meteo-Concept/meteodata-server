@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([Meteodata],[2.30],[contact@meteo-concept.fr])
+AC_INIT([Meteodata],[3.0],[contact@meteo-concept.fr])
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([src/davis/vantagepro2_connector.h])
 AC_CONFIG_HEADERS([src/config.h])
@@ -72,6 +72,7 @@ BOOST_DEFUN([Property_Tree],
 )
 PKG_CHECK_MODULES(CASSANDRA, [cassandra])
 PKG_CHECK_MODULES(MYSQL, [mariadb mysqlclient])
+PKG_CHECK_MODULES(POSTGRES, [libpqxx])
 PKG_CHECK_MODULES(SYSTEMD, [libsystemd])
 PKG_CHECK_MODULES(MOSQUITTO, [libmosquitto])
 PKG_CHECK_MODULES(CASSOBS, [cassobs])

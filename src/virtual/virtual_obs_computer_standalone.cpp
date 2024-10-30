@@ -65,6 +65,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::vector<std::string> namedStations;
 	std::string apiKey;
 
@@ -73,6 +76,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 	;
 
 	po::options_description desc("Allowed options");
@@ -140,7 +146,7 @@ int main(int argc, char** argv)
 
 		// Start the Objenious downloaders workers (one per Objenious station)
 		std::vector<VirtualStation> virtualStations;
-		DbConnectionObservations db{address, user, password};
+		DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 		db.getAllVirtualStations(virtualStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 

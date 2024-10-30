@@ -68,6 +68,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::vector<std::string> namedStations;
 	std::string mqttAddress;
 	int mqttPort;
@@ -82,6 +85,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 		("mqtt-host", po::value<std::string>(&mqttAddress), "MQTT broker IP address or domain name")
 		("mqtt-port", po::value<int>(&mqttPort), "MQTT port")
 		("mqtt-user", po::value<std::string>(&mqttUser), "MQTT user name")
@@ -168,7 +174,7 @@ int main(int argc, char** argv)
 	cass_log_set_callback(logCallback, nullptr);
 
 	asio::io_context ioContext;
-	DbConnectionObservations db{address, user, password};
+	DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	auto client = mqtt::make_tls_sync_client(ioContext, mqttAddress, mqttPort);

@@ -34,8 +34,8 @@
 #include <date.h>
 #include <observation.h>
 #include <cassandra.h>
+#include <message.h>
 
-#include "../message.h"
 #include "../time_offseter.h"
 
 namespace meteodata

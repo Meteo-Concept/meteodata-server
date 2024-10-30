@@ -116,6 +116,9 @@ public:
 		std::string address;
 		std::string user;
 		std::string password;
+		std::string pgaddress;
+		std::string pguser;
+		std::string pgpassword;
 		std::string jobsDbAddress;
 		std::string jobsDbUsername;
 		std::string jobsDbPassword;

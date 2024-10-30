@@ -135,6 +135,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::string fileName;
 	std::string inputFile;
 
@@ -153,6 +156,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 		("weatherlink-apiv2-key,k", po::value<std::string>(), "Ignored")
 		("weatherlink-apiv2-secret,s", po::value<std::string>(), "Ignored")
 		("input-file", po::value<std::string>(&inputFile), "input CSV file containing the SYNOP messages (in the OGIMET getsynop format)")
@@ -185,7 +191,7 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnectionObservations db(address, user, password);
+		DbConnectionObservations db(address, user, password, pgaddress, pguser, pgpassword);
 
 		cass_log_set_level(CASS_LOG_INFO);
 		CassLogCallback logCallback = [](const CassLogMessage* message, void*) -> void {

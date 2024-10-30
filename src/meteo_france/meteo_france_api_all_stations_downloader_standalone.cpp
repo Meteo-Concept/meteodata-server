@@ -72,6 +72,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::string apiKey;
 	std::vector<std::string> namedStations;
 	std::string begin;
@@ -86,6 +89,9 @@ int main(int argc, char** argv)
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
 		("meteofrance-key,k", po::value<std::string>(&apiKey), "Météo France API key from an appropriate subscription")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 	;
 
 	po::options_description desc("Allowed options");
@@ -123,7 +129,7 @@ int main(int argc, char** argv)
 		return 0;
 	}
 
-	DbConnectionObservations db{address, user, password};
+	DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 
 	sys_seconds beginDate;
 	if (vm.count("begin")) {

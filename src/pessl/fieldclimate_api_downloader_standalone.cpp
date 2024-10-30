@@ -65,6 +65,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::vector<std::string> namedStations;
 	std::string apiId;
 	std::string apiSecret;
@@ -74,6 +77,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 		("fieldclimate-key,k", po::value<std::string>(&apiId), "FieldClimate API key public part")
 		("fieldclimate-secret,s", po::value<std::string>(&apiSecret), "FieldClimate API key secret part");
 
@@ -141,7 +147,7 @@ int main(int argc, char** argv)
 
 		// Start the FieldClimate downloaders workers (one per Pessl station, but all sharing the same Curl client)
 		std::vector<std::tuple<CassUuid, std::string, int, std::map<std::string, std::string>>> fieldClimateStations;
-		DbConnectionObservations db{address, user, password};
+		DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 		db.getAllFieldClimateApiStations(fieldClimateStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
