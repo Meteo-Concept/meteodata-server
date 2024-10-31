@@ -80,7 +80,7 @@ namespace meteodata
 MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoServerConfiguration&& config) :
 	_ioContext{ioContext},
 	_vp2DirectConnectAcceptor{ioContext},
-	_db{config.address, config.user, config.password, config.pgaddress, config.pguser, config.pgaddress},
+	_db{config.address, config.user, config.password, config.pgaddress, config.pguser, config.pgpassword},
 	_vp2DirectConnectorStopped{true},
 	_controlConnectionStopped{true},
 	_signalTimer{ioContext},

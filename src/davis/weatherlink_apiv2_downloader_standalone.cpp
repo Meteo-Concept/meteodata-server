@@ -156,7 +156,7 @@ int main(int argc, char** argv)
 
 		// Start the Weatherlink downloaders workers (one per Weatherlink station)
 		std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>> >> weatherlinkStations;
-		DbConnectionObservations db{address, user, password, pgaddress, pguser, pgaddress};
+		DbConnectionObservations db{address, user, password, pgaddress, pguser, pgpassword};
 		db.getAllWeatherlinkAPIv2Stations(weatherlinkStations);
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
