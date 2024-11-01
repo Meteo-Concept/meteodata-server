@@ -83,6 +83,7 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 	std::ostream requestStream(&request);
 
 	bool insertionOk = true;
+
 	for (int departement : DEPARTEMENTS) {
 		client.setHeader("apikey", _apiKey);
 		client.setHeader("Content-Type", "application/json");
@@ -97,6 +98,8 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 				  << "GET " << osUrl.str() << " HTTP/1.1\n"
 				  << "Host: " << APIHOST << "\n"
 				  << "Accept: application/json\n";
+
+		std::vector<Observation> allObs;
 
 		CURLcode ret = client.download(std::string{BASE_URL} + osUrl.str(),
 				[&](const std::string& body) {
@@ -113,7 +116,9 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 					auto st = _stations.find(mfId);
 					if (m.looksValid() && st != _stations.end()) {
 						auto&& station = st->second;
-						int ret = _db.insertV2DataPoint(m.getObservation(station));
+						Observation o = m.getObservation(station);
+						allObs.push_back(o);
+						int ret = _db.insertV2DataPoint(o);
 						if (!ret) {
 							std::cerr << SD_ERR << "[MeteoFrance " << station << "] measurement: "
 								  << "Failed to insert archive observation for station " << station << std::endl;
@@ -123,12 +128,19 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 				}
 			} catch (const std::exception& e) {
 				std::cerr << SD_ERR << "[MeteoFrance Bulk] protocol: "
-						  << "Failed to receive or parse an MeteoFrance data message: " << e.what() << std::endl;
+					  << "Failed to receive or parse an MeteoFrance data message: " << e.what() << std::endl;
 			}
 		});
 
+
 		if (ret != CURLE_OK) {
 			logAndThrowCurlError(client);
+		}
+
+		bool inserted = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (!inserted) {
+			std::cerr << SD_ERR << "[MeteoFrance Bulk] measurement: "
+				  << "Failed to insert entries in TimescaleDB" << std::endl;
 		}
 
 		// cap at 50 requests / minute

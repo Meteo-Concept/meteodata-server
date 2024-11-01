@@ -132,7 +132,8 @@ void MeteoFranceApiDownloader::download(CurlWrapper& client, const date::sys_sec
 					MfRadomeMessage m;
 					m.parse(std::move(entry.second), timestamp);
 					if (m.looksValid()) {
-						int ret = _db.insertV2DataPoint(m.getObservation(_station));
+						Observation o = m.getObservation(_station);
+						int ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 						if (!ret) {
 							std::cerr << SD_ERR << "[MeteoFrance " << _station << "] measurement: "
 									  << "Failed to insert archive observation for station " << _stationName << std::endl;

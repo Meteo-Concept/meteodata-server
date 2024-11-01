@@ -111,12 +111,16 @@ public:
 		date::sys_seconds s = date::floor<chrono::seconds>(chrono::system_clock::now());
 		date::sys_seconds e;
 
+		std::vector<Observation> allObs;
+
 		int ret = 0;
 		for (unsigned int lineNumber = headerLines + 1 ; std::getline(input, line) ; lineNumber++) {
 			lineIterator = std::istringstream{line};
 			Msg m{lineIterator, _tz, _fields};
 			if (m) {
-				ret = _db.insertV2DataPoint(m.getObservation(_station));
+				Observation o = m.getObservation(_station);
+				allObs.push_back(o);
+				ret = _db.insertV2DataPoint(o);
 				if (!ret) {
 					std::cerr << SD_ERR << "[CsvImporter] measurement: failed to insert entry at line " << lineNumber
 							  << std::endl;
@@ -128,6 +132,8 @@ public:
 				}
 			}
 		}
+
+		valid = valid && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 
 		if (valid && updateLastArchiveDownloadTime) {
 			start = s;

@@ -169,6 +169,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	client.setHeader("X-Api-Secret", _apiSecret);
 
 	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
+		std::vector<Observation> allObs;
 		for (const auto& u : _uuids) {
 			std::istringstream contentStream(content); // rewind
 
@@ -182,7 +183,9 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 
 			int ret = 1;
 			for (auto&& it = page.begin() ; it != page.end() && ret ; ++it) {
-				ret = _db.insertV2DataPoint(it->getObservation(u));
+				auto o = it->getObservation(u);
+				allObs.push_back(o);
+				ret = _db.insertV2DataPoint(o);
 				if (!ret) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 							  << "Failed to insert real-time observation for substation " << u << std::endl;
@@ -193,6 +196,11 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 							  << "Failed to cache the rainfall for substation " << u << std::endl;
 				}
 			}
+		}
+		_db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (!ret) {
+			std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
+				  << "Failed to insert real-time observation in TiemscaleDB for station " << _stationName << std::endl;
 		}
 	});
 
@@ -288,11 +296,12 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			auto archiveDay = date::floor<date::days>(_lastArchive);
 			auto referenceTimestamp = _lastArchive;
 
+			std::vector<Observation> allObs;
 			for (const auto& u : _uuids) {
 				std::istringstream contentStream(content); // rewind
 
 				std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: "
-						  << " parsing output for substation " << u << std::endl;
+					  << " parsing output for substation " << u << std::endl;
 				WeatherlinkApiv2ArchivePage page(_lastArchive, &_timeOffseter);
 				if (_substations.empty())
 					page.parse(contentStream);
@@ -334,7 +343,9 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 					archiveDay += date::days(1);
 				}
 				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
-					int ret = _db.insertV2DataPoint(m.getObservation(u));
+					auto o = m.getObservation(u);
+					allObs.push_back(o);
+					int ret = _db.insertV2DataPoint(o);
 					if (!ret) {
 						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 								  << "failed to insert archive observation for substation " << u << std::endl;
@@ -358,6 +369,12 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				if (_jobPublisher) {
 					_jobPublisher->publishJobsForPastDataInsertion(_station, _oldestArchive, _newestArchive);
 				}
+			}
+
+			bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+			if (!insertionOk) {
+				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
+					  << "couldn't insert data in TimescaleDB" << std::endl;
 			}
 		});
 

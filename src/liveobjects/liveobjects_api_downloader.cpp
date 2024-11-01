@@ -206,7 +206,9 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 					date::sys_seconds timestamp;
 					auto m = LiveobjectsMessage::parseMessage(_db, entry.second, _station, timestamp);
 					if (m && m->looksValid()) {
-						int ret = _db.insertV2DataPoint(m->getObservation(_station));
+						auto o = m->getObservation(_station);
+						int ret = _db.insertV2DataPoint(o)
+						       && _db.insertV2DataPointInTimescaleDB(o);
 						if (!ret) {
 							std::cerr << SD_ERR << "[Liveobjects " << _station << "] measurement: "
 									  << "Failed to insert archive observation for station " << _stationName << std::endl;

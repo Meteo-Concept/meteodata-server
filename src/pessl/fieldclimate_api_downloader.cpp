@@ -174,8 +174,11 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 								  << "couldn't delete replaced observations" << std::endl;
 					archiveDay += date::days(1);
 				}
+				std::vector<Observation> allObs;
 				for (const FieldClimateApiArchiveMessage& m : collection) {
-					int ret = _db.insertV2DataPoint(m.getObservation(_station)); // Cannot insert V1
+					auto o = m.getObservation(_station);
+					allObs.push_back(o);
+					int ret = _db.insertV2DataPoint(o); // Cannot insert V1
 					if (!ret) {
 						std::cerr << SD_ERR << "[Pessl " << _station << "] measurement: "
 								  << "Failed to insert archive observation for station " << _stationName << std::endl;
@@ -189,14 +192,20 @@ void FieldClimateApiDownloader::download(CurlWrapper& client)
 					insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 					if (!insertionOk) {
 						std::cerr << SD_ERR << "[Pessl " << _station << "] management: "
-								  << "couldn't update last archive download time for station " << _stationName
-								  << std::endl;
+							  << "couldn't update last archive download time for station " << _stationName
+							  << std::endl;
 					} else {
 						_lastArchive = newestTimestamp;
 					}
 
 					if (_jobPublisher)
 						_jobPublisher->publishJobsForPastDataInsertion(_station, oldestTimestamp, newestTimestamp);
+				}
+				bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+				if (!ret) {
+					std::cerr << SD_ERR << "[Pessl " << _station << "] measurement: "
+						  << "Failed to insert data in TimescaleDB for station " << _stationName
+						  << std::endl;
 				}
 			}
 		});
@@ -245,10 +254,11 @@ void FieldClimateApiDownloader::downloadRealTime(CurlWrapper& client)
 
 		// we expect exactly one message in the collection
 		const FieldClimateApiArchiveMessage& m = *(collection.begin());
-		int ret = _db.insertV2DataPoint(m.getObservation(_station));
+		auto o = m.getObservation(_station);
+		int ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 		if (!ret) {
 			std::cerr << SD_ERR << "[Pessl " << _station << "] measurement: "
-					  << "failed to insert realtime observation for station " << _stationName << std::endl;
+				  << "failed to insert realtime observation for station " << _stationName << std::endl;
 			insertionOk = false;
 		}
 

@@ -132,7 +132,7 @@ void VirtualObsComputer::doCompute(const date::sys_seconds& begin, const date::s
 			}
 		}
 
-		insertionOk = _db.insertV2DataPoint(final);
+		insertionOk = _db.insertV2DataPoint(final) && _db.insertV2DataPointInTimescaleDB(final);
 
 		if (insertionOk) {
 			if (target < oldestArchive)

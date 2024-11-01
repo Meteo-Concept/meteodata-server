@@ -67,6 +67,8 @@ void SynopStandalone::start(const std::string& file)
 
 	std::size_t lineCount = 0;
 
+	std::vector<Observation> allObs;
+
 	std::ifstream input{file};
 	while (input) {
 		std::string line;
@@ -103,7 +105,9 @@ void SynopStandalone::start(const std::string& file)
 				timeOffseter.setMeasureStep(pollingPeriod);
 
 				OgimetSynop synop{m, &timeOffseter};
-				_db.insertV2DataPoint(synop.getObservations(uuidIt->second));
+				auto o = synop.getObservations(uuidIt->second);
+				allObs.push_back(o);
+				_db.insertV2DataPoint(o);
 				std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 				std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);
 				auto it = std::find_if(m._precipitation.begin(), m._precipitation.end(),
@@ -125,6 +129,11 @@ void SynopStandalone::start(const std::string& file)
 		} else {
 			std::cerr << "Record looks invalid, discarding..." << std::endl;
 		}
+	}
+
+	bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+	if (!ret) {
+		std::cerr << "Failed to insert records in TimescaleDB" << std::endl;
 	}
 }
 

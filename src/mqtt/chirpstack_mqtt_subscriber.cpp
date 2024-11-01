@@ -93,7 +93,8 @@ void ChirpstackMqttSubscriber::processArchive(const mqtt::string_view& topicName
 
 	int ret = false;
 	if (msg && msg->looksValid()) {
-		ret = _db.insertV2DataPoint(msg->getObservation(station));
+		Observation o = msg->getObservation(station);
+		ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 	} else {
 		std::cerr << SD_WARNING << "[MQTT Chirpstack " << station << "] measurement: "
 				  << "Record looks invalid, discarding " << std::endl;

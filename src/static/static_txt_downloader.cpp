@@ -112,7 +112,9 @@ void StatICTxtDownloader::download(CurlWrapper& client)
 				m.computeRainfall(f1h, *dayRainfall);
 		}
 
-		bool ret = _db.insertV2DataPoint(m.getObservation(_station));
+		auto o = m.getObservation(_station);
+		bool ret = _db.insertV2DataPoint(o) &&
+			   _db.insertV2DataPointInTimescaleDB(o);
 		if (ret) {
 			std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: " << "Data from StatIC file from "
 					  << _query << " inserted into database" << std::endl;

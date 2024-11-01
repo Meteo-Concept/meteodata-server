@@ -108,7 +108,8 @@ void MBDataTxtDownloader::download(CurlWrapper& client)
 		char uuidStr[CASS_UUID_STRING_LENGTH];
 		cass_uuid_string(_station, uuidStr);
 
-		bool ret = _db.insertV2DataPoint(m->getObservation(_station));
+		Observation o = m->getObservation(_station);
+		bool ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 		if (ret) {
 			std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: " << "Data from station " << _stationName
 					  << " inserted into database" << std::endl;

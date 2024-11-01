@@ -71,6 +71,8 @@ void ShipAndBuoyDownloader::download()
 			   if (!field.empty())
 				   fields.emplace_back(std::move(field));
 
+		std::vector<Observation> allObs;
+
 		while (std::getline(responseStream, line)) {
 			   lineIterator = std::istringstream{line};
 			   MeteoFranceShipAndBuoy m{lineIterator, fields};
@@ -81,6 +83,7 @@ void ShipAndBuoyDownloader::download()
 				   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second << "] protocol: "
 							 << "UUID identified: " << uuidIt->second << std::endl;
 				   auto obs = m.getObservation(uuidIt->second);
+				   allObs.push_back(obs);
 				   bool ret = _db.insertV2DataPoint(obs);
 				   if (ret) {
 					   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second
@@ -97,6 +100,11 @@ void ShipAndBuoyDownloader::download()
 				   if (_jobPublisher)
 					   _jobPublisher->publishJobsForPastDataInsertion(uuidIt->second, obs.time, obs.time);
 			   }
+		}
+
+		bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (!ret) {
+			std::cerr << SD_ERR << "[SHIP] measurement: Failed to insert SHIP and BUOY data into TimescaleDB" << std::endl;
 		}
 	});
 

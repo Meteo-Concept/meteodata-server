@@ -117,7 +117,14 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 					auto st = _stations.find(mfId);
 					if (m.looksValid() && st != _stations.end()) {
 						auto&& station = st->second;
-						obs.push_back(m.getObservation(station));
+						auto o = m.getObservation(station);
+						obs.push_back(o);
+						int ret = _db.insertV2DataPoint(o);
+						if (!ret) {
+							std::cerr << SD_ERR << "[MeteoFrance] measurement: "
+								  << "Failed to insert archive observation in Cassandra" << std::endl;
+							insertionOk = false;
+						}
 					}
 				}
 

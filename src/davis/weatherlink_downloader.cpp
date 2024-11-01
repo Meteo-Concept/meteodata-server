@@ -95,7 +95,8 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 
 		WeatherlinkApiv1RealtimeMessage message(&_timeOffseter);
 		message.parse(responseStream);
-		int dbRet = _db.insertV2DataPoint(message.getObservation(_station));
+		Observation o = message.getObservation(_station);
+		int dbRet = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 
 		if (!dbRet) {
 			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] measurement: "
@@ -208,13 +209,16 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			  << std::endl;
 
 		i = 0;
+		std::vector<Observation> allObs;
 		for (auto&& message : messages) {
 			auto lastArchive = message.getTimestamp();
 			if (lastArchive < _oldestArchive)
 				_oldestArchive = lastArchive;
 			if (lastArchive > _newestArchive)
 				_newestArchive = lastArchive;
-			ret = _db.insertV2DataPoint(message.getObservation(_station));
+			Observation o = message.getObservation(_station);
+			allObs.push_back(o);
+			ret = _db.insertV2DataPoint(o);
 			// avoid flooding the log too much
 			if (i % LOG_FLOODING_LIMIT == 0) {
 				std::cerr << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: "
@@ -224,6 +228,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			}
 			i++;
 		}
+		ret = ret && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 
 		if (!messages.empty() && ret) {
 			std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: " << "archive data stored\n"

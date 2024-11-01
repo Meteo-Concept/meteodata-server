@@ -170,6 +170,8 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		const VantagePro2ArchiveMessage::ArchiveDataPoint* pastLastDataPoint =
 				dataPoint + (size / sizeof(VantagePro2ArchiveMessage::ArchiveDataPoint));
 
+		std::vector<Observation> allObs;
+
 		for (; dataPoint < pastLastDataPoint && ret ; ++dataPoint) {
 			VantagePro2ArchiveMessage message{*dataPoint, &timeOffseter};
 
@@ -201,13 +203,17 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 				}
 
 				start = end;
-				ret = _db.insertV2DataPoint(message.getObservation(uuid));
+				Observation o = message.getObservation(uuid);
+				allObs.push_back(o);
+				ret = _db.insertV2DataPoint(o);
 			} else {
 				std::cerr << SD_WARNING << "[VP2 HTTP " << uuid << "] measurement: "
 						  << "record looks invalid for station " << name << ", discarding..." << std::endl;
 			}
 			//Otherwise, just discard
 		}
+
+		ret = ret && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 
 		if (ret) {
 			std::cout << SD_DEBUG << "[VP2 HTTP " << uuid << "] measurement: " << "archive data stored for station "

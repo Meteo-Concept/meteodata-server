@@ -154,7 +154,8 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::fun
 		date::sys_seconds oldest = date::floor<chrono::seconds>(chrono::system_clock::now());
 		date::sys_seconds newest = date::sys_seconds{};
 
-		for (const Observation& obs : msg.getObservations(uuid)) {
+		auto allObs = msg.getObservations(uuid);
+		for (const Observation& obs : allObs) {
 			bool ret = _db.insertV2DataPoint(obs);
 			if (ret) {
 				std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
@@ -172,6 +173,16 @@ void NbiotUdpRequestHandler::processRequest(const std::string& rawBody, std::fun
 						  << name << "! Trying the other ones..." << std::endl;
 			}
 		}
+
+		bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (ret) {
+			std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
+				  << name << std::endl;
+		} else {
+			std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] measurement: " << "failed to store observations for station "
+				  << name << std::endl;
+		}
+
 
 		if (oldest < newest && _jobPublisher) {
 			_jobPublisher->publishJobsForPastDataInsertion(uuid, oldest, newest);

@@ -90,6 +90,8 @@ bool Cimel440204Importer::doImport(std::istream& input, date::sys_seconds& start
 	start = date::floor<chrono::seconds>(now);
 	end = date::floor<chrono::seconds>(chrono::system_clock::from_time_t(0));
 
+	std::vector<Observation> allObs;
+
 	for (;;) {
 		Observation o;
 
@@ -152,13 +154,20 @@ bool Cimel440204Importer::doImport(std::istream& input, date::sys_seconds& start
 			o.rainrate = {rainrate != 0xFF, static_cast<float>(rainrate)};
 			o.leafwetness_timeratio1 = {leafwetness != 0xFF, static_cast<float>(leafwetness) * 60.};
 
+			allObs.push_back(o);
 			bool ret = _db.insertV2DataPoint(o);
 			if (!ret) {
 				std::cerr << SD_ERR << "[Cimel440204 " << _station << "]"
-						  << " measurement: failed to insert datapoint"
-						  << std::endl;
+					  << " measurement: failed to insert datapoint"
+					  << std::endl;
 			}
 		}
+	}
+
+	bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+	if (!ret) {
+		std::cerr << SD_ERR << "[Cimel440204 " << _station << "] measurement: "
+			  << "Failed to insert into TimescaleDB" << std::endl;
 	}
 
 	return true;

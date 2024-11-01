@@ -91,6 +91,9 @@ void SynopDownloadScheduler::downloadGroup(const std::string& group, const chron
 		std::istringstream bodyIterator(body);
 
 		std::string line;
+
+		std::vector<Observation> allObs;
+
 		while (std::getline(bodyIterator, line)) {
 			std::istringstream lineIterator{line};
 
@@ -117,7 +120,9 @@ void SynopDownloadScheduler::downloadGroup(const std::string& group, const chron
 					timeOffseter.setMeasureStep(pollingPeriod);
 
 					OgimetSynop synop{m, &timeOffseter};
-					_db.insertV2DataPoint(synop.getObservations(station));
+					auto o = synop.getObservations(station);
+					_db.insertV2DataPoint(o);
+					allObs.push_back(o);
 					std::cout << SD_DEBUG << "[SYNOP] measurement: " << "Inserted into database" << std::endl;
 
 					std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
@@ -140,8 +145,13 @@ void SynopDownloadScheduler::downloadGroup(const std::string& group, const chron
 				}
 			} else {
 				std::cerr << SD_WARNING << "[SYNOP] measurement: " << "Record looks invalid, discarding..."
-						  << std::endl;
+					  << std::endl;
 			}
+		}
+
+		bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (!ret) {
+			std::cerr << SD_ERR << "[SYNOP] measurement: Failed to insert observations in TimescaleDB" << std::endl;
 		}
 	});
 

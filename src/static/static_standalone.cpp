@@ -142,9 +142,9 @@ int main(int argc, char** argv)
 			}
 
 			StatICTxtDownloader downloader{db, std::get<0>(station),
-										   std::get<1>(station), std::get<2>(station),
-										   std::get<3>(station), std::get<4>(station),
-										   std::get<5>(station)};
+				std::get<1>(station), std::get<2>(station),
+				std::get<3>(station), std::get<4>(station),
+				std::get<5>(station)};
 			try {
 				downloader.download(client);
 				retry = 0;

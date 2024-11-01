@@ -123,7 +123,8 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	VantagePro2ArchiveMessage msg{data, &timeOffseter};
 	int ret = false;
 	if (msg.looksValid()) {
-		ret = _db.insertV2DataPoint(msg.getObservation(station));
+		Observation o = msg.getObservation(station);
+		ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 	} else {
 		std::cerr << SD_WARNING << "[MQTT " << station << "] measurement: "
 			<< "Record looks invalid, discarding... (for information, timestamp says " << msg.getTimestamp()
