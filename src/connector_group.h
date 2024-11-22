@@ -29,7 +29,7 @@
 #include <vector>
 
 #include <boost/asio.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 namespace meteodata
 {

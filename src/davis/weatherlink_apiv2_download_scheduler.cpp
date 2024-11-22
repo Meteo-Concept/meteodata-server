@@ -32,7 +32,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <date.h>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "../time_offseter.h"
 #include "weatherlink_apiv2_download_scheduler.h"

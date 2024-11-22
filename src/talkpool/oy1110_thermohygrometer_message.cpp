@@ -29,7 +29,7 @@
 #include <boost/json.hpp>
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "oy1110_thermohygrometer_message.h"
 #include "hex_parser.h"

@@ -30,7 +30,7 @@
 #include <boost/beast.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/ip/udp.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "connector.h"
 #include "async_job_publisher.h"

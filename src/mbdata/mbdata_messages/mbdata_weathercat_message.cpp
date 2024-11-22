@@ -26,7 +26,7 @@
 #include <chrono>
 #include <regex>
 
-#include <message.h>
+#include <cassobs/message.h>
 #include <date.h>
 
 #include "../../time_offseter.h"

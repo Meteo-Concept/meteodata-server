@@ -35,7 +35,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "async_job_publisher.h"
 #include "time_offseter.h"

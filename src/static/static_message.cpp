@@ -29,7 +29,7 @@
 #include <string>
 
 #include <date.h>
-#include <message.h>
+#include <cassobs/message.h>
 
 #include "../time_offseter.h"
 #include "../davis/vantagepro2_message.h"

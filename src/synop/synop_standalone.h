@@ -30,7 +30,7 @@
 
 #include <cassandra.h>
 #include <date.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 
 namespace meteodata

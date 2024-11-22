@@ -29,7 +29,7 @@
 #include <boost/asio.hpp>
 #include <systemd/sd-daemon.h>
 #include <date.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include <map>
 #include <vector>

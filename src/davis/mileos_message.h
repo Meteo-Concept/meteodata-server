@@ -30,7 +30,7 @@
 
 #include <date.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "../time_offseter.h"
 

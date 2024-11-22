@@ -32,7 +32,7 @@
 #include <iostream>
 
 #include <cassandra.h>
-#include <message.h>
+#include <cassobs/message.h>
 #include <boost/property_tree/ptree.hpp>
 
 #include "abstract_weatherlink_api_message.h"

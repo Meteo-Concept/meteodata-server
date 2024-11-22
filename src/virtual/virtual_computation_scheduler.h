@@ -33,8 +33,8 @@
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
-#include <virtual_station.h>
+#include <cassobs/dbconnection_observations.h>
+#include <cassobs/virtual_station.h>
 
 #include "async_job_publisher.h"
 #include "abstract_download_scheduler.h"

@@ -32,7 +32,7 @@
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "curl_wrapper.h"
 #include "connector.h"

@@ -34,7 +34,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <boost/asio/io_context.hpp>
 #include <date.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "../cassandra_utils.h"
 #include "mbdata_txt_downloader.h"

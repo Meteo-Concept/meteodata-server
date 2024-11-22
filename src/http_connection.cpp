@@ -27,7 +27,7 @@
 #include <boost/system/error_code.hpp>
 #include <chrono>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "http_connection.h"
 #include "async_job_publisher.h"

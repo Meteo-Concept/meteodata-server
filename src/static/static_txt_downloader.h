@@ -36,7 +36,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <date.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "time_offseter.h"
 #include "curl_wrapper.h"

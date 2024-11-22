@@ -29,7 +29,7 @@
 #include <systemd/sd-daemon.h>
 
 #include <date.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "mileos_message.h"
 #include "vantagepro2_message.h"

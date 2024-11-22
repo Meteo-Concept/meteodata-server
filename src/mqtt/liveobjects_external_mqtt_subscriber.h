@@ -26,7 +26,7 @@
 #include <vector>
 #include <boost/asio/io_context.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
 #include "liveobjects_mqtt_subscriber.h"

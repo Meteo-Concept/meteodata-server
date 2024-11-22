@@ -26,7 +26,7 @@
 
 #include <date.h>
 #include <tz.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "vantagepro2_archive_message.h"
 #include "vantagepro2_message.h"

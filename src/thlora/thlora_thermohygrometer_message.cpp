@@ -28,7 +28,7 @@
 
 #include <boost/json.hpp>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "thlora_thermohygrometer_message.h"
 #include "hex_parser.h"

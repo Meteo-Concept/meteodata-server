@@ -27,7 +27,7 @@
 
 #include <date.h>
 #include <tz.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "ogimet_synop.h"
 #include "synop_decoder/synop_message.h"

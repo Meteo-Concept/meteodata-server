@@ -29,7 +29,7 @@
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "dragino/thplnbiot_message.h"
 #include "hex_parser.h"

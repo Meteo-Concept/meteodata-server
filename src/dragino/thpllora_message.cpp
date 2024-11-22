@@ -26,7 +26,7 @@
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <boost/json.hpp>
 
 #include "thpllora_message.h"

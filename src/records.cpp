@@ -37,7 +37,7 @@
 #include <boost/program_options.hpp>
 #include <cassandra.h>
 #include <date.h>
-#include <dbconnection_records.h>
+#include <cassobs/dbconnection_records.h>
 
 #include "config.h"
 

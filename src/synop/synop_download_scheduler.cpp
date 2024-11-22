@@ -28,7 +28,7 @@
 #include <iomanip>
 
 #include <systemd/sd-daemon.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "cassandra_utils.h"
 #include "synop/ogimet_synop.h"

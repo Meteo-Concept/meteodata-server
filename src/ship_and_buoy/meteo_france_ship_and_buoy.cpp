@@ -27,7 +27,7 @@
 #include <map>
 
 #include <date.h>
-#include <message.h>
+#include <cassobs/message.h>
 
 #include "meteo_france_ship_and_buoy.h"
 #include "../davis/vantagepro2_message.h"

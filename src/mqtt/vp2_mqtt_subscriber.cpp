@@ -30,7 +30,7 @@
 #include <systemd/sd-daemon.h>
 
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
 #include "../time_offseter.h"

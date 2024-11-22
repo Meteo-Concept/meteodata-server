@@ -32,7 +32,7 @@
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/system/error_code.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <cassandra.h>
 #include <date.h>
 

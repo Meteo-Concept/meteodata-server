@@ -31,7 +31,7 @@
 #include <string>
 #include <memory>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "http_connection.h"
 #include "connector.h"

@@ -28,7 +28,7 @@
 #include <iterator>
 #include <algorithm>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "vantagepro2_message.h"
 

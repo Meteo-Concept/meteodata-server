@@ -31,7 +31,7 @@
 
 #include <boost/asio.hpp>
 #include <date.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <cassandra.h>
 
 #include "../../time_offseter.h"

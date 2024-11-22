@@ -38,7 +38,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "../http_utils.h"
 #include "../time_offseter.h"

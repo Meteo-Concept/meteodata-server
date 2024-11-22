@@ -25,7 +25,7 @@
 #include <boost/system/error_code.hpp>
 #include <chrono>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "udp_connection.h"
 #include "nbiot/nbiot_udp_request_handler.h"

@@ -27,9 +27,9 @@
 #include <memory>
 #include <initializer_list>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/json.hpp>
 #include <date.h>

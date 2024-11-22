@@ -29,7 +29,7 @@
 #include <fstream>
 #include <systemd/sd-daemon.h>
 #include <boost/asio/io_context.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <date.h>
 
 #include "cassandra_utils.h"

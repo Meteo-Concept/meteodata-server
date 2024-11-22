@@ -29,8 +29,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
-#include <dbconnection_minmax.h>
-#include <dbconnection_jobs.h>
+#include <cassobs/dbconnection_minmax.h>
+#include <cassobs/dbconnection_jobs.h>
 #include <date.h>
 
 #include "config.h"

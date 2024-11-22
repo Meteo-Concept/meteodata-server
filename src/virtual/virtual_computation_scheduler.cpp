@@ -29,7 +29,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "virtual/virtual_computation_scheduler.h"
 #include "virtual/virtual_obs_computer.h"

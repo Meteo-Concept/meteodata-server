@@ -27,7 +27,7 @@
 #include <boost/json.hpp>
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "lsn50v2_probe6470_message.h"
 #include "hex_parser.h"

@@ -38,7 +38,7 @@
 #include <cassandra.h>
 #include <date.h>
 #include <tz.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 
 #include "time_offseter.h"

@@ -29,7 +29,7 @@
 
 #include <boost/json.hpp>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "barani_anemometer_2023_message.h"
 #include "hex_parser.h"

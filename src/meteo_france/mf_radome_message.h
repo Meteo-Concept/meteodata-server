@@ -26,7 +26,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <date/date.h>
 
 namespace meteodata

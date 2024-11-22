@@ -24,9 +24,9 @@
 #include <iostream>
 #include <systemd/sd-daemon.h>
 
-#include <dbconnection_minmax.h>
-#include <dbconnection_month_minmax.h>
-#include <dbconnection_normals.h>
+#include <cassobs/dbconnection_minmax.h>
+#include <cassobs/dbconnection_month_minmax.h>
+#include <cassobs/dbconnection_normals.h>
 
 #include "minmax_computer.h"
 #include "cassandra_utils.h"

@@ -28,7 +28,7 @@
 #include <iostream>
 
 #include <mqtt_client_cpp.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <date.h>
 #include <cassandra.h>
 #include <boost/property_tree/json_parser.hpp>

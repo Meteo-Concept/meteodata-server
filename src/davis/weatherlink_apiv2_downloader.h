@@ -35,7 +35,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include "async_job_publisher.h"
 
 #include "../time_offseter.h"

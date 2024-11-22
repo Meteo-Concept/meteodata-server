@@ -27,7 +27,7 @@
 #include <string>
 
 #include <boost/asio.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "connector.h"
 #include "connector_group.h"

@@ -28,7 +28,7 @@
 #include <chrono>
 
 #include <date.h>
-#include <message.h>
+#include <cassobs/message.h>
 
 #include "wlk_message.h"
 #include "vantagepro2_message.h"

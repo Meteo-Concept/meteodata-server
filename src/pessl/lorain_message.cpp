@@ -31,8 +31,8 @@
 
 #include <boost/json.hpp>
 #include <cassandra.h>
-#include <observation.h>
-#include <dbconnection_observations.h>
+#include <cassobs/observation.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "lorain_message.h"
 #include "../hex_parser.h"

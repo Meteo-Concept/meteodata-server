@@ -27,8 +27,8 @@
 #include <cmath>
 
 #include <cassandra.h>
-#include <dbconnection_observations.h>
-#include <observation.h>
+#include <cassobs/dbconnection_observations.h>
+#include <cassobs/observation.h>
 #include <systemd/sd-daemon.h>
 
 #include "barani_rain_gauge_message.h"

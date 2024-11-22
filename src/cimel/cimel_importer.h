@@ -35,8 +35,8 @@
 #include <cassandra.h>
 #include <date.h>
 #include <tz.h>
-#include <dbconnection_observations.h>
-#include <message.h>
+#include <cassobs/dbconnection_observations.h>
+#include <cassobs/message.h>
 
 #include "time_offseter.h"
 #include "async_job_publisher.h"

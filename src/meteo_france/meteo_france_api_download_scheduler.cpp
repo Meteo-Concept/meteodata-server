@@ -33,7 +33,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <date.h>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "meteo_france/meteo_france_api_download_scheduler.h"
 #include "meteo_france/meteo_france_api_downloader.h"

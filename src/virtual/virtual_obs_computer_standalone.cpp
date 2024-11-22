@@ -35,9 +35,9 @@
 #include <boost/program_options.hpp>
 #include <boost/json.hpp>
 #include <boost/json/src.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <cassandra.h>
-#include <virtual_station.h>
+#include <cassobs/virtual_station.h>
 
 #include "config.h"
 #include "../cassandra_utils.h"

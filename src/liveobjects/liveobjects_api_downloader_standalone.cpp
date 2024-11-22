@@ -30,7 +30,7 @@
 #include <thread>
 
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <boost/asio.hpp>
 #include <date.h>
 #include <boost/program_options.hpp>

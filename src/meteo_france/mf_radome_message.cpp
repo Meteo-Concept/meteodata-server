@@ -25,7 +25,7 @@
 #include <string>
 
 #include <boost/property_tree/ptree.hpp>
-#include <observation.h>
+#include <cassobs/observation.h>
 
 #include "meteo_france/mf_radome_message.h"
 #include "cassandra_utils.h"

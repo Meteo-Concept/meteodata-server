@@ -30,7 +30,7 @@
 #include <optional>
 
 #include <boost/asio.hpp>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <date.h>
 
 #include "../../time_offseter.h"

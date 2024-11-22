@@ -38,7 +38,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <date.h>
 
 #include "../time_offseter.h"

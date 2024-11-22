@@ -36,11 +36,7 @@ AM_COND_IF([HAVE_DOT], [AC_SUBST(DOT_IS_AVAILABLE,["YES"])], [AC_SUBST(DOT_IS_AV
 # Checks for header files.
 AC_CHECK_HEADERS([systemd/sd-daemon.h])
 AC_CHECK_HEADERS([unistd.h])
-AC_CHECK_HEADERS([cassandra.h])
 AC_CHECK_HEADERS([message.h])
-AC_CHECK_HEADERS([date.h])
-AC_CHECK_HEADERS([tz.h])
-AC_CHECK_HEADERS([dbconnection_common.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL

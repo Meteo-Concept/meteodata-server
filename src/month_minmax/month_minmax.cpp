@@ -33,8 +33,8 @@
 #include <boost/program_options.hpp>
 #include <cassandra.h>
 #include <date.h>
-#include <dbconnection_month_minmax.h>
-#include <dbconnection_normals.h>
+#include <cassobs/dbconnection_month_minmax.h>
+#include <cassobs/dbconnection_normals.h>
 
 #include "config.h"
 #include "month_minmax_computer.h"

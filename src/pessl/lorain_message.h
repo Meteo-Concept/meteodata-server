@@ -33,9 +33,9 @@
 
 #include <boost/json.hpp>
 #include <date.h>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "liveobjects/liveobjects_message.h"
 

@@ -37,7 +37,7 @@
 #include <cassandra.h>
 #include <date.h>
 #include <tz.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include "async_job_publisher.h"
 
 #include "abstract_weatherlink_downloader.h"

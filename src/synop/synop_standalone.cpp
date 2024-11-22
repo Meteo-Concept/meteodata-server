@@ -29,7 +29,7 @@
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "synop_standalone.h"
 #include "ogimet_synop.h"

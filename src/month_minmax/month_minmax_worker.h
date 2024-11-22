@@ -29,9 +29,9 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/system/error_code.hpp>
 
-#include <dbconnection_jobs.h>
-#include <dbconnection_month_minmax.h>
-#include <dbconnection_normals.h>
+#include <cassobs/dbconnection_jobs.h>
+#include <cassobs/dbconnection_month_minmax.h>
+#include <cassobs/dbconnection_normals.h>
 
 namespace meteodata
 {

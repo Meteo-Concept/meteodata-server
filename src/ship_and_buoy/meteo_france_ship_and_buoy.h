@@ -31,7 +31,7 @@
 
 #include <cassandra.h>
 #include <boost/asio.hpp>
-#include <observation.h>
+#include <cassobs/observation.h>
 #include <date.h>
 
 namespace meteodata

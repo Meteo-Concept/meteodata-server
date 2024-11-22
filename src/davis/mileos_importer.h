@@ -33,7 +33,7 @@
 #include <cassandra.h>
 #include <date.h>
 #include <tz.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "../time_offseter.h"
 

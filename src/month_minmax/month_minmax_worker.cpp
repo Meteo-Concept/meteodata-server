@@ -25,8 +25,8 @@
 #include <iostream>
 
 #include <date.h>
-#include <dbconnection_minmax.h>
-#include <dbconnection_jobs.h>
+#include <cassobs/dbconnection_minmax.h>
+#include <cassobs/dbconnection_jobs.h>
 #include <systemd/sd-daemon.h>
 #include <date/date.h>
 

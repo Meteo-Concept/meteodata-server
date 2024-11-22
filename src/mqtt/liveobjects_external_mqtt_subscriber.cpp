@@ -23,7 +23,7 @@
 
 #include <string>
 
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "async_job_publisher.h"
 #include "mqtt/mqtt_subscriber.h"

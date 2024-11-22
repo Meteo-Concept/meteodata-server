@@ -30,8 +30,8 @@
 #include <tuple>
 
 #include <boost/system/error_code.hpp>
-#include <dbconnection_observations.h>
-#include <virtual_station.h>
+#include <cassobs/dbconnection_observations.h>
+#include <cassobs/virtual_station.h>
 #include <cassandra.h>
 
 #include "async_job_publisher.h"

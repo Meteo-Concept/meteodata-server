@@ -35,7 +35,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <cassandra.h>
 #include <date.h>
-#include <message.h>
+#include <cassobs/message.h>
 
 #include "abstract_weatherlink_api_message.h"
 #include "../time_offseter.h"

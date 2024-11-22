@@ -32,7 +32,7 @@
 
 #include <cassandra.h>
 #include <boost/asio/basic_waitable_timer.hpp>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 #include <utility>
 

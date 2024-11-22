@@ -29,7 +29,7 @@
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 
 #include "time_offseter.h"
 #include "abstract_download_scheduler.h"

@@ -31,7 +31,7 @@
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
 #include <date.h>
-#include <dbconnection_observations.h>
+#include <cassobs/dbconnection_observations.h>
 #include "async_job_publisher.h"
 
 #include "time_offseter.h"

@@ -26,8 +26,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/system/error_code.hpp>
-#include <dbconnection_observations.h>
-#include <dbconnection_jobs.h>
+#include <cassobs/dbconnection_observations.h>
+#include <cassobs/dbconnection_jobs.h>
 
 #include "meteo_server.h"
 #include "connector.h"

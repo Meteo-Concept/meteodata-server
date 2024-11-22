@@ -31,7 +31,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <cassandra.h>
-#include <message.h>
+#include <cassobs/message.h>
 
 #include "fieldclimate_archive_message_collection.h"
 #include "fieldclimate_archive_message.h"
