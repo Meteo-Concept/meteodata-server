@@ -28,7 +28,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/message.h>
 
 #include "../time_offseter.h"

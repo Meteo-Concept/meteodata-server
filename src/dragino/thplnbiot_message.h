@@ -30,7 +30,7 @@
 #include <iterator>
 #include <cmath>
 
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/observation.h>
 #include <cassandra.h>
 

@@ -36,8 +36,8 @@
 #include <boost/system/error_code.hpp>
 #include <boost/optional.hpp>
 #include <cassandra.h>
-#include <date.h>
-#include <tz.h>
+#include <date/date.h>
+#include <date/tz.h>
 #include <cassobs/dbconnection_observations.h>
 #include <mqtt_client_cpp.hpp>
 

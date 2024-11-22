@@ -34,7 +34,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/message.h>
 
 #include "abstract_weatherlink_api_message.h"

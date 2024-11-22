@@ -25,7 +25,7 @@
 #define METEODATA_SERVER_MINMAX_COMPUTER_H
 
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "cassobs/dbconnection_minmax.h"
 #include "cassobs/dbconnection_month_minmax.h"

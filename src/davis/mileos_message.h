@@ -28,7 +28,7 @@
 #include <chrono>
 #include <optional>
 
-#include <date.h>
+#include <date/date.h>
 #include <cassandra.h>
 #include <cassobs/observation.h>
 

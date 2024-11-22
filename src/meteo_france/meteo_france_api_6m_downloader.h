@@ -34,7 +34,7 @@
 #include <boost/system/error_code.hpp>
 #include <cassobs/dbconnection_observations.h>
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "curl_wrapper.h"
 #include "async_job_publisher.h"

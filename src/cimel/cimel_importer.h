@@ -33,8 +33,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
-#include <date.h>
-#include <tz.h>
+#include <date/date.h>
+#include <date/tz.h>
 #include <cassobs/dbconnection_observations.h>
 #include <cassobs/message.h>
 

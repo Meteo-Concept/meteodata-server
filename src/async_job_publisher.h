@@ -32,7 +32,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassobs/dbconnection_jobs.h>
-#include <date.h>
+#include <date/date.h>
 #include <cassandra.h>
 
 namespace meteodata

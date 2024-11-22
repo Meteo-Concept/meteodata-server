@@ -36,7 +36,7 @@
 #include <boost/asio.hpp>
 #include <boost/json/src.hpp>
 #include <mqtt_client_cpp.hpp> // must be kept before boost/program_options.hpp else build breaks (not sure why...)
-#include <date.h>
+#include <date/date.h>
 #include <boost/program_options.hpp>
 
 #include "../cassandra_utils.h"

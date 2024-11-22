@@ -26,7 +26,7 @@
 #include <algorithm>
 #include <map>
 
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/message.h>
 
 #include "meteo_france_ship_and_buoy.h"

@@ -35,8 +35,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 #include <cassandra.h>
-#include <date.h>
-#include <tz.h>
+#include <date/date.h>
+#include <date/tz.h>
 #include <cassobs/dbconnection_observations.h>
 #include "async_job_publisher.h"
 

@@ -32,7 +32,7 @@
 
 #include <boost/program_options.hpp>
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/dbconnection_month_minmax.h>
 #include <cassobs/dbconnection_normals.h>
 

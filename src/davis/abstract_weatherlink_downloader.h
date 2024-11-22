@@ -30,7 +30,7 @@
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio.hpp>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/dbconnection_observations.h>
 #include "async_job_publisher.h"
 

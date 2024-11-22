@@ -27,7 +27,7 @@
 #include <cassobs/dbconnection_minmax.h>
 #include <cassobs/dbconnection_month_minmax.h>
 #include <cassobs/dbconnection_normals.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "month_minmax_computer.h"
 #include "cassandra_utils.h"

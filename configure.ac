@@ -32,11 +32,14 @@ AM_CONDITIONAL([HAVE_DOT],[test -n "$DOT"])
 AM_COND_IF([HAVE_DOT], [AC_SUBST(DOT_IS_AVAILABLE,["YES"])], [AC_SUBST(DOT_IS_AVAILABLE,["NO"])])
 
 # Checks for libraries.
+AX_CXX_CHECK_LIB([date-tz], [date::current_zone()])
 
 # Checks for header files.
 AC_CHECK_HEADERS([systemd/sd-daemon.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([message.h])
+AC_CHECK_HEADERS([date/date.h])
+AC_CHECK_HEADERS([date/tz.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_CHECK_HEADER_STDBOOL
@@ -72,7 +75,6 @@ PKG_CHECK_MODULES(POSTGRES, [libpqxx])
 PKG_CHECK_MODULES(SYSTEMD, [libsystemd])
 PKG_CHECK_MODULES(MOSQUITTO, [libmosquitto])
 PKG_CHECK_MODULES(CASSOBS, [cassobs])
-PKG_CHECK_MODULES(DATE, [date])
 
 # Define more params
 AC_DEFINE(CONTROL_SOCKET_PATH, "/var/run/meteodata/control.sock", "The path where the UNIX socket used by meteodatactl will be created and looked for")

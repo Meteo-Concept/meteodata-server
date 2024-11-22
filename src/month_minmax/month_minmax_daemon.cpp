@@ -31,7 +31,7 @@
 #include <boost/program_options.hpp>
 #include <cassobs/dbconnection_minmax.h>
 #include <cassobs/dbconnection_jobs.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "config.h"
 #include "month_minmax/month_minmax_worker.h"

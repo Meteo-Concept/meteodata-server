@@ -27,7 +27,7 @@
 #include <regex>
 
 #include <cassobs/message.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "../../time_offseter.h"
 #include "../../davis/vantagepro2_message.h"

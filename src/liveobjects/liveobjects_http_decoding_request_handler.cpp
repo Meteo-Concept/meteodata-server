@@ -30,7 +30,7 @@
 #include <boost/json/src.hpp>
 #include <boost/beast/http.hpp>
 #include <systemd/sd-daemon.h>
-#include <date.h>
+#include <date/date.h>
 
 #include "../http_connection.h"
 #include "../cassandra.h"

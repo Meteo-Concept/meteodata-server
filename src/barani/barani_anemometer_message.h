@@ -32,7 +32,7 @@
 #include <cmath>
 
 #include <boost/json.hpp>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/observation.h>
 #include <cassandra.h>
 

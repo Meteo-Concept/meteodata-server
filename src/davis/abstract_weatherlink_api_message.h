@@ -33,7 +33,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/observation.h>
 
 #include "../time_offseter.h"

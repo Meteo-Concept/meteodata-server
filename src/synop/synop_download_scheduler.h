@@ -29,8 +29,8 @@
 #include <map>
 
 #include <cassandra.h>
-#include <date.h>
-#include <tz.h>
+#include <date/date.h>
+#include <date/tz.h>
 
 #include "abstract_download_scheduler.h"
 

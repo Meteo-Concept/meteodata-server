@@ -32,7 +32,7 @@
 #include <string>
 
 #include <cassandra.h>
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/message.h>
 
 #include "weatherlink_apiv2_realtime_message.h"

@@ -24,7 +24,7 @@
 #ifndef VIRTUAL_OBS_COMPUTER_H
 #define VIRTUAL_OBS_COMPUTER_H
 
-#include <date.h>
+#include <date/date.h>
 #include <map>
 #include <string>
 #include <tuple>

@@ -32,7 +32,7 @@
 #include <cassobs/observation.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/json.hpp>
-#include <date.h>
+#include <date/date.h>
 
 namespace meteodata {
 

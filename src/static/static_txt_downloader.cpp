@@ -27,7 +27,7 @@
 
 #include <systemd/sd-daemon.h>
 
-#include <date.h>
+#include <date/date.h>
 #include <cassobs/dbconnection_observations.h>
 
 #include "time_offseter.h"
