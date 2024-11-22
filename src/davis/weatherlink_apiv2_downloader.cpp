@@ -170,6 +170,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 
 	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 		std::vector<Observation> allObs;
+		bool inserted = true;
 		for (const auto& u : _uuids) {
 			std::istringstream contentStream(content); // rewind
 
@@ -181,26 +182,25 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 			else
 				page.parse(contentStream, _substations, u, _parsers);
 
-			int ret = 1;
 			for (auto&& it = page.begin() ; it != page.end() && ret ; ++it) {
 				auto o = it->getObservation(u);
 				allObs.push_back(o);
-				ret = _db.insertV2DataPoint(o);
+				inserted = _db.insertV2DataPoint(o);
 				if (!ret) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 							  << "Failed to insert real-time observation for substation " << u << std::endl;
 				}
-				ret = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(it->getObservation(u).time), _lastDayRainfall[u]);
+				inserted = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(it->getObservation(u).time), _lastDayRainfall[u]);
 				if (!ret) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
 							  << "Failed to cache the rainfall for substation " << u << std::endl;
 				}
 			}
 		}
-		_db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
-		if (!ret) {
+		inserted = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		if (!inserted) {
 			std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
-				  << "Failed to insert real-time observation in TiemscaleDB for station " << _stationName << std::endl;
+				  << "Failed to insert real-time observation in TimescaleDB for station " << _stationName << std::endl;
 		}
 	});
 
