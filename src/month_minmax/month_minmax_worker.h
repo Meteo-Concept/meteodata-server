@@ -44,6 +44,9 @@ public:
 		std::string user;
 		std::string password;
 		std::string address;
+		std::string pguser;
+		std::string pgpassword;
+		std::string pgaddress;
 		std::string jobsDbUsername;
 		std::string jobsDbPassword;
 		std::string jobsDbAddress;

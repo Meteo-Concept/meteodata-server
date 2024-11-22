@@ -72,6 +72,9 @@ int main(int argc, char** argv)
 	std::string user;
 	std::string password;
 	std::string address;
+	std::string pguser;
+	std::string pgpassword;
+	std::string pgaddress;
 	std::string fileName;
 	std::string begin;
 	std::string end;
@@ -92,6 +95,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&user), "database username")
 		("password,p", po::value<std::string>(&password), "database password")
 		("host,h", po::value<std::string>(&address), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pguser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgpassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgaddress), "PostgreSQL database IP address or domain name")
 	;
 	desc.add(config);
 
@@ -170,7 +176,7 @@ int main(int argc, char** argv)
 	}
 
 	try {
-		DbConnectionMinmax dbMinmax{address, user, password};
+		DbConnectionMinmax dbMinmax{address, user, password, pgaddress, pguser, pgpassword};
 		MinmaxComputer minmaxComputer{dbMinmax};
 
 		cass_log_set_level(CASS_LOG_INFO);

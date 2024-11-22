@@ -72,6 +72,9 @@ int main(int argc, char** argv)
 	std::string dataUser;
 	std::string dataPassword;
 	std::string dataAddress;
+	std::string pgUser;
+	std::string pgPassword;
+	std::string pgAddress;
 	std::string stationsUser;
 	std::string stationsPassword;
 	std::string stationsAddress;
@@ -85,6 +88,9 @@ int main(int argc, char** argv)
 		("user,u", po::value<std::string>(&dataUser), "data database username")
 		("password,p", po::value<std::string>(&dataPassword), "database password")
 		("host,h", po::value<std::string>(&dataAddress), "database IP address or domain name")
+		("pguser", po::value<std::string>(&pgUser), "PostgreSQL database username")
+		("pgpassword", po::value<std::string>(&pgPassword), "PostgreSQL database password")
+		("pghost", po::value<std::string>(&pgAddress), "PostgreSQL database IP address or domain name")
 		("stations-user", po::value<std::string>(&stationsUser), "normals database username")
 		("stations-password", po::value<std::string>(&stationsPassword), "normals database password")
 		("stations-host", po::value<std::string>(&stationsAddress), "normals database IP address or domain name")
@@ -181,7 +187,7 @@ int main(int argc, char** argv)
 
 
 	try {
-		DbConnectionMonthMinmax dbMonthMinmax(dataAddress, dataUser, dataPassword);
+		DbConnectionMonthMinmax dbMonthMinmax(dataAddress, dataUser, dataPassword, pgAddress, pgUser, pgPassword);
 		DbConnectionNormals dbNormals(stationsAddress, stationsUser, stationsPassword, stationsDatabase);
 
 		MonthMinmaxComputer minmaxComputer{dbMonthMinmax, dbNormals};

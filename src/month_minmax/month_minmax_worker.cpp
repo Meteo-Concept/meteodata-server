@@ -42,7 +42,7 @@ namespace chrono = std::chrono;
 MonthMinmaxWorker::MonthMinmaxWorker(const Configuration& config, boost::asio::io_context& ioContext):
 	_ioContext{ioContext},
 	_timer{ioContext},
-	_dbMonthMinmax{config.address, config.user, config.password},
+	_dbMonthMinmax{config.address, config.user, config.password, config.pgaddress, config.pguser, config.pgpassword},
 	_dbNormals{config.stationsDbAddress, config.stationsDbUsername, config.stationsDbPassword, config.stationsDbDatabase},
 	_dbJobs{config.jobsDbAddress, config.jobsDbUsername, config.jobsDbPassword, config.jobsDbDatabase}
 {

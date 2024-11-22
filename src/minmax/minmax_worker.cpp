@@ -41,7 +41,7 @@ namespace chrono = std::chrono;
 MinmaxWorker::MinmaxWorker(const Configuration& config, boost::asio::io_context& ioContext):
 	_ioContext{ioContext},
 	_timer{ioContext},
-	_dbMinmax{config.address, config.user, config.password},
+	_dbMinmax{config.address, config.user, config.password, config.pgaddress, config.pguser, config.pgpassword},
 	_dbJobs{config.jobsDbAddress, config.jobsDbUsername, config.jobsDbPassword, config.jobsDbDatabase}
 {
 }
