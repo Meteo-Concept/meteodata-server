@@ -161,8 +161,7 @@ int main(int argc, char** argv)
 		std::cerr << "Got the list of stations from the db" << std::endl;
 
 		CurlWrapper client;
-		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key,
-																			 weatherlinkApiV2Secret);
+		auto allDiscovered = WeatherlinkApiv2Downloader::downloadAllStations(client, weatherlinkApiV2Key, weatherlinkApiV2Secret);
 		bool forceDownload = vm.count("force");
 
 		for (auto it = weatherlinkStations.cbegin() ; it != weatherlinkStations.cend() ; ++it) {
@@ -181,9 +180,9 @@ int main(int argc, char** argv)
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
 			WeatherlinkApiv2Downloader downloader{std::get<0>(station), std::get<3>(station), std::get<2>(station),
-												  std::get<4>(station),
-												  weatherlinkApiV2Key, weatherlinkApiV2Secret, db,
-												  TimeOffseter::PredefinedTimezone(0)};
+								std::get<4>(station),
+								weatherlinkApiV2Key, weatherlinkApiV2Secret, db,
+								TimeOffseter::PredefinedTimezone(0)};
 			try {
 				if (!std::get<1>(station)) {
 					std::cerr << "No access to archives for station " << std::get<0>(station)

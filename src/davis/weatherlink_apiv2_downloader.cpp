@@ -182,18 +182,18 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 			else
 				page.parse(contentStream, _substations, u, _parsers);
 
-			for (auto&& it = page.begin() ; it != page.end() && ret ; ++it) {
+			for (auto&& it = page.begin() ; it != page.end() && inserted ; ++it) {
 				auto o = it->getObservation(u);
 				allObs.push_back(o);
 				inserted = _db.insertV2DataPoint(o);
-				if (!ret) {
+				if (!inserted) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
-							  << "Failed to insert real-time observation for substation " << u << std::endl;
+						  << "Failed to insert real-time observation for substation " << u << std::endl;
 				}
 				inserted = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(it->getObservation(u).time), _lastDayRainfall[u]);
-				if (!ret) {
+				if (!inserted) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
-							  << "Failed to cache the rainfall for substation " << u << std::endl;
+						  << "Failed to cache the rainfall for substation " << u << std::endl;
 				}
 			}
 		}
