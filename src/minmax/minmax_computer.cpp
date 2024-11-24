@@ -114,7 +114,8 @@ bool MinmaxComputer::computeMinmax(const CassUuid& station, const date::sys_seco
 		}
 		values.winddir.first = true;
 
-		ret = ret && _dbMinmax.insertDataPoint(station, selectedDate, values);
+		ret = ret && _dbMinmax.insertDataPoint(station, selectedDate, values)
+			  && _dbMinmax.insertDataPointInTimescaleDB(station, selectedDate, values);
 
 		continue;
 

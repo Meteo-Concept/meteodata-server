@@ -44,7 +44,7 @@ MonthMinmaxComputer::MonthMinmaxComputer(DbConnectionMonthMinmax& dbMonthMinmax,
 }
 
 void MonthMinmaxComputer::compareMinmaxWithNormals(DbConnectionMonthMinmax::Values& values,
-											  const DbConnectionNormals::Values& normals)
+	const DbConnectionNormals::Values& normals)
 {
 	if (values.outsideTemp_avg.first && normals.tm.first)
 		values.diff_outsideTemp_avg = {true, values.outsideTemp_avg.second - normals.tm.second};
@@ -123,7 +123,8 @@ bool MonthMinmaxComputer::computeMonthMinmax(const CassUuid& station, const date
 			compareMinmaxWithNormals(values, normals);
 		}
 
-		ret = ret && _dbMonthMinmax.insertDataPoint(station, y, m, values);
+		ret = ret && _dbMonthMinmax.insertDataPoint(station, y, m, values)
+			  && _dbMonthMinmax.insertDataPointInTimescaleDB(station, selectedDate, values);
 
 		continue;
 
