@@ -125,22 +125,29 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 	time_t lastUpdate;
 	int previousClicks;
 	bool result = _db.getCachedInt(station, THPLNBIOT_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - chrono::hours{24}) {
-		// the last rainfall datapoint is not too old, we can use
-		// it as a reference for the current number of clicks recorded
-		// by the pluviometer
-
+	if (result) {
 		// Go over all messages again, in chronological order, to compute the
 		// rainfall amount
 		for (DataPoint& dp : _obs) {
-			if (!dp.valid)
+			time_t newRef = chrono::system_clock::to_time_t(dp.time);
+			// Ignore invalid messages as well as messages older
+			// than the latest valid one.
+			if (!dp.valid || newRef <= lastUpdate)
 				continue;
-			if (dp.count >= previousClicks) {
-				dp.rainfall = (dp.count - previousClicks) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
-			} else {
-				dp.rainfall = ((0xFFFFFFFFu - previousClicks) + dp.count) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
+
+			// Don't use the last known rain value to compute the
+			// rainfall in the message if too much time (more than
+			// 24h) has elapsed since the last reference but keep
+			// the value for the next messages.
+			if ((newRef - lastUpdate) > 24 * 3600) {
+				if (dp.count >= previousClicks) {
+					dp.rainfall = (dp.count - previousClicks) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
+				} else {
+					dp.rainfall = ((0xFFFFFFFFu - previousClicks) + dp.count) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
+				}
 			}
 			previousClicks = dp.count;
+			lastUpdate = chrono::system_clock::to_time_t(dp.time);
 		}
 	}
 }
