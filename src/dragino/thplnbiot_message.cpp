@@ -135,19 +135,11 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 			if (!dp.valid || newRef <= lastUpdate)
 				continue;
 
-			// Don't use the last known rain value to compute the
-			// rainfall in the message if too much time (more than
-			// 24h) has elapsed since the last reference but keep
-			// the value for the next messages.
-			if ((newRef - lastUpdate) > 24 * 3600) {
-				if (dp.count >= previousClicks) {
-					dp.rainfall = (dp.count - previousClicks) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
-				} else {
-					dp.rainfall = ((0xFFFFFFFFu - previousClicks) + dp.count) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
-				}
+			if (dp.count >= previousClicks) {
+				dp.rainfall = (dp.count - previousClicks) * THPLNBIOT_RAIN_GAUGE_RESOLUTION;
 			}
 			previousClicks = dp.count;
-			lastUpdate = chrono::system_clock::to_time_t(dp.time);
+			lastUpdate = newRef;
 		}
 	}
 }
