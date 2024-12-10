@@ -43,8 +43,18 @@ class NbiotUdpRequestHandler
 {
 public:
 	explicit NbiotUdpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
-	void processRequest(const std::string& body, std::function<void(const std::string&)> sendResponse);
+	void processRequest(const std::string& body, std::function<void(const std::string&)>* sendResponse = nullptr);
+	void processHexifiedRequest(const std::string& body, std::function<void(const std::string&)>* sendResponse = nullptr);
 	void reloadStations();
+	template<typename Iterator>
+	void loadSelectionOfStations(Iterator begin, Iterator end)
+	{
+		for (Iterator it = begin ; it != end ; ++it) {
+			const NbiotStation& s = *it;
+			_infosByStation[s.imei] = s;
+		}
+	}
+
 
 private:
 	DbConnectionObservations& _db;
@@ -52,6 +62,8 @@ private:
 	AsyncJobPublisher* _jobPublisher;
 
 	std::map<std::string, NbiotStation> _infosByStation;
+
+	void sendNewConfiguration(const CassUuid& uuid, std::function<void(const std::string&)>& sendResponse);
 };
 
 }

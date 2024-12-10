@@ -19,6 +19,7 @@ bin_PROGRAMS = \
 	       meteodata-meteofrance-api-standalone\
 	       meteodata-meteofrance-all-stations-api-standalone\
 	       meteodata-virtual-standalone\
+	       meteodata-nbiot-standalone\
 	       meteodatactl
 
 meteodata_SOURCES = \
@@ -578,6 +579,19 @@ meteodata_virtual_standalone_SOURCES = \
 		    virtual/virtual_obs_computer.h\
 		    virtual/virtual_obs_computer_standalone.cpp
 
+meteodata_nbiot_standalone_SOURCES = \
+		    cassandra_utils.h\
+		    hex_parser.h\
+		    http_utils.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    udp_connection.h\
+		    dragino/thplnbiot_message.cpp\
+		    dragino/thplnbiot_message.h\
+		    nbiot/nbiot_udp_request_handler.cpp\
+		    nbiot/nbiot_udp_request_handler.h\
+		    nbiot/nbiot_standalone.cpp
+
 meteodatactl_SOURCES = \
 		    control/meteodatactl.cpp
 
@@ -689,6 +703,11 @@ meteodata_virtual_standalone_CPPFLAGS = $(basecppflags)
 meteodata_virtual_standalone_CXXFLAGS =
 meteodata_virtual_standalone_LDFLAGS = $(baseldflags)
 meteodata_virtual_standalone_LDADD = $(baselibs)
+
+meteodata_nbiot_standalone_CPPFLAGS = $(basecppflags)
+meteodata_nbiot_standalone_CXXFLAGS =
+meteodata_nbiot_standalone_LDFLAGS = $(baseldflags)
+meteodata_nbiot_standalone_LDADD = $(baselibs)
 
 meteodatactl_CPPFLAGS = $(PTHREAD_CFLAGS) $(BOOST_ASIO_CPPFLAGS) $(BOOST_PROGRAM_OPTIONS_CPPFLAGS) $(DATE_CFLAGS)
 meteodatactl_CXXFLAGS =
