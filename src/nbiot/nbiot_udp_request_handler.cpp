@@ -206,4 +206,67 @@ void NbiotUdpRequestHandler::sendNewConfiguration(const CassUuid& uuid, std::fun
 		_db.updateConfigurationStatus(uuid, config.id, false);
 	}
 }
+
+void NbiotUdpRequestHandler::dumpHexifiedRequestAsCSV(const std::string& body)
+{
+	using namespace hex_parser;
+
+	std::cerr << SD_DEBUG << "[UDP] protocol: Parsing UDP message (" << (body.size()/2) << " bytes)\n"
+		  << body << std::endl;
+
+	std::istringstream is{body};
+
+	// IMEI is 15 hexadecimal characters
+	char imeiRaw[15];
+	is >> ignore(1);
+	is.read(imeiRaw, 15);
+	std::string imei{imeiRaw, 15};
+
+	int version, battery, signal, mode, temp, hum, count, intensity, timestamp;
+	is >> ignore(2)
+	   >> parse(version, 2, 16)
+	   >> parse(battery, 4, 16)
+	   >> parse(signal, 2, 16)
+	   >> parse(mode, 2, 16)
+	   >> parse(temp, 4, 16)
+	   >> parse(hum, 4, 16)
+	   >> parse(count, 8, 16)
+	   >> parse(intensity, 4, 16)
+	   >> parse(timestamp, 8, 16);
+
+	auto it = _infosByStation.find(imei);
+	if (it != _infosByStation.end()) {
+		const NbiotStation& st = it->second;
+		const CassUuid& uuid = st.station;
+
+		ThplnbiotMessage msg{_db};
+		msg.ingest(uuid, body);
+
+		auto allObs = msg.getObservations(uuid);
+
+		for (auto&& obs : allObs) {
+			std::cout << imei << ","
+				  << version << ","
+				  << mode << ","
+				  << date::format("%Y-%m-%dT%H:%M:%SZ", chrono::system_clock::from_time_t(timestamp)) << ","
+				  << battery << ","
+				  << signal << ","
+				  << count << ","
+				  << obs.outsidetemp.first << ","
+				  << obs.outsidetemp.second << ","
+				  << obs.outsidehum.first << ","
+				  << obs.outsidehum.second << ","
+				  << obs.dewpoint.first << ","
+				  << obs.dewpoint.second << ","
+				  << obs.heatindex.first << ","
+				  << obs.heatindex.second << ","
+				  << obs.rainfall.first << ","
+				  << obs.rainfall.second << ","
+				  << obs.rainrate.first << ","
+				  << obs.rainrate.second << ","
+				  << date::format("%Y-%m-%dT%H:%M:%SZ", obs.time) << "\n";
+
+		}
+	}
+}
 }

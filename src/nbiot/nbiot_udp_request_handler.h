@@ -45,6 +45,7 @@ public:
 	explicit NbiotUdpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void processRequest(const std::string& body, std::function<void(const std::string&)>* sendResponse = nullptr);
 	void processHexifiedRequest(const std::string& body, std::function<void(const std::string&)>* sendResponse = nullptr);
+	void dumpHexifiedRequestAsCSV(const std::string& body);
 	void reloadStations();
 	template<typename Iterator>
 	void loadSelectionOfStations(Iterator begin, Iterator end)
