@@ -105,6 +105,8 @@ meteodata_SOURCES = \
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
 		    dragino/llms01_leaf_sensor_message.h\
+		    dragino/lse01_soil_sensor_message.cpp\
+		    dragino/lse01_soil_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
@@ -463,6 +465,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
 		    dragino/llms01_leaf_sensor_message.h\
+		    dragino/lse01_soil_sensor_message.cpp\
+		    dragino/lse01_soil_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
@@ -523,6 +527,8 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
 		    dragino/llms01_leaf_sensor_message.h\
+		    dragino/lse01_soil_sensor_message.cpp\
+		    dragino/lse01_soil_sensor_message.h\
 		    dragino/cpl01_pluviometer_message.cpp\
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\

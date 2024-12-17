@@ -33,6 +33,7 @@
 #include "dragino/lsn50v2_probe6470_message.h"
 #include "dragino/sn50v3_probe6470_message.h"
 #include "dragino/llms01_leaf_sensor_message.h"
+#include "dragino/lse01_soil_sensor_message.h"
 #include "dragino/thpllora_message.h"
 #include "barani/barani_anemometer_message.h"
 #include "barani/barani_anemometer_2023_message.h"
@@ -77,6 +78,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		return std::make_unique<ThplloraMessage>(db);
 	} else if (sensor == "dragino-llms01" && port == 2) {
 		return std::make_unique<Llms01LeafSensorMessage>();
+	} else if (sensor == "dragino-lse01" && port == 2) {
+		return std::make_unique<Lse01SoilSensorMessage>();
 	} else if (sensor == "dragino-probe6470" && port == 2) {
 		return std::make_unique<Lsn50v2Probe6470Message>();
 	} else if (sensor == "dragino-sn50v3-probe6470" && port == 2) {
