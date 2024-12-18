@@ -67,6 +67,10 @@ meteodata_SOURCES = \
 		    davis/vantagepro2_http_request_handler.h\
 		    davis/vantagepro2_message.cpp\
 		    davis/vantagepro2_message.h\
+		    davis/monitorII_http_request_handler.cpp\
+		    davis/monitorII_http_request_handler.h\
+		    davis/monitorII_archive_entry.cpp\
+		    davis/monitorII_archive_entry.h\
 		    davis/weatherlink_apiv1_realtime_message.cpp\
 		    davis/weatherlink_apiv1_realtime_message.h\
 		    davis/weatherlink_apiv2_realtime_message.cpp\

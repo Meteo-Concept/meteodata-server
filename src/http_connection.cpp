@@ -32,6 +32,7 @@
 #include "http_connection.h"
 #include "async_job_publisher.h"
 #include "davis/vantagepro2_http_request_handler.h"
+#include "davis/monitorII_http_request_handler.h"
 #include "cimel/cimel_http_request_handler.h"
 #include "liveobjects/liveobjects_http_decoding_request_handler.h"
 
@@ -106,6 +107,9 @@ void HttpConnection::processRequest()
 
 	if (url.substr(0, 13) == "/imports/vp2/") {
 		VantagePro2HttpRequestHandler handler{_db, _jobPublisher};
+		handler.processRequest(_request, _response);
+	} else if (url.substr(0, 19) == "/imports/monitorII/") {
+		MonitorIIHttpRequestHandler handler{_db, _jobPublisher};
 		handler.processRequest(_request, _response);
 	} else if (url.substr(0, 15) == "/imports/cimel/") {
 		CimelHttpRequestHandler handler{_db, _jobPublisher};
