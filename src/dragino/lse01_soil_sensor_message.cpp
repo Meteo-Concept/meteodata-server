@@ -65,9 +65,9 @@ void Lse01SoilSensorMessage::ingest(const CassUuid&, const std::string& payload,
 	if (temp == 0xFFFF) {
 		_obs.soilTemperature = NAN;
 	} else if ((temp & 0x8000) == 0) {
-		_obs.soilTemperature = float(temp) / 10;
+		_obs.soilTemperature = float(temp) / 100;
 	} else {
-		_obs.soilTemperature = (float(temp) - 65536) / 10;
+		_obs.soilTemperature = (float(temp) - 65536) / 100;
 	}
 
 	if (moisture == 0xFFFF) {
