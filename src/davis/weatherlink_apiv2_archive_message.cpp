@@ -132,6 +132,10 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.rainFall = rainFall;
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
+
+		_obs.supercapVoltage = data.get<float>("supercap_volt_last", INVALID_FLOAT);
+		_obs.solarPanelVoltage = data.get<float>("solar_volt_last", INVALID_FLOAT);
+		_obs.backupVoltage = data.get<float>("trans_battery", INVALID_FLOAT);
 	} else if (isMainStationType(sensorType) &&
 			(dataStructureType == DataStructureType::WEATHERLINK_IP_ARCHIVE_RECORD_REVISION_B ||
 			 dataStructureType == DataStructureType::ENVIROMONITOR_ISS_ARCHIVE_RECORD)) {
@@ -209,6 +213,10 @@ void WeatherlinkApiv2ArchiveMessage::ingest(const pt::ptree& data, SensorType se
 			_obs.rainFall = rainFall;
 		_obs.solarRad = data.get<int>("solar_rad_avg", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index_avg", INVALID_FLOAT);
+
+		_obs.supercapVoltage = data.get<float>("supercap_volt_last", INVALID_FLOAT);
+		_obs.solarPanelVoltage = data.get<float>("solar_volt_last", INVALID_FLOAT);
+		_obs.backupVoltage = data.get<float>("trans_battery", INVALID_FLOAT);
 	} else if (sensorType == SensorType::BAROMETER &&
 			   (dataStructureType == DataStructureType::WEATHERLINK_LIVE_NON_ISS_ARCHIVE_RECORD ||
 			    dataStructureType == DataStructureType::WEATHERLINK_CONSOLE_BAROMETER_ARCHIVE_RECORD)) {

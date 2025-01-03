@@ -116,6 +116,10 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 	result.windgust = {!isInvalid(_obs.windGustSpeed), from_mph_to_kph(_obs.windGustSpeed)};
 	result.windspeed = {!isInvalid(_obs.windSpeed), from_mph_to_kph(_obs.windSpeed)};
 
+	result.voltage_battery = {isInvalid(_obs.supercapVoltage), _obs.supercapVoltage};
+	result.voltage_solar_panel = {isInvalid(_obs.solarPanelVoltage), _obs.solarPanelVoltage};
+	result.voltage_backup = {isInvalid(_obs.backupVoltage), _obs.backupVoltage};
+
 	return result;
 }
 }

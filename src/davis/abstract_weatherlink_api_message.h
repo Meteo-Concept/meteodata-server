@@ -208,6 +208,9 @@ public:
 		float soilTemp40cm = INVALID_FLOAT;
 		float soilTemp50cm = INVALID_FLOAT;
 		float soilTemp60cm = INVALID_FLOAT;
+		int supercapVoltage = INVALID_INT;
+		int solarPanelVoltage = INVALID_INT;
+		int backupVoltage = INVALID_INT;
 	};
 
 protected:

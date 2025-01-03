@@ -111,6 +111,11 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 		}
 		_obs.solarRad = data.get<int>("solar_rad", INVALID_INT);
 		_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
+
+		// Weatherlink Console only
+		_obs.supercapVoltage = data.get<float>("supercap_volt", INVALID_FLOAT);
+		_obs.solarPanelVoltage = data.get<float>("solar_panel_volt", INVALID_FLOAT);
+		_obs.backupVoltage = data.get<float>("trans_battery_volt", INVALID_FLOAT);
 	}
 
 	if (isMainStationType(sensorType) &&
@@ -229,6 +234,11 @@ void WeatherlinkApiv2RealtimeMessage::ingest(const pt::ptree& data, SensorType s
 		if (isInvalid(_obs.uvIndex)) {
 			_obs.uvIndex = data.get<float>("uv_index", INVALID_FLOAT);
 		}
+
+		// Weatherlink Console only
+		_obs.supercapVoltage = data.get<float>("supercap_volt", INVALID_FLOAT);
+		_obs.solarPanelVoltage = data.get<float>("solar_panel_volt", INVALID_FLOAT);
+		_obs.backupVoltage = data.get<float>("trans_battery_volt", INVALID_FLOAT);
 	}
 
 	if (sensorType == SensorType::BAROMETER &&
