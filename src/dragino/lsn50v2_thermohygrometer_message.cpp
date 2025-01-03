@@ -84,6 +84,7 @@ Observation Lsn50v2ThermohygrometerMessage::getObservation(const CassUuid& stati
 		obs.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
 		obs.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
 	}
+	obs.voltage_battery = {!std::isnan(_obs.battery), _obs.battery};
 	return obs;
 }
 

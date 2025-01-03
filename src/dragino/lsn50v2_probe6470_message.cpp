@@ -71,6 +71,7 @@ Observation Lsn50v2Probe6470Message::getObservation(const CassUuid& station) con
 	obs.day = date::floor<date::days>(_obs.time);
 	obs.time = _obs.time;
 	obs.outsidetemp = {!std::isnan(_obs.temperature), _obs.temperature};
+	obs.voltage_battery = {!std::isnan(_obs.battery), _obs.battery};
 	return obs;
 }
 

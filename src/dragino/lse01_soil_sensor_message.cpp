@@ -94,6 +94,7 @@ Observation Lse01SoilSensorMessage::getObservation(const CassUuid& station) cons
 	obs.soiltemp[0] = {!std::isnan(_obs.soilTemperature), _obs.soilTemperature};
 	obs.soilmoistures[0] = {!std::isnan(_obs.soilMoisture), _obs.soilMoisture};
 	obs.soil_conductivity1 = {!std::isnan(_obs.soilConductivity), _obs.soilConductivity};
+	obs.voltage_battery = {!std::isnan(_obs.battery), _obs.battery};
 	return obs;
 }
 

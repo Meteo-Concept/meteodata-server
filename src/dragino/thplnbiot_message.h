@@ -80,6 +80,7 @@ private:
 		uint32_t count = 0;
 		float rainfall = NAN;
 		float intensity = NAN;
+		float battery = NAN;
 
 	};
 

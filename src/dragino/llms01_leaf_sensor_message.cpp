@@ -86,6 +86,7 @@ Observation Llms01LeafSensorMessage::getObservation(const CassUuid& station) con
 	obs.leaftemp[0] = {!std::isnan(_obs.leafTemperature), _obs.leafTemperature};
 	obs.leafwetness_percent1 = {!std::isnan(_obs.leafWetness), _obs.leafWetness};
 	obs.leafwetnesses[0] = {!std::isnan(_obs.leafWetness), percentToLeafWetnessIndex(_obs.leafWetness)};
+	obs.voltage_battery = {!std::isnan(_obs.battery), _obs.battery};
 	return obs;
 }
 

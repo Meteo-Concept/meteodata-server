@@ -155,6 +155,7 @@ Observation ThplloraMessage::getObservation(const CassUuid& station) const
 	obs.windspeed = {!std::isnan(_obs.windSpeed), _obs.windSpeed};
 	obs.windgust = {!std::isnan(_obs.gustSpeed), _obs.gustSpeed};
 	obs.winddir = {!std::isnan(_obs.windDir), int(std::round(_obs.windDir))};
+	obs.voltage_battery = {!std::isnan(_obs.battery), _obs.battery};
 	return obs;
 }
 

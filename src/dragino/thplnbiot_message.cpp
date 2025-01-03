@@ -78,13 +78,23 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 	// collection times)
 	int nbMessagesExpected = (payload.length() - HEADER_LENGTH - FOOTER_LENGTH - DATA_POINT_LENGTH) / DATA_POINT_LENGTH;
 	std::istringstream is{payload};
-	is >> ignore(HEADER_LENGTH)
+
+	// The battery information is only in the header
+	uint16_t version;
+	uint16_t battery;
+	uint16_t signal;
+	uint16_t mode;
+	is >> ignore(16)
+	   >> parse(version, 4, 16)
+	   >> parse(battery, 4, 16)
+	   >> parse(signal, 2, 16)
+	   >> parse(mode, 2, 16)
 	   >> ignore(DATA_POINT_LENGTH);
 
 	_obs.resize(nbMessagesExpected);
 
 	std::cerr << SD_DEBUG << "[UDP NB-IoT] protocol: " << "Payload " << payload
-			  << " contains " << nbMessagesExpected << " messages" << std::endl;
+		  << " contains " << nbMessagesExpected << " messages" << std::endl;
 
 	for (int i=nbMessagesExpected-1 ; i>=0 ; i--) {
 		DataPoint obs;
@@ -120,6 +130,12 @@ void ThplnbiotMessage::ingest(const CassUuid& station, const std::string& payloa
 		obs.valid = true;
 
 		_obs[i] = std::move(obs);
+	}
+
+	// The battery information is only present in the realtime data, inject
+	// it in the last archive entry
+	if (!_obs.empty()) {
+		_obs.back().battery = battery;
 	}
 
 	time_t lastUpdate;
@@ -178,6 +194,7 @@ std::vector<Observation> ThplnbiotMessage::getObservations(const CassUuid& stati
 		}
 		obs.rainfall = {!std::isnan(dp.rainfall), dp.rainfall};
 		obs.rainrate = {!std::isnan(dp.intensity), dp.intensity};
+		obs.voltage_battery = {!std::isnan(dp.battery), dp.battery};
 
 		exported.push_back(std::move(obs));
 	}
