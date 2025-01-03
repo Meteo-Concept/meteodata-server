@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([Meteodata],[3.2],[contact@meteo-concept.fr])
+AC_INIT([Meteodata],[3.3],[contact@meteo-concept.fr])
 AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([src/davis/vantagepro2_connector.h])
 AC_CONFIG_HEADERS([src/config.h])
