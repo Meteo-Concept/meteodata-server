@@ -41,7 +41,7 @@ namespace chrono = std::chrono;
 using tcp = boost::asio::ip::tcp;
 
 RestWebServer::RestWebServer(asio::io_context& io, DbConnectionObservations& db,
-							 AsyncJobPublisher* jobPublisher) :
+		AsyncJobPublisher* jobPublisher) :
 	Connector{io, db},
 	_acceptor{io, tcp::endpoint{tcp::v4(), 5887}},
 	_stopped{true}
