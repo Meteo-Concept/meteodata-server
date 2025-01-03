@@ -28,6 +28,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/json/src.hpp>
+#include <boost/system/system_error.hpp>
 #include <boost/beast/http.hpp>
 #include <systemd/sd-daemon.h>
 #include <date/date.h>
@@ -43,6 +44,7 @@ namespace meteodata
 {
 namespace pt = boost::property_tree;
 namespace json = boost::json;
+namespace sys = boost::system;
 
 LiveobjectsHttpDecodingRequestHandler::LiveobjectsHttpDecodingRequestHandler(DbConnectionObservations& db) :
 	_db{db}
@@ -103,6 +105,25 @@ void LiveobjectsHttpDecodingRequestHandler::decodeMessage(const Request& request
 
 		if (m && m->looksValid()) {
 			json::object body = m->getDecodedMessage();
+			// Sad hack for a problem with floating point numbers
+			// NaN is valid value for floats but it's not a valid
+			// token for JSON. Convert them to null values on the
+			// spot until the JSON library does it for us (fixed
+			// in a more recent version than what we have on the
+			// server).
+			try {
+				json::object& values = body.at("value").as_object();
+				for (auto&& kv = values.begin() ; kv != values.end() ; ++kv) {
+					auto& v = kv->value();
+					if (v.is_double() && std::isnan(v.as_double())) {
+						v = json::value(); // replace by a null
+					}
+				}
+			} catch (sys::system_error&) {
+				// we didn't find what we expected inside the
+				// object, just return it as-is
+			}
+
 			response.body() = json::serialize(body);
 			response.result(boost::beast::http::status::ok);
 		} else {
