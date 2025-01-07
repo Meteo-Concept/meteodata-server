@@ -98,6 +98,15 @@ Observation VantagePro2ArchiveMessage::getObservation(CassUuid station) const
 		result.insidetemp = {_data.insideTemp != 32767, from_Farenheit_to_Celsius(_data.insideTemp / 10.0)};
 	}
 
+	if (_data.recordType == 0xAB) {
+		// The forecast field is replaced by an external ADC measurement.
+		result.voltage_solar_panel = { _data.forecast != 255, _data.forecast * 100 }; // dV -> mV
+	}
+	if (_data.recordType == 0xAC) {
+		// The inside temperature measurement is replaced by an external soil temperature measurement.
+		result.soiltemp[0] = { _data.insideTemp != 32767, from_Farenheit_to_Celsius(_data.insideTemp / 10.) };
+	}
+
 	return result;
 }
 
