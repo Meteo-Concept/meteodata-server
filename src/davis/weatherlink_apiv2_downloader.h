@@ -70,6 +70,11 @@ public:
 	static std::unordered_map<std::string, boost::property_tree::ptree>
 	downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
 
+	static void downloadOnlyRealTime(DbConnectionObservations& db, CurlWrapper& client,
+		const CassUuid& station, const std::string& weatherlinkId,
+		const std::string& apiKey, const std::string& apiSecret
+	);
+
 private:
 	const std::string& _apiKey;
 

@@ -157,13 +157,13 @@ WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::
 void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 {
 	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
-			  << "downloading real-time data for station " << _stationName << std::endl;
+		  << "downloading real-time data for station " << _stationName << std::endl;
 
 	std::ostringstream query;
 	query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << _apiKey;
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
-			  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
+		  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
 	client.setHeader("X-Api-Secret", _apiSecret);
@@ -209,6 +209,36 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	}
 }
 
+void WeatherlinkApiv2Downloader::downloadOnlyRealTime(DbConnectionObservations& db, CurlWrapper& client,
+	const CassUuid& station, const std::string& weatherlinkId,
+	const std::string& apiKey, const std::string& apiSecret
+)
+{
+	std::ostringstream query;
+	query << "/v2/current/" << weatherlinkId << "?" << "api-key=" << apiKey;
+	std::string queryStr = query.str();
+
+	client.setHeader("Accept", "application/json");
+	client.setHeader("X-Api-Secret", apiSecret);
+
+	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
+		bool r = db.insertDownload(station, chrono::system_clock::to_time_t(chrono::system_clock::now()), "weatherlink_v2_realtime", content, false, "new");
+		if (!r) {
+			std::cout << SD_ERR << "[Weatherlink_v2 downloader] connection: "
+				  << " inserting download failed for station " << station << std::endl;
+			throw std::runtime_error("Insertion failed");
+		}
+
+	});
+
+	if (ret != CURLE_OK) {
+		std::string_view error = client.getLastError();
+		std::ostringstream os;
+		os << "Bad response from " << WeatherlinkApiv2DownloadScheduler::APIHOST << ": " << error;
+		throw std::runtime_error(os.str());
+	}
+}
+
 void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 {
 	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
@@ -221,7 +251,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 	auto delay = end - date;
 	auto days = date::floor<date::days>(delay);
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: " << "Last archive dates back from "
-			  << _lastArchive << "; now is " << end << "\n" << "(approximately " << days.count() << " days)" << std::endl;
+		  << _lastArchive << "; now is " << end << "\n" << "(approximately " << days.count() << " days)" << std::endl;
 
 	// Work around a strange bug in WLv2 API where the rainfall is sometimes not present in the last archives
 	// by rewinding a little
