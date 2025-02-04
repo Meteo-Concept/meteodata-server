@@ -97,7 +97,7 @@ private:
 			}
 		} catch (const std::runtime_error& e) {
 			std::cerr << SD_ERR << "[Weatherlink v2] protocol: " << "Runtime error, impossible to download " << e.what()
-					  << ", moving on..." << std::endl;
+				  << ", moving on..." << std::endl;
 		}
 	}
 

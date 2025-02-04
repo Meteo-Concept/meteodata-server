@@ -61,13 +61,15 @@ WeatherlinkApiv2DownloadScheduler::WeatherlinkApiv2DownloadScheduler(
 {
 }
 
-void WeatherlinkApiv2DownloadScheduler::add(const CassUuid& station, bool archived, const std::map<int, CassUuid>& mapping,
-					   const std::map<int, std::map<std::string, std::string>>& parsers,
-				       const std::string& weatherlinkId, TimeOffseter&& to)
+void WeatherlinkApiv2DownloadScheduler::add(const CassUuid& station, bool archived,
+		const std::map<int, CassUuid>& mapping,
+		const std::map<int, std::map<std::string, std::string>>& parsers,
+		const std::string& weatherlinkId, TimeOffseter&& to)
 {
-	_downloadersAPIv2.emplace_back(archived,
+	_downloadersAPIv2.emplace_back(
+		archived,
 		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, parsers,
-				_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to), _jobPublisher)
+			_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to), _jobPublisher)
 	);
 }
 
@@ -88,38 +90,9 @@ void WeatherlinkApiv2DownloadScheduler::downloadRealTime(int minutes)
 		if (_mustStop)
 			break;
 
-		// This function is called every POLLING_PERIOD minutes but
-		// stations have varying polling periods of their own, and we
-		// shouldn't download every POLLING_PERIOD minutes in some
-		// cases.
-
-		bool shouldDownload;
-		if (it.first) {
-			// If the station has access to archives, only download
-			// the realtime data if it doesn't make us download more
-			// frequently than the station polling period (e.g.
-			// stations programmed with a polling period of 1h
-			// meanwhile realtime data is normally downloaded every
-			// UNPRIVILEGED_POLLING_PERIOD minutes).
-			shouldDownload = it.second->getPollingPeriod() <= UNPRIVILEGED_POLLING_PERIOD;
-
-			// Also, take care of not downloading more frequently
-			// than the station polling period (e.g. if the station
-			// has a polling period of 10min, only download during
-			// the first POLLING_PERIOD minutes of every period of
-			// 10 minutes).
-			shouldDownload = shouldDownload && minutes % it.second->getPollingPeriod() < POLLING_PERIOD;
-		} else {
-			// If the station doesn't have access to archives, only
-			// download data at the basic rate of
-			// UNPRIVILEGED_POLLING_PERIOD minutes (download only
-			// during the first POLLING_PERIOD minutes of every
-			// period of UNPRIVILEGED_POLLING_PERIOD minutes).
-			shouldDownload = minutes % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD;
-		}
-
-		if (shouldDownload)
-			genericDownload([&it](auto& client) { (it.second)->downloadRealTime(client); });
+		// The actual HTTP downloads are actually done by a separate program,
+		// all we have to do is retrieve them from the database
+		genericDownload([&it](auto& client) { (it.second)->ingestRealTime(); });
 	}
 }
 

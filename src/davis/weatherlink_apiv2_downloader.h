@@ -67,6 +67,7 @@ public:
 		DbConnectionObservations& db, TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr);
 	void download(CurlWrapper& client, bool force = false);
 	void downloadRealTime(CurlWrapper& client);
+	void ingestRealTime();
 	static std::unordered_map<std::string, boost::property_tree::ptree>
 	downloadAllStations(CurlWrapper& client, const std::string& apiId, const std::string& apiSecret);
 
@@ -112,7 +113,11 @@ private:
 
 	void logAndThrowCurlError(CurlWrapper& client);
 
+	bool doProcessRealtimeMessage(const std::string& content);
+
 	static const std::string BASE_URL;
+
+	static const std::string DOWNLOAD_CONNECTOR_ID;
 
 	static constexpr int MAX_DISCONNECTION_DAYS = 30;
 
