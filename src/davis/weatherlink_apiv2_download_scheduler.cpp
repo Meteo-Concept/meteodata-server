@@ -86,25 +86,27 @@ void WeatherlinkApiv2DownloadScheduler::download()
 
 void WeatherlinkApiv2DownloadScheduler::downloadRealTime(int minutes)
 {
-	for (const auto& it : _downloadersAPIv2) {
-		if (_mustStop)
-			break;
+	if (minutes % UNPRIVILEGED_POLLING_PERIOD < POLLING_PERIOD) { // only once every 15 minutes
+		for (const auto& it : _downloadersAPIv2) {
+			if (_mustStop)
+				break;
 
-		// The actual HTTP downloads are actually done by a separate program,
-		// all we have to do is retrieve them from the database
-		genericDownload([&it](auto& client) { (it.second)->ingestRealTime(); });
+			// The actual HTTP downloads are actually done by a separate program,
+			// all we have to do is retrieve them from the database
+			genericDownload([&it](auto& client) { (it.second)->ingestRealTime(); });
+		}
 	}
 }
 
 void WeatherlinkApiv2DownloadScheduler::downloadArchives(int minutes)
 {
-	if (minutes < POLLING_PERIOD) { // will trigger once per hour
-		for (const auto& it : _downloadersAPIv2) {
-			if (_mustStop)
-				break;
-			if (it.first) { // only download archives from archived stations
-				genericDownload([&it](auto& client) { (it.second)->download(client); });
-			}
+	for (const auto& it : _downloadersAPIv2) {
+		if (_mustStop)
+			break;
+		if (it.first && minutes % it.second->getPollingPeriod() < POLLING_PERIOD) {
+			// only download archives from archived
+			// stations and at the correct rate
+			genericDownload([&it](auto& client) { (it.second)->download(client); });
 		}
 	}
 }

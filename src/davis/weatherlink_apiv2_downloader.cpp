@@ -215,11 +215,16 @@ void WeatherlinkApiv2Downloader::downloadOnlyRealTime(DbConnectionObservations& 
 
 void WeatherlinkApiv2Downloader::ingestRealTime()
 {
-	std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
-		  << "ingesting downloaded real-time data for station " << _stationName << std::endl;
-
 	std::vector<Download> downloads;
 	_db.selectDownloadsByStation(_station, DOWNLOAD_CONNECTOR_ID, downloads);
+
+	if (downloads.empty()) {
+		std::cout << SD_WARNING << "[Weatherlink_v2 " << _station << "] measurement: "
+			  << "no new real-time data for station " << _stationName << std::endl;
+	} else {
+		std::cout << SD_INFO << "[Weatherlink_v2 " << _station << "] measurement: "
+			  << "ingesting downloaded real-time data for station " << _stationName << std::endl;
+	}
 
 	for (const Download& d : downloads) {
 		bool inserted = doProcessRealtimeMessage(d.content);
