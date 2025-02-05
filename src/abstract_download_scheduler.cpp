@@ -98,9 +98,10 @@ void AbstractDownloadScheduler::waitUntilNextDownload()
 		return;
 
 	auto self(shared_from_this());
-	auto tp = _period - (chrono::system_clock::now().time_since_epoch() % _period) + _offset;
+	auto now = chrono::system_clock::now();
+	auto tp = _period - (now.time_since_epoch() % _period) + _offset;
 	_timer.expires_from_now(tp);
-	_status.nextDownload = date::floor<chrono::seconds>(chrono::system_clock::now() + tp);
+	_status.nextDownload = date::floor<chrono::seconds>(now + tp);
 	_timer.async_wait([this, self] (const sys::error_code& e) { checkDeadline(e); });
 }
 
@@ -144,16 +145,18 @@ std::string AbstractDownloadScheduler::getStatus() const
 	   << "next download scheduled at " << date::make_zoned(z, _status.nextDownload);
 
 	auto timeToNextDownload = _status.nextDownload - chrono::system_clock::now();
-	auto h = date::floor<chrono::hours>(timeToNextDownload);
-	auto m = date::floor<chrono::minutes>(timeToNextDownload - h);
-	auto s = timeToNextDownload - h - m;
-	os << " (";
-	if (h.count())
-		os << h;
-	os << std::setw(2) << std::setfill('0');
-	if (m.count())
-		os << m;
-	os << date::floor<chrono::seconds>(s) << ") from now.\n";
+	if (timeToNextDownload > chrono::seconds(0)) {
+		auto h = date::floor<chrono::hours>(timeToNextDownload);
+		auto m = date::floor<chrono::minutes>(timeToNextDownload - h);
+		auto s = timeToNextDownload - h - m;
+		os << " (";
+		if (h.count())
+			os << h;
+		os << std::setw(2) << std::setfill('0');
+		if (m.count())
+			os << m;
+		os << date::floor<chrono::seconds>(s) << ") from now.\n";
+	}
 	return os.str();
 }
 
