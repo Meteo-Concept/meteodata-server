@@ -53,7 +53,7 @@ class AbstractWeatherlinkDownloader : public std::enable_shared_from_this<Abstra
 {
 public:
 	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
-								  TimeOffseter&& to, AsyncJobPublisher* jobPublisher = nullptr) :
+				  TimeOffseter&& to, AsyncJobPublisher* jobPublisher = nullptr) :
 			_db{db},
 			_jobPublisher{jobPublisher},
 			_station{station},
@@ -75,7 +75,7 @@ public:
 	}
 
 	AbstractWeatherlinkDownloader(const CassUuid& station, DbConnectionObservations& db,
-								  TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr) :
+				  TimeOffseter::PredefinedTimezone tz, AsyncJobPublisher* jobPublisher = nullptr) :
 			_db{db},
 			_jobPublisher{jobPublisher},
 			_station{station},
