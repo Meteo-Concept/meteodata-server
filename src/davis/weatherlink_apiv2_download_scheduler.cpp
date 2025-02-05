@@ -80,8 +80,8 @@ void WeatherlinkApiv2DownloadScheduler::download()
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
 
-	downloadRealTime(minutes);
 	downloadArchives(minutes);
+	downloadRealTime(minutes);
 }
 
 void WeatherlinkApiv2DownloadScheduler::downloadRealTime(int minutes)
@@ -90,6 +90,10 @@ void WeatherlinkApiv2DownloadScheduler::downloadRealTime(int minutes)
 		for (const auto& it : _downloadersAPIv2) {
 			if (_mustStop)
 				break;
+
+			// Do not download real-time data for archive station under normal circumstances
+			if (it.first)
+				continue;
 
 			// The actual HTTP downloads are actually done by a separate program,
 			// all we have to do is retrieve them from the database
@@ -103,6 +107,7 @@ void WeatherlinkApiv2DownloadScheduler::downloadArchives(int minutes)
 	for (const auto& it : _downloadersAPIv2) {
 		if (_mustStop)
 			break;
+
 		if (it.first && minutes % it.second->getPollingPeriod() < POLLING_PERIOD) {
 			// only download archives from archived
 			// stations and at the correct rate
