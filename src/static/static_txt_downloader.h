@@ -55,9 +55,14 @@ class StatICTxtDownloader : public std::enable_shared_from_this<StatICTxtDownloa
 {
 public:
 	StatICTxtDownloader(DbConnectionObservations& db, CassUuid station,
-						const std::string& host, const std::string& url, bool _https, int timezone,
-						std::map<std::string, std::string> sensors);
+		const std::string& host, const std::string& url, bool _https, int timezone,
+		std::map<std::string, std::string> sensors);
+
 	void download(CurlWrapper& client);
+	void ingest();
+
+	static void downloadOnly(DbConnectionObservations& db,CurlWrapper& client, const CassUuid& station,
+		const std::string& host, const std::string& url, bool https);
 
 private:
 	DbConnectionObservations& _db;
@@ -69,8 +74,10 @@ private:
 	std::map<std::string, std::string> _sensors;
 
 	std::optional<float> getDayRainfall(const date::sys_seconds& datetime);
+	bool doProcess(const std::string& body);
 
 	static constexpr char RAINFALL_SINCE_MIDNIGHT[] = "rainfall_midnight";
+	static const std::string DOWNLOAD_CONNECTOR_ID;
 };
 
 }

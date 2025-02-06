@@ -47,12 +47,12 @@ StatICDownloadScheduler::StatICDownloadScheduler(asio::io_context& ioContext, Db
 }
 
 void
-StatICDownloadScheduler::add(const CassUuid& station, const std::string& host, const std::string& url,
-							 bool https, int timezone,
-							 const std::map<std::string, std::string>& sensors)
-{
+StatICDownloadScheduler::add(
+	const CassUuid& station, const std::string& host, const std::string& url,
+	bool https, int timezone, const std::map<std::string, std::string>& sensors
+) {
 	_downloaders.emplace_back(
-			std::make_shared<StatICTxtDownloader>(_db, station, host, url, https, timezone, sensors)
+		std::make_shared<StatICTxtDownloader>(_db, station, host, url, https, timezone, sensors)
 	);
 }
 
@@ -62,10 +62,10 @@ void StatICDownloadScheduler::download()
 		if (_mustStop)
 			break;
 		try {
-			_downloader->download(_client);
+			_downloader->ingest();
 		} catch (const std::runtime_error& e) {
 			std::cerr << SD_ERR << "[StatIC] protocol: " << "Runtime error, impossible to download " << e.what()
-					  << ", moving on..." << std::endl;
+				  << ", moving on..." << std::endl;
 		}
 	}
 }

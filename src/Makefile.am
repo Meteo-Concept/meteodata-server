@@ -11,6 +11,7 @@ bin_PROGRAMS = \
 	       meteodata-weatherlink-apiv2-offload \
 	       meteodata-mbdata-standalone \
 	       meteodata-static-standalone \
+	       meteodata-static-offload \
 	       meteodata-fieldclimate-api-standalone\
 	       meteodata-csv-standalone\
 	       meteodata-liveobjects-api-standalone\
@@ -452,6 +453,18 @@ meteodata_static_standalone_SOURCES = \
 		    static/static_txt_downloader.h\
 		    static/static_standalone.cpp
 
+meteodata_static_offload_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    static/static_message.cpp\
+		    static/static_message.h\
+		    static/static_txt_downloader.cpp\
+		    static/static_txt_downloader.h\
+		    static/static_downloader_offload.cpp
+
 meteodata_fieldclimate_api_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -717,6 +730,11 @@ meteodata_static_standalone_CPPFLAGS = $(basecppflags)
 meteodata_static_standalone_CXXFLAGS =
 meteodata_static_standalone_LDFLAGS = $(baseldflags)
 meteodata_static_standalone_LDADD = $(baselibs)
+
+meteodata_static_offload_CPPFLAGS = $(basecppflags)
+meteodata_static_offload_CXXFLAGS =
+meteodata_static_offload_LDFLAGS = $(baseldflags)
+meteodata_static_offload_LDADD = $(baselibs)
 
 meteodata_fieldclimate_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_fieldclimate_api_standalone_CXXFLAGS =
