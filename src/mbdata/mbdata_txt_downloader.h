@@ -51,26 +51,27 @@ using namespace meteodata;
 class MBDataTxtDownloader : public std::enable_shared_from_this<MBDataTxtDownloader>
 {
 public:
-	MBDataTxtDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
-						const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
+	MBDataTxtDownloader(DbConnectionObservations& db,
+		const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
 	void start();
 	void stop();
 	void download(CurlWrapper& client);
+	static void downloadOnly(DbConnectionObservations& db, CurlWrapper& client,
+		const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails);
+	void ingest();
 
 private:
-	asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
-	asio::basic_waitable_timer<chrono::steady_clock> _timer;
 	CassUuid _station;
 	std::string _stationName;
 	std::string _query;
 	std::string _type;
 	date::sys_seconds _lastDownloadTime;
 	TimeOffseter _timeOffseter{};
-	bool _mustStop = false;
 
-	void checkDeadline(const sys::error_code& e);
-	void waitUntilNextDownload();
+	bool doProcess(const std::string& content);
+
+	static const std::string DOWNLOAD_CONNECTOR_ID;
 };
 
 }

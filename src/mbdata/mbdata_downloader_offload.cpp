@@ -1,11 +1,11 @@
 /**
- * @file mbdata_standalone.cpp
- * @brief One-off downloads from MBData stations
+ * @file mbdata_downloader_offload.cpp
+ * @brief Separate downloader for MBDataTxt stations
  * @author Laurent Georget
- * @date 2022-08-01
+ * @date 2025-02-06
  */
 /*
- * Copyright (C) 2016  SAS Météo Concept <contact@meteo-concept.fr>
+ * Copyright (C) 2025  SAS Météo Concept <contact@meteo-concept.fr>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-					 "password or none of them." << std::endl;
+			     "password or none of them." << std::endl;
 
 		return 0;
 	}
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 					message->severity == CASS_LOG_INFO ? "info" : "debug";
 
 			std::cerr << logLevel << ": " << message->message << " (from " << message->function << ", in "
-					  << message->file << ", line " << message->line << std::endl;
+				  << message->file << ", line " << message->line << std::endl;
 		};
 		cass_log_set_callback(logCallback, nullptr);
 
@@ -141,18 +141,21 @@ int main(int argc, char** argv)
 				}
 			}
 
-			MBDataTxtDownloader downloader{db, station};
 			try {
-				downloader.download(client);
+				MBDataTxtDownloader::downloadOnly(
+					db,
+					client,
+					station
+				);
 				retry = 0;
 				++it;
 			} catch (const std::runtime_error& e) {
 				retry++;
+				std::this_thread::sleep_for(chrono::milliseconds(100));
 				if (retry >= 2) {
 					std::cerr << "Tried twice already, moving on..." << std::endl;
 					retry = 0;
 					++it;
-					std::this_thread::sleep_for(chrono::milliseconds(100));
 				} else {
 					throw e;
 				}

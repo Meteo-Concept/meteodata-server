@@ -10,6 +10,7 @@ bin_PROGRAMS = \
 	       meteodata-weatherlink-apiv2-standalone \
 	       meteodata-weatherlink-apiv2-offload \
 	       meteodata-mbdata-standalone \
+	       meteodata-mbdata-offload \
 	       meteodata-static-standalone \
 	       meteodata-static-offload \
 	       meteodata-fieldclimate-api-standalone\
@@ -441,6 +442,31 @@ meteodata_mbdata_standalone_SOURCES = \
 		    mbdata/mbdata_txt_downloader.cpp\
 		    mbdata/mbdata_txt_downloader.h
 
+meteodata_mbdata_offload_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    mbdata/mbdata_downloader_offload.cpp\
+		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
+		    mbdata/mbdata_messages/abstract_mbdata_message.h\
+		    mbdata/mbdata_messages/mbdata_message_factory.h\
+		    mbdata/mbdata_messages/mbdata_meteohub_message.cpp\
+		    mbdata/mbdata_messages/mbdata_meteohub_message.h\
+		    mbdata/mbdata_messages/mbdata_weathercat_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weathercat_message.h\
+		    mbdata/mbdata_messages/mbdata_weatherdisplay_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weatherdisplay_message.h\
+		    mbdata/mbdata_messages/mbdata_weatherlink_message.cpp\
+		    mbdata/mbdata_messages/mbdata_weatherlink_message.h\
+		    mbdata/mbdata_messages/mbdata_wswin_message.cpp\
+		    mbdata/mbdata_messages/mbdata_wswin_message.h\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.cpp\
+		    mbdata/mbdata_messages/mbdata_meteobridge_message.h\
+		    mbdata/mbdata_txt_downloader.cpp\
+		    mbdata/mbdata_txt_downloader.h
+
 meteodata_static_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -725,6 +751,11 @@ meteodata_mbdata_standalone_CPPFLAGS = $(basecppflags)
 meteodata_mbdata_standalone_CXXFLAGS =
 meteodata_mbdata_standalone_LDFLAGS = $(baseldflags)
 meteodata_mbdata_standalone_LDADD = $(baselibs)
+
+meteodata_mbdata_offload_CPPFLAGS = $(basecppflags)
+meteodata_mbdata_offload_CXXFLAGS =
+meteodata_mbdata_offload_LDFLAGS = $(baseldflags)
+meteodata_mbdata_offload_LDADD = $(baselibs)
 
 meteodata_static_standalone_CPPFLAGS = $(basecppflags)
 meteodata_static_standalone_CXXFLAGS =

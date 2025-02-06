@@ -49,17 +49,17 @@ MBDataDownloadScheduler::MBDataDownloadScheduler(asio::io_context& ioContext, Db
 
 void MBDataDownloadScheduler::add(const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
 {
-	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_ioContext, _db, downloadDetails));
+	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_db, downloadDetails));
 }
 
 void MBDataDownloadScheduler::download()
 {
 	for (const auto& _downloader : _downloaders) {
 		try {
-			_downloader->download(_client);
+			_downloader->ingest();
 		} catch (const std::runtime_error& e) {
-			std::cerr << SD_ERR << "[MBData] protocol: " << "Runtime error, impossible to download " << e.what()
-					  << ", moving on..." << std::endl;
+			std::cerr << SD_ERR << "[MBDataTxt] protocol: " << "Runtime error, impossible to ingest data " << e.what()
+				  << ", moving on..." << std::endl;
 		}
 	}
 }
