@@ -160,7 +160,7 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 
 		bool ret = true;
 		date::sys_seconds lastArchive = date::floor<std::chrono::seconds>(
-				std::chrono::system_clock::from_time_t(lastDownload));
+			std::chrono::system_clock::from_time_t(lastDownload));
 		auto start = lastArchive;
 
 		date::sys_seconds oldestArchive = date::floor<chrono::seconds>(chrono::system_clock::now());
@@ -185,32 +185,29 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 				if (lastArchive > newestArchive) {
 					newestArchive = lastArchive;
 				}
-
-				// Remove the data that may already be in place to replace it
-				// with the archive (which may or may not be available at the
-				// same measurement interval)
-				auto end = lastArchive;
-				auto day = date::floor<date::days>(start);
-				auto lastDay = date::floor<date::days>(end);
-				while (day <= lastDay) {
-					ret = _db.deleteDataPoints(uuid, day, start, end);
-
-					if (!ret)
-						std::cerr << SD_ERR << "[VP2 HTTP " << uuid << "] management: "
-								  << "couldn't delete temporary realtime observations for station " << name
-								  << std::endl;
-					day += date::days(1);
-				}
-
-				start = end;
 				Observation o = message.getObservation(uuid);
 				allObs.push_back(o);
 				ret = _db.insertV2DataPoint(o);
 			} else {
 				std::cerr << SD_WARNING << "[VP2 HTTP " << uuid << "] measurement: "
-						  << "record looks invalid for station " << name << ", discarding..." << std::endl;
+					  << "record looks invalid for station " << name << ", discarding..." << std::endl;
 			}
 			//Otherwise, just discard
+		}
+
+		// Remove the data that may already be in place to replace it
+		// with the archive (which may or may not be available at the
+		// same measurement interval)
+		auto day = date::floor<date::days>(oldestArchive);
+		auto lastDay = date::floor<date::days>(newestArchive);
+		while (day <= lastDay) {
+			ret = _db.deleteDataPoints(uuid, day, oldestArchive, newestArchive);
+
+			if (!ret)
+				std::cerr << SD_ERR << "[VP2 HTTP " << uuid << "] management: "
+					  << "couldn't delete temporary realtime observations for station " << name
+					  << std::endl;
+			day += date::days(1);
 		}
 
 		ret = ret && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
