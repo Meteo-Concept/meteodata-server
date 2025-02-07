@@ -60,7 +60,7 @@ class ShipAndBuoyDownloader : public AbstractDownloadScheduler
 {
 public:
 	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
-						  AsyncJobPublisher* jobPublisher = nullptr);
+		AsyncJobPublisher* jobPublisher = nullptr);
 
 private:
 	std::map<std::string, CassUuid> _icaos;
