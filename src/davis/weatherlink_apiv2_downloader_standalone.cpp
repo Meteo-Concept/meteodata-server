@@ -183,16 +183,26 @@ int main(int argc, char** argv)
 								std::get<4>(station),
 								weatherlinkApiV2Key, weatherlinkApiV2Secret, db,
 								TimeOffseter::PredefinedTimezone(0)};
-			try {
-				if (!std::get<1>(station)) {
-					std::cerr << "No access to archives for station " << std::get<0>(station)
-							  << ", downloading the last datapoint" << std::endl;
+
+			if (!std::get<1>(station)) {
+				std::cerr << "No access to archives for station " << std::get<0>(station)
+					  << ", downloading the last datapoint" << std::endl;
+				try {
 					downloader.downloadRealTime(client);
-				} else {
-					downloader.download(client, forceDownload);
+				} catch (std::runtime_error& e) {
+					std::cerr << "Getting the data failed: " << e.what() << std::endl;
 				}
-			} catch (std::runtime_error& e) {
-				std::cerr << "Getting the data failed: " << e.what() << std::endl;
+			} else {
+				int retries = 0;
+				while (retries < 3) {
+					try {
+						downloader.download(client, forceDownload);
+						break;
+					} catch (std::runtime_error& e) {
+						retries++;
+						std::cerr << "Getting the data failed: " << e.what() << ", after " << retries << "/3 tries" << std::endl;
+					}
+				}
 			}
 		}
 	} catch (std::exception& e) {

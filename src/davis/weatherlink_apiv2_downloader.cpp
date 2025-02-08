@@ -295,8 +295,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	if (days.count() > MAX_DISCONNECTION_DAYS && !force) {
 		std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connection: " << "Station " << _stationName
-				  << " has been disconnected for " << days.count() << " (more than " << MAX_DISCONNECTION_DAYS << "),"
-				  << " not downloading without --force, " << "please reset the station manually" << std::endl;
+			  << " has been disconnected for " << days.count() << " (more than " << MAX_DISCONNECTION_DAYS << "),"
+			  << " not downloading without --force, " << "please reset the station manually" << std::endl;
 		return;
 	}
 
@@ -321,7 +321,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			if (!lastUpdates.empty()) {
 				end = *std::max_element(lastUpdates.begin(), lastUpdates.end());
 				std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] management: "
-						  << "most recent update on Weatherlink: " << end << std::endl;
+					  << "most recent update on Weatherlink: " << end << std::endl;
 			}
 		});
 
@@ -351,7 +351,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 			  << "&" << "end-timestamp=" << std::to_string(chrono::system_clock::to_time_t(datePlus24Hours));
 		std::string queryStr = query.str();
 		std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
-				  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
+			  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
 
 		client.setHeader("Accept", "application/json");
 		client.setHeader("X-Api-Secret", _apiSecret);
@@ -395,7 +395,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				auto lastDay = date::floor<date::days>(end);
 				if (newestTimestamp <= _lastArchive) {
 					std::cerr << SD_WARNING << "[Weatherlink_v2 " << _station << "] measurement: "
-							  << "no new archive observation for substation " << u << std::endl;
+						  << "no new archive observation for substation " << u << std::endl;
 					continue;
 				}
 
@@ -404,7 +404,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 					if (!ret)
 						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] management: "
-								  << "couldn't delete temporary realtime observations" << std::endl;
+							  << "couldn't delete temporary realtime observations" << std::endl;
 					archiveDay += date::days(1);
 				}
 				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
@@ -426,7 +426,7 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
 				if (!insertionOk) {
 					std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] management: "
-							  << "couldn't update last archive download time" << std::endl;
+						  << "couldn't update last archive download time" << std::endl;
 				} else {
 					_lastArchive = referenceTimestamp;
 				}
@@ -455,7 +455,7 @@ void WeatherlinkApiv2Downloader::logAndThrowCurlError(CurlWrapper& client)
 	std::string_view error = client.getLastError();
 	std::ostringstream errorStream;
 	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkApiv2DownloadScheduler::APIHOST << ": "
-				<< error;
+		    << error;
 	std::string errorMsg = errorStream.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
