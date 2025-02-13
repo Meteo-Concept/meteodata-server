@@ -187,12 +187,10 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 				}
 				Observation o = message.getObservation(uuid);
 				allObs.push_back(o);
-				ret = _db.insertV2DataPoint(o);
 			} else {
 				std::cerr << SD_WARNING << "[VP2 HTTP " << uuid << "] measurement: "
 					  << "record looks invalid for station " << name << ", discarding..." << std::endl;
 			}
-			//Otherwise, just discard
 		}
 
 		// Remove the data that may already be in place to replace it
@@ -210,6 +208,9 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 			day += date::days(1);
 		}
 
+		for (auto& o : allObs) {
+			ret = ret && _db.insertV2DataPoint(o);
+		}
 		ret = ret && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 
 		if (ret) {
