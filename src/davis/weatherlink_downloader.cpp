@@ -146,7 +146,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 	CURLcode downloadRet = client.download(ARCHIVE_BASE_URL + queryStr, [&](const std::string& body) {
 		if (body.size() % 52 != 0) {
 			std::string errorMsg = std::string{"Incorrect response size from "} + WeatherlinkDownloadScheduler::HOST +
-								   " when downloading archives";
+				" when downloading archives";
 			std::cerr << SD_ERR << "[Weatherlink_v1 " << _station << "] protocol: " << errorMsg << std::endl;
 			throw std::runtime_error(errorMsg);
 		}

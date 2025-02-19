@@ -72,7 +72,8 @@ void WeatherlinkDownloadScheduler::download()
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
 
-	downloadRealTime(minutes);
+	// 2025-02-19: Stop downloading realtime data
+	// downloadRealTime(minutes);
 	downloadArchives(minutes);
 }
 
@@ -88,12 +89,10 @@ void WeatherlinkDownloadScheduler::downloadRealTime(int minutes)
 
 void WeatherlinkDownloadScheduler::downloadArchives(int minutes)
 {
-	if (minutes < POLLING_PERIOD) { // will trigger once per hour
-		for (const auto& downloader : _downloaders) {
-			if (_mustStop)
-				return;
-			genericDownload([&downloader](auto& client) { downloader->download(client); });
-		}
+	for (const auto& downloader : _downloaders) {
+		if (_mustStop)
+			return;
+		genericDownload([&downloader](auto& client) { downloader->download(client); });
 	}
 }
 
