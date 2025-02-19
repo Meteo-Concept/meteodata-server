@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 
 			std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
 			WeatherlinkDownloader downloader{std::get<0>(station), std::get<1>(station), std::get<2>(station), db,
-											 TimeOffseter::PredefinedTimezone(std::get<3>(station))};
+				TimeOffseter::PredefinedTimezone(std::get<3>(station))};
 			try {
 				downloader.download(client);
 				retry = 0;
@@ -182,8 +182,6 @@ int main(int argc, char** argv)
 					std::cerr << "Tried twice already, moving on..." << std::endl;
 					retry = 0;
 					++it;
-				} else {
-					throw e;
 				}
 			}
 		}
