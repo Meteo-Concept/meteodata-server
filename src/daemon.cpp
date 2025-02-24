@@ -89,7 +89,7 @@ int main(int argc, char** argv)
 		("no-mqtt", "don't start the MQTT downloaders")
 		("no-synop", "don't start the SYNOP downloaders")
 		("no-ship", "don't start the SHIP and BUOY downloader")
-		("no-meteofrance", "don't start the Météo France API downloader")
+		("force-meteofrance", "start the Météo France API downloader")
 		("no-static", "don't start the StatIC downloaders")
 		("no-weatherlink", "don't start the Weatherlink downloaders")
 		("no-weatherlink-v2", "don't start the Weatherlink APIv2 downloaders")
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 	serverConfig.startMqtt = !vm.count("no-mqtt");
 	serverConfig.startSynop = !vm.count("no-synop");
 	serverConfig.startShip = !vm.count("no-ship");
-	serverConfig.startMeteoFrance = !vm.count("no-meteofrance");
+	serverConfig.startMeteoFrance = vm.count("force-meteofrance");
 	serverConfig.startStatic = !vm.count("no-static");
 	serverConfig.startWeatherlink = !vm.count("no-weatherlink");
 	serverConfig.startWeatherlinkV2 = !vm.count("no-weatherlink-v2");
