@@ -147,7 +147,8 @@ int main(int argc, char** argv)
 		time_t time;
 		bool ret = db.getLastSchedulerDownloadTime(SCHEDULER_ID, time);
 		if (ret) {
-			beginDate = date::floor<seconds>(chrono::system_clock::from_time_t(time)) + MeteoFranceApi6mDownloader::UpdatePeriod{1};
+			// go back in time a little bit in case not all stations were available last time
+			beginDate = date::floor<seconds>(chrono::system_clock::from_time_t(time)) - MeteoFranceApi6mDownloader::UpdatePeriod{2};
 		} else {
 			beginDate = date::floor<hours>(system_clock::now()) - chrono::hours(1);
 		}
