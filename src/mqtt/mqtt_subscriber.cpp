@@ -113,7 +113,7 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 	timeOffseter.setMeasureStep(pollingPeriod);
 	timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurements);
 	std::cout << SD_NOTICE << "[MQTT " << station << "] connection: " << "Discovered MQTT station " << stationName
-			  << std::endl;
+		  << std::endl;
 
 	_stations.emplace(topic, std::make_tuple(station, stationName, pollingPeriod, lastArchive, timeOffseter));
 }
@@ -186,7 +186,7 @@ bool MqttSubscriber::handleSubAck(uint16_t, std::vector<boost::optional<std::uin
 }
 
 bool MqttSubscriber::handlePublish(std::uint8_t, boost::optional<std::uint16_t>, mqtt::string_view topic,
-								   mqtt::string_view contents)
+	mqtt::string_view contents)
 {
 	processArchive(topic, contents);
 	return true;
@@ -211,11 +211,11 @@ void MqttSubscriber::start()
 	auto self{shared_from_this()};
 	_client->set_connack_handler([this, self](bool sp, std::uint8_t ret) {
 		std::cout << SD_DEBUG << "[MQTT] protocol: " << "Connection attempt to " << _details.host << ": "
-				  << mqtt::connect_return_code_to_str(ret) << std::endl;
+			  << mqtt::connect_return_code_to_str(ret) << std::endl;
 		if (ret == mqtt::connect_return_code::accepted) {
 			_retries = 0;
 			std::cerr << SD_NOTICE << "[MQTT] protocol: " << "Connection established to " << _details.host << ": "
-					  << mqtt::connect_return_code_to_str(ret) << std::endl;
+				  << mqtt::connect_return_code_to_str(ret) << std::endl;
 			_status.shortStatus = "CONNECTED";
 			_status.lastReloaded = date::floor<chrono::seconds>(chrono::system_clock::now());
 			_status.nbDownloads = 0;
@@ -223,20 +223,20 @@ void MqttSubscriber::start()
 			return handleConnAck(sp, ret);
 		} else {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "Failed to establish connection to " << _details.host << ": "
-					  << mqtt::connect_return_code_to_str(ret) << std::endl;
+				  << mqtt::connect_return_code_to_str(ret) << std::endl;
 			_status.shortStatus = "FAILED TO CONNECT";
 		}
 		return true;
 	});
 	_client->set_close_handler([this, self]() {
 		std::cerr << SD_NOTICE << "[MQTT] protocol: " << "MQTT client " << _details.host << " disconnected"
-				  << std::endl;
+			  << std::endl;
 		_status.shortStatus = "CONNECTION CLOSED";
 		handleClose();
 	});
 	_client->set_error_handler([this, self](sys::error_code const& ec) {
 		std::cerr << SD_ERR << "[MQTT] protocol: " << "MQTT client " << _details.host << ": unexpected disconnection "
-				  << ec.message() << std::endl;
+			  << ec.message() << std::endl;
 		_status.shortStatus = "ERROR";
 		handleError(ec);
 	});
@@ -249,16 +249,14 @@ void MqttSubscriber::start()
 	_client->set_pubcomp_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
 		return handlePubComp(packetId);
 	});
-	_client->set_suback_handler(
-			[this, self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
-				return handleSubAck(packetId, std::move(results));
-			});
-	_client->set_publish_handler(
-			[this, self](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
-						 mqtt::string_view contents) {
-				++_status.nbDownloads;
-				return handlePublish(header, packetId, topic, contents);
-			});
+	_client->set_suback_handler([this, self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+		return handleSubAck(packetId, std::move(results));
+	});
+	_client->set_publish_handler([this, self](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
+			mqtt::string_view contents) {
+		++_status.nbDownloads;
+		return handlePublish(header, packetId, topic, contents);
+	});
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Set the handlers" << std::endl;
 
 	_retries++;

@@ -54,19 +54,22 @@ VP2MqttSubscriber::VP2MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetai
 
 bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
 {
-	for (auto const& e : results) { /* we are expecting only one */
+	if (results.size() > 0) { // we expect only one result
+		auto e = results[0];
+
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "client " << _details.host
-				<< ": received an invalid subscription ack?!" << std::endl;
-			continue;
+				  << ": received an invalid subscription ack?!" << std::endl;
+			return false;
 		}
 
 		const std::string& topic = subscriptionIt->second;
 		const auto& station = _stations[subscriptionIt->second];
 		if (!e) {
 			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: " << "subscription failed: "
-				<< mqtt::qos::to_str(*e) << std::endl;
+				  << mqtt::qos::to_str(*e) << std::endl;
+			return false;
 		} else {
 			const TimeOffseter& timeOffseter = std::get<4>(station);
 			const date::sys_seconds& lastArchive = std::get<3>(station);
@@ -91,9 +94,10 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 						mqtt::qos::at_least_once);
 				}
 			}
+			return true;
 		}
 	}
-	return true;
+	return false;
 }
 
 void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
