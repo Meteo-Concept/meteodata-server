@@ -150,7 +150,7 @@ int main(int argc, char** argv)
 			// go back in time a little bit in case not all stations were available last time
 			beginDate = date::floor<seconds>(chrono::system_clock::from_time_t(time)) - MeteoFranceApi6mDownloader::UpdatePeriod{2};
 		} else {
-			beginDate = date::floor<hours>(system_clock::now()) - chrono::hours(1);
+			beginDate = date::floor<hours>(system_clock::now()) - hours(1);
 		}
 	}
 
@@ -172,7 +172,8 @@ int main(int argc, char** argv)
 			return EINVAL;
 		}
 	} else {
-		endDate = date::floor<hours>(system_clock::now());
+		// set an arbitrary date in the future, we'll get everything up until the current time
+		endDate = date::floor<hours>(system_clock::now() + hours{24});
 		updateLastDownloadDate = true;
 	}
 
@@ -214,9 +215,9 @@ int main(int argc, char** argv)
 
 	int retry = 0;
 	auto d = date::floor<MeteoFranceApi6mDownloader::UpdatePeriod>(beginDate);
-	while (d <= endDate) {
+	while (d <= endDate && d <= system_clock::now()) {
 		std::cerr << "About to download for time " << date::format("%Y-%m-%dT%H:%M:%SZ", d) << std::endl;
-		auto tick = chrono::system_clock::now();
+		auto tick = chrono::steady_clock::now();
 
 		MeteoFranceApi6mDownloader downloader{db, apiKey};
 		try {
@@ -236,7 +237,7 @@ int main(int argc, char** argv)
 			return 255;
 		}
 
-		if (updateLastDownloadDate) {
+		if (updateLastDownloadDate && d > beginDate) {
 			// might fail but there's nothing more we can do about it
 			bool ret = db.insertLastSchedulerDownloadTime(SCHEDULER_ID, chrono::system_clock::to_time_t(d));
 			if (!ret) {
@@ -245,7 +246,7 @@ int main(int argc, char** argv)
 		}
 
 		d += MeteoFranceApi6mDownloader::UpdatePeriod{1};
-		auto elapsed = chrono::system_clock::now() - tick;
+		auto elapsed = chrono::steady_clock::now() - tick;
 		if (elapsed < MeteoFranceApiDownloader::MIN_DELAY) {
 			// cap at 50 requests / minute
 			std::this_thread::sleep_for(MeteoFranceApiDownloader::MIN_DELAY - elapsed);
