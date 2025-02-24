@@ -75,7 +75,8 @@ void MeteoFranceApiDownloadScheduler::download()
 
 	// Download at most 3 hours
 	auto d = now - chrono::hours{3};
-	time_t lastDownload;
+	// Default value
+	time_t lastDownload = chrono::system_clock::to_time_t(d);
 	bool ret = _db.getLastSchedulerDownloadTime(SCHEDULER_ID, lastDownload);
 	if (ret) {
 		// Re-download some past observations in case not all stations
