@@ -84,7 +84,7 @@ float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u, const date::
 	date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
 
 	std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-	std::time_t messageTime = chrono::system_clock::to_time_t(datetime);
+	std::time_t messageTime = chrono::system_clock::to_time_t(datetime - chrono::minutes(WeatherlinkApiv2DownloadScheduler::UNPRIVILEGED_POLLING_PERIOD));
 	if (_db.getRainfall(u, beginDay, messageTime, rainfall))
 		return rainfall;
 	else

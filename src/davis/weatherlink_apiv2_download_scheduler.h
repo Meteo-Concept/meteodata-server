@@ -78,6 +78,16 @@ private:
 public:
 	static constexpr char APIHOST[] = "api.weatherlink.com";
 
+	/**
+	 * The polling period that apply to all stations, in minutes
+	 */
+	static constexpr int UNPRIVILEGED_POLLING_PERIOD = 15;
+	/**
+	 * The minimal polling period, for stations authorized to get
+	 * realtime data more frequently than others, in minutes
+	 */
+	static constexpr int POLLING_PERIOD = 5;
+
 private:
 	void download() override;
 	void reloadStations() override;
@@ -103,16 +113,6 @@ private:
 
 	void downloadArchives(int minutes);
 	void downloadRealTime(int minutes);
-
-	/**
-	 * The polling period that apply to all stations, in minutes
-	 */
-	static constexpr int UNPRIVILEGED_POLLING_PERIOD = 15;
-	/**
-	 * The minimal polling period, for stations authorized to get
-	 * realtime data more frequently than others, in minutes
-	 */
-	static constexpr int POLLING_PERIOD = 5;
 };
 
 }

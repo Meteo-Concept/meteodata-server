@@ -8,6 +8,7 @@ bin_PROGRAMS = \
 	       meteodata-synop-standalone \
 	       meteodata-weatherlink-oldxml-standalone \
 	       meteodata-weatherlink-apiv2-standalone \
+	       meteodata-weatherlink-apiv2-ingester-standalone \
 	       meteodata-weatherlink-apiv2-offload \
 	       meteodata-mbdata-standalone \
 	       meteodata-mbdata-offload \
@@ -330,6 +331,49 @@ meteodata_weatherlink_oldxml_standalone_SOURCES = \
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
 		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
 		    davis/weatherlink_downloader_standalone.cpp
+
+meteodata_weatherlink_apiv2_ingester_standalone_SOURCES = \
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    cassandra_utils.h\
+		    http_utils.h\
+		    curl_wrapper.cpp\
+		    curl_wrapper.h\
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    davis/abstract_weatherlink_api_message.cpp\
+		    davis/abstract_weatherlink_api_message.h\
+		    davis/abstract_weatherlink_downloader.h\
+		    davis/vantagepro2_archive_message.cpp\
+		    davis/vantagepro2_archive_message.h\
+		    davis/vantagepro2_archive_page.cpp\
+		    davis/vantagepro2_archive_page.h\
+		    davis/vantagepro2_message.cpp\
+		    davis/vantagepro2_message.h\
+		    davis/weatherlink_apiv1_realtime_message.cpp\
+		    davis/weatherlink_apiv1_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_message.cpp\
+		    davis/weatherlink_apiv2_realtime_message.h\
+		    davis/weatherlink_apiv2_realtime_page.cpp\
+		    davis/weatherlink_apiv2_realtime_page.h\
+		    davis/weatherlink_apiv2_archive_message.cpp\
+		    davis/weatherlink_apiv2_archive_message.h\
+		    davis/weatherlink_apiv2_archive_page.cpp\
+		    davis/weatherlink_apiv2_archive_page.h\
+		    davis/weatherlink_apiv2_downloader.cpp\
+		    davis/weatherlink_apiv2_downloader.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/abstract_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/parser_factory.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/parser_factory.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/thermohygro_probe_100_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/thermohygro_probe_100_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/soil_probe_108_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/soil_probe_108_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/sentek_probe_116_parser.h\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.cpp\
+		    davis/weatherlink_apiv2_data_structures_parsers/davis_transmitter_55_parser.h\
+		    davis/weatherlink_apiv2_ingester_standalone.cpp
 
 meteodata_weatherlink_apiv2_standalone_SOURCES = \
 		    time_offseter.cpp\
@@ -736,6 +780,11 @@ meteodata_weatherlink_oldxml_standalone_CPPFLAGS = $(basecppflags)
 meteodata_weatherlink_oldxml_standalone_CXXFLAGS =
 meteodata_weatherlink_oldxml_standalone_LDFLAGS = $(baseldflags)
 meteodata_weatherlink_oldxml_standalone_LDADD = $(baselibs)
+
+meteodata_weatherlink_apiv2_ingester_standalone_CPPFLAGS = $(basecppflags)
+meteodata_weatherlink_apiv2_ingester_standalone_CXXFLAGS =
+meteodata_weatherlink_apiv2_ingester_standalone_LDFLAGS = $(baseldflags)
+meteodata_weatherlink_apiv2_ingester_standalone_LDADD = $(baselibs)
 
 meteodata_weatherlink_apiv2_standalone_CPPFLAGS = $(basecppflags)
 meteodata_weatherlink_apiv2_standalone_CXXFLAGS =
