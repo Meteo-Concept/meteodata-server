@@ -109,11 +109,11 @@ private:
 
 	void initialize();
 
-	float getDayRainfall(const CassUuid& uuid);
+	float getDayRainfall(const CassUuid& uuid, const date::sys_seconds& datetime = date::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
 
 	void logAndThrowCurlError(CurlWrapper& client);
 
-	bool doProcessRealtimeMessage(const std::string& content);
+	bool doProcessRealtimeMessage(const std::string& content, const date::sys_seconds& datetime = date::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
 
 	static const std::string BASE_URL;
 

@@ -77,23 +77,25 @@ void WeatherlinkApiv2Downloader::initialize() {
 	_lastDayRainfall[_station] = getDayRainfall(_station);
 }
 
-float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u) {
+float WeatherlinkApiv2Downloader::getDayRainfall(const CassUuid& u, const date::sys_seconds& datetime) {
 	time_t lastUpdateTimestamp;
 	float rainfall;
 
-	auto now = chrono::system_clock::now();
-	date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(now));
+	date::local_seconds localMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(datetime));
+	// beware of daylight savings
+	date::local_seconds nextLocalMidnight = date::floor<date::days>(_timeOffseter.convertToLocalTime(datetime + date::days{1}));
 	date::sys_seconds localMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
+	date::sys_seconds nextLocalMidnightInUTC = _timeOffseter.convertFromLocalTime(localMidnight);
 	std::time_t beginDay = chrono::system_clock::to_time_t(localMidnightInUTC);
-	std::time_t currentTime = chrono::system_clock::to_time_t(now);
+	std::time_t messageTime = chrono::system_clock::to_time_t(datetime);
 
 	if (_db.getCachedFloat(u, RAINFALL_SINCE_MIDNIGHT, lastUpdateTimestamp, rainfall)) {
 		auto lastUpdate = chrono::system_clock::from_time_t(lastUpdateTimestamp);
-		if (!std::isnan(rainfall) && lastUpdate > localMidnightInUTC)
+		if (!std::isnan(rainfall) && lastUpdate >= localMidnightInUTC && lastUpdate < nextLocalMidnightInUTC && lastUpdate <= datetime)
 			return rainfall;
 	}
 
-	if (_db.getRainfall(u, beginDay, currentTime, rainfall))
+	if (_db.getRainfall(u, beginDay, messageTime, rainfall))
 		return rainfall;
 	else
 		return 0.f;
@@ -172,7 +174,7 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	client.setHeader("X-Api-Secret", _apiSecret);
 
 	CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
-		if (!doProcessRealtimeMessage(content)) {
+		if (!doProcessRealtimeMessage(content, date::floor<chrono::seconds>(chrono::system_clock::now()))) {
 			std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 				  << "Failed to insert real-time observation in TimescaleDB for station " << _stationName << std::endl;
 		}
@@ -227,7 +229,7 @@ void WeatherlinkApiv2Downloader::ingestRealTime()
 	}
 
 	for (const Download& d : downloads) {
-		bool inserted = doProcessRealtimeMessage(d.content);
+		bool inserted = doProcessRealtimeMessage(d.content, d.datetime);
 		if (!inserted) {
 			std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 				  << "Failed to insert pre-downloaded real-time observation in TimescaleDB for station " << _stationName << std::endl;
@@ -239,7 +241,7 @@ void WeatherlinkApiv2Downloader::ingestRealTime()
 	}
 }
 
-bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& content)
+bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& content, const date::sys_seconds& datetime)
 {
 	std::vector<Observation> allObs;
 	bool inserted = true;
@@ -247,7 +249,7 @@ bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& con
 		std::istringstream contentStream(content); // rewind
 
 		// get the last rainfall from cache
-		_lastDayRainfall[u] = getDayRainfall(u);
+		_lastDayRainfall[u] = getDayRainfall(u, datetime);
 		WeatherlinkApiv2RealtimePage page(&_timeOffseter, _lastDayRainfall[u]);
 		if (_substations.empty())
 			page.parse(contentStream);
@@ -262,10 +264,11 @@ bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& con
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 					  << "Failed to insert real-time observation for substation " << u << std::endl;
 			}
+
 			inserted = _db.cacheFloat(u, RAINFALL_SINCE_MIDNIGHT, chrono::system_clock::to_time_t(it->getObservation(u).time), _lastDayRainfall[u]);
 			if (!inserted) {
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: "
-					  << "Failed to cache the rainfall for substation " << u << std::endl;
+					<< "Failed to cache the rainfall for substation " << u << std::endl;
 			}
 		}
 	}

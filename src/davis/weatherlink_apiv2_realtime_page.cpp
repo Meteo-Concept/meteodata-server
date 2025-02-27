@@ -74,10 +74,8 @@ void WeatherlinkApiv2RealtimePage::parse(std::istream& input,
 	}, variables);
 }
 
-date::sys_seconds
-WeatherlinkApiv2RealtimePage::getLastUpdateTimestamp(std::istream& input,
-	const std::map<int, CassUuid>& substations,
-	const CassUuid& station)
+date::sys_seconds WeatherlinkApiv2RealtimePage::getLastUpdateTimestamp(std::istream& input,
+	const std::map<int, CassUuid>& substations, const CassUuid& station)
 {
 	Acceptor acceptable;
 	if (substations.empty())
