@@ -87,7 +87,7 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 	} else if (sensor == "barani-meteowind" && port == 1) {
 		return std::make_unique<BaraniAnemometerMessage>();
 	} else if (sensor == "barani-meteowind-v2023" && port == 1) {
-		return std::make_unique<BaraniAnemometer2023Message>();
+		return std::make_unique<BaraniAnemometer2023Message>(db);
 	} else if (sensor == "barani-meteorain" && port == 1) {
 		return std::make_unique<BaraniRainGaugeMessage>(db);
 	} else if (sensor == "barani-meteohelix" && port == 1) {
@@ -115,7 +115,7 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectio
 
 	if (!m) {
 		std::cerr << SD_ERR << "[Liveobjects " << station << "] protocol: "
-				  << "Misconfigured sensor, unknown sensor type! Aborting." << std::endl;
+			  << "Misconfigured sensor, unknown sensor type! Aborting." << std::endl;
 		return {};
 	}
 

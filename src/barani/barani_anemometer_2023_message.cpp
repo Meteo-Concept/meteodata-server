@@ -28,11 +28,13 @@
 #include <cmath>
 
 #include <boost/json.hpp>
+#include <systemd/sd-daemon.h>
 #include <cassandra.h>
 #include <cassobs/observation.h>
 
 #include "barani_anemometer_2023_message.h"
 #include "hex_parser.h"
+#include "cassandra_utils.h"
 
 namespace meteodata
 {
@@ -40,8 +42,14 @@ namespace meteodata
 namespace chrono = std::chrono;
 namespace json = boost::json;
 
+const std::string BaraniAnemometer2023Message::BARANI_LAST_BATTERY = "meteowind_battery";
 
-void BaraniAnemometer2023Message::ingest(const CassUuid&, const std::string& payload, const date::sys_seconds& datetime)
+BaraniAnemometer2023Message::BaraniAnemometer2023Message(DbConnectionObservations& db):
+	LiveobjectsMessage{},
+	_db{db}
+{}
+
+void BaraniAnemometer2023Message::ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime)
 {
 	using namespace hex_parser;
 
@@ -63,11 +71,27 @@ void BaraniAnemometer2023Message::ingest(const CassUuid&, const std::string& pay
 		is >> parse(raw[byte], 2, 16);
 	}
 
+	time_t lastUpdateTimestamp;
+	int knownBattery = 33;
+	_db.getCachedInt(station, BARANI_LAST_BATTERY, lastUpdateTimestamp, knownBattery);
+
 	// bytes 0-7: index
 	_obs.index = raw[0];
 	// byte 8: battery index from which battery voltage is computed, resolution 0.2V, offset 3V
 	uint16_t battery = (raw[1] & 0b1000'0000) >> 7;
-	_obs.batteryVoltage = battery ? (3.3f + (_obs.index % 10) * 0.2f - (_obs.index % 10 > 4)) : NAN;
+	int newBattery = 33 + (_obs.index % 10) * 2 - (_obs.index % 10 > 4);
+	if (_obs.batteryVoltage && newBattery > knownBattery) {
+		knownBattery = newBattery + 1;
+		_obs.batteryVoltage = knownBattery / 10.f;
+	} else if (!_obs.batteryVoltage && newBattery < knownBattery) {
+		knownBattery = newBattery - 1;
+		_obs.batteryVoltage = knownBattery / 10.f;
+	}
+	_obs.batteryVoltage = knownBattery >= 33 && knownBattery <= 42 ? knownBattery / 10.f : NAN;
+	if (!_db.cacheInt(station, BARANI_LAST_BATTERY, chrono::system_clock::to_time_t(datetime), knownBattery)) {
+		std::cerr << SD_ERR << "[Liveobjects " << station << "] protocol: "
+			  << "Failed to cache the battery known state for station " << station << std::endl;
+	}
 	// bytes 9-20: wind 10-min avg speed, resolution 0.02Hz
 	uint16_t windAvg10minSpeed = ((raw[1] & 0b0111'1111) << 5) + ((raw[2] & 0b1111'1000) >> 3);
 	_obs.windAvg10minSpeed = windAvg10minSpeed == 0b1111'1111'1111 ? NAN : windAvg10minSpeed == 0b0000'0000'0000 ? 0 : (windAvg10minSpeed * 0.02f * 0.6335 + 0.3582) * 3.6f;

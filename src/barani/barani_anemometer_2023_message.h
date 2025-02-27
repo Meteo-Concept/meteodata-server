@@ -33,6 +33,7 @@
 
 #include <boost/json.hpp>
 #include <date/date.h>
+#include <cassobs/dbconnection_observations.h>
 #include <cassobs/observation.h>
 #include <cassandra.h>
 
@@ -48,6 +49,8 @@ namespace meteodata
 class BaraniAnemometer2023Message : public LiveobjectsMessage
 {
 public:
+	BaraniAnemometer2023Message(DbConnectionObservations& db);
+
 	Observation getObservation(const CassUuid& station) const override;
 
 	/**
@@ -66,6 +69,8 @@ public:
 	boost::json::object getDecodedMessage() const override;
 
 private:
+	DbConnectionObservations& _db;
+
 	/**
 	 * @brief A struct used to store observation values to then populate the
 	 * DB insertion query
@@ -94,6 +99,8 @@ private:
 	 * is getting parsed
 	 */
 	DataPoint _obs;
+
+	const static std::string BARANI_LAST_BATTERY;
 };
 
 }
