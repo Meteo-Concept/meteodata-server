@@ -25,6 +25,7 @@
 #include <sstream>
 #include <vector>
 #include <array>
+#include <algorithm>
 #include <cmath>
 
 #include <boost/json.hpp>
@@ -79,7 +80,7 @@ void BaraniAnemometer2023Message::ingest(const CassUuid& station, const std::str
 	_obs.index = raw[0];
 	// byte 8: battery index from which battery voltage is computed, resolution 0.2V, offset 3V
 	uint16_t battery = (raw[1] & 0b1000'0000) >> 7;
-	int newBattery = 33 + (_obs.index % 10) * 2 - (_obs.index % 10 > 4);
+	int newBattery = 33 + (_obs.index % 10) * 2 - (_obs.index % 10 > 4) * 10;
 	if (_obs.batteryVoltage && newBattery > knownBattery) {
 		knownBattery = newBattery + 1;
 		_obs.batteryVoltage = knownBattery / 10.f;
@@ -87,7 +88,7 @@ void BaraniAnemometer2023Message::ingest(const CassUuid& station, const std::str
 		knownBattery = newBattery - 1;
 		_obs.batteryVoltage = knownBattery / 10.f;
 	}
-	_obs.batteryVoltage = knownBattery >= 33 && knownBattery <= 42 ? knownBattery / 10.f : NAN;
+	_obs.batteryVoltage = std::clamp(knownBattery, 32, 42) / 10.f;
 	if (!_db.cacheInt(station, BARANI_LAST_BATTERY, chrono::system_clock::to_time_t(datetime), knownBattery)) {
 		std::cerr << SD_ERR << "[Liveobjects " << station << "] protocol: "
 			  << "Failed to cache the battery known state for station " << station << std::endl;
