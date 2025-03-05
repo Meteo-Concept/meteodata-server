@@ -113,12 +113,12 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 {
 	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: " << " now downloading for station "
 		  << _stationName << std::endl;
-	auto time = _timeOffseter.convertToLocalTime(_lastArchive);
 
 	// by default, download the entire datalogger archive
 	std::uint32_t timestamp = 0;
 	if (_lastArchive > chrono::system_clock::now() - chrono::hours{96}) {
 		// if the last archive is not too old, use that one as reference
+		auto time = _timeOffseter.convertToLocalTime(_lastArchive);
 		auto daypoint = date::floor<date::days>(time);
 		auto ymd = date::year_month_day(daypoint);   // calendar date
 		auto tod = date::make_time(time - daypoint); // Yields time_of_day type
@@ -151,8 +151,17 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		pt::ptree jsonTree;
 		pt::read_json(input, jsonTree);
 
-		int lastWlArchiveTimestamp = jsonTree.get<int>("station_last_archive_unix", 0);
-		lastWlArchive = date::floor<chrono::seconds>(chrono::system_clock::from_time_t(lastWlArchiveTimestamp));
+		try {
+			std::string lastWlArchiveStr = jsonTree.get<std::string>("station_last_archive", "2020-01-01 00:00:00");
+			std::istringstream is{lastWlArchiveStr};
+			date::local_seconds lastWlArchiveLocal;
+			is >> date::parse("%F %T", lastWlArchiveLocal);
+			lastWlArchive = _timeOffseter.convertFromLocalTime(lastWlArchiveLocal);
+		} catch (std::exception& e) {
+			std::cout << SD_ERR << "[Weatherlink_v1 " << _station << "] protocol: "
+				  << "failed to retrieve last available archive date for " << _stationName << std::endl;
+			lastWlArchive = _lastArchive;
+		}
 	});
 
 	if (downloadRet != CURLE_OK) {
