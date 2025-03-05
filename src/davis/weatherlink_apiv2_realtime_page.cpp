@@ -88,8 +88,7 @@ date::sys_seconds WeatherlinkApiv2RealtimePage::getLastUpdateTimestamp(std::istr
 	pt::ptree jsonTree;
 	pt::read_json(input, jsonTree);
 
-	std::vector<date::sys_seconds> updates = {date::floor<chrono::seconds>(
-			chrono::system_clock::from_time_t(0))}; // put a default to simplify the logic of the max element
+	std::vector<date::sys_seconds> updates = {date::floor<chrono::seconds>(chrono::system_clock::from_time_t(0))}; // put a default to simplify the logic of the max element
 
 	for (std::pair<const std::string, pt::ptree>& reading : jsonTree.get_child("sensors")) {
 		if (!acceptable(reading))
