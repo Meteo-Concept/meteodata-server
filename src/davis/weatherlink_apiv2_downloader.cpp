@@ -277,8 +277,8 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 	// Work around a strange bug in WLv2 API where the rainfall is sometimes not present in the last archives
 	// by rewinding a little
-	if (delay < chrono::hours(12))
-		date -= chrono::hours(12);
+	if (delay < chrono::hours(6))
+		date -= chrono::hours(6);
 
 	if (days.count() > MAX_DISCONNECTION_DAYS && !force) {
 		std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] connection: " << "Station " << _stationName
@@ -345,7 +345,6 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 
 		CURLcode ret = client.download(BASE_URL + queryStr, [&](const std::string& content) {
 			bool insertionOk = true;
-			auto archiveDay = date::floor<date::days>(_lastArchive);
 			auto referenceTimestamp = _lastArchive;
 
 			std::vector<Observation> allObs;
@@ -360,39 +359,36 @@ void WeatherlinkApiv2Downloader::download(CurlWrapper& client, bool force)
 				else
 					page.parse(contentStream, _substations, u, _parsers);
 
+				auto oldestTimestamp = page.getOldestMessageTime();
 				auto newestTimestamp = page.getNewestMessageTime();
-				// find the oldest of all the newest records
-				// of each substation
-				if (newestTimestamp < referenceTimestamp || referenceTimestamp == _lastArchive) {
-					referenceTimestamp = newestTimestamp;
 
-					/* Keep track of the total oldest and newest archive entry downloaded
-					 * for the climatology computation later
-					 * Do so separately from the logic of the downloaded itself
-					 * in order to separate concerns and ease refactoring eventually.
-					 */
-					if (newestTimestamp < _oldestArchive) {
-						_oldestArchive = newestTimestamp;
-					}
-					if (newestTimestamp > _newestArchive) {
-						_newestArchive = newestTimestamp;
-					}
-				}
+				std::cerr << SD_DEBUG << "[Weatherlink_v2 " << _station << "] measurement: "
+					  << "last archive " << date::format("%F %TZ", _lastArchive) << "\n"
+					  << "oldest timestamp " << date::format("%F %TZ", oldestTimestamp) << "\n"
+					  << "newest timestamp " << date::format("%F %TZ", newestTimestamp)
+					  << std::endl;
 
-				auto lastDay = date::floor<date::days>(end);
-				if (newestTimestamp <= _lastArchive) {
+				// In case the archive is empty or has corrupted
+				// dates
+				if (oldestTimestamp > newestTimestamp || newestTimestamp <= _lastArchive) {
 					std::cerr << SD_WARNING << "[Weatherlink_v2 " << _station << "] measurement: "
 						  << "no new archive observation for substation " << u << std::endl;
 					continue;
 				}
 
-				while (archiveDay <= lastDay) {
-					int ret = _db.deleteDataPoints(u, archiveDay, _lastArchive, newestTimestamp);
+				// This is used to trigger the climatology computation later
+				_oldestArchive = std::min(_oldestArchive, oldestTimestamp);
+				_newestArchive = std::max(_newestArchive, newestTimestamp);
+				referenceTimestamp = newestTimestamp;
+
+				auto removedDay = date::floor<date::days>(_lastArchive);
+				while (removedDay <= _newestArchive) {
+					int ret = _db.deleteDataPoints(u, removedDay, oldestTimestamp, newestTimestamp);
 
 					if (!ret)
 						std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] management: "
 							  << "couldn't delete temporary realtime observations" << std::endl;
-					archiveDay += date::days(1);
+					removedDay += date::days(1);
 				}
 				for (const WeatherlinkApiv2ArchiveMessage& m : page) {
 					auto o = m.getObservation(u);

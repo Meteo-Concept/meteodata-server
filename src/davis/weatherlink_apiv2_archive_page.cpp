@@ -110,8 +110,10 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 					// nothing has been parsed, continuing
 					continue;
 				}
-				if (message._obs.time > _time)
-					_time = date::floor<chrono::seconds>(message._obs.time);
+				if (message._obs.time > _newest)
+					_newest = date::floor<chrono::seconds>(message._obs.time);
+				if (message._obs.time < _oldest)
+					_oldest = date::floor<chrono::seconds>(message._obs.time);
 				entries.emplace_back(sensorType, dataStructureType, std::move(message));
 			}
 		} else {
@@ -122,8 +124,11 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 				for (std::pair<const std::string, pt::ptree>& data : dataIt->second) {
 					WeatherlinkApiv2ArchiveMessage message(_timeOffseter);
 					message.ingest(data.second, *parser);
-					if (message._obs.time > _time)
-						_time = date::floor<chrono::seconds>(message._obs.time);
+				std::cerr << "Message obs time " << date::format("%F %TZ", message._obs.time) << "\n";
+					if (message._obs.time > _newest)
+						_newest = date::floor<chrono::seconds>(message._obs.time);
+					if (message._obs.time < _oldest)
+						_oldest = date::floor<chrono::seconds>(message._obs.time);
 					separatelyParsedEntries.push_back(std::move(message));
 				}
 			}

@@ -48,7 +48,7 @@ class WeatherlinkApiv2ArchivePage : public WeatherlinkApiv2ParserTrait
 public:
 	template<typename T>
 	WeatherlinkApiv2ArchivePage(date::sys_time<T> lastArchive, const TimeOffseter* timeOffseter):
-		_time{date::floor<chrono::seconds>(lastArchive)},
+		_newest{date::floor<chrono::seconds>(lastArchive)},
 		_timeOffseter{timeOffseter}
 	{}
 
@@ -58,7 +58,8 @@ public:
 
 private:
 	std::vector<WeatherlinkApiv2ArchiveMessage> _messages;
-	date::sys_seconds _time;
+	date::sys_seconds _oldest{date::floor<std::chrono::seconds>(std::chrono::system_clock::now())};
+	date::sys_seconds _newest;
 	const TimeOffseter* _timeOffseter;
 	void doParse(std::istream& input, const Acceptor& acceptable,
 		const std::map<int, std::map<std::string, std::string>>& variables);
@@ -70,8 +71,11 @@ public:
 	inline decltype(_messages)::const_iterator end() const
 	{ return _messages.cend(); }
 
+	inline date::sys_seconds getOldestMessageTime()
+	{ return _oldest; }
+
 	inline date::sys_seconds getNewestMessageTime()
-	{ return _time; }
+	{ return _newest; }
 };
 
 }
