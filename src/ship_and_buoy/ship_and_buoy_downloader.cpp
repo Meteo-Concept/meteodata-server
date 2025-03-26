@@ -73,6 +73,8 @@ void ShipAndBuoyDownloader::download()
 
 		std::vector<Observation> allObs;
 
+		std::lock_guard<std::mutex> lock{_icaosMutex};
+
 		while (std::getline(responseStream, line)) {
 			   lineIterator = std::istringstream{line};
 			   MeteoFranceShipAndBuoy m{lineIterator, fields};
@@ -116,6 +118,7 @@ void ShipAndBuoyDownloader::download()
 
 void ShipAndBuoyDownloader::reloadStations()
 {
+	std::lock_guard<std::mutex> lock{_icaosMutex};
 	_icaos.clear();
 	std::vector<std::tuple<CassUuid, std::string>> icaos;
 	_db.getAllIcaos(icaos);

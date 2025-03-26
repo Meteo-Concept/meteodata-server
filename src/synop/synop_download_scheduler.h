@@ -27,6 +27,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <mutex>
 
 #include <cassandra.h>
 #include <date/date.h>
@@ -47,6 +48,7 @@ public:
 
 private:
 	std::map<std::string, CassUuid> _icaos;
+	std::mutex _icaosMutex;
 
 	struct SynopGroup {
 		std::string prefix;

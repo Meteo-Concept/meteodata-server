@@ -26,6 +26,7 @@
 #include <functional>
 #include <chrono>
 #include <unordered_map>
+#include <mutex>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -66,6 +67,7 @@ void WeatherlinkApiv2DownloadScheduler::add(const CassUuid& station, bool archiv
 		const std::map<int, std::map<std::string, std::string>>& parsers,
 		const std::string& weatherlinkId, TimeOffseter&& to)
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloadersAPIv2.emplace_back(
 		archived,
 		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, parsers,
@@ -80,6 +82,7 @@ void WeatherlinkApiv2DownloadScheduler::download()
 	auto tod = date::make_time(now - daypoint); // Yields time_of_day type
 	auto minutes = tod.minutes().count();
 
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	downloadArchives(minutes);
 	downloadRealTime(minutes);
 }
@@ -118,6 +121,8 @@ void WeatherlinkApiv2DownloadScheduler::downloadArchives(int minutes)
 
 void WeatherlinkApiv2DownloadScheduler::reloadStations()
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
+
 	_downloadersAPIv2.clear();
 
 	std::vector<std::tuple<CassUuid, bool, std::map<int, CassUuid>, std::string, std::map<int, std::map<std::string, std::string>>>> weatherlinkAPIv2Stations;

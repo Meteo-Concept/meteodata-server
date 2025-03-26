@@ -30,6 +30,7 @@
 #include <vector>
 #include <functional>
 #include <map>
+#include <mutex>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -64,6 +65,7 @@ public:
 
 private:
 	std::map<std::string, CassUuid> _icaos;
+	std::mutex _icaosMutex;
 
 	AsyncJobPublisher* _jobPublisher;
 

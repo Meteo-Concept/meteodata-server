@@ -80,6 +80,8 @@ protected:
 
 	AsyncJobPublisher* _jobPublisher;
 
+	std::mutex _stationsMutex;
+
 	/**
 	 * @brief Map from topic to station UUID, station name, polling period, last archive insertion datetime, time offseter
 	 */

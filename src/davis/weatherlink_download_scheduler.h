@@ -30,6 +30,7 @@
 #include <chrono>
 #include <map>
 #include <thread>
+#include <mutex>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
@@ -70,6 +71,7 @@ public:
 private:
 	AsyncJobPublisher* _jobPublisher;
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
+	std::recursive_mutex _downloadersMutex;
 	bool _mustStop = false;
 
 public:

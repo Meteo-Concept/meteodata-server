@@ -27,6 +27,7 @@
 #include <iterator>
 #include <chrono>
 #include <thread>
+#include <mutex>
 #include <cmath>
 #include <systemd/sd-daemon.h>
 
@@ -275,6 +276,7 @@ void MqttSubscriber::reload()
 {
 	_client->disconnect();
 	if (!_stopped) {
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		_db.getMqttStations(mqttStations);
 

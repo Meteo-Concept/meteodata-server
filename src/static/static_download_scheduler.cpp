@@ -51,6 +51,8 @@ StatICDownloadScheduler::add(
 	const CassUuid& station, const std::string& host, const std::string& url,
 	bool https, int timezone, const std::map<std::string, std::string>& sensors
 ) {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
+
 	_downloaders.emplace_back(
 		std::make_shared<StatICTxtDownloader>(_db, station, host, url, https, timezone, sensors)
 	);
@@ -58,6 +60,10 @@ StatICDownloadScheduler::add(
 
 void StatICDownloadScheduler::download()
 {
+	if (_mustStop)
+		return;
+
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	for (const auto & _downloader : _downloaders) {
 		if (_mustStop)
 			break;
@@ -72,6 +78,7 @@ void StatICDownloadScheduler::download()
 
 void StatICDownloadScheduler::reloadStations()
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.clear();
 
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::map<std::string, std::string>>> statICTxtStations;

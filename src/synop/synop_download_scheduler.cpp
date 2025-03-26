@@ -22,10 +22,11 @@
  */
 
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <map>
 #include <vector>
-#include <iomanip>
+#include <mutex>
 
 #include <systemd/sd-daemon.h>
 #include <cassobs/dbconnection_observations.h>
@@ -48,6 +49,7 @@ SynopDownloadScheduler::SynopDownloadScheduler(asio::io_context& ioContext, DbCo
 
 void SynopDownloadScheduler::reloadStations()
 {
+	std::lock_guard<std::mutex> lock{_icaosMutex};
 	_groups.clear();
 
 	// FR stations are downloaded via the MeteoFrance API since v2.13
@@ -69,6 +71,10 @@ void SynopDownloadScheduler::reloadStations()
 
 void SynopDownloadScheduler::download()
 {
+	if (_mustStop)
+		return;
+
+	std::lock_guard<std::mutex> lock{_icaosMutex};
 	for (const SynopGroup& group : _groups) {
 		if (_mustStop)
 			break;

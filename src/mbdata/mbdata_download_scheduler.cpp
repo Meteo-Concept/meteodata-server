@@ -24,6 +24,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <mutex>
 
 #include <systemd/sd-daemon.h>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -49,6 +50,7 @@ MBDataDownloadScheduler::MBDataDownloadScheduler(asio::io_context& ioContext, Db
 
 void MBDataDownloadScheduler::add(const std::tuple<CassUuid, std::string, std::string, bool, int, std::string>& downloadDetails)
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.emplace_back(std::make_shared<MBDataTxtDownloader>(_db, downloadDetails));
 }
 
@@ -66,6 +68,7 @@ void MBDataDownloadScheduler::download()
 
 void MBDataDownloadScheduler::reloadStations()
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.clear();
 
 	std::vector<std::tuple<CassUuid, std::string, std::string, bool, int, std::string>> mbDataTxtStations;

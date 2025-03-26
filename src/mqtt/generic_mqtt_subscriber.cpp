@@ -25,6 +25,7 @@
 #include <iterator>
 #include <functional>
 #include <iostream>
+#include <mutex>
 
 #include <mqtt_client_cpp.hpp>
 #include <cassobs/dbconnection_observations.h>
@@ -71,6 +72,8 @@ bool GenericMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boo
 void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
 {
 	using date::operator<<;
+
+	std::lock_guard<std::mutex> lock{_stationsMutex};
 
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
@@ -130,6 +133,7 @@ void GenericMqttSubscriber::reload()
 {
 	_client->disconnect();
 	if (!_stopped) {
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		_db.getMqttStations(mqttStations);
 

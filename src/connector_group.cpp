@@ -36,7 +36,7 @@ namespace meteodata
 {
 
 ConnectorGroup::ConnectorGroup(boost::asio::io_context& ioContext,
-							   DbConnectionObservations& db):
+				   DbConnectionObservations& db):
 		Connector(ioContext, db)
 {}
 

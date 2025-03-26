@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <mutex>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ssl.hpp>
@@ -109,6 +110,8 @@ private:
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<FieldClimateApiDownloader>> _downloaders;
+
+	std::recursive_mutex _downloadersMutex;
 
 private:
 	/**

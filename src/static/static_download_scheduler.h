@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <mutex>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ssl.hpp>
@@ -87,6 +88,11 @@ private:
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<StatICTxtDownloader>> _downloaders;
+
+	/**
+	 * @brief The mutex protecting the downloaders list
+	 */
+	std::recursive_mutex _downloadersMutex;
 
 	/**
 	 * @brief Reload the list of StatIC stations from the database and

@@ -27,6 +27,7 @@
 #include <iterator>
 #include <map>
 #include <chrono>
+#include <mutex>
 #include <systemd/sd-daemon.h>
 
 #include <cassandra.h>
@@ -65,6 +66,7 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 		}
 
 		const std::string& topic = subscriptionIt->second;
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		const auto& station = _stations[subscriptionIt->second];
 		if (!e) {
 			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: " << "subscription failed: "
@@ -102,6 +104,7 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 
 void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
 {
+	std::lock_guard<std::mutex> lock{_stationsMutex};
 	auto stationIt = _stations.find(topicName.to_string());
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT protocol]: " << "Unknown topic " << topicName << std::endl;
@@ -189,6 +192,7 @@ void VP2MqttSubscriber::reload()
 {
 	_client->disconnect();
 	if (!_stopped) {
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		_db.getMqttStations(mqttStations);
 

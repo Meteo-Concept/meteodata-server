@@ -26,6 +26,7 @@
 #include <functional>
 #include <memory>
 #include <iostream>
+#include <mutex>
 
 #include <mqtt_client_cpp.hpp>
 #include <cassobs/dbconnection_observations.h>
@@ -62,13 +63,13 @@ bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
 			std::cerr << SD_ERR << "[MQTT Liveobjects] protocol: " << "client " << _details.host
-					  << ": received an invalid subscription ack?!" << std::endl;
+				  << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		if (!e) {
 			std::cerr << SD_ERR << "[MQTT Liveobjects " << getTopic() << "] connection: "
-					  << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
+				  << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
 		}
 	}
 	return true;
@@ -77,6 +78,8 @@ bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector
 void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
 {
 	using date::operator<<;
+
+	std::lock_guard<std::mutex> lock{_stationsMutex};
 
 	pt::ptree jsonTree;
 	std::istringstream jsonStream{std::string{content}};
@@ -92,7 +95,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	const CassUuid& station = std::get<0>(stationIt->second);
 	const std::string& stationName = std::get<1>(stationIt->second);
 	std::cout << SD_DEBUG << "[MQTT Liveobjects " << station << "] measurement: " << "Now receiving for MQTT station "
-			  << stationName << std::endl;
+		  << stationName << std::endl;
 
 
 	date::sys_seconds timestamp;
@@ -104,7 +107,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 		ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 	} else {
 		std::cerr << SD_WARNING << "[MQTT Liveobjects " << station << "] measurement: "
-				  << "Record looks invalid, discarding " << std::endl;
+			  << "Record looks invalid, discarding " << std::endl;
 	}
 
 	if (ret) {
@@ -114,7 +117,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] management: "
-					  << "Couldn't update last archive download time" << std::endl;
+				  << "Couldn't update last archive download time" << std::endl;
 
 		msg->cacheValues(station);
 
@@ -122,7 +125,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 			_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);
 	} else {
 		std::cerr << SD_ERR << "[MQTT Liveobjects " << station << "] measurement: "
-				  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
+			  << "Failed to store archive for MQTT station " << stationName << "! Aborting" << std::endl;
 		// will retry...
 		return;
 	}
@@ -139,6 +142,7 @@ void LiveobjectsMqttSubscriber::reload()
 {
 	_client->disconnect();
 	if (!_stopped) {
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		_db.getMqttStations(mqttStations);
 		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;

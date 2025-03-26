@@ -44,7 +44,7 @@ public:
 	UdpConnection(boost::asio::io_context& io, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void start();
 	void stop();
-	void reload();
+	void reload() override;
 
 
 private:

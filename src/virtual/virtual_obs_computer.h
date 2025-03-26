@@ -42,8 +42,8 @@ namespace meteodata
 using namespace meteodata;
 
 /**
- * @brief Connector for the devices attached to the Objenious network, by
- * Bouygues®, using the Objenious SPOT API
+ * @brief A virtual station, composed of various independent sensors for which
+ * we synchronize and merge the measurements
  */
 class VirtualObsComputer
 {

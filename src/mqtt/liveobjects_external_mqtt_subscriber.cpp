@@ -22,6 +22,7 @@
  */
 
 #include <string>
+#include <mutex>
 
 #include <cassobs/dbconnection_observations.h>
 
@@ -49,6 +50,7 @@ void LiveobjectsExternalMqttSubscriber::reload()
 {
 	_client->disconnect();
 	if (!_stopped) {
+		std::lock_guard<std::mutex> lock{_stationsMutex};
 		std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 		_db.getMqttStations(mqttStations);
 		std::vector<std::tuple<CassUuid, std::string, std::string>> liveobjectsStations;

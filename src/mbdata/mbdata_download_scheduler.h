@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <mutex>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/ssl.hpp>
@@ -82,6 +83,12 @@ private:
 	 * @brief The list of all downloaders (one per station)
 	 */
 	std::vector<std::shared_ptr<MBDataTxtDownloader>> _downloaders;
+
+	/**
+	 * @brief The synchronization mutex to safely reload the list of
+	 * downloaders
+	 */
+	std::recursive_mutex _downloadersMutex;
 
 	/**
 	 * @brief Whether to stop collecting data

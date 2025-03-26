@@ -26,6 +26,7 @@
 #include <chrono>
 #include <thread>
 #include <utility>
+#include <mutex>
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
@@ -57,6 +58,7 @@ FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_cont
 void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::string& fieldClimateId,
 	TimeOffseter::PredefinedTimezone tz, const std::map<std::string, std::string>& sensors)
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.emplace_back(
 		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret, _jobPublisher)
 	);
@@ -64,6 +66,7 @@ void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::s
 
 void FieldClimateApiDownloadScheduler::download()
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	++_status.nbDownloads;
 	_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 	for (const auto& downloader : _downloaders) {
@@ -76,13 +79,14 @@ void FieldClimateApiDownloadScheduler::download()
 			std::this_thread::sleep_for(chrono::milliseconds(100));
 		} catch (const std::runtime_error& e) {
 			std::cerr << SD_ERR << "[Pessl] protocol: " << "Runtime error, impossible to download " << e.what()
-					  << ", moving on..." << std::endl;
+				  << ", moving on..." << std::endl;
 		}
 	}
 }
 
 void FieldClimateApiDownloadScheduler::reloadStations()
 {
+	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.clear();
 
 	std::vector<std::tuple<CassUuid, std::string, int, std::map<std::string, std::string>>> fieldClimateStations;
