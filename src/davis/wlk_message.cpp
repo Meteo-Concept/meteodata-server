@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <map>
 #include <chrono>
+#include <exception>
+#include <stdexcept>
 
 #include <date/date.h>
 #include <cassobs/message.h>
@@ -67,6 +69,7 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 	in = std::istringstream(values["Time"]);
 	in >> date::parse("%H:%M", time);
 
+
 	date::local_seconds datetime = local_days(date) + time;
 	_datetime = tz.convertFromLocalTime(datetime);
 
@@ -75,100 +78,105 @@ WlkMessage::WlkMessage(std::istream& entry, const TimeOffseter& tz, const std::v
 		return;
 	}
 
-	// Temp Out
-	if (values["Temp Out"] != "---")
-		_airTemp = std::stof(values["Temp Out"]);
+	try {
+		// Temp Out
+		if (values.count("Temp Out") && values["Temp Out"] != "---")
+			_airTemp = std::stof(values["Temp Out"]);
 
-	// Hi Temp
-	if (values["Hi Temp"] != "---")
-		_maxAirTemp = std::stof(values["Hi Temp"]);
+		// Hi Temp
+		if (values.count("Hi Temp") && values["Hi Temp"] != "---")
+			_maxAirTemp = std::stof(values["Hi Temp"]);
 
-	// Low Temp
-	if (values["Low Temp"] != "---")
-		_minAirTemp = std::stof(values["Low Temp"]);
+		// Low Temp
+		if (values.count("Low Temp") && values["Low Temp"] != "---")
+			_minAirTemp = std::stof(values["Low Temp"]);
 
-	// Out Hum
-	if (values["Out Hum"] != "---")
-		_humidity = std::stoi(values["Out Hum"]);
+		// Out Hum
+		if (values.count("Out Hum") && values["Out Hum"] != "---")
+			_humidity = std::stoi(values["Out Hum"]);
 
-	// Dew Pt.
-	if (values["Dew Pt."] != "---")
-		_dewPoint = std::stof(values["Dew Pt."]);
+		// Dew Pt.
+		if (values.count("Dew Pt.") && values["Dew Pt."] != "---")
+			_dewPoint = std::stof(values["Dew Pt."]);
 
-	// Wind Speed
-	if (values["Wind Speed"] != "---")
-		_windSpeed = std::stof(values["Wind Speed"]);
+		// Wind Speed
+		if (values.count("Wind Speed") && values["Wind Speed"] != "---")
+			_windSpeed = std::stof(values["Wind Speed"]);
 
-	// Wind Dir
-	if (values["Wind Dir"] != "---") {
-		std::string& dir = values["Wind Dir"];
-		if (dir == "N")
-			_windDir = 0.f;
-		else if (dir == "NNE")
-			_windDir = 22.5f;
-		else if (dir == "NE")
-			_windDir = 45.f;
-		else if (dir == "ENE")
-			_windDir = 67.5f;
-		else if (dir == "E")
-			_windDir = 90.f;
-		else if (dir == "ESE")
-			_windDir = 112.5f;
-		else if (dir == "SE")
-			_windDir = 135.f;
-		else if (dir == "SSE")
-			_windDir = 157.5f;
-		else if (dir == "S")
-			_windDir = 180.f;
-		else if (dir == "SSW")
-			_windDir = 202.5f;
-		else if (dir == "SW")
-			_windDir = 225.f;
-		else if (dir == "WSW")
-			_windDir = 247.5f;
-		else if (dir == "W")
-			_windDir = 270.f;
-		else if (dir == "WNW")
-			_windDir = 292.5f;
-		else if (dir == "NW")
-			_windDir = 315.f;
-		else if (dir == "NNW")
-			_windDir = 337.5f;
+		// Wind Dir
+		if (values.count("Wind Dir") && values["Wind Dir"] != "---") {
+			std::string& dir = values["Wind Dir"];
+			if (dir == "N")
+				_windDir = 0.f;
+			else if (dir == "NNE")
+				_windDir = 22.5f;
+			else if (dir == "NE")
+				_windDir = 45.f;
+			else if (dir == "ENE")
+				_windDir = 67.5f;
+			else if (dir == "E")
+				_windDir = 90.f;
+			else if (dir == "ESE")
+				_windDir = 112.5f;
+			else if (dir == "SE")
+				_windDir = 135.f;
+			else if (dir == "SSE")
+				_windDir = 157.5f;
+			else if (dir == "S")
+				_windDir = 180.f;
+			else if (dir == "SSW")
+				_windDir = 202.5f;
+			else if (dir == "SW")
+				_windDir = 225.f;
+			else if (dir == "WSW")
+				_windDir = 247.5f;
+			else if (dir == "W")
+				_windDir = 270.f;
+			else if (dir == "WNW")
+				_windDir = 292.5f;
+			else if (dir == "NW")
+				_windDir = 315.f;
+			else if (dir == "NNW")
+				_windDir = 337.5f;
+		}
+
+		// Hi Speed
+		if (values.count("Hi Speed") && values["Hi Speed"] != "---")
+			_gust = std::stof(values["Hi Speed"]);
+
+		// Wind Chill
+		if (values.count("Wind Chill") && values["Wind Chill"] != "---")
+			_windChill = std::stof(values["Wind Chill"]);
+
+		// Heat Index
+		if (values.count("Heat Index") && values["Heat Index"] != "---")
+			_heatIndex = std::stof(values["Heat Index"]);
+
+		// Bar
+		if (values.count("Bar") && values["Bar"] != "---")
+			_pressure = std::stof(values["Bar"]);
+
+		// Rain
+		if (values.count("Rain") && values["Rain"] != "---")
+			_rainfall = std::stof(values["Rain"]);
+
+		// Rain Rate
+		if (values.count("Rain Rate") && values["Rain Rate"] != "---")
+			_rainrate = std::stof(values["Rain Rate"]);
+
+		// Solar Rad.
+		if (values.count("Solar Rad.") && values["Solar Rad."] != "" && values["Solar Rad."] != "---")
+			_solarRad = std::stof(values["Solar Rad."]);
+
+		// ET
+		if (values.count("In Air ET") && values["In Air ET"] != "" && values["In Air ET"] != "---")
+			_et = std::stof(values["In Air ET"]);
+
+		_valid = true;
+	} catch (std::exception& e) {
+		_valid = false;
 	}
 
-	// Hi Speed
-	if (values["Hi Speed"] != "---")
-		_gust = std::stof(values["Hi Speed"]);
-
-	// Wind Chill
-	if (values["Wind Chill"] != "---")
-		_windChill = std::stof(values["Wind Chill"]);
-
-	// Heat Index
-	if (values["Heat Index"] != "---")
-		_heatIndex = std::stof(values["Heat Index"]);
-
-	// Bar
-	if (values["Bar"] != "---")
-		_pressure = std::stof(values["Bar"]);
-
-	// Rain
-	if (values["Rain"] != "---")
-		_rainfall = std::stof(values["Rain"]);
-
-	// Rain Rate
-	if (values["Rain Rate"] != "---")
-		_rainrate = std::stof(values["Rain Rate"]);
-
-	// Solar Rad.
-	if (values["Solar Rad."] != "" && values["Solar Rad."] != "---")
-		_solarRad = std::stof(values["Solar Rad."]);
-
-	// ET
-	if (values["In Air ET"] != "" && values["In Air ET"] != "---")
-		_et = std::stof(values["In Air ET"]);
-
-	_valid = true;
 }
 
 Observation WlkMessage::getObservation(const CassUuid station) const
