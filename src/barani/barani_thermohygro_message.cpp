@@ -123,7 +123,7 @@ void BaraniThermohygroMessage::ingest(const CassUuid& station, const std::string
 		if (rainClicks >= *prev) {
 			_obs.rainfall = (rainClicks - *prev) * DEFAULT_RAIN_GAUGE_RESOLUTION;
 		} else {
-			_obs.rainfall = (4096 - *prev + rainClicks ) * DEFAULT_RAIN_GAUGE_RESOLUTION;
+			_obs.rainfall = (256 - *prev + rainClicks) * DEFAULT_RAIN_GAUGE_RESOLUTION;
 		}
 	}
 	// bytes 81-89: min time between clicks
