@@ -48,7 +48,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 {
 	using namespace hex_parser;
 
-	if (!validateInput(payload, {24, 32})) {
+	if (!validateInput(payload, {24, 34})) {
 		_obs.valid = false;
 		return;
 	}
@@ -60,7 +60,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 	uint16_t hum;
 	uint16_t windPulses = 0U;
 	uint8_t gustPulses = 0U;
-	uint8_t windDir = 0xFF;
+	uint16_t windDir = 0xFFFFU;
 
 	std::istringstream is{payload};
 	is >> parse(battery, 4, 16)
@@ -102,7 +102,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 		}
 		is >> parse(windPulses, 4, 16)
 		   >> parse(gustPulses, 2, 16)
-		   >> parse(windDir, 2, 16);
+		   >> parse(windDir, 4, 16);
 		_obs.windSpeed = from_mph_to_kph(windPulses * 2.25 / (pollingPeriod * 60));
 		_obs.gustSpeed = from_mph_to_kph(gustPulses);
 		if (windDir != 0xFF) {

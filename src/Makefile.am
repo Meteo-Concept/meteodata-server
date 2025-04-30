@@ -121,6 +121,8 @@ meteodata_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/thplnbiot_message.cpp\
 		    dragino/thplnbiot_message.h\
+		    dragino/concept500_message.cpp\
+		    dragino/concept500_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -602,6 +604,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
 		    dragino/thpllora_message.h\
+		    dragino/concept500_message.cpp\
+		    dragino/concept500_message.h\
 		    thlora/thlora_thermohygrometer_message.cpp\
 		    thlora/thlora_thermohygrometer_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
@@ -664,6 +668,8 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    dragino/cpl01_pluviometer_message.h\
 		    dragino/thpllora_message.cpp\
 		    dragino/thpllora_message.h\
+		    dragino/concept500_message.cpp\
+		    dragino/concept500_message.h\
 		    thlora/thlora_thermohygrometer_message.cpp\
 		    thlora/thlora_thermohygrometer_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
