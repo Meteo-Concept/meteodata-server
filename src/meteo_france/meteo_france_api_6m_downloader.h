@@ -102,7 +102,7 @@ private:
 	 */
 	const std::string& _apiKey;
 
-	std::map<std::string, CassUuid> _stations;
+	std::map<std::string, std::tuple<CassUuid, std::string, std::string, int, float, float, int, int>> _stations;
 
 	/**
 	 * @brief The max size reserved for the buffers used in the requests

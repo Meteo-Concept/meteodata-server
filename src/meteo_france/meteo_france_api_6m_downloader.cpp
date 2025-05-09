@@ -77,7 +77,7 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 	_db.getMeteoFranceStations(mfStations);
 
 	for (auto&& s : mfStations) {
-		_stations.emplace(std::move(std::get<2>(s)), std::move(std::get<0>(s)));
+		_stations.emplace(std::move(std::get<2>(s)), std::move(s));
 	}
 
 	bool insertionOk = true;
@@ -117,7 +117,7 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 					auto st = _stations.find(mfId);
 					if (m.looksValid() && st != _stations.end()) {
 						auto&& station = st->second;
-						auto o = m.getObservation(station);
+						auto o = m.getObservation(std::get<0>(station), std::get<4>(station), std::get<5>(station), std::get<6>(station));
 						obs.push_back(o);
 						int ret = _db.insertV2DataPoint(o);
 						if (!ret) {

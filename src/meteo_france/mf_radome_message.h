@@ -44,6 +44,7 @@ public:
 	explicit MfRadomeMessage(std::chrono::seconds duration = std::chrono::seconds{3600});
 	void parse(pt::ptree&& payload, date::sys_seconds& timestamp);
 	Observation getObservation(const CassUuid& station) const;
+	Observation getObservation(const CassUuid& station, float latitude, float longitude, int elevation) const;
 	inline bool looksValid() const { return _valid; };
 	inline std::string getMfId() const { return _mfId; };
 

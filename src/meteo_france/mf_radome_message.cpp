@@ -103,4 +103,26 @@ Observation MfRadomeMessage::getObservation(const CassUuid& station) const
 	return result;
 }
 
+Observation MfRadomeMessage::getObservation(const CassUuid& station, float latitude, float longitude, int elevation) const
+{
+	Observation result;
+
+	if (_valid) {
+		result = getObservation(station);
+		if (!bool(_t) && !bool(_ff) && !bool(_u) && !bool(_glo)) {
+			result.et = {true,
+				evapotranspiration(
+					from_Kelvin_to_Celsius(_t.value_or(0.f)), ::roundf(_u.value_or(0)), _ff.value_or(0.f),
+					::roundf(from_Jpsqm_to_Wpsqm(_glo.value_or(0.f), _duration)),
+					latitude, longitude, elevation,
+					chrono::system_clock::to_time_t(_timestamp),
+					chrono::duration_cast<chrono::minutes>(_duration).count()
+				)
+			};
+		}
+	}
+
+	return result;
+}
+
 }
