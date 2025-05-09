@@ -82,6 +82,13 @@ Observation AbstractWeatherlinkApiMessage::getObservation(CassUuid station) cons
 				_timeOffseter->getMeasureStep())
 		};
 	}
+	if (!isInvalid(_obs.solarRad)) {
+		bool ins = insolated(_obs.solarRad,
+			_timeOffseter->getLatitude(), _timeOffseter->getLongitude(),
+			chrono::system_clock::to_time_t(_obs.time)
+		);
+		result.insolation_time = {true, ins ? _timeOffseter->getMeasureStep() : 0};
+	}
 
 	for (int i = 0 ; i < 4 ; i++) {
 		result.soilmoistures[i] = {!isInvalid(_obs.soilMoisture[i]), _obs.soilMoisture[i]};
