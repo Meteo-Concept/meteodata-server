@@ -20,6 +20,7 @@ bin_PROGRAMS = \
 	       meteodata-cimel-standalone\
 	       meteodata-mqtt-vp2-standalone\
 	       meteodata-mqtt-chirpstack-receiver-standalone\
+	       meteodata-mqtt-payload-ingester-standalone\
 	       meteodata-meteofrance-api-standalone\
 	       meteodata-meteofrance-all-stations-api-standalone\
 	       meteodata-virtual-standalone\
@@ -684,6 +685,52 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    mqtt/chirpstack_mqtt_subscriber.h\
 		    mqtt/chirpstack_mqtt_subscriber_standalone.cpp
 
+meteodata_mqtt_payload_ingester_standalone_SOURCES = \
+		    async_job_publisher.cpp\
+		    async_job_publisher.h\
+		    connector.cpp\
+		    connector.h\
+		    cassandra_utils.h\
+		    time_offseter.cpp\
+		    time_offseter.h\
+		    liveobjects/liveobjects_message.cpp\
+		    liveobjects/liveobjects_message.h\
+		    barani/barani_anemometer_message.cpp\
+		    barani/barani_anemometer_message.h\
+		    barani/barani_anemometer_2023_message.cpp\
+		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_meteoag_2022_message.cpp\
+		    barani/barani_meteoag_2022_message.h\
+		    barani/barani_rain_gauge_message.cpp\
+		    barani/barani_rain_gauge_message.h\
+		    barani/barani_thermohygro_message.cpp\
+		    barani/barani_thermohygro_message.h\
+		    dragino/lsn50v2_thermohygrometer_message.cpp\
+		    dragino/lsn50v2_thermohygrometer_message.h\
+		    dragino/lsn50v2_probe6470_message.cpp\
+		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/sn50v3_probe6470_message.cpp\
+		    dragino/sn50v3_probe6470_message.h\
+		    dragino/llms01_leaf_sensor_message.cpp\
+		    dragino/llms01_leaf_sensor_message.h\
+		    dragino/lse01_soil_sensor_message.cpp\
+		    dragino/lse01_soil_sensor_message.h\
+		    dragino/cpl01_pluviometer_message.cpp\
+		    dragino/cpl01_pluviometer_message.h\
+		    dragino/thpllora_message.cpp\
+		    dragino/thpllora_message.h\
+		    dragino/concept500_message.cpp\
+		    dragino/concept500_message.h\
+		    thlora/thlora_thermohygrometer_message.cpp\
+		    thlora/thlora_thermohygrometer_message.h\
+		    talkpool/oy1110_thermohygrometer_message.cpp\
+		    talkpool/oy1110_thermohygrometer_message.h\
+		    pessl/lorain_message.cpp\
+		    pessl/lorain_message.h\
+		    mqtt/generic_message.cpp\
+		    mqtt/generic_message.h\
+		    mqtt/mqtt_payload_ingester_standalone.cpp
+
 meteodata_meteofrance_api_standalone_SOURCES = \
 		    time_offseter.cpp\
 		    time_offseter.h\
@@ -851,6 +898,11 @@ meteodata_mqtt_chirpstack_receiver_standalone_CPPFLAGS = $(basecppflags)
 meteodata_mqtt_chirpstack_receiver_standalone_CXXFLAGS =
 meteodata_mqtt_chirpstack_receiver_standalone_LDFLAGS = $(baseldflags)
 meteodata_mqtt_chirpstack_receiver_standalone_LDADD = $(baselibs)
+
+meteodata_mqtt_payload_ingester_standalone_CPPFLAGS = $(basecppflags)
+meteodata_mqtt_payload_ingester_standalone_CXXFLAGS =
+meteodata_mqtt_payload_ingester_standalone_LDFLAGS = $(baseldflags)
+meteodata_mqtt_payload_ingester_standalone_LDADD = $(baselibs)
 
 meteodata_meteofrance_api_standalone_CPPFLAGS = $(basecppflags)
 meteodata_meteofrance_api_standalone_CXXFLAGS =
