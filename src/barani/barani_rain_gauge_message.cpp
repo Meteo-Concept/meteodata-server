@@ -149,8 +149,9 @@ Observation BaraniRainGaugeMessage::getObservation(const CassUuid& station) cons
 		result.station = station;
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;
-		result.rainfall = { _obs.rainfall != NAN, _obs.rainfall };
-		result.rainrate = { _obs.maxRainrate != NAN, _obs.maxRainrate };
+		result.rainfall = { !std::isnan(_obs.rainfall), _obs.rainfall };
+		result.rainrate = { !std::isnan(_obs.maxRainrate), _obs.maxRainrate };
+		result.voltage_battery = { !std::isnan(_obs.batteryVoltage), _obs.batteryVoltage };
 	}
 
 	return result;

@@ -151,18 +151,19 @@ Observation BaraniThermohygroMessage::getObservation(const CassUuid& station) co
 		result.station = station;
 		result.day = date::floor<date::days>(_obs.time);
 		result.time = _obs.time;
-		result.outsidetemp = { _obs.temperature != NAN, _obs.temperature };
-		result.max_outside_temperature = { _obs.maxTemperature != NAN, _obs.maxTemperature };
-		result.min_outside_temperature = { _obs.minTemperature != NAN, _obs.minTemperature };
-		result.outsidehum = { _obs.humidity != NAN, _obs.humidity };
-		if (_obs.temperature != NAN && _obs.humidity != NAN) {
+		result.outsidetemp = { !std::isnan(_obs.temperature), _obs.temperature };
+		result.max_outside_temperature = { !std::isnan(_obs.maxTemperature), _obs.maxTemperature };
+		result.min_outside_temperature = { !std::isnan(_obs.minTemperature), _obs.minTemperature };
+		result.outsidehum = { !std::isnan(_obs.humidity), _obs.humidity };
+		if (!std::isnan(_obs.temperature) && !std::isnan(_obs.humidity)) {
 			result.dewpoint = {true, dew_point(_obs.temperature, _obs.humidity)};
 			result.heatindex = {true, heat_index(from_Celsius_to_Farenheit(_obs.temperature), _obs.humidity)};
 		}
-		result.barometer = { _obs.pressure != NAN, _obs.pressure };
-		result.solarrad = { _obs.radiation != NAN, _obs.radiation };
-		result.rainfall = { _obs.rainfall != NAN, _obs.rainfall };
-		result.rainrate = { _obs.maxRainrate != NAN, _obs.maxRainrate };
+		result.barometer = { !std::isnan(_obs.pressure), _obs.pressure };
+		result.solarrad = { !std::isnan(_obs.radiation), _obs.radiation };
+		result.rainfall = { !std::isnan(_obs.rainfall), _obs.rainfall };
+		result.rainrate = { !std::isnan(_obs.maxRainrate), _obs.maxRainrate };
+		result.voltage_battery = { !std::isnan(_obs.batteryVoltage), _obs.batteryVoltage };
 	}
 
 	return result;
