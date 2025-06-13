@@ -94,6 +94,13 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 		const NbiotStation& st = it->second;
 		const CassUuid& uuid = st.station;
 
+		bool ret = _db.insertCollection(uuid, chrono::system_clock::to_time_t(chrono::system_clock::now()), "nbiot", body);
+		if (ret) {
+			std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] protocol: " << "raw message stored" << std::endl;
+		} else {
+			std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] measurement: " << "failed to store raw message" << std::endl;
+		}
+
 		std::string message = body.substr(0, body.size() - 64);
 		std::string key;
 		std::istringstream keyIs{st.hmacKey};
@@ -139,7 +146,7 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 		for (const Observation& obs : allObs) {
 			bool ret = _db.insertV2DataPoint(obs);
 			if (ret) {
-				std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
+				std::cout << SD_INFO << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
 					  << name << " for time " << date::format("%Y-%m-%dT%H:%M:%S+0000", obs.time) << std::endl;
 				time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(obs.time);
 				oldest = std::min(obs.time, oldest);
@@ -155,7 +162,7 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 			}
 		}
 
-		bool ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+		ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 		if (ret) {
 			std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
 				  << name << std::endl;
