@@ -48,7 +48,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 {
 	using namespace hex_parser;
 
-	if (!validateInput(payload, {24, 34})) {
+	if (!validateInput(payload, {24, 32, 34})) {
 		_obs.valid = false;
 		return;
 	}
@@ -88,7 +88,7 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 	}
 
 
-	if (payload.length() == 32) {
+	if (payload.length() >= 32) {
 		float latitude, longitude;
 		int elevation;
 		int pollingPeriod;
@@ -101,11 +101,14 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 			pollingPeriod = 10;
 		}
 		is >> parse(windPulses, 4, 16)
-		   >> parse(gustPulses, 2, 16)
-		   >> parse(windDir, 4, 16);
+		   >> parse(gustPulses, 2, 16);
 		_obs.windSpeed = from_mph_to_kph(windPulses * 2.25 / (pollingPeriod * 60));
 		_obs.gustSpeed = from_mph_to_kph(gustPulses);
-		if (windDir != 0xFF) {
+	}
+
+	if (payload.length() == 34) {
+		is >> parse(windDir, 4, 16);
+		if (windDir != 0xFFFF) {
 			_obs.windDir = windDir;
 		}
 	}
