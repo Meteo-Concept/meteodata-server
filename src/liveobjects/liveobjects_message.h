@@ -100,11 +100,17 @@ public:
 		// no-op
 	};
 
+	virtual std::optional<float> getSingleCachedValue()
+	{
+		return std::nullopt;
+	}
+
 	static std::unique_ptr<LiveobjectsMessage> instantiateMessage(
 		DbConnectionObservations& db,
 		const std::string& payload,
 		int port,
-		const CassUuid& station
+		const CassUuid& station,
+		std::optional<float> forcedBaseValue = std::nullopt
 	);
 
 	static std::unique_ptr<LiveobjectsMessage> parseMessage(

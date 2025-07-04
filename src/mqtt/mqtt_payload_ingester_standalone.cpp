@@ -73,6 +73,7 @@ int main(int argc, char** argv)
 	std::string pgaddress;
 	std::string namedStation;
 	std::string file;
+	float baseValue;
 
 	po::options_description config("Configuration");
 	config.add_options()
@@ -91,6 +92,7 @@ int main(int argc, char** argv)
 		("config-file", po::value<std::string>(), "alternative configuration file")
 		("station", po::value<std::string>(&namedStation), "the station to ingest the data for")
 		("data-file", po::value<std::string>(&file), "Four-column tab-separated file with in order on each row: the datetime, the port, the sensor type, the hexadecimal-encoded payload")
+		("base-value", po::value<float>(&baseValue), "A base counter for accumulated values")
 	;
 	desc.add(config);
 
@@ -160,6 +162,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	auto forcedBaseValue = vm.count("base-value") ? std::optional<float>{baseValue} : std::nullopt;
 
 	std::ifstream input{file};
 	std::string line;
@@ -186,7 +189,7 @@ int main(int argc, char** argv)
 			return 2;
 		}
 
-		std::unique_ptr<LiveobjectsMessage> m = LiveobjectsMessage::instantiateMessage(db, sensorType, fport, uuid);
+		std::unique_ptr<LiveobjectsMessage> m = LiveobjectsMessage::instantiateMessage(db, sensorType, fport, uuid, forcedBaseValue);
 		if (m) {
 			m->ingest(uuid, payload, d);
 		}
@@ -196,6 +199,7 @@ int main(int argc, char** argv)
 			if (!db.insertV2DataPoint(o) || !db.insertV2DataPointInTimescaleDB(o)) {
 				std::cerr << "Failed to store archive" << std::endl;
 			}
+			forcedBaseValue = m->getSingleCachedValue();
 		} else {
 			std::cerr << "Record looks invalid, discarding " << std::endl;
 		}

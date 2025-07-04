@@ -29,6 +29,7 @@
 #include <chrono>
 #include <iterator>
 #include <cmath>
+#include <optional>
 
 #include <boost/json.hpp>
 #include <date/date.h>
@@ -47,7 +48,7 @@ namespace meteodata
 class ThplloraMessage : public LiveobjectsMessage
 {
 public:
-	explicit ThplloraMessage(DbConnectionObservations& db);
+	ThplloraMessage(DbConnectionObservations& db, std::optional<int> forceRainfallCount = std::nullopt);
 
 	/**
 	 * @brief Parse the payload to build a specific datapoint for a given
@@ -61,6 +62,8 @@ public:
 	void ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime) override;
 
 	void cacheValues(const CassUuid& station) override;
+
+	std::optional<float> getSingleCachedValue() override;
 
 	inline bool looksValid() const override
 	{
@@ -101,6 +104,13 @@ private:
 	 * is getting parsed
 	 */
 	DataPoint _obs;
+
+	/**
+	 * @brief A base count to compare the rainfall contained in the message,
+	 * useful when recovering data in the past instead of relying on the
+	 * last known value
+	 */
+	std::optional<int> _forcedRainfallCount;
 
 	/**
 	 * The rain gauge scale in mm

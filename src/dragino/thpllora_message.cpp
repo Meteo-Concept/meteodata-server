@@ -23,6 +23,7 @@
 
 #include <string>
 #include <cmath>
+#include <optional>
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
@@ -40,8 +41,9 @@ namespace meteodata
 namespace chrono = std::chrono;
 namespace json = boost::json;
 
-ThplloraMessage::ThplloraMessage(DbConnectionObservations& db):
-	_db{db}
+ThplloraMessage::ThplloraMessage(DbConnectionObservations& db, std::optional<int> forcedRainfallCount):
+	_db{db},
+	_forcedRainfallCount{forcedRainfallCount}
 {}
 
 void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload, const date::sys_seconds& datetime)
@@ -115,11 +117,18 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 
 	time_t lastUpdate;
 	int previousClicks;
-	bool result = _db.getCachedInt(station, THPLLORA_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
-	if (result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - chrono::hours{24}) {
-		// the last rainfall datapoint is not too old, we can use
+	bool result = false;
+	if (_forcedRainfallCount) {
+		previousClicks = *_forcedRainfallCount;
+		result = true;
+	} else {
+		result = _db.getCachedInt(station, THPLLORA_RAINFALL_CACHE_KEY, lastUpdate, previousClicks);
+		// if the last rainfall datapoint is not too old, we can use
 		// it as a reference for the current number of clicks recorded
 		// by the pluviometer
+		result = result && chrono::_V2::system_clock::from_time_t(lastUpdate) > chrono::_V2::system_clock::now() - chrono::hours{24};
+	}
+	if (result) {
 		if (_obs.totalPulses >= previousClicks) {
 			_obs.rainfall = (_obs.totalPulses - previousClicks) * THPLLORA_RAIN_GAUGE_RESOLUTION;
 		} else {
@@ -132,12 +141,21 @@ void ThplloraMessage::ingest(const CassUuid& station, const std::string& payload
 
 void ThplloraMessage::cacheValues(const CassUuid& station)
 {
-	if (_obs.valid) {
+	if (_obs.valid && !_forcedRainfallCount) {
 		int ret = _db.cacheInt(station, THPLLORA_RAINFALL_CACHE_KEY, chrono::system_clock::to_time_t(_obs.time), _obs.totalPulses);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT " << station << "] management: "
 				  << "Couldn't update the rainfall number of clicks, accumulation error possible"
 				  << std::endl;
+	}
+}
+
+std::optional<float> ThplloraMessage::getSingleCachedValue()
+{
+	if (_obs.valid) {
+		return float(_obs.totalPulses);
+	} else {
+		return std::nullopt;
 	}
 }
 

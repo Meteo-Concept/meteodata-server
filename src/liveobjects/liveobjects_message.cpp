@@ -69,14 +69,18 @@ bool LiveobjectsMessage::validateInput(const std::string& payload, std::initiali
 }
 
 std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbConnectionObservations& db,
-	const std::string& sensor, int port, const CassUuid& station)
+	const std::string& sensor, int port, const CassUuid& station, std::optional<float> forcedBaseValue)
 {
 	if (sensor == "dragino-cpl01-pluviometer" && port == 2) {
 		return std::make_unique<Cpl01PluviometerMessage>(db);
 	} else if ((sensor == "dragino-lsn50v2" || sensor == "dragino_lsn50v2") && port == 2) {
 		return std::make_unique<Lsn50v2ThermohygrometerMessage>();
 	} else if (sensor == "dragino-thpllora" && port == 2) {
-		return std::make_unique<ThplloraMessage>(db);
+		std::optional<int> rainfallCounter;
+		// downcast to int
+		if (forcedBaseValue)
+			rainfallCounter = int(*forcedBaseValue);
+		return std::make_unique<ThplloraMessage>(db, rainfallCounter);
 	} else if (sensor == "dragino-llms01" && port == 2) {
 		return std::make_unique<Llms01LeafSensorMessage>();
 	} else if (sensor == "dragino-lse01" && port == 2) {
