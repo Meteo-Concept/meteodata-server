@@ -148,7 +148,7 @@ void MeteoFranceApiBulkDownloader::download(CurlWrapper& client)
 	}
 
 	if (insertionOk) {
-		std::cout << SD_DEBUG << "[MeteoFrance Bulk] measurement: "
+		std::cout << SD_INFO << "[MeteoFrance Bulk] measurement: "
 			  << "Archive data stored" << std::endl;
 	}
 }

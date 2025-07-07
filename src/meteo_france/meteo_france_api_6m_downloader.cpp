@@ -151,7 +151,7 @@ void MeteoFranceApi6mDownloader::download(CurlWrapper& client, date::sys_seconds
 	}
 
 	if (insertionOk) {
-		std::cout << SD_DEBUG << "[MeteoFrance 6m] measurement: "
+		std::cout << SD_INFO << "[MeteoFrance 6m] measurement: "
 			  << "Archive data stored" << std::endl;
 	}
 }

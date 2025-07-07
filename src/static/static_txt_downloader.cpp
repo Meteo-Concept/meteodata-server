@@ -174,7 +174,7 @@ bool StatICTxtDownloader::doProcess(const std::string& body)
 	bool ret = _db.insertV2DataPoint(o) &&
 		   _db.insertV2DataPointInTimescaleDB(o);
 	if (ret) {
-		std::cout << SD_DEBUG << "[StatIC " << _station << "] measurement: " << "Data from StatIC file from "
+		std::cout << SD_INFO << "[StatIC " << _station << "] measurement: " << "Data from StatIC file from "
 			  << _query << " inserted into database" << std::endl;
 	} else {
 		std::cerr << SD_ERR << "[StatIC " << _station << "] measurement: "

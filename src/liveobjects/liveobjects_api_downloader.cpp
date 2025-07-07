@@ -72,7 +72,7 @@ LiveobjectsApiDownloader::LiveobjectsApiDownloader(const CassUuid& station, cons
 	int elevation;
 	db.getStationLocation(station, latitude, longitude, elevation);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-	std::cout << SD_DEBUG << "[Liveobjects " << _station << "] connection: "
+	std::cout << SD_INFO << "[Liveobjects " << _station << "] connection: "
 			  << "Discovered Liveobjects station " << _stationName << std::endl;
 }
 

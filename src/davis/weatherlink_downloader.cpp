@@ -81,8 +81,9 @@ void WeatherlinkDownloader::downloadRealTime(CurlWrapper& client)
 			  << "downloading real-time data for station " << _stationName << std::endl;
 
 	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: " << "GET " << "/v1/NoaaExt.xml?"
-			  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1 " << "Host: "
-			  << WeatherlinkDownloadScheduler::HOST << " " << "Accept: application/xml ";
+			  << "user=XXXXXXXXX&pass=XXXXXXXXX&apiToken=XXXXXXXX" << " HTTP/1.1 "
+			  << "Host: " << WeatherlinkDownloadScheduler::HOST << " "
+			  << "Accept: application/xml ";
 
 	std::ostringstream query;
 	query << "/v1/NoaaExt.xml" << "?" << _authentication << "&apiToken=" << _apiToken;
@@ -133,10 +134,9 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		timestamp = ((y - 2000) << 25) + (m << 21) + (d << 16) + h * 100 + min;
 	}
 
-	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: " << "GET " << "/v1/StationStatus.json"
-		  << "?user=XXXXXXXXXX&password=XXXXXXXXX" << " HTTP/1.1 "
-		  << "Host: " << WeatherlinkDownloadScheduler::APIHOST
-		  << " "
+	std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] protocol: "
+	      << "GET " << "/v1/StationStatus.json?user=XXXXXXXXXX&password=XXXXXXXXX" << " HTTP/1.1 "
+		  << "Host: " << WeatherlinkDownloadScheduler::APIHOST << " "
 		  << "Accept: application/json " << std::endl;
 
 	std::ostringstream query;
@@ -174,7 +174,8 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 		return;
 	}
 
-	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: " << " last downloaded archive dates back from "
+	std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: "
+		  << " last downloaded archive dates back from "
 		  << date::format("%FT%TZ", _lastArchive) << " for station " << _stationName
 		  << ", last available archive at " << date::format("%FT%TZ", lastWlArchive) << std::endl;
 
@@ -284,7 +285,7 @@ void WeatherlinkDownloader::download(CurlWrapper& client)
 			<< std::endl;
 
 		if (!messages.empty() && ret) {
-			std::cout << SD_DEBUG << "[Weatherlink_v1 " << _station << "] measurement: " << "archive data stored\n"
+			std::cout << SD_INFO << "[Weatherlink_v1 " << _station << "] measurement: " << "archive data stored\n"
 				  << std::endl;
 
 			if (lastWlArchive < _newestArchive && lastWlArchive < chrono::system_clock::now() - chrono::hours{48}) {

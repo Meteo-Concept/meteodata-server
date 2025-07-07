@@ -88,13 +88,11 @@ void ShipAndBuoyDownloader::download()
 				   allObs.push_back(obs);
 				   bool ret = _db.insertV2DataPoint(obs);
 				   if (ret) {
-					   std::cout << SD_DEBUG << "[SHIP " << uuidIt->second
-								 << "] measurement: "
+					   std::cout << SD_INFO << "[SHIP " << uuidIt->second << "] measurement: "
 								 << "SHIP ou BUOY data inserted into database for station "
 								 << uuidIt->second << std::endl;
 				   } else {
-					   std::cerr << SD_ERR << "[SHIP " << uuidIt->second
-								 << "] measurement: "
+					   std::cerr << SD_ERR << "[SHIP " << uuidIt->second << "] measurement: "
 								 << "Failed to insert SHIP ou BUOY data into database for station "
 								 << uuidIt->second << std::endl;
 				   }

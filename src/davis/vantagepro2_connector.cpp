@@ -474,7 +474,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					if (++_transmissionErrors < 5) {
 						flushSocketAndRetry(State::SENDING_REQ_STATION, requestStation);
 					} else {
-						std::cerr << SD_ERR << "[Directl] protocol: "
+						std::cerr << SD_ERR << "[Direct] protocol: "
 								  << "Too many transmissions errors on station identification CRC validation, aborting"
 								  << std::endl;
 						stop();
@@ -804,7 +804,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_status.nbDownloads++;
 					_status.lastDownload = date::floor<chrono::seconds>(chrono::system_clock::now());
 					_lastArchive = _newestArchive;
-					std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Archive data stored"
+					std::cout << SD_INFO << "[Direct " << _station << "] protocol: " << "Archive data stored"
 							  << std::endl;
 
 					if (_jobPublisher && date::floor<date::days>(_oldestArchive) < date::floor<date::days>(chrono::system_clock::now())) {

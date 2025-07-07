@@ -107,7 +107,7 @@ bool MBDataTxtDownloader::doProcess(const std::string& body)
 	Observation o = m->getObservation(_station);
 	bool ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 	if (ret) {
-		std::cout << SD_DEBUG << "[MBData " << _station << "] measurement: " << "Data from station " << _stationName
+		std::cout << SD_INFO << "[MBData " << _station << "] measurement: " << "Data from station " << _stationName
 			  << " inserted into database" << std::endl;
 	} else {
 		std::cerr << SD_ERR << "[MBData " << _station << "] measurement: "

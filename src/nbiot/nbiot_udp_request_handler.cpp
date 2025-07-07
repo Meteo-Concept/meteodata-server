@@ -111,7 +111,8 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 		std::string expectedHmac = computeHMACWithSHA256(message, key);
 		std::string receivedHmac = body.substr(body.size() - 64);
 		if (expectedHmac != receivedHmac) {
-			std::cerr << "HMAC " << receivedHmac << " does not validate "
+			std::cout << SD_WARNING << "[THPLNBIOT UDP " << uuid << " ] protocol: "
+				  << "HMAC " << receivedHmac << " does not validate "
 				  << "for message " << message << ", "
 				  << "expected " << expectedHmac << std::endl;
 			// TODO fail with an error here
@@ -164,7 +165,7 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 
 		ret = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 		if (ret) {
-			std::cout << SD_DEBUG << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
+			std::cout << SD_INFO << "[THPLNBIOT UDP " << uuid << "] measurement: " << "archive data stored for station "
 				  << name << std::endl;
 		} else {
 			std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] measurement: " << "failed to store observations for station "

@@ -214,7 +214,7 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		ret = ret && _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
 
 		if (ret) {
-			std::cout << SD_DEBUG << "[VP2 HTTP " << uuid << "] measurement: " << "archive data stored for station "
+			std::cout << SD_INFO << "[VP2 HTTP " << uuid << "] measurement: " << "archive data stored for station "
 					  << name << std::endl;
 			time_t lastArchiveDownloadTime = lastArchive.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(uuid, lastArchiveDownloadTime);

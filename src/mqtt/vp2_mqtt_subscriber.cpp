@@ -139,7 +139,9 @@ void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const
 	}
 
 	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT " << station << "] measurement: " << "Archive data stored for datetime " << msg.getTimestamp() << std::endl;
+		std::cout << SD_INFO << "[MQTT " << station << "] measurement: "
+				  << "Archive data stored for datetime " << msg.getTimestamp()
+				  << std::endl;
 		auto timestamp = msg.getTimestamp();
 		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);

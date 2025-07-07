@@ -75,8 +75,8 @@ MeteoFranceApiDownloader::MeteoFranceApiDownloader(const CassUuid& station, cons
 	int elevation;
 	db.getStationLocation(station, latitude, longitude, elevation);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-	std::cout << SD_DEBUG << "[MF " << _station << "] connection: "
-		  << "Discovered MF station " << _stationName << std::endl;
+	std::cout << SD_INFO << "[MF " << _station << "] connection: "
+		      << "Discovered MF station " << _stationName << std::endl;
 }
 
 void MeteoFranceApiDownloader::download(CurlWrapper& client)
@@ -165,7 +165,7 @@ void MeteoFranceApiDownloader::download(CurlWrapper& client, const date::sys_sec
 	} while (insertionOk && date < endDate);
 
 	if (insertionOk) {
-		std::cout << SD_DEBUG << "[MeteoFrance " << _station << "] measurement: "
+		std::cout << SD_INFO << "[MeteoFrance " << _station << "] measurement: "
 				  << "Archive data stored for MeteoFrance station " << _stationName << std::endl;
 		time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newest);
 		insertionOk = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);

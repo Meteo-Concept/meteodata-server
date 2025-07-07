@@ -103,7 +103,7 @@ void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, c
 	}
 
 	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT Generic " << station << "] measurement: "
+		std::cout << SD_INFO << "[MQTT Generic " << station << "] measurement: "
 				  << "Archive data stored for timestamp " << timestamp << std::endl;
 		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);

@@ -129,7 +129,7 @@ void SynopDownloadScheduler::downloadGroup(const std::string& group, const chron
 					auto o = synop.getObservations(station);
 					_db.insertV2DataPoint(o);
 					allObs.push_back(o);
-					std::cout << SD_DEBUG << "[SYNOP] measurement: " << "Inserted into database" << std::endl;
+					std::cout << SD_INFO << "[SYNOP] measurement: " << "Inserted into database" << std::endl;
 
 					std::pair<bool, float> rainfall24 = std::make_pair(false, 0.f);
 					std::pair<bool, int> insolationTime24 = std::make_pair(false, 0);

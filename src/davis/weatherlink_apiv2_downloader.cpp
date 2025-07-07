@@ -128,8 +128,9 @@ WeatherlinkApiv2Downloader::downloadAllStations(CurlWrapper& client, const std::
 	std::ostringstream query;
 	query << "/v2/stations" << "?" << "api-key=" << apiId;
 	std::string queryStr = query.str();
-	std::cout << SD_DEBUG << "[Weatherlink_v2] protocol: " << "GET " << queryStr << " HTTP/1.1 " << "Host: "
-			  << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
+	std::cout << SD_DEBUG << "[Weatherlink_v2] protocol: " << "GET " << queryStr << " HTTP/1.1 "
+			  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " "
+			  << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
 	client.setHeader("X-Api-Secret", apiSecret);
@@ -158,7 +159,8 @@ void WeatherlinkApiv2Downloader::downloadRealTime(CurlWrapper& client)
 	query << "/v2/current/" << _weatherlinkId << "?" << "api-key=" << _apiKey;
 	std::string queryStr = query.str();
 	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << "GET " << queryStr << " HTTP/1.1 "
-		  << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " " << "Accept: application/json ";
+		      << "Host: " << WeatherlinkApiv2DownloadScheduler::APIHOST << " "
+		      << "Accept: application/json ";
 
 	client.setHeader("Accept", "application/json");
 	client.setHeader("X-Api-Secret", _apiSecret);
@@ -438,9 +440,9 @@ void WeatherlinkApiv2Downloader::logAndThrowCurlError(CurlWrapper& client)
 	std::string_view error = client.getLastError();
 	std::ostringstream errorStream;
 	errorStream << "station " << _stationName << " Bad response from " << WeatherlinkApiv2DownloadScheduler::APIHOST << ": "
-		    << error;
+		        << error;
 	std::string errorMsg = errorStream.str();
-	std::cout << SD_DEBUG << "[Weatherlink_v2 " << _station << "] protocol: " << errorMsg << std::endl;
+	std::cout << SD_ERR << "[Weatherlink_v2 " << _station << "] protocol: " << errorMsg << std::endl;
 	throw std::runtime_error(errorMsg);
 }
 

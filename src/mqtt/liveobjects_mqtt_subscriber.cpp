@@ -111,7 +111,7 @@ void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicNam
 	}
 
 	if (ret) {
-		std::cout << SD_DEBUG << "[MQTT Liveobjects " << station << "] measurement: "
+		std::cout << SD_INFO << "[MQTT Liveobjects " << station << "] measurement: "
 				  << "Archive data stored for timestamp " << timestamp << std::endl;
 		time_t lastArchiveDownloadTime = timestamp.time_since_epoch().count();
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);

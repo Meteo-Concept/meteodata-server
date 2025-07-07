@@ -61,7 +61,7 @@ VirtualObsComputer::VirtualObsComputer(const VirtualStation& station,
 	int elevation;
 	db.getStationLocation(station.station, latitude, longitude, elevation);
 	_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
-	std::cout << SD_DEBUG << "[Virtual " << _station.station << "] connection: " << "Discovered Virtual station "
+	std::cout << SD_INFO << "[Virtual " << _station.station << "] connection: " << "Discovered Virtual station "
 		  << _stationName << std::endl;
 }
 
@@ -139,7 +139,7 @@ void VirtualObsComputer::doCompute(const date::sys_seconds& begin, const date::s
 				oldestArchive = target;
 			if (target > newestArchive)
 				newestArchive = target;
-			std::cout << SD_DEBUG << "[Virtual " << _station.station << "] measurement: "
+			std::cout << SD_INFO << "[Virtual " << _station.station << "] measurement: "
 				  << "Archive data stored for virtual station " << _stationName << std::endl;
 			if (updateLastArchive) {
 				insertionOk = _db.updateLastArchiveDownloadTime(_station.station, chrono::system_clock::to_time_t(newestArchive));
@@ -174,7 +174,7 @@ void VirtualObsComputer::compute()
 	// may throw
 	date::sys_seconds lastAvailable = getLastDatetimeAvailable();
 	if (lastAvailable <= _lastArchive) {
-		std::cout << SD_DEBUG << "[Virtual " << _station.station << "] management: "
+		std::cout << SD_WARNING << "[Virtual " << _station.station << "] management: "
 			  << "No new data available for any source of virtual station " << _stationName << ", bailing off" << std::endl;
 		return;
 	}
