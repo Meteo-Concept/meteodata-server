@@ -156,8 +156,6 @@ int main(int argc, char** argv)
 					std::cerr << "Tried twice already, moving on..." << std::endl;
 					retry = 0;
 					++it;
-				} else {
-					throw e;
 				}
 			}
 		}
