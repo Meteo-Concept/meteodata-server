@@ -69,7 +69,7 @@ void LiveobjectsExternalMqttSubscriber::reload()
 					std::string(std::get<4>(station).get(), std::get<5>(station))
 				};
 
-				if (_details == details ) {
+				if (_details == details) {
 					auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
 						[&uuid](auto&& objSt) { return uuid == std::get<0>(objSt); });
 					if (it != liveobjectsStations.end())

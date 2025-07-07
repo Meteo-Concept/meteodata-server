@@ -158,7 +158,7 @@ bool StatICTxtDownloader::doProcess(const std::string& body)
 		return false;
 	} else {
 		// The rain is given over the last hour but the file may be
-		// fetched more frequently so it's necessary to compute the
+		// fetched more frequently, so it's necessary to compute the
 		// difference with the rainfall over an hour ago
 		auto downloadTime = m.getDateTime();
 		auto end = chrono::system_clock::to_time_t(downloadTime);
