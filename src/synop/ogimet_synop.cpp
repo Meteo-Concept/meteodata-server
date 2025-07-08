@@ -48,21 +48,22 @@ namespace meteodata
 OgimetSynop::OgimetSynop(const SynopMessage& data, const TimeOffseter* timeOffseter) :
 		_timeOffseter(timeOffseter),
 		_data(data),
-		_humidity(_data._relativeHumidity ? *_data._relativeHumidity : _data._dewPoint && _data._meanTemperature
-																	   ? computeHumidity(*_data._meanTemperature,
-																						 *_data._dewPoint)
-																	   : std::optional<int>()),
-		_wind_mps(_data._meanWindSpeed ? (_data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ?
-										  *_data._meanWindSpeed * 0.51444 : *_data._meanWindSpeed)
-									   : std::optional<float>())
+		_humidity(_data._relativeHumidity ? *_data._relativeHumidity :
+			  _data._dewPoint && _data._meanTemperature ? computeHumidity(*_data._meanTemperature, *_data._dewPoint) :
+			  std::optional<int>()
+		),
+		_wind_mps(_data._meanWindSpeed ?
+				(_data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ? *_data._meanWindSpeed * 0.51444 : *_data._meanWindSpeed) :
+				std::optional<float>()
+		)
 {
 	auto it = std::find_if(_data._precipitation.begin(), _data._precipitation.end(),
-						   [](const auto& pr) { return pr._duration == 1; });
+		[](const auto& pr) { return pr._duration == 1; });
 	if (it != _data._precipitation.end())
 		_rainfall = it->_amount;
 
 	auto it2 = std::find_if(_data._gustObservations.begin(), _data._gustObservations.end(),
-							[](const auto& go) { return go._duration == 60; });
+		[](const auto& go) { return go._duration == 60; });
 	if (it2 != _data._gustObservations.end())
 		_gust = _data._windSpeedUnit == SynopMessage::WindSpeedUnit::KNOTS ? it2->_speed * 1.85200 : it2->_speed * 3.6;
 }
