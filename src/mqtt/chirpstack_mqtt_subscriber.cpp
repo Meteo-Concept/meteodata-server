@@ -38,7 +38,6 @@
 
 #include "mqtt_subscriber.h"
 #include "chirpstack_mqtt_subscriber.h"
-#include "liveobjects/liveobjects_message.h"
 #include "cassandra_utils.h"
 
 namespace meteodata
