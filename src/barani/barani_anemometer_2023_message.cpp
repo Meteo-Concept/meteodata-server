@@ -137,6 +137,7 @@ Observation BaraniAnemometer2023Message::getObservation(const CassUuid& station)
 		result.windspeed = { !std::isnan(_obs.windAvg10minSpeed), _obs.windAvg10minSpeed };
 		result.min_windspeed = { !std::isnan(_obs.wind3sMinSpeed), _obs.wind3sMinSpeed };
 		result.windgust = { !std::isnan(_obs.wind3sGustSpeed), _obs.wind3sGustSpeed };
+		result.max_windgust = { !std::isnan(_obs.wind1sGustSpeed), _obs.wind1sGustSpeed };
 		result.winddir = { _obs.windAvg10minDirection >= 0, _obs.windAvg10minDirection };
 		result.voltage_battery = { !std::isnan(_obs.batteryVoltage), _obs.batteryVoltage };
 	}
