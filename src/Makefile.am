@@ -211,8 +211,10 @@ meteodata_SOURCES = \
 		    barani/barani_rain_gauge_message.h\
 		    barani/barani_thermohygro_message.cpp\
 		    barani/barani_thermohygro_message.h\
-		    thlora/thlora_thermohygrometer_message.cpp\
-		    thlora/thlora_thermohygrometer_message.h\
+		    custom/thlora_thermohygrometer_message.cpp\
+		    custom/thlora_thermohygrometer_message.h\
+		    custom/oseren_soil_station_message.cpp\
+		    custom/oseren_soil_station_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
 		    talkpool/oy1110_thermohygrometer_message.h\
 		    pessl/fieldclimate_api_downloader.cpp\
@@ -607,8 +609,10 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/concept500_message.cpp\
 		    dragino/concept500_message.h\
-		    thlora/thlora_thermohygrometer_message.cpp\
-		    thlora/thlora_thermohygrometer_message.h\
+		    custom/thlora_thermohygrometer_message.cpp\
+		    custom/thlora_thermohygrometer_message.h\
+		    custom/oseren_soil_station_message.cpp\
+		    custom/oseren_soil_station_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
 		    talkpool/oy1110_thermohygrometer_message.h\
 		    pessl/lorain_message.cpp\
@@ -671,8 +675,10 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/concept500_message.cpp\
 		    dragino/concept500_message.h\
-		    thlora/thlora_thermohygrometer_message.cpp\
-		    thlora/thlora_thermohygrometer_message.h\
+		    custom/thlora_thermohygrometer_message.cpp\
+		    custom/thlora_thermohygrometer_message.h\
+		    custom/oseren_soil_station_message.cpp\
+		    custom/oseren_soil_station_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
 		    talkpool/oy1110_thermohygrometer_message.h\
 		    pessl/lorain_message.cpp\
@@ -721,8 +727,10 @@ meteodata_mqtt_payload_ingester_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/concept500_message.cpp\
 		    dragino/concept500_message.h\
-		    thlora/thlora_thermohygrometer_message.cpp\
-		    thlora/thlora_thermohygrometer_message.h\
+		    custom/thlora_thermohygrometer_message.cpp\
+		    custom/thlora_thermohygrometer_message.h\
+		    custom/oseren_soil_station_message.cpp\
+		    custom/oseren_soil_station_message.h\
 		    talkpool/oy1110_thermohygrometer_message.cpp\
 		    talkpool/oy1110_thermohygrometer_message.h\
 		    pessl/lorain_message.cpp\

@@ -42,7 +42,8 @@
 #include "barani/barani_thermohygro_message.h"
 #include "barani/barani_meteoag_2022_message.h"
 #include "pessl/lorain_message.h"
-#include "thlora/thlora_thermohygrometer_message.h"
+#include "custom/thlora_thermohygrometer_message.h"
+#include "custom/oseren_soil_station_message.h"
 #include "talkpool/oy1110_thermohygrometer_message.h"
 #include "cassandra_utils.h"
 
@@ -107,6 +108,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		return std::make_unique<ThloraThermohygrometerMessage>();
 	} else if (sensor == "talkpool-oy1110") {
 		return std::make_unique<Oy1110ThermohygrometerMessage>(station);
+	} else if (sensor == "oseren-soil-station") {
+		return std::make_unique<OserenSoilStationMessage>();
 	}
 	return {};
 }
