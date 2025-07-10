@@ -98,10 +98,10 @@ void BaraniAnemometer2023Message::ingest(const CassUuid& station, const std::str
 	_obs.windAvg10minSpeed = windAvg10minSpeed == 0b1111'1111'1111 ? NAN : windAvg10minSpeed == 0b0000'0000'0000 ? 0 : (windAvg10minSpeed * 0.02f * 0.6335 + 0.3582) * 3.6f;
 	// bytes 21-29: wind 3-s gust, resolution 0.1Hz
 	uint16_t wind3sGustSpeed = ((raw[2] & 0b0000'0111) << 6) + ((raw[3] & 0b1111'1100) >> 2);
-	_obs.wind3sGustSpeed = wind3sGustSpeed == 0b1'1111'1111 ? NAN : wind3sGustSpeed == 0b0'0000'0000 ? 0 : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
+	_obs.wind3sGustSpeed = wind3sGustSpeed == 0b1'1111'1111 ? NAN : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
 	// bytes 30-37: wind 1-s gust, resolution 0.1Hz
 	uint16_t wind1sGustSpeed = ((raw[3] & 0b0000'0011) << 6) + ((raw[4] & 0b1111'1100) >> 2);
-	_obs.wind1sGustSpeed = wind1sGustSpeed == 0b1111'1111 ? NAN : wind1sGustSpeed == 0b0000'0000 ? 0 : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f + wind1sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
+	_obs.wind1sGustSpeed = wind1sGustSpeed == 0b1111'1111 ? NAN : ((windAvg10minSpeed * 0.02f + wind3sGustSpeed * 0.1f + wind1sGustSpeed * 0.1f) * 0.6335 + 0.3582) * 3.6f;
 	// bytes 38-46: wind 3-s gust min, resolution 0.1Hz
 	uint16_t wind3sMinSpeed = ((raw[4] & 0b0000'0011) << 7) + ((raw[5] & 0b1111'1110) >> 1);
 	_obs.wind3sMinSpeed = wind3sMinSpeed == 0b1'1111'1111 ? NAN : wind3sMinSpeed == 0b0'0000'0000 ? 0 : (wind3sMinSpeed * 0.1f * 0.6335 + 0.3582) * 3.6f;
