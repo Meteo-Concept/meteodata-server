@@ -45,7 +45,7 @@ void OserenSoilStationMessage::ingest(const CassUuid&, const std::string& payloa
 	using namespace hex_parser;
 	using namespace date;
 
-	if (!validateInput(payload, 18)) {
+	if (!validateInput(payload, 84)) {
 		_obs.valid = false;
 		return;
 	}
