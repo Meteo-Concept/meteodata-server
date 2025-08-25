@@ -152,7 +152,13 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 
 void MqttSubscriber::handleClose()
 {
-	// do nothing
+	if (_stopped)
+		return;
+
+	// wait a little and restart
+	auto self{shared_from_this()};
+	_timer.expires_from_now(chrono::seconds(10));
+	_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
 }
 
 void MqttSubscriber::handleError(sys::error_code const&)
@@ -207,6 +213,7 @@ void MqttSubscriber::start()
 	_client->set_password(_details.password);
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */
 	_client->add_verify_path(DEFAULT_VERIFY_PATH);
+	_client->set_keep_alive_sec(60);
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Created the client" << std::endl;
 
 	auto self{shared_from_this()};
