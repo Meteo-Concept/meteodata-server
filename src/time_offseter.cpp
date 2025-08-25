@@ -123,6 +123,10 @@ TimeOffseter TimeOffseter::getTimeOffseterFor(PredefinedTimezone tz)
 			t._byTimezone = true;
 			t._timezoneInfo.timezone = date::locate_zone("Pacific/Noumea");
 			break;
+		case PredefinedTimezone::SORRISO:
+			t._byTimezone = true;
+			t._timezoneInfo.timezone = date::locate_zone("America/Cuiaba");
+			break;
 	}
 	return t;
 }
