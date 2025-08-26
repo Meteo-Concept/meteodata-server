@@ -485,7 +485,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					time_t lastArchiveDownloadTime;
 					bool storeInsideMeasurements;
 					bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName,
-														_pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurements);
+						_pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurements);
 					_timeOffseter.setLatitude(_coords[0]);
 					_timeOffseter.setLongitude(_coords[1]);
 					_timeOffseter.setElevation(_coords[2]);
