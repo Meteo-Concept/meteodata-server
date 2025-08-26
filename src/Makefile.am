@@ -110,6 +110,8 @@ meteodata_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/lsn50v2_d2x_message.cpp\
+		    dragino/lsn50v2_d2x_message.h\
 		    dragino/sn50v3_probe6470_message.cpp\
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
@@ -597,6 +599,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/lsn50v2_d2x_message.cpp\
+		    dragino/lsn50v2_d2x_message.h\
 		    dragino/sn50v3_probe6470_message.cpp\
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
@@ -663,6 +667,8 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/lsn50v2_d2x_message.cpp\
+		    dragino/lsn50v2_d2x_message.h\
 		    dragino/sn50v3_probe6470_message.cpp\
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\
@@ -715,6 +721,8 @@ meteodata_mqtt_payload_ingester_standalone_SOURCES = \
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
 		    dragino/lsn50v2_probe6470_message.h\
+		    dragino/lsn50v2_d2x_message.cpp\
+		    dragino/lsn50v2_d2x_message.h\
 		    dragino/sn50v3_probe6470_message.cpp\
 		    dragino/sn50v3_probe6470_message.h\
 		    dragino/llms01_leaf_sensor_message.cpp\

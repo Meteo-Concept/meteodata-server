@@ -31,6 +31,7 @@
 #include "dragino/cpl01_pluviometer_message.h"
 #include "dragino/lsn50v2_thermohygrometer_message.h"
 #include "dragino/lsn50v2_probe6470_message.h"
+#include "dragino/lsn50v2_d2x_message.h"
 #include "dragino/sn50v3_probe6470_message.h"
 #include "dragino/llms01_leaf_sensor_message.h"
 #include "dragino/lse01_soil_sensor_message.h"
@@ -88,6 +89,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		return std::make_unique<Lse01SoilSensorMessage>();
 	} else if (sensor == "dragino-probe6470" && port == 2) {
 		return std::make_unique<Lsn50v2Probe6470Message>();
+	} else if (sensor == "dragino-d2x" && port == 2) {
+		return std::make_unique<Lsn50v2D2xMessage>();
 	} else if (sensor == "dragino-sn50v3-probe6470" && port == 2) {
 		return std::make_unique<Sn50v3Probe6470Message>();
 	} else if (sensor == "dragino-concept500" && port == 2) {
