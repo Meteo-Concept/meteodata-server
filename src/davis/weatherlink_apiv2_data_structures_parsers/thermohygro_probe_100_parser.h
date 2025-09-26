@@ -13,7 +13,7 @@ namespace meteodata::wlv2structures
 class ThermohygroProbe100Parser : public AbstractParser
 {
 private:
-	std::function<void(AbstractWeatherlinkApiMessage::DataPoint&, float)> _setTemp = [](AbstractWeatherlinkApiMessage::DataPoint&, float) {};
+	std::function<void(AbstractWeatherlinkApiMessage::DataPoint&, float, const pt::ptree*)> _setTemp = [](AbstractWeatherlinkApiMessage::DataPoint&, float, const pt::ptree*) {};
 	std::function<void(AbstractWeatherlinkApiMessage::DataPoint&, int)> _setHum = [](AbstractWeatherlinkApiMessage::DataPoint&, int) {};
 
 public:
