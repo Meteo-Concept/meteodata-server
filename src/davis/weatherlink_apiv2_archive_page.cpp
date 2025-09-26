@@ -98,7 +98,7 @@ void WeatherlinkApiv2ArchivePage::doParse(std::istream& input, const Acceptor& a
 
 		int lsid = reading.second.get<int>("lsid", -1);
 		auto customParser = variables.find(lsid);
-		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>( "data_structure_type"));
+		DataStructureType dataStructureType = static_cast<DataStructureType>(reading.second.get<int>("data_structure_type"));
 		if (customParser == variables.end()) {
 			// conventional parsing
 

@@ -51,8 +51,9 @@ namespace meteodata
 using namespace std::placeholders;
 using namespace date;
 
-VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db,
-										   AsyncJobPublisher* jobPublisher) :
+VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext,
+	DbConnectionObservations& db,
+	AsyncJobPublisher* jobPublisher) :
 		Connector{ioContext, db},
 		_sock{ioContext},
 		_timer{ioContext},
