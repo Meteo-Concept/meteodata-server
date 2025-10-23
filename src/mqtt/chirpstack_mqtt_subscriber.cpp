@@ -50,7 +50,7 @@ ChirpstackMqttSubscriber::ChirpstackMqttSubscriber(const MqttSubscriber::MqttSub
 {
 }
 
-bool ChirpstackMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
+bool ChirpstackMqttSubscriber::handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results)
 {
 	for (auto const& e : results) { /* we are expecting only one */
 		auto subscriptionIt = _subscriptions.find(packetId);
@@ -61,20 +61,20 @@ bool ChirpstackMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<
 		}
 
 		const std::string& topic = subscriptionIt->second;
-		if (!e) {
+		if (e == mqtt::suback_return_code::failure) {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "subscription to topic " << topic << " failed: "
-					  << mqtt::qos::to_str(*e) << std::endl;
+				  << e << std::endl;
 		}
 	}
 	return true;
 }
 
-void ChirpstackMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+void ChirpstackMqttSubscriber::processArchive(const std::string_view& topicName, const std::string_view& content)
 {
 	std::lock_guard<std::mutex> lock{_stationsMutex};
 	using date::operator<<;
 
-	auto stationIt = _stations.find(topicName.to_string());
+	auto stationIt = _stations.find(topicName);
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT protocol]: " << "Unknown topic " << topicName << std::endl;
 		return;

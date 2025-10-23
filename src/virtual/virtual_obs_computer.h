@@ -31,7 +31,7 @@
 
 #include <boost/system/error_code.hpp>
 #include <cassobs/dbconnection_observations.h>
-#include <cassobs/virtual_station.h>
+#include <cassobs/dto/virtual_station.h>
 #include <cassandra.h>
 
 #include "async_job_publisher.h"

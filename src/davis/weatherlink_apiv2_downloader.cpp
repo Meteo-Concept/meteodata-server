@@ -39,7 +39,7 @@
 #include <boost/asio/ssl.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
-#include <cassobs/download.h>
+#include <cassobs/dto/download.h>
 #include <date/date.h>
 
 #include "../time_offseter.h"

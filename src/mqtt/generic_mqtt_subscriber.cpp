@@ -50,32 +50,32 @@ GenericMqttSubscriber::GenericMqttSubscriber(const MqttSubscriber::MqttSubscript
 {
 }
 
-bool GenericMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
+bool GenericMqttSubscriber::handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results)
 {
 	for (auto const& e : results) { /* we are expecting only one */
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
 			std::cerr << SD_ERR << "[MQTT Generic] protocol: " << "client " << _details.host
-					  << ": received an invalid subscription ack?!" << std::endl;
+				  << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		const std::string& topic = subscriptionIt->second;
-		if (!e) {
+		if (e == mqtt::suback_return_code::failure) {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "subscription to topic " << topic << " failed: "
-					  << mqtt::qos::to_str(*e) << std::endl;
+				  << e << std::endl;
 		}
 	}
 	return true;
 }
 
-void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+void GenericMqttSubscriber::processArchive(const std::string_view& topicName, const std::string_view& content)
 {
 	using date::operator<<;
 
 	std::lock_guard<std::mutex> lock{_stationsMutex};
 
-	auto stationIt = _stations.find(topicName.to_string());
+	auto stationIt = _stations.find(topicName);
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT protocol]: " << "Unknown topic " << topicName << std::endl;
 		return;

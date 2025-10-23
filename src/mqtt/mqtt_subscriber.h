@@ -30,8 +30,10 @@
 #include <set>
 #include <map>
 #include <functional>
-#include <unistd.h>
+#include <optional>
 #include <chrono>
+#include <system_error>
+#include <unistd.h>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -65,7 +67,7 @@ public:
 	};
 
 	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-				   DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		       DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start() override;
 	void stop() override;
@@ -76,8 +78,6 @@ protected:
 
 	MqttSubscriptionDetails _details;
 
-	std::map<std::uint16_t, std::string> _subscriptions;
-
 	AsyncJobPublisher* _jobPublisher;
 
 	std::mutex _stationsMutex;
@@ -85,13 +85,17 @@ protected:
 	/**
 	 * @brief Map from topic to station UUID, station name, polling period, last archive insertion datetime, time offseter
 	 */
-	std::map<std::string, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>> _stations;
+	std::map<std::string, std::tuple<CassUuid, std::string, int, date::sys_seconds, TimeOffseter>, std::less<>> _stations;
 	decltype(mqtt::make_tls_client(_ioContext, _details.host, _details.port)) _client;
+
+	using packet_id_t = typename std::remove_reference_t<decltype(*_client)>::packet_id_t;
+
+	std::map<packet_id_t, std::string> _subscriptions;
 
 	/**
 	 * @brief The channel subscription id
 	 */
-	std::uint16_t _pid = 0;
+	packet_id_t _pid = 0;
 
 	static constexpr int MAX_RETRIES_EXPONENTIAL_BACKOFF = 8;
 
@@ -107,19 +111,20 @@ protected:
 	asio::basic_waitable_timer<std::chrono::steady_clock> _timer;
 
 	static constexpr char CLIENT_ID[] = "meteodata";
-	virtual void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) = 0;
+	virtual void processArchive(const std::string_view& topicName, const std::string_view& content) = 0;
 	virtual const char* getConnectorSuffix() = 0;
-	void checkRetryStartDeadline(const boost::system::error_code& e);
+	void checkRetryStartDeadline(const std::error_code& e);
 
-	virtual bool handleConnAck(bool sp, std::uint8_t ret);
+	virtual bool handleConnAck(bool sp, mqtt::connect_return_code ret);
 	virtual void handleClose();
-	virtual void handleError(boost::system::error_code const& ec);
-	virtual bool handlePubAck(std::uint16_t packetId);
-	virtual bool handlePubRec(std::uint16_t packetId);
-	virtual bool handlePubComp(std::uint16_t packetId);
-	virtual bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results);
-	virtual bool handlePublish(std::uint8_t header, boost::optional<std::uint16_t> packet_id,
-		mqtt::string_view topic_name, mqtt::string_view contents);
+	virtual void handleError(std::error_code const& ec);
+	virtual bool handlePubAck(packet_id_t packetId);
+	virtual bool handlePubRec(packet_id_t packetId);
+	virtual bool handlePubComp(packet_id_t packetId);
+	virtual bool handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results);
+	virtual bool handlePublish(std::optional<packet_id_t> packet_id, mqtt::publish_options opts,
+		std::string_view topic_name, std::string_view contents);
+
 };
 
 bool operator<(const MqttSubscriber::MqttSubscriptionDetails& s1, const MqttSubscriber::MqttSubscriptionDetails& s2);

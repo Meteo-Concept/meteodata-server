@@ -50,14 +50,14 @@ LiveobjectsMqttSubscriber::LiveobjectsMqttSubscriber(const MqttSubscriber::MqttS
 {
 }
 
-bool LiveobjectsMqttSubscriber::handleConnAck(bool res, uint8_t)
+bool LiveobjectsMqttSubscriber::handleConnAck(bool res, mqtt::connect_return_code)
 {
 	std::string topic = getTopic();
 	_subscriptions[_client->subscribe(topic, mqtt::qos::at_least_once)] = topic;
 	return true;
 }
 
-bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
+bool LiveobjectsMqttSubscriber::handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results)
 {
 	for (auto const& e : results) { /* we are expecting only one */
 		auto subscriptionIt = _subscriptions.find(packetId);
@@ -67,15 +67,15 @@ bool LiveobjectsMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector
 			continue;
 		}
 
-		if (!e) {
+		if (e == mqtt::suback_return_code::failure) {
 			std::cerr << SD_ERR << "[MQTT Liveobjects " << getTopic() << "] connection: "
-				  << "subscription failed: " << mqtt::qos::to_str(*e) << std::endl;
+				  << "subscription failed: " << e << std::endl;
 		}
 	}
 	return true;
 }
 
-void LiveobjectsMqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+void LiveobjectsMqttSubscriber::processArchive(const std::string_view& topicName, const std::string_view& content)
 {
 	using date::operator<<;
 

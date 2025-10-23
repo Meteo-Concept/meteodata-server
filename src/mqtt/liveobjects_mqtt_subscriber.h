@@ -24,6 +24,10 @@
 #define METEODATA_SERVER_LIVEOBJECTS_MQTT_SUBSCRIBER_H
 
 #include <vector>
+#include <optional>
+#include <system_error>
+#include <string_view>
+
 #include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
@@ -40,14 +44,14 @@ class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
 	LiveobjectsMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-							  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+				  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
-					const std::string& streamId);
+			const std::string& streamId);
 
 protected:
-	bool handleConnAck(bool res, uint8_t packetId) override;
-	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
-	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
+	bool handleConnAck(bool res, mqtt::connect_return_code) override;
+	bool handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results) override;
+	void processArchive(const std::string_view& topicName, const std::string_view& content) override;
 
 	const char* getConnectorSuffix() override
 	{

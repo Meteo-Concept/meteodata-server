@@ -134,7 +134,7 @@ int main(int argc, char** argv)
 			return EINVAL;
 		}
 		if (beginDate > system_clock::now() + days(1)) {
-			// Allow computing the climatology for the next day since to account for timezones offset
+			// Allow computing the climatology for the next day to account for timezones offset
 			// (and also because you can at least have the minimal temperature starting from 18Z)
 			std::cerr << beginDate << " looks like it's in the future, that's problematic" << std::endl;
 			return EINVAL;
@@ -198,8 +198,9 @@ int main(int argc, char** argv)
 			std::sort(allStations.begin(), allStations.end());
 			std::sort(userSelection.begin(), userSelection.end());
 			std::vector<CassUuid> unknown;
-			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(),
-								std::back_inserter(unknown));
+			std::set_difference(userSelection.cbegin(), userSelection.cend(),
+				allStations.cbegin(), allStations.cend(),
+				std::back_inserter(unknown));
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
@@ -209,8 +210,9 @@ int main(int argc, char** argv)
 				}
 				std::cerr << std::endl;
 			}
-			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(),
-								  userSelection.cend(), std::back_inserter(stations));
+			std::set_intersection(allStations.cbegin(), allStations.cend(),
+				userSelection.cbegin(), userSelection.cend(),
+				std::back_inserter(stations));
 		}
 
 		for (const CassUuid& station : stations) {

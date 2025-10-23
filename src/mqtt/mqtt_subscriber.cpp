@@ -29,6 +29,7 @@
 #include <thread>
 #include <mutex>
 #include <cmath>
+#include <system_error>
 #include <systemd/sd-daemon.h>
 
 #include <cassandra.h>
@@ -46,7 +47,6 @@
 #define DEFAULT_VERIFY_PATH "/etc/ssl/certs"
 
 namespace asio = boost::asio;
-namespace sys = boost::system;
 namespace chrono = std::chrono;
 namespace args = std::placeholders;
 
@@ -119,7 +119,7 @@ void MqttSubscriber::addStation(const std::string& topic, const CassUuid& statio
 	_stations.emplace(topic, std::make_tuple(station, stationName, pollingPeriod, lastArchive, timeOffseter));
 }
 
-bool MqttSubscriber::handleConnAck(bool, uint8_t)
+bool MqttSubscriber::handleConnAck(bool, mqtt::connect_return_code)
 {
 	for (auto&& station : _stations) {
 		_subscriptions[_client->subscribe(station.first, mqtt::qos::at_least_once)] = station.first;
@@ -128,11 +128,11 @@ bool MqttSubscriber::handleConnAck(bool, uint8_t)
 	return true;
 }
 
-void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
+void MqttSubscriber::checkRetryStartDeadline(const std::error_code& e)
 {
 	/* if the timer has been cancelled, then bail out ; we probably have been
 	 * asked to die */
-	if (e == sys::errc::operation_canceled)
+	if (e == std::errc::operation_canceled)
 		return;
 
 	/* Don't restart the subscriber if it has to be stopped */
@@ -146,7 +146,7 @@ void MqttSubscriber::checkRetryStartDeadline(const sys::error_code& e)
 		/* spurious handler call, restart the timer without changing the
 		 * deadline */
 		auto self(shared_from_this());
-		_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
+		_timer.async_wait([this, self] (const std::error_code& e) { checkRetryStartDeadline(e); });
 	}
 }
 
@@ -158,10 +158,10 @@ void MqttSubscriber::handleClose()
 	// wait a little and restart
 	auto self{shared_from_this()};
 	_timer.expires_from_now(chrono::seconds(10));
-	_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
+	_timer.async_wait([this, self] (const std::error_code& e) { checkRetryStartDeadline(e); });
 }
 
-void MqttSubscriber::handleError(sys::error_code const&)
+void MqttSubscriber::handleError(std::error_code const&)
 {
 	if (_stopped)
 		return;
@@ -169,31 +169,31 @@ void MqttSubscriber::handleError(sys::error_code const&)
 	// wait a little and restart with exponential backoff
 	auto self{shared_from_this()};
 	_timer.expires_from_now(chrono::seconds(10 + static_cast<long>(std::pow(2, std::min(_retries, MAX_RETRIES_EXPONENTIAL_BACKOFF)))));
-	_timer.async_wait([this, self] (const sys::error_code& e) { checkRetryStartDeadline(e); });
+	_timer.async_wait([this, self] (const std::error_code& e) { checkRetryStartDeadline(e); });
 }
 
-bool MqttSubscriber::handlePubAck(uint16_t)
+bool MqttSubscriber::handlePubAck(packet_id_t)
 {
 	return true;
 }
 
-bool MqttSubscriber::handlePubRec(uint16_t)
+bool MqttSubscriber::handlePubRec(packet_id_t)
 {
 	return true;
 }
 
-bool MqttSubscriber::handlePubComp(uint16_t)
+bool MqttSubscriber::handlePubComp(packet_id_t)
 {
 	return true;
 }
 
-bool MqttSubscriber::handleSubAck(uint16_t, std::vector<boost::optional<std::uint8_t>>)
+bool MqttSubscriber::handleSubAck(packet_id_t, std::vector<mqtt::suback_return_code>)
 {
 	return true;
 }
 
-bool MqttSubscriber::handlePublish(std::uint8_t, boost::optional<std::uint16_t>, mqtt::string_view topic,
-	mqtt::string_view contents)
+bool MqttSubscriber::handlePublish(std::optional<packet_id_t>, mqtt::publish_options,
+	std::string_view topic, std::string_view contents)
 {
 	processArchive(topic, contents);
 	return true;
@@ -212,12 +212,12 @@ void MqttSubscriber::start()
 	_client->set_user_name(_details.user);
 	_client->set_password(_details.password);
 	_client->set_clean_session(false); /* this way, we can catch up on missed packets upon reconnection */
-	_client->add_verify_path(DEFAULT_VERIFY_PATH);
+	_client->get_ssl_context().add_verify_path(DEFAULT_VERIFY_PATH);
 	_client->set_keep_alive_sec(60);
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Created the client" << std::endl;
 
 	auto self{shared_from_this()};
-	_client->set_connack_handler([this, self](bool sp, std::uint8_t ret) {
+	_client->set_connack_handler([this, self](bool sp, mqtt::connect_return_code ret) {
 		std::cout << SD_DEBUG << "[MQTT] protocol: " << "Connection attempt to " << _details.host << ": "
 			  << mqtt::connect_return_code_to_str(ret) << std::endl;
 		if (ret == mqtt::connect_return_code::accepted) {
@@ -242,28 +242,28 @@ void MqttSubscriber::start()
 		_status.shortStatus = "CONNECTION CLOSED";
 		handleClose();
 	});
-	_client->set_error_handler([this, self](sys::error_code const& ec) {
+	_client->set_error_handler([this, self](std::error_code const& ec) {
 		std::cerr << SD_ERR << "[MQTT] protocol: " << "MQTT client " << _details.host << ": unexpected disconnection "
 			  << ec.message() << std::endl;
 		_status.shortStatus = "ERROR";
 		handleError(ec);
 	});
-	_client->set_puback_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+	_client->set_puback_handler([this, self]([[maybe_unused]] packet_id_t packetId) {
 		return handlePubAck(packetId);
 	});
-	_client->set_pubrec_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+	_client->set_pubrec_handler([this, self]([[maybe_unused]] packet_id_t packetId) {
 		return handlePubRec(packetId);
 	});
-	_client->set_pubcomp_handler([this, self]([[maybe_unused]] std::uint16_t packetId) {
+	_client->set_pubcomp_handler([this, self]([[maybe_unused]] packet_id_t packetId) {
 		return handlePubComp(packetId);
 	});
-	_client->set_suback_handler([this, self](std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) {
+	_client->set_suback_handler([this, self](packet_id_t packetId, std::vector<mqtt::suback_return_code> results) {
 		return handleSubAck(packetId, std::move(results));
 	});
-	_client->set_publish_handler([this, self](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
-			mqtt::string_view contents) {
+	_client->set_publish_handler([this, self](std::optional<packet_id_t> packetId, mqtt::publish_options opts,
+			std::string_view topic, std::string_view contents) {
 		++_status.nbDownloads;
-		return handlePublish(header, packetId, topic, contents);
+		return handlePublish(packetId, opts, topic, contents);
 	});
 	std::cout << SD_DEBUG << "[MQTT] protocol: " << "Set the handlers" << std::endl;
 

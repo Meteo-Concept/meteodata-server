@@ -24,6 +24,9 @@
 #define METEODATA_SERVER_GENERIC_MQTT_SUBSCRIBER_H
 
 #include <vector>
+#include <system_error>
+#include <optional>
+
 #include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
@@ -40,12 +43,12 @@ class GenericMqttSubscriber : public MqttSubscriber
 {
 public:
 	GenericMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-						  DbConnectionObservations& db, AsyncJobPublisher* jobScheduler = nullptr);
+			  DbConnectionObservations& db, AsyncJobPublisher* jobScheduler = nullptr);
 
 protected:
-	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
+	bool handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results) override;
 
-	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
+	void processArchive(const std::string_view& topicName, const std::string_view& content) override;
 	GenericMessage buildMessage(const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp);
 
 	const char* getConnectorSuffix() override

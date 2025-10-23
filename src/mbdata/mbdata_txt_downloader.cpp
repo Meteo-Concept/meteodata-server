@@ -35,7 +35,7 @@
 #include <boost/asio/io_context.hpp>
 #include <date/date.h>
 #include <cassobs/dbconnection_observations.h>
-#include <cassobs/download.h>
+#include <cassobs/dto/download.h>
 
 #include "../cassandra_utils.h"
 #include "mbdata_txt_downloader.h"
