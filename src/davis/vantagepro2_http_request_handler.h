@@ -77,9 +77,11 @@ private:
 
 	void getConfiguration(const Request& request, Response& response, std::cmatch&& url);
 
+	void postLogMessage(const Request& request, Response& response, std::cmatch&& url);
+
 	using Route = void (VantagePro2HttpRequestHandler::*)(const Request& request, Response& response, std::cmatch&& url);
 
-	const std::array<std::tuple<boost::beast::http::verb, std::regex, Route>, 3> routes = {
+	const std::array<std::tuple<boost::beast::http::verb, std::regex, Route>, 4> routes = {
 		std::make_tuple(
 			boost::beast::http::verb::get,
 			std::regex{"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/last_archive/?"},
@@ -94,6 +96,11 @@ private:
 			boost::beast::http::verb::get,
 			std::regex{"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/configuration/([0-9]+)"},
 			&VantagePro2HttpRequestHandler::getConfiguration
+		),
+		std::make_tuple(
+			boost::beast::http::verb::post,
+			std::regex{"/imports/vp2/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/log/?"},
+			&VantagePro2HttpRequestHandler::postLogMessage
 		)
 	};
 
