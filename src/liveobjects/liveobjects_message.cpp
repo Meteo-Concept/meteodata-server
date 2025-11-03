@@ -36,6 +36,7 @@
 #include "dragino/llms01_leaf_sensor_message.h"
 #include "dragino/lse01_soil_sensor_message.h"
 #include "dragino/thpllora_message.h"
+#include "dragino/thwlora_message.h"
 #include "dragino/concept500_message.h"
 #include "barani/barani_anemometer_message.h"
 #include "barani/barani_anemometer_2023_message.h"
@@ -83,6 +84,8 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		if (forcedBaseValue)
 			rainfallCounter = int(*forcedBaseValue);
 		return std::make_unique<ThplloraMessage>(db, rainfallCounter);
+	} else if (sensor == "dragino-thwlora" && port == 2) {
+		return std::make_unique<ThwloraMessage>(db);
 	} else if (sensor == "dragino-llms01" && port == 2) {
 		return std::make_unique<Llms01LeafSensorMessage>();
 	} else if (sensor == "dragino-lse01" && port == 2) {
