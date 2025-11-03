@@ -236,6 +236,18 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 	}
 }
 
+void VantagePro2HttpRequestHandler::postLogMessage(const Request& request, Response& response, std::cmatch&& url)
+{
+	CassUuid uuid;
+	if (getUuidAndCheckAccess(request, response, uuid, url)) {
+		std::string content = request.body().substr(0, 1024); // Truncate log lines which are too long
+		std::cerr << SD_NOTICE << "[VP2 HTTP " << uuid << "] protocol: " << content << std::endl;
+
+		response.body() = "";
+		response.result(boost::beast::http::status::no_content);
+	}
+}
+
 void VantagePro2HttpRequestHandler::getConfiguration(const Request& request, Response& response, std::cmatch&& url)
 {
 	CassUuid uuid;
