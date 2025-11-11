@@ -97,7 +97,7 @@ void ThwloraMessage::ingest(const CassUuid& station, const std::string& payload,
 	}
 	_obs.windSpeed = from_mph_to_kph(windPulses * 2.25 / (pollingPeriod * 60));
 	_obs.gustSpeed = from_mph_to_kph(gustPulses);
-	_obs.gustSpeed = from_mph_to_kph(minPulses);
+	_obs.minWindSpeed = from_mph_to_kph(minPulses);
 
 	if (windDir != 0xFFFF) {
 		_obs.windDir = windDir;
