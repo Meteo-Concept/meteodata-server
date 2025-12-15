@@ -332,7 +332,7 @@ void MeteoServer::start()
 		// Start the virtual observations computing connector
 		auto virtualComputingScheduler = std::make_shared<VirtualComputationScheduler>(_ioContext, _db, _jobPublisher.get());
 		virtualComputingScheduler->start();
-		_connectors.emplace("mbdata", virtualComputingScheduler);
+		_connectors.emplace("virtual", virtualComputingScheduler);
 	}
 
 	if (_configuration.startRest) {

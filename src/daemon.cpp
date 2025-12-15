@@ -153,6 +153,7 @@ int main(int argc, char** argv)
 	serverConfig.startWeatherlinkV2 = !vm.count("no-weatherlink-v2");
 	serverConfig.startFieldclimate = !vm.count("no-fieldclimate");
 	serverConfig.startMbdata = !vm.count("no-mbdata");
+	serverConfig.startVirtual = !vm.count("no-virtual");
 	serverConfig.startRest = !vm.count("no-rest");
 	serverConfig.startVp2 = !vm.count("no-vp2");
 	serverConfig.startUdp = !vm.count("no-udp");
