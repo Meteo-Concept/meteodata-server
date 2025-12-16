@@ -42,7 +42,8 @@ namespace meteodata
 {
 VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
 		_db{db},
-		_jobPublisher{jobPublisher}
+		_jobPublisher{nullptr} // TODO debug unsafe use of jobPublisher
+				       // in this class
 {
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, std::size_t, std::string, int>> mqttStations;
 	_db.getMqttStations(mqttStations);
