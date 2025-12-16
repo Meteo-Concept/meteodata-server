@@ -667,7 +667,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				stop();
 			} else {
 				_currentState = State::WAITING_ACK_ARCHIVE_PARAMS;
-				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent archive request parameters"
+				std::cout << SD_DEBUG << "[Direct " << _station << "] protocol: " << "Sent archive request parameters: " << date::format("%Y-%m-%dT%H:%M%SZ", _lastArchive)
 						  << std::endl;
 				recvAck();
 			}
