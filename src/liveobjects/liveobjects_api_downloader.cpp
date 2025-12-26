@@ -122,7 +122,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client)
 	download(client, _lastArchive, date::floor<chrono::seconds>(chrono::system_clock::now()));
 }
 
-void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_seconds& beginDate, const date::sys_seconds& endDate, bool force)
+void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_seconds& beginDate, const date::sys_seconds& endDate, bool force, const std::string& forcedMsgType)
 {
 	std::cout << SD_INFO << "[Liveobjects " << _station << "] measurement: "
 			  << "Downloading historical data for Liveobjects station " << _stationName << std::endl;
@@ -146,7 +146,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 			  << date::floor<date::days>(lastAvailable - _lastArchive) << " days)" << std::endl;
 
 	bool insertionOk = true;
-	date::sys_seconds newest = _lastArchive;
+	date::sys_seconds newest = force ? beginDate : _lastArchive;
 	date::sys_seconds oldest = date::floor<chrono::seconds>(chrono::system_clock::now());
 	date::sys_seconds date = beginDate;
 	do {
@@ -204,7 +204,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 
 				for (auto&& entry : jsonTree) {
 					date::sys_seconds timestamp;
-					auto m = LiveobjectsMessage::parseMessage(_db, entry.second, _station, timestamp);
+					auto m = LiveobjectsMessage::parseMessage(_db, entry.second, _station, timestamp, forcedMsgType);
 					if (m && m->looksValid()) {
 						auto o = m->getObservation(_station);
 						int ret = _db.insertV2DataPoint(o)
@@ -242,7 +242,7 @@ void LiveobjectsApiDownloader::download(CurlWrapper& client, const date::sys_sec
 		}
 	} while (insertionOk && date < endDate);
 
-	if (insertionOk) {
+	if (insertionOk && (!force || newest > _lastArchive)) {
 		std::cout << SD_DEBUG << "[Liveobjects " << _station << "] measurement: "
 				  << "Archive data stored for Liveobjects station" << _stationName << std::endl;
 		time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(newest);

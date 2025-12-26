@@ -121,9 +121,14 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 }
 
 std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::parseMessage(DbConnectionObservations& db,
-	const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp)
+	const boost::property_tree::ptree& json, const CassUuid& station, date::sys_seconds& timestamp,
+	const std::string& forcedMsgType)
 {
 	auto sensor = json.get<std::string>("extra.sensors", "");
+	if (!forcedMsgType.empty()) {
+		std::cerr << "Message type is forced to " << forcedMsgType << std::endl;
+		sensor = forcedMsgType;
+	}
 	auto payload = json.get<std::string>("value.payload");
 	auto port = json.get<int>("metadata.network.lora.port", -1);
 

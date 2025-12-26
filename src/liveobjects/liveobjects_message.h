@@ -117,7 +117,8 @@ public:
 		DbConnectionObservations& db,
 		const boost::property_tree::ptree& json,
 		const CassUuid& station,
-		date::sys_seconds& timestamp
+		date::sys_seconds& timestamp,
+		const std::string& forcedMessageType = std::string{}
 	);
 };
 

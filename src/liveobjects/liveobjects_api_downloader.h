@@ -84,10 +84,14 @@ public:
 	 * @param endDate The end of the time range from which data should be downloaded
 	 * @param force Whether to force retrieve the data even if the last available
 	 * data from Liveobjects is not newer than what we already have in database
+	 * @param forcedMsgType The message type is normally auto-detected from
+	 * the message but it's possible to force it with this parameter if it's
+	 * incorrect or missing upstream
 	 * @return True if the insertion of the values in the DB worked
 	 */
 	void download(CurlWrapper& client, const date::sys_seconds& beginDate,
-		const date::sys_seconds& endDate, bool force=false);
+		const date::sys_seconds& endDate, bool force=false,
+		const std::string& forcedMsgType=std::string{});
 
 	/**
 	 * @brief The host name of the Liveobjects API server

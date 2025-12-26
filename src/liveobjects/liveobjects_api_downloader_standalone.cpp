@@ -78,6 +78,7 @@ int main(int argc, char** argv)
 	std::vector<std::string> namedStations;
 	std::string begin;
 	std::string end;
+	std::string msgType;
 
 	constexpr char CLIENT_ID[] = "meteodata_standalone";
 
@@ -100,6 +101,7 @@ int main(int argc, char** argv)
 		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations to download the data for (can be given multiple times, defaults to all MQTT VP2 stations)")
 		("begin", po::value<std::string>(&begin), "Start of the range to recover (by default, 24h ago)")
 		("end", po::value<std::string>(&end), "End of the range to recover (by default, now)")
+		("msg-type", po::value<std::string>(&msgType), "explicit message type to use by the decoder if it's missing or incorrect in the stream")
 	;
 	desc.add(config);
 
@@ -212,10 +214,14 @@ int main(int argc, char** argv)
 			}
 		}
 
-		std::cerr << "About to download for station " << std::get<0>(station) << std::endl;
+		std::cerr << "About to download for station " << std::get<0>(station);
+		if (!msgType.empty()) {
+			std::cerr << " with message type '" << msgType << "'";
+		}
+		std::cerr << std::endl;
 		LiveobjectsApiDownloader downloader{std::get<0>(station), std::get<1>(station), db, apiKey};
 		try {
-			downloader.download(client, beginDate, endDate, true);
+			downloader.download(client, beginDate, endDate, true, msgType);
 			retry = 0;
 			++it;
 			std::this_thread::sleep_for(chrono::milliseconds(100));
