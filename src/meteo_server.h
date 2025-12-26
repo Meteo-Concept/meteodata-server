@@ -186,7 +186,7 @@ private:
 	 */
 	DbConnectionObservations _db;
 
-	std::unique_ptr<AsyncJobPublisher> _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	MeteoServerConfiguration _configuration;
 

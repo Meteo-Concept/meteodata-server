@@ -43,7 +43,7 @@ namespace po = boost::program_options;
 
 template<typename Importer>
 bool doImport(Importer& importer, const std::string& inputFile, date::sys_seconds& start, date::sys_seconds& end,
-			  bool updateLastArchiveDownloadTime)
+	bool updateLastArchiveDownloadTime)
 {
 	std::ifstream input{inputFile};
 	return importer.import(input, start, end, updateLastArchiveDownloadTime);

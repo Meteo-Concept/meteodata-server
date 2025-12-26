@@ -53,7 +53,7 @@ using namespace date;
 
 VantagePro2Connector::VantagePro2Connector(boost::asio::io_context& ioContext,
 	DbConnectionObservations& db,
-	AsyncJobPublisher* jobPublisher) :
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		Connector{ioContext, db},
 		_sock{ioContext},
 		_timer{ioContext},

@@ -31,6 +31,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <memory>
 #include <unistd.h>
 
 #include <boost/system/error_code.hpp>
@@ -61,13 +62,13 @@ class ShipAndBuoyDownloader : public AbstractDownloadScheduler
 {
 public:
 	ShipAndBuoyDownloader(asio::io_context& ioContext, DbConnectionObservations& db,
-		AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 private:
 	std::map<std::string, CassUuid> _icaos;
 	std::mutex _icaosMutex;
 
-	AsyncJobPublisher* _jobPublisher;
+	const std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	static constexpr char HOST[] = "donneespubliques.meteofrance.fr";
 	static constexpr char URL[] = "/donnees_libres/Txt/Marine/marine.%Y%m%d.csv";

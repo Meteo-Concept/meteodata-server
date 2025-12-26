@@ -71,7 +71,7 @@ public:
 	 * @param db The handle to the asynchronous jobs database
 	 */
 	VantagePro2Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db,
-						 AsyncJobPublisher* jobPublisher);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	//main loop
 	void start() override;
@@ -484,7 +484,7 @@ private:
 	 * @brief The component responsible for scheduling recomputations of
 	 * climatological and monitoring indices
 	 */
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	/**
 	 * @brief The \a TimeOffseter to use to convert timestamps between the

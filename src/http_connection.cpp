@@ -44,7 +44,8 @@ namespace chrono = std::chrono;
 namespace sys = boost::system;
 using tcp = boost::asio::ip::tcp;
 
-HttpConnection::HttpConnection(boost::asio::io_context& io, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+HttpConnection::HttpConnection(boost::asio::io_context& io, DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 	_ioContext{io},
 	_db{db},
 	_jobPublisher{jobPublisher},

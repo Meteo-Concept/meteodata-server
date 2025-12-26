@@ -44,7 +44,7 @@ class RestWebServer : public Connector
 {
 public:
 	RestWebServer(boost::asio::io_context& io, DbConnectionObservations& db,
-				  AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	// Start accepting incoming connections
 	void start() override;
@@ -55,7 +55,7 @@ public:
 
 
 private:
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 	boost::asio::ip::tcp::acceptor _acceptor;
 	bool _stopped;
 

@@ -25,9 +25,10 @@
 #include <systemd/sd-daemon.h>
 #include <date/date.h>
 
-#include <vector>
+#include <memory>
 #include <tuple>
 #include <regex>
+#include <vector>
 
 #include "cassandra.h"
 #include "cassandra_utils.h"
@@ -39,7 +40,8 @@
 
 namespace meteodata
 {
-CimelHttpRequestHandler::CimelHttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+CimelHttpRequestHandler::CimelHttpRequestHandler(DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		_db{db},
 		_jobPublisher{jobPublisher}
 {

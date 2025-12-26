@@ -37,8 +37,9 @@ namespace meteodata
 {
 class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 {
-public:
-	HttpConnection(boost::asio::io_context& io, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+public: 
+	HttpConnection(boost::asio::io_context& io, DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void start();
 	inline boost::asio::ip::tcp::socket& getSocket() { return _socket; }
 
@@ -46,7 +47,7 @@ public:
 private:
 	boost::asio::io_context& _ioContext;
 	DbConnectionObservations& _db;
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 	boost::asio::ip::tcp::socket _socket;
 	boost::beast::flat_buffer _buffer{4096};
 	boost::beast::http::request<boost::beast::http::string_body> _request;

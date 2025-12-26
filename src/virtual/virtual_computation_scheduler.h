@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <memory>
 
 #include <boost/system/error_code.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
@@ -57,7 +58,7 @@ public:
 	 * @param dbJobs the MétéoData asynchronous jobs database connector
 	 */
 	VirtualComputationScheduler(asio::io_context& ioContext, DbConnectionObservations& db,
-		AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	/**
 	 * @brief Add a station to download the data for
@@ -77,7 +78,7 @@ private:
 	/**
 	 * @brief The component used to schedule climatology recomputations
 	 */
-	AsyncJobPublisher* _jobPublisher{};
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher{};
 
 private:
 	/**

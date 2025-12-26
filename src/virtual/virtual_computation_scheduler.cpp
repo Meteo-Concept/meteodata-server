@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #include <systemd/sd-daemon.h>
@@ -40,7 +41,7 @@ namespace meteodata
 using namespace date;
 
 VirtualComputationScheduler::VirtualComputationScheduler(asio::io_context& ioContext,
-	DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_jobPublisher{jobPublisher}
 {
@@ -48,7 +49,7 @@ VirtualComputationScheduler::VirtualComputationScheduler(asio::io_context& ioCon
 
 void VirtualComputationScheduler::add(const VirtualStation& station)
 {
-	_downloaders.emplace_back(std::make_shared<VirtualObsComputer>(station, _db, _jobPublisher));
+	_downloaders.emplace_back(std::make_shared<VirtualObsComputer>(station, _db, _jobPublisher.get()));
 }
 
 void VirtualComputationScheduler::download()

@@ -50,7 +50,7 @@ using namespace date;
 
 MeteoFranceApiDownloadScheduler::MeteoFranceApiDownloadScheduler(
 	asio::io_context& ioContext, DbConnectionObservations& db,
-	std::string apiKey, AsyncJobPublisher* jobPublisher) :
+	std::string apiKey, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiKey{std::move(apiKey)},
 		_jobPublisher{jobPublisher}
@@ -60,7 +60,7 @@ MeteoFranceApiDownloadScheduler::MeteoFranceApiDownloadScheduler(
 
 void MeteoFranceApiDownloadScheduler::add(const CassUuid& station, const std::string& mfId)
 {
-	_downloaders.emplace_back(std::make_shared<MeteoFranceApiDownloader>(station, mfId, _db, _apiKey, _jobPublisher));
+	_downloaders.emplace_back(std::make_shared<MeteoFranceApiDownloader>(station, mfId, _db, _apiKey, _jobPublisher.get()));
 }
 
 void MeteoFranceApiDownloadScheduler::download()
@@ -85,7 +85,7 @@ void MeteoFranceApiDownloadScheduler::download()
 	}
 
 	// will trigger every POLLING_PERIOD
-	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher};
+	MeteoFranceApi6mDownloader downloader6m{_db, _apiKey, _jobPublisher.get()};
 	for (; d <= now ; d += chrono::minutes{POLLING_PERIOD}) {
 		if (_mustStop)
 			break;

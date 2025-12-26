@@ -56,7 +56,8 @@ namespace meteodata
 using namespace date;
 
 MqttSubscriber::MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	asio::io_context& ioContext, DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		Connector{ioContext, db},
 		_stopped{true},
 		_details{details},

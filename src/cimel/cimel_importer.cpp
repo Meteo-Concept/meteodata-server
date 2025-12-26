@@ -45,7 +45,7 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, const std::string& timezone,
-							 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		_station{station},
 		_cimelId{std::move(cimelId)},
 		_db{db},
@@ -55,7 +55,7 @@ CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, const
 }
 
 CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, TimeOffseter&& timeOffseter,
-							 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		_station{station},
 		_cimelId{std::move(cimelId)},
 		_db{db},
@@ -64,8 +64,8 @@ CimelImporter::CimelImporter(const CassUuid& station, std::string cimelId, TimeO
 {
 }
 
-bool CimelImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year,
-						   bool updateLastArchiveDownloadTime)
+bool CimelImporter::import(std::istream& input, date::sys_seconds& start, date::sys_seconds& end,
+	date::year year, bool updateLastArchiveDownloadTime)
 {
 	bool importSucceeded = doImport(input, start, end, year);
 	if (importSucceeded && updateLastArchiveDownloadTime) {

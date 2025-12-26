@@ -44,7 +44,8 @@ namespace meteodata
 using namespace date;
 
 ShipAndBuoyDownloader::ShipAndBuoyDownloader(asio::io_context& ioContext,
-	DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		AbstractDownloadScheduler{chrono::hours(POLLING_PERIOD_HOURS), ioContext, db},
 		_jobPublisher{jobPublisher}
 {

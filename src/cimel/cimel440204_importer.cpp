@@ -22,6 +22,7 @@
  */
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include <systemd/sd-daemon.h>
@@ -45,13 +46,13 @@ using namespace std::placeholders;
 using namespace meteodata;
 
 Cimel440204Importer::Cimel440204Importer(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
-										 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		CimelImporter{station, cimelId, timezone, db, jobPublisher}
 {
 }
 
 Cimel440204Importer::Cimel440204Importer(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
-										 DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	DbConnectionObservations& db, const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		CimelImporter{station, cimelId, std::forward<TimeOffseter&&>(timeOffseter), db, jobPublisher}
 {
 }

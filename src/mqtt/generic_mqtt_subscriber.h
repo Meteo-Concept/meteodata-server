@@ -40,7 +40,8 @@ class GenericMqttSubscriber : public MqttSubscriber
 {
 public:
 	GenericMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-						  DbConnectionObservations& db, AsyncJobPublisher* jobScheduler = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobScheduler = nullptr);
 
 protected:
 	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;

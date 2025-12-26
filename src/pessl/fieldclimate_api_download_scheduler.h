@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <memory>
 #include <mutex>
 
 #include <boost/system/error_code.hpp>
@@ -75,7 +76,7 @@ public:
 	 */
 	FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
 		DbConnectionObservations& db, std::string apiId, std::string apiSecret,
-		AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	/**
 	 * @brief Add a station to download the data for
@@ -87,7 +88,7 @@ public:
 	 * FieldClimateApiDownloader class for details)
 	 */
 	void add(const CassUuid& station, const std::string& fieldClimateId, TimeOffseter::PredefinedTimezone tz,
-			 const std::map<std::string, std::string>& sensors);
+		 const std::map<std::string, std::string>& sensors);
 
 private:
 	/**
@@ -104,7 +105,7 @@ private:
 	 * @brief The component able to schedule computations of climatology and
 	 * monitoring indices
 	 */
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	/**
 	 * @brief The list of all downloaders (one per station)

@@ -29,8 +29,9 @@
 #include <string>
 #include <chrono>
 #include <map>
-#include <thread>
+#include <memory>
 #include <mutex>
+#include <thread>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
@@ -64,7 +65,7 @@ class WeatherlinkApiv2DownloadScheduler : public AbstractDownloadScheduler
 public:
 	WeatherlinkApiv2DownloadScheduler(asio::io_context& ioContext,
 		DbConnectionObservations& db, std::string apiId, std::string apiSecret,
-		AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void add(const CassUuid& station, bool archived, const std::map<int, CassUuid>& substations,
 		const std::map<int, std::map<std::string, std::string>>& parsers,
 		const std::string& weatherlinkId, TimeOffseter&& to);
@@ -72,7 +73,7 @@ public:
 private:
 	const std::string _apiId;
 	const std::string _apiSecret;
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 	std::vector<std::pair<bool, std::shared_ptr<WeatherlinkApiv2Downloader>>> _downloadersAPIv2;
 	std::recursive_mutex _downloadersMutex;
 	bool _mustStop = false;

@@ -65,7 +65,8 @@ public:
 	};
 
 	MqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-				   DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz);
 	void start() override;
 	void stop() override;
@@ -78,7 +79,7 @@ protected:
 
 	std::map<std::uint16_t, std::string> _subscriptions;
 
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	std::mutex _stationsMutex;
 

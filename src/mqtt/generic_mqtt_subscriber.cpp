@@ -45,7 +45,8 @@ namespace meteodata
 namespace pt = boost::property_tree;
 
 GenericMqttSubscriber::GenericMqttSubscriber(const MqttSubscriber::MqttSubscriptionDetails& details,
-	asio::io_context& ioContext, DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+	asio::io_context& ioContext, DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		MqttSubscriber{details, ioContext, db, jobPublisher}
 {
 }
@@ -56,14 +57,14 @@ bool GenericMqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boo
 		auto subscriptionIt = _subscriptions.find(packetId);
 		if (subscriptionIt == _subscriptions.end()) {
 			std::cerr << SD_ERR << "[MQTT Generic] protocol: " << "client " << _details.host
-					  << ": received an invalid subscription ack?!" << std::endl;
+				  << ": received an invalid subscription ack?!" << std::endl;
 			continue;
 		}
 
 		const std::string& topic = subscriptionIt->second;
 		if (!e) {
 			std::cerr << SD_ERR << "[MQTT] protocol: " << "subscription to topic " << topic << " failed: "
-					  << mqtt::qos::to_str(*e) << std::endl;
+				  << mqtt::qos::to_str(*e) << std::endl;
 		}
 	}
 	return true;
@@ -84,7 +85,7 @@ void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, c
 	const CassUuid& station = std::get<0>(stationIt->second);
 	const std::string& stationName = std::get<1>(stationIt->second);
 	std::cout << SD_DEBUG << "[MQTT Generic " << station << "] measurement: " << "Now receiving for MQTT station "
-			  << stationName << std::endl;
+		  << stationName << std::endl;
 
 	pt::ptree jsonTree;
 	std::istringstream jsonStream{std::string{content}};
@@ -99,7 +100,7 @@ void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, c
 		ret = _db.insertV2DataPoint(o) && _db.insertV2DataPointInTimescaleDB(o);
 	} else {
 		std::cerr << SD_WARNING << "[MQTT Generic " << station << "] measurement: "
-				  << "Record looks invalid, discarding " << std::endl;
+			  << "Record looks invalid, discarding " << std::endl;
 	}
 
 	if (ret) {
@@ -109,7 +110,7 @@ void GenericMqttSubscriber::processArchive(const mqtt::string_view& topicName, c
 		ret = _db.updateLastArchiveDownloadTime(station, lastArchiveDownloadTime);
 		if (!ret)
 			std::cerr << SD_ERR << "[MQTT Generic " << station << "] management: "
-					  << "Couldn't update last archive download time" << std::endl;
+				  << "Couldn't update last archive download time" << std::endl;
 
 		if (_jobPublisher)
 			_jobPublisher->publishJobsForPastDataInsertion(station, timestamp, timestamp);

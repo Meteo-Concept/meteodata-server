@@ -26,6 +26,7 @@
 #include <chrono>
 #include <thread>
 #include <utility>
+#include <memory>
 #include <mutex>
 
 #include <systemd/sd-daemon.h>
@@ -47,7 +48,7 @@ using namespace date;
 
 FieldClimateApiDownloadScheduler::FieldClimateApiDownloadScheduler(asio::io_context& ioContext,
 	DbConnectionObservations& db, std::string apiId, std::string apiSecret,
-	AsyncJobPublisher* jobPublisher) :
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
 		_apiSecret{std::move(apiSecret)},
@@ -60,7 +61,7 @@ void FieldClimateApiDownloadScheduler::add(const CassUuid& station, const std::s
 {
 	std::lock_guard<std::recursive_mutex> lock{_downloadersMutex};
 	_downloaders.emplace_back(
-		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret, _jobPublisher)
+		std::make_shared<FieldClimateApiDownloader>(station, fieldClimateId, sensors, _db, tz, _apiId, _apiSecret, _jobPublisher.get())
 	);
 }
 

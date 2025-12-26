@@ -53,14 +53,15 @@ public:
 	using Request = boost::beast::http::request<boost::beast::http::string_body>;
 	using Response = boost::beast::http::response<boost::beast::http::string_body>;
 
-	explicit CimelHttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+	explicit CimelHttpRequestHandler(DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	void processRequest(const Request& request, Response& response);
 
 private:
 	DbConnectionObservations& _db;
 
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	struct StationInformation
 	{

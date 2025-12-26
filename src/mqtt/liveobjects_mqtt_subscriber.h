@@ -40,9 +40,10 @@ class LiveobjectsMqttSubscriber : public MqttSubscriber
 {
 public:
 	LiveobjectsMqttSubscriber(const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-							  DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void addStation(const std::string& topic, const CassUuid& station, TimeOffseter::PredefinedTimezone tz,
-					const std::string& streamId);
+		const std::string& streamId);
 
 protected:
 	bool handleConnAck(bool res, uint8_t packetId) override;

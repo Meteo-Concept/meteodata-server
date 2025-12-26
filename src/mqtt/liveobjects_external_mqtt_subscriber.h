@@ -40,7 +40,8 @@ public:
 	LiveobjectsExternalMqttSubscriber(
 		std::string clientIdentifier,
 		const MqttSubscriptionDetails& details, asio::io_context& ioContext,
-		DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 private:
 	std::string _clientIdentifier;

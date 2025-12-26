@@ -98,7 +98,7 @@ MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoS
 	}
 
 	if (_configuration.publishJobs) {
-		_jobPublisher = std::make_unique<AsyncJobPublisher>(
+		_jobPublisher = std::make_shared<AsyncJobPublisher>(
 				ioContext, config.jobsDbAddress, config.jobsDbUsername,
 				config.jobsDbPassword, config.jobsDbDatabase
 		);
@@ -172,7 +172,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = vp2MqttSubscribers.find(details);
 				if (mqttSubscribersIt == vp2MqttSubscribers.end()) {
 					std::shared_ptr<VP2MqttSubscriber> subscriber = std::make_shared<VP2MqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
+						details, _ioContext, _db, _jobPublisher
 					);
 					mqttSubscribersIt = vp2MqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -182,7 +182,7 @@ void MeteoServer::start()
 				if (mqttSubscribersIt == liveobjectsExternalMqttSubscribers.end()) {
 					// take care of generating a unique client id for each connection
 					std::shared_ptr<LiveobjectsExternalMqttSubscriber> subscriber = std::make_shared<LiveobjectsExternalMqttSubscriber>(
-						std::to_string(externalLiveobjects++), details, _ioContext, _db, _jobPublisher.get()
+						std::to_string(externalLiveobjects++), details, _ioContext, _db, _jobPublisher
 					);
 					mqttSubscribersIt = liveobjectsExternalMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -194,7 +194,7 @@ void MeteoServer::start()
 				// All the Liveobjects stations on the internal Liveobjects connection will share a single connection
 				if (!liveobjectsMqttSubscriber) {
 					liveobjectsMqttSubscriber = std::make_shared<LiveobjectsMqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
+						details, _ioContext, _db, _jobPublisher
 					);
 				}
 				auto it = std::find_if(liveobjectsStations.begin(), liveobjectsStations.end(),
@@ -205,7 +205,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = genericMqttSubscribers.find(details);
 				if (mqttSubscribersIt == genericMqttSubscribers.end()) {
 					std::shared_ptr<GenericMqttSubscriber> subscriber = std::make_shared<GenericMqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
+						details, _ioContext, _db, _jobPublisher
 					);
 					mqttSubscribersIt = genericMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -214,7 +214,7 @@ void MeteoServer::start()
 				auto mqttSubscribersIt = chirpstackMqttSubscribers.find(details);
 				if (mqttSubscribersIt == chirpstackMqttSubscribers.end()) {
 					std::shared_ptr<ChirpstackMqttSubscriber> subscriber = std::make_shared<ChirpstackMqttSubscriber>(
-						details, _ioContext, _db, _jobPublisher.get()
+						details, _ioContext, _db, _jobPublisher
 					);
 					mqttSubscribersIt = chirpstackMqttSubscribers.emplace(details, subscriber).first;
 				}
@@ -263,7 +263,7 @@ void MeteoServer::start()
 
 	if (_configuration.startShip) {
 		// Start the Meteo France SHIP and BUOY downloader (one for all SHIP and BUOY messages)
-		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db, _jobPublisher.get());
+		auto meteofranceDownloader = std::make_shared<ShipAndBuoyDownloader>(_ioContext, _db, _jobPublisher);
 		meteofranceDownloader->start();
 		_connectors.emplace("ship", meteofranceDownloader);
 	}
@@ -276,7 +276,7 @@ void MeteoServer::start()
 			_ioContext,
 			_db,
 			std::move(_configuration.meteofranceApiKey),
-			_jobPublisher.get()
+			_jobPublisher
 		);
 		meteofranceScheduler->start();
 		_connectors.emplace("meteofrance", meteofranceScheduler);
@@ -292,7 +292,7 @@ void MeteoServer::start()
 		// Start the Weatherlink download schedulers (one for all Weatherlink stations, one downloader per station but
 		// they share a single HTTP client)
 		auto weatherlinkScheduler = std::make_shared<WeatherlinkDownloadScheduler>(
-			_ioContext, _db, _jobPublisher.get()
+			_ioContext, _db, _jobPublisher
 		);
 		weatherlinkScheduler->start();
 		_connectors.emplace("weatherlink", weatherlinkScheduler);
@@ -304,7 +304,7 @@ void MeteoServer::start()
 		auto weatherlinkApiv2Scheduler = std::make_shared<WeatherlinkApiv2DownloadScheduler>(
 			_ioContext, _db,
 			std::move(_configuration.weatherlinkApiV2Key), std::move(_configuration.weatherlinkApiV2Secret),
-			_jobPublisher.get()
+			_jobPublisher
 		);
 		weatherlinkApiv2Scheduler->start();
 		_connectors.emplace("weatherlink_v2", weatherlinkApiv2Scheduler);
@@ -316,7 +316,7 @@ void MeteoServer::start()
 		auto fieldClimateScheduler = std::make_shared<FieldClimateApiDownloadScheduler>(
 			_ioContext, _db,
 			_configuration.fieldClimateApiKey, _configuration.fieldClimateApiSecret,
-			_jobPublisher.get()
+			_jobPublisher
 		);
 		fieldClimateScheduler->start();
 		_connectors.emplace("fieldclimate", fieldClimateScheduler);
@@ -330,7 +330,7 @@ void MeteoServer::start()
 
 	if (_configuration.startVirtual) {
 		// Start the virtual observations computing connector
-		auto virtualComputingScheduler = std::make_shared<VirtualComputationScheduler>(_ioContext, _db, _jobPublisher.get());
+		auto virtualComputingScheduler = std::make_shared<VirtualComputationScheduler>(_ioContext, _db, _jobPublisher);
 		virtualComputingScheduler->start();
 		_connectors.emplace("virtual", virtualComputingScheduler);
 	}
@@ -338,7 +338,7 @@ void MeteoServer::start()
 	if (_configuration.startRest) {
 		// Start the Web server for the REST API
 		auto restWebServer = std::make_shared<RestWebServer>(
-			_ioContext, _db, _jobPublisher.get()
+			_ioContext, _db, _jobPublisher
 		);
 		restWebServer->start();
 		_connectors.emplace("rest", restWebServer);
@@ -430,7 +430,7 @@ void MeteoServer::startAcceptingVp2DirectConnect()
 	if (_vp2DirectConnectorStopped)
 		return;
 
-	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db, _jobPublisher.get());
+	auto newConnector = std::make_shared<VantagePro2Connector>(_ioContext, _db, _jobPublisher);
 	_vp2DirectConnectAcceptor.async_accept(newConnector->socket(), [this, newConnector](const boost::system::error_code& error) {
 		runNewVp2DirectConnector(newConnector, error);
 	});

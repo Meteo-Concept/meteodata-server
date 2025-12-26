@@ -29,6 +29,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <memory>
 #include <thread>
 
 #include <systemd/sd-daemon.h>
@@ -62,12 +63,12 @@ class MeteoFranceApiDownloadScheduler : public AbstractDownloadScheduler
 public:
 	MeteoFranceApiDownloadScheduler(asio::io_context& ioContext,
 		DbConnectionObservations& db, std::string apiKey,
-		AsyncJobPublisher* jobPublisher = nullptr);
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void add(const CassUuid& station, const std::string& mfId);
 
 private:
 	const std::string _apiKey;
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 	std::vector<std::shared_ptr<MeteoFranceApiDownloader>> _downloaders;
 	bool _mustStop = false;
 

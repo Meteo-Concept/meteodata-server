@@ -25,6 +25,7 @@
 #include <systemd/sd-daemon.h>
 #include <date/date.h>
 
+#include <memory>
 #include <sstream>
 #include <vector>
 #include <tuple>
@@ -40,10 +41,10 @@
 
 namespace meteodata
 {
-VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+VantagePro2HttpRequestHandler::VantagePro2HttpRequestHandler(DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		_db{db},
-		_jobPublisher{nullptr} // TODO debug unsafe use of jobPublisher
-				       // in this class
+		_jobPublisher{jobPublisher}
 {
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, std::size_t, std::string, int>> mqttStations;
 	_db.getMqttStations(mqttStations);
@@ -82,8 +83,8 @@ void VantagePro2HttpRequestHandler::processRequest(const Request& request, Respo
 }
 
 
-bool VantagePro2HttpRequestHandler::getUuidAndCheckAccess(const Request& request, Response& response, CassUuid& uuid,
-		const std::cmatch& url)
+bool VantagePro2HttpRequestHandler::getUuidAndCheckAccess(const Request& request, Response& response,
+	CassUuid& uuid, const std::cmatch& url)
 {
 	cass_uuid_from_string(url[1].str().c_str(), &uuid);
 	const boost::beast::string_view httpUser = request.base()["X-Authenticated-User"];

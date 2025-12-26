@@ -40,7 +40,7 @@ LiveobjectsExternalMqttSubscriber::LiveobjectsExternalMqttSubscriber(
 	const MqttSubscriber::MqttSubscriptionDetails& details,
 	asio::io_context& ioContext,
 	DbConnectionObservations& db,
-	AsyncJobPublisher* jobPublisher) :
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		LiveobjectsMqttSubscriber{details, ioContext, db, jobPublisher},
 		_clientIdentifier{std::move(clientIdentifier)}
 {

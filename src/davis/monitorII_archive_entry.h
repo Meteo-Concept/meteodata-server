@@ -25,8 +25,8 @@
 #define MONITORII_ARCHIVE_ENTRY_H
 
 #include <cstdint>
-#include <iterator>
 #include <chrono>
+#include <iterator>
 #include <optional>
 
 #include <boost/asio.hpp>
@@ -35,6 +35,7 @@
 #include <cassobs/observation.h>
 
 #include "../time_offseter.h"
+#include <iterator>
 
 using std::uint8_t;
 using std::uint16_t;

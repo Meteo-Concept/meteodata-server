@@ -25,6 +25,7 @@
 #include <systemd/sd-daemon.h>
 #include <date/date.h>
 
+#include <memory>
 #include <sstream>
 #include <vector>
 #include <tuple>
@@ -40,7 +41,8 @@
 
 namespace meteodata
 {
-MonitorIIHttpRequestHandler::MonitorIIHttpRequestHandler(DbConnectionObservations& db, AsyncJobPublisher* jobPublisher) :
+MonitorIIHttpRequestHandler::MonitorIIHttpRequestHandler(DbConnectionObservations& db,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		_db{db},
 		_jobPublisher{jobPublisher}
 {

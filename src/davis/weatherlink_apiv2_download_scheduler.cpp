@@ -26,6 +26,7 @@
 #include <functional>
 #include <chrono>
 #include <unordered_map>
+#include <memory>
 #include <mutex>
 
 #include <boost/system/error_code.hpp>
@@ -54,7 +55,8 @@ using namespace date;
 
 WeatherlinkApiv2DownloadScheduler::WeatherlinkApiv2DownloadScheduler(
 	asio::io_context& ioContext, DbConnectionObservations& db,
-	std::string apiId, std::string apiSecret, AsyncJobPublisher* jobPublisher) :
+	std::string apiId, std::string apiSecret,
+	const std::shared_ptr<AsyncJobPublisher>& jobPublisher) :
 		AbstractDownloadScheduler{chrono::minutes{POLLING_PERIOD}, ioContext, db},
 		_apiId{std::move(apiId)},
 		_apiSecret{std::move(apiSecret)},
@@ -71,7 +73,7 @@ void WeatherlinkApiv2DownloadScheduler::add(const CassUuid& station, bool archiv
 	_downloadersAPIv2.emplace_back(
 		archived,
 		std::make_shared<WeatherlinkApiv2Downloader>(station, weatherlinkId, mapping, parsers,
-			_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to), _jobPublisher)
+			_apiId, _apiSecret, _db, std::forward<TimeOffseter&&>(to), _jobPublisher.get())
 	);
 }
 

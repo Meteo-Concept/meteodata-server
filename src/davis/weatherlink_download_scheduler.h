@@ -29,8 +29,9 @@
 #include <string>
 #include <chrono>
 #include <map>
-#include <thread>
+#include <memory>
 #include <mutex>
+#include <thread>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
@@ -64,12 +65,13 @@ class WeatherlinkDownloadScheduler : public AbstractDownloadScheduler
 {
 public:
 	WeatherlinkDownloadScheduler(asio::io_context& ioContext,
-		DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 	void add(const CassUuid& station, const std::string& auth, const std::string& apiToken,
 		TimeOffseter::PredefinedTimezone tz);
 
 private:
-	AsyncJobPublisher* _jobPublisher;
+	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 	std::vector<std::shared_ptr<WeatherlinkDownloader>> _downloaders;
 	std::recursive_mutex _downloadersMutex;
 	bool _mustStop = false;

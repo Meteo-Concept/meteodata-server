@@ -142,7 +142,7 @@ int main(int argc, char** argv)
 	}
 
 	daemonized = !vm.count("no-daemon");
-	serverConfig.publishJobs = !vm.count("no-jobs");
+	serverConfig.publishJobs = !vm.count("no-async-jobs");
 
 	serverConfig.startMqtt = !vm.count("no-mqtt");
 	serverConfig.startSynop = !vm.count("no-synop");

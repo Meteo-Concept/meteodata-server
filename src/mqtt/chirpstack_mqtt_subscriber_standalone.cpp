@@ -190,7 +190,7 @@ int main(int argc, char** argv)
 		auto mqttSubscribersIt = chirpstackMqttSubscribers.find(details);
 		if (mqttSubscribersIt == chirpstackMqttSubscribers.end()) {
 			std::shared_ptr<ChirpstackMqttSubscriber> subscriber = std::make_shared<ChirpstackMqttSubscriber>(
-				details, ioContext, db, nullptr
+				details, ioContext, db
 			);
 			mqttSubscribersIt = chirpstackMqttSubscribers.emplace(details, subscriber).first;
 		}

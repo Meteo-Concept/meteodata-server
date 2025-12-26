@@ -24,9 +24,10 @@
 #ifndef CIMEL4A_IMPORTER_H
 #define CIMEL4A_IMPORTER_H
 
-#include <iostream>
-#include <vector>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <vector>
 
 #include <systemd/sd-daemon.h>
 #include <boost/system/error_code.hpp>
@@ -69,7 +70,8 @@ public:
 	 * @param dbJobs The database connection to insert asynchronous job requests
 	 */
 	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, const std::string& timezone,
-					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	/**
 	 * Constructs a Cimel4AImporter
@@ -81,7 +83,8 @@ public:
 	 * @param dbJobs The database connection to insert asynchronous job requests
 	 */
 	Cimel4AImporter(const CassUuid& station, const std::string& cimelId, TimeOffseter&& timeOffseter,
-					DbConnectionObservations& db, AsyncJobPublisher* jobPublisher = nullptr);
+		DbConnectionObservations& db,
+		const std::shared_ptr<AsyncJobPublisher>& jobPublisher = nullptr);
 
 	bool doImport(std::istream& input, date::sys_seconds& start, date::sys_seconds& end, date::year year) override;
 };
