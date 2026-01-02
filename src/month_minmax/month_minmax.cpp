@@ -107,6 +107,7 @@ int main(int argc, char** argv)
 		("begin", po::value<std::string>(&begin), "the beginning of the date range for which the min/max must be computed (defaults to the current month)")
 		("end", po::value<std::string>(&end), "the end of the date range for which the min/max must be computed (defaults to 'begin')")
 		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations for which the min/max must be computed (can be given multiple times, defaults to all stations)")
+		("no-meteofrance", "exclude Météo-France stations from the list of stations")
 	;
 	desc.add(config);
 
@@ -202,7 +203,11 @@ int main(int argc, char** argv)
 
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
-		dbMonthMinmax.getAllStations(allStations);
+		if (vm.count("no-meteofrance")) {
+			dbMonthMinmax.getAllStationsExceptMeteoFrance(allStations);
+		} else {
+			dbMonthMinmax.getAllStations(allStations);
+		}
 		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
@@ -213,7 +218,7 @@ int main(int argc, char** argv)
 			std::sort(userSelection.begin(), userSelection.end());
 			std::vector<CassUuid> unknown;
 			std::set_difference(userSelection.cbegin(), userSelection.cend(), allStations.cbegin(), allStations.cend(),
-								std::back_inserter(unknown));
+				std::back_inserter(unknown));
 			if (!unknown.empty()) {
 				std::cerr << "The following UUIDs are unknown and will be ignored:\n";
 				for (const auto& st : unknown) {
@@ -224,7 +229,7 @@ int main(int argc, char** argv)
 				std::cerr << std::endl;
 			}
 			std::set_intersection(allStations.cbegin(), allStations.cend(), userSelection.cbegin(),
-								  userSelection.cend(), std::back_inserter(stations));
+				userSelection.cend(), std::back_inserter(stations));
 		}
 
 		for (const CassUuid& station : stations) {

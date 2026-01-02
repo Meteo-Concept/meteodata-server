@@ -88,6 +88,7 @@ int main(int argc, char** argv)
 		("begin", po::value<std::string>(&begin), "the beginning of the date range for which the min/max must be computed (defaults to today)")
 		("end", po::value<std::string>(&end), "the end of the date range for which the min/max must be computed (defaults to 'begin')")
 		("station", po::value<std::vector<std::string>>(&namedStations)->multitoken(), "the stations for which the min/max must be computed (can be given multiple times, defaults to all stations)")
+		("no-meteofrance", "exclude Météo France stations from the list of stations")
 	;
 
 	po::options_description config("Configuration");
@@ -188,7 +189,11 @@ int main(int argc, char** argv)
 
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
-		dbMinmax.getAllStations(allStations);
+		if (vm.count("no-meteofrance")) {
+			dbMinmax.getAllStationsExceptMeteoFrance(allStations);
+		} else {
+			dbMinmax.getAllStations(allStations);
+		}
 		std::cerr << allStations.size() << " stations identified\n" << std::endl;
 
 		std::vector<CassUuid> stations;
