@@ -30,6 +30,8 @@
 #include <thread>
 #include <tuple>
 #include <map>
+#include <optional>
+#include <system_error>
 
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
@@ -54,7 +56,6 @@
 using namespace meteodata;
 namespace po = boost::program_options;
 namespace asio = boost::asio;
-namespace sys = boost::system;
 
 using namespace std::chrono;
 using namespace date;

@@ -24,6 +24,7 @@
 #define METEODATA_SERVER_LIVEOBJECTS_EXTERNAL_MQTT_SUBSCRIBER_H
 
 #include <vector>
+
 #include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>

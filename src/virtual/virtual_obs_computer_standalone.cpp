@@ -37,7 +37,7 @@
 #include <boost/json/src.hpp>
 #include <cassobs/dbconnection_observations.h>
 #include <cassandra.h>
-#include <cassobs/virtual_station.h>
+#include <cassobs/dto/virtual_station.h>
 
 #include "config.h"
 #include "../cassandra_utils.h"
@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 		std::cout << "Usage: " << argv[0] << " [-h cassandra_host -u user -p password]\n";
 		std::cout << desc << "\n";
 		std::cout << "You must give either both the username and "
-					 "password or none of them." << std::endl;
+			     "password or none of them." << std::endl;
 
 		return 0;
 	}

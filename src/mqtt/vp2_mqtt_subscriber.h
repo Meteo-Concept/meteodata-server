@@ -30,6 +30,7 @@
 #include <vector>
 #include <functional>
 #include <chrono>
+#include <system_error>
 #include <unistd.h>
 
 #include <boost/asio/steady_timer.hpp>
@@ -61,12 +62,12 @@ public:
 
 private:
 	static constexpr char ARCHIVES_TOPIC[] = "/dmpaft";
-	std::map<std::string, date::sys_seconds> _clockResetTimes;
+	std::map<std::string, date::sys_seconds, std::less<>> _clockResetTimes;
 	void setClock(const std::string& topic, const CassUuid& station, const TimeOffseter& timeOffseter);
 
 protected:
-	bool handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results) override;
-	void processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content) override;
+	bool handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results) override;
+	void processArchive(const std::string_view& topicName, const std::string_view& content) override;
 
 	const char* getConnectorSuffix() override
 	{ return "vp2"; }

@@ -29,7 +29,7 @@
 
 #include <date/date.h>
 #include <cassobs/dbconnection_observations.h>
-#include <cassobs/download.h>
+#include <cassobs/dto/download.h>
 
 #include "time_offseter.h"
 #include "curl_wrapper.h"

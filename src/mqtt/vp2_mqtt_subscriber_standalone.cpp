@@ -28,6 +28,8 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <optional>
+#include <system_error>
 
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
@@ -49,7 +51,6 @@
 using namespace meteodata;
 namespace po = boost::program_options;
 namespace asio = boost::asio;
-namespace sys = boost::system;
 
 using namespace std::chrono;
 using namespace date;
@@ -178,15 +179,16 @@ int main(int argc, char** argv)
 
 	std::vector<std::tuple<CassUuid, std::string, int, std::string, std::unique_ptr<char[]>, size_t, std::string, int>> mqttStations;
 	auto client = mqtt::make_tls_sync_client(ioContext, mqttAddress, mqttPort);
+	using packet_id_t = typename std::remove_reference_t<decltype(*client)>::packet_id_t;
 
 	client->set_client_id(CLIENT_ID);
 	client->set_user_name(mqttUser);
 	client->set_password(mqttPassword);
 	client->set_clean_session(true);
-	client->add_verify_path(DEFAULT_VERIFY_PATH);
-	client->set_verify_mode(asio::ssl::verify_none);
+	client->get_ssl_context().add_verify_path(DEFAULT_VERIFY_PATH);
+	client->get_ssl_context().set_verify_mode(asio::ssl::verify_none);
 
-	client->set_connack_handler([&](bool sp, std::uint8_t ret) {
+	client->set_connack_handler([&](bool sp, mqtt::connect_return_code ret) {
 		std::cerr << "Connected" << std::endl;
 
 		if (ret != mqtt::connect_return_code::accepted)
@@ -218,26 +220,26 @@ int main(int argc, char** argv)
 	client->set_close_handler([]() {
 		return true;
 	});
-	client->set_error_handler([](sys::error_code const& ec) {
+	client->set_error_handler([](std::error_code const& ec) {
 		return true;
 	});
-	client->set_puback_handler([]([[maybe_unused]] std::uint16_t packetId) {
+	client->set_puback_handler([]([[maybe_unused]] packet_id_t packetId) {
 		return true;
 	});
-	client->set_pubrec_handler([]([[maybe_unused]] std::uint16_t packetId) {
+	client->set_pubrec_handler([]([[maybe_unused]] packet_id_t packetId) {
 		return true;
 	});
-	client->set_pubcomp_handler([]([[maybe_unused]] std::uint16_t packetId) {
+	client->set_pubcomp_handler([]([[maybe_unused]] packet_id_t packetId) {
 		return true;
 	});
 	client->set_suback_handler(
-	[](std::uint16_t packetId, const std::vector<boost::optional<std::uint8_t>>& results) {
+	[](std::uint16_t packetId, const std::vector<mqtt::suback_return_code>& results) {
 			return true;
 		}
 	);
 	client->set_publish_handler(
-		[](std::uint8_t header, boost::optional<std::uint16_t> packetId, mqtt::string_view topic,
-					 mqtt::string_view contents) {
+		[](std::optional<packet_id_t> packetId, mqtt::publish_options,
+		   std::string_view topic, std::string_view contents) {
 			return true;
 		}
 	);

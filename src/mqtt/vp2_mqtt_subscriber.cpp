@@ -39,7 +39,6 @@
 #include "mqtt_subscriber.h"
 #include "vp2_mqtt_subscriber.h"
 
-namespace sys = boost::system;
 namespace chrono = std::chrono;
 
 namespace meteodata
@@ -53,7 +52,7 @@ VP2MqttSubscriber::VP2MqttSubscriber(const MqttSubscriber::MqttSubscriptionDetai
 {
 }
 
-bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::optional<std::uint8_t>> results)
+bool VP2MqttSubscriber::handleSubAck(packet_id_t packetId, std::vector<mqtt::suback_return_code> results)
 {
 	if (results.size() > 0) { // we expect only one result
 		auto e = results[0];
@@ -68,9 +67,9 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 		const std::string& topic = subscriptionIt->second;
 		std::lock_guard<std::mutex> lock{_stationsMutex};
 		const auto& station = _stations[subscriptionIt->second];
-		if (!e) {
+		if (e == mqtt::suback_return_code::failure) {
 			std::cerr << SD_ERR << "[MQTT" << std::get<1>(station) << "] connection: " << "subscription failed: "
-				  << mqtt::qos::to_str(*e) << std::endl;
+				  << e << std::endl;
 			return false;
 		} else {
 			const TimeOffseter& timeOffseter = std::get<4>(station);
@@ -102,10 +101,10 @@ bool VP2MqttSubscriber::handleSubAck(std::uint16_t packetId, std::vector<boost::
 	return false;
 }
 
-void VP2MqttSubscriber::processArchive(const mqtt::string_view& topicName, const mqtt::string_view& content)
+void VP2MqttSubscriber::processArchive(const std::string_view& topicName, const std::string_view& content)
 {
 	std::lock_guard<std::mutex> lock{_stationsMutex};
-	auto stationIt = _stations.find(topicName.to_string());
+	auto stationIt = _stations.find(topicName);
 	if (stationIt == _stations.end()) {
 		std::cout << SD_NOTICE << "[MQTT protocol]: " << "Unknown topic " << topicName << std::endl;
 		return;
