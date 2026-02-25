@@ -37,7 +37,6 @@
 #include "dragino/lse01_soil_sensor_message.h"
 #include "dragino/thpllora_message.h"
 #include "dragino/thwlora_message.h"
-#include "dragino/concept500_message.h"
 #include "barani/barani_anemometer_message.h"
 #include "barani/barani_anemometer_2023_message.h"
 #include "barani/barani_rain_gauge_message.h"
@@ -84,7 +83,7 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		if (forcedBaseValue)
 			rainfallCounter = int(*forcedBaseValue);
 		return std::make_unique<ThplloraMessage>(db, rainfallCounter);
-	} else if (sensor == "dragino-thwlora" && port == 2) {
+	} else if ((sensor == "dragino-concept500" || sensor == "dragino-thwlora") && port == 2) {
 		return std::make_unique<ThwloraMessage>(db);
 	} else if (sensor == "dragino-llms01" && port == 2) {
 		return std::make_unique<Llms01LeafSensorMessage>();
@@ -96,8 +95,6 @@ std::unique_ptr<LiveobjectsMessage> LiveobjectsMessage::instantiateMessage(DbCon
 		return std::make_unique<Lsn50v2D2xMessage>();
 	} else if (sensor == "dragino-sn50v3-probe6470" && port == 2) {
 		return std::make_unique<Sn50v3Probe6470Message>();
-	} else if (sensor == "dragino-concept500" && port == 2) {
-		return std::make_unique<Concept500Message>(db);
 	} else if (sensor == "barani-meteowind" && port == 1) {
 		return std::make_unique<BaraniAnemometerMessage>();
 	} else if (sensor == "barani-meteowind-v2023" && port == 1) {

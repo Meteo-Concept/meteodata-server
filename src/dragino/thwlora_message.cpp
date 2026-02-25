@@ -23,7 +23,6 @@
 
 #include <string>
 #include <cmath>
-#include <optional>
 
 #include <systemd/sd-daemon.h>
 #include <cassandra.h>
