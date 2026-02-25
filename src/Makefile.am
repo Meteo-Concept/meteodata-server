@@ -124,10 +124,8 @@ meteodata_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/thplnbiot_message.cpp\
 		    dragino/thplnbiot_message.h\
-		    dragino/concept500_message.cpp\
 		    dragino/thwlora_message.cpp\
 		    dragino/thwlora_message.h\
-		    dragino/concept500_message.h\
 		    mbdata/mbdata_messages/abstract_mbdata_message.cpp\
 		    mbdata/mbdata_messages/abstract_mbdata_message.h\
 		    mbdata/mbdata_messages/mbdata_message_factory.h\
@@ -615,8 +613,6 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/thwlora_message.cpp\
 		    dragino/thwlora_message.h\
-		    dragino/concept500_message.cpp\
-		    dragino/concept500_message.h\
 		    custom/thlora_thermohygrometer_message.cpp\
 		    custom/thlora_thermohygrometer_message.h\
 		    custom/oseren_soil_station_message.cpp\
@@ -685,8 +681,6 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/thwlora_message.cpp\
 		    dragino/thwlora_message.h\
-		    dragino/concept500_message.cpp\
-		    dragino/concept500_message.h\
 		    custom/thlora_thermohygrometer_message.cpp\
 		    custom/thlora_thermohygrometer_message.h\
 		    custom/oseren_soil_station_message.cpp\
@@ -741,8 +735,6 @@ meteodata_mqtt_payload_ingester_standalone_SOURCES = \
 		    dragino/thpllora_message.h\
 		    dragino/thwlora_message.cpp\
 		    dragino/thwlora_message.h\
-		    dragino/concept500_message.cpp\
-		    dragino/concept500_message.h\
 		    custom/thlora_thermohygrometer_message.cpp\
 		    custom/thlora_thermohygrometer_message.h\
 		    custom/oseren_soil_station_message.cpp\
