@@ -207,12 +207,16 @@ meteodata_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    barani/barani_thermohygro_message.cpp\
 		    barani/barani_thermohygro_message.h\
+		    barani/barani_thermohygro_2026_message.cpp\
+		    barani/barani_thermohygro_2026_message.h\
 		    custom/thlora_thermohygrometer_message.cpp\
 		    custom/thlora_thermohygrometer_message.h\
 		    custom/oseren_soil_station_message.cpp\
@@ -589,12 +593,16 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    barani/barani_thermohygro_message.cpp\
 		    barani/barani_thermohygro_message.h\
+		    barani/barani_thermohygro_2026_message.cpp\
+		    barani/barani_thermohygro_2026_message.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
@@ -657,12 +665,16 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    barani/barani_thermohygro_message.cpp\
 		    barani/barani_thermohygro_message.h\
+		    barani/barani_thermohygro_2026_message.cpp\
+		    barani/barani_thermohygro_2026_message.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
@@ -711,12 +723,16 @@ meteodata_mqtt_payload_ingester_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
 		    barani/barani_rain_gauge_message.h\
 		    barani/barani_thermohygro_message.cpp\
 		    barani/barani_thermohygro_message.h\
+		    barani/barani_thermohygro_2026_message.cpp\
+		    barani/barani_thermohygro_2026_message.h\
 		    dragino/lsn50v2_thermohygrometer_message.cpp\
 		    dragino/lsn50v2_thermohygrometer_message.h\
 		    dragino/lsn50v2_probe6470_message.cpp\
