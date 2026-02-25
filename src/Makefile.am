@@ -207,6 +207,8 @@ meteodata_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
@@ -589,6 +591,8 @@ meteodata_liveobjects_api_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
@@ -657,6 +661,8 @@ meteodata_mqtt_chirpstack_receiver_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
@@ -711,6 +717,8 @@ meteodata_mqtt_payload_ingester_standalone_SOURCES = \
 		    barani/barani_anemometer_message.h\
 		    barani/barani_anemometer_2023_message.cpp\
 		    barani/barani_anemometer_2023_message.h\
+		    barani/barani_anemometer_2026_message.cpp\
+		    barani/barani_anemometer_2026_message.h\
 		    barani/barani_meteoag_2022_message.cpp\
 		    barani/barani_meteoag_2022_message.h\
 		    barani/barani_rain_gauge_message.cpp\
