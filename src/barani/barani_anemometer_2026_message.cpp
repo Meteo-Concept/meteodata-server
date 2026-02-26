@@ -118,7 +118,7 @@ void BaraniAnemometer2026Message::ingest(const CassUuid& station, const std::str
 	_obs.wind3sMinSpeed = wind3sMinSpeed == 0b1'1111'1111 ? NAN : wind3sMinSpeed == 0b0'0000'0000 ? 0 : ::pulsesToKmh(wind3sMinSpeed * 0.1f);
 	// bits 47-54: 1-s wind speed std deviation, resolution 0.1Hz
 	uint16_t windSpeedStdev = ((raw[5] & 0b0000'0001) << 7) + ((raw[6] & 0b1111'1110) >> 1);
-	_obs.windSpeedStdev = windSpeedStdev == 0b1111'1111 ? NAN : windSpeedStdev == 0b0000'0000 ? 0 : ::pulsesToKmH(windSpeedStdev);
+	_obs.windSpeedStdev = windSpeedStdev == 0b1111'1111 ? NAN : windSpeedStdev == 0b0000'0000 ? 0 : ::pulsesToKmh(windSpeedStdev);
 	// bits 55-63: wind 10-min direction, resolution 1°
 	uint16_t windAvg10minDirection = ((raw[6] & 0b0000'0001) << 8) + raw[7];
 	_obs.windAvg10minDirection = windAvg10minDirection == 0b1'1111'1111 ? -1 : windAvg10minDirection;
@@ -169,7 +169,7 @@ json::object BaraniAnemometer2026Message::getDecodedMessage() const
 	os << date::format("%FT%TZ", _obs.maxWindDatetime);
 
 	return json::object{
-		{ "model", "barani_anemometer_v2026_20260225225,
+		{ "model", "barani_anemometer_v2026_20260225225" },
 		{ "value", {
 			{ "index", _obs.index },
 			{ "battery_voltage", _obs.batteryVoltage },
