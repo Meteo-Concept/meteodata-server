@@ -204,7 +204,11 @@ int main(int argc, char** argv)
 		std::vector<CassUuid> allStations;
 		std::cerr << "Fetching the list of stations" << std::endl;
 		if (vm.count("no-meteofrance")) {
-			dbMonthMinmax.getAllStationsExceptMeteoFrance(allStations);
+			std::vector<BaseStation> noMF;
+			dbMonthMinmax.getAllStationsExcludingMeteoFrance(noMF);
+			allStations.resize(noMF.size());
+			std::transform(noMF.begin(), noMF.end(), allStations.begin(),
+				[](const BaseStation& s) { return s.uuid; });
 		} else {
 			dbMonthMinmax.getAllStations(allStations);
 		}
