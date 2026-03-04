@@ -79,8 +79,6 @@ protected:
 
 	MqttSubscriptionDetails _details;
 
-	std::map<std::uint16_t, std::string> _subscriptions;
-
 	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
 
 	std::mutex _stationsMutex;
