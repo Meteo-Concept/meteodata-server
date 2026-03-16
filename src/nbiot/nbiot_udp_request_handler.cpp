@@ -36,6 +36,7 @@
 #include "udp_connection.h"
 #include "async_job_publisher.h"
 #include "dragino/thplnbiot_message.h"
+#include "dragino/thwnbiot_message.h"
 #include "nbiot/nbiot_udp_request_handler.h"
 #include "hex_parser.h"
 #include "http_utils.h"
@@ -135,15 +136,23 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 		int elevation;
 		_db.getStationCoordinates(uuid, latitude, longitude, elevation, name, pollingPeriod);
 
-		// TODO: When we have more message type, we'll need a factory
+		// TODO: When we have more message types, we'll need a factory
 		// to instantiate the correct message.
-		ThplnbiotMessage msg{_db};
-		msg.ingest(uuid, body);
+		std::vector<Observation> allObs;
+		if (st.sensorType == "thwlora") {
+			ThwnbiotMessage msg{_db};
+			msg.ingest(uuid, body);
+			allObs = msg.getObservations(uuid);
+		} else {
+			ThplnbiotMessage msg{_db};
+			msg.ingest(uuid, body);
+			msg.cacheValues(uuid);
+			allObs = msg.getObservations(uuid);
+		}
 
 		date::sys_seconds oldest = date::floor<chrono::seconds>(chrono::system_clock::now());
 		date::sys_seconds newest = date::sys_seconds{};
 
-		auto allObs = msg.getObservations(uuid);
 		for (const Observation& obs : allObs) {
 			bool ret = _db.insertV2DataPoint(obs);
 			if (ret) {
@@ -156,7 +165,6 @@ void NbiotUdpRequestHandler::processHexifiedRequest(const std::string& body, std
 				if (!ret)
 					std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] management: "
 							  << "couldn't update last archive download time for station " << name << std::endl;
-				msg.cacheValues(uuid);
 			} else {
 				std::cerr << SD_ERR << "[THPLNBIOT UDP " << uuid << "] measurement: " << "failed to store an observation for station "
 						  << name << "! Trying the other ones..." << std::endl;
