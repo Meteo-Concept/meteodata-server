@@ -71,25 +71,25 @@ MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, con
 		if (baseMatch[1].length()) {
 			try {
 				_airTemp = std::stof(baseMatch[1].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[2].length()) {
 			try {
 				_humidity = std::stoi(baseMatch[2].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[3].length()) {
 			try {
 				_dewPoint = std::stof(baseMatch[3].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[4].length()) {
 			try {
 				_pressure = std::stof(baseMatch[4].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		// skip pressure tendency
@@ -101,7 +101,7 @@ MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, con
 						_computedRainfall = f - *_rainfallSince0h;
 				}
 				_rainfallSince0h = f;
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		} else {
 			_rainfallSince0h = std::nullopt;
@@ -109,19 +109,19 @@ MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, con
 		if (baseMatch[7].length()) {
 			try {
 				_wind = std::stof(baseMatch[7].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[8].length()) {
 			try {
 				_windDir = std::stoi(baseMatch[8].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[9].length()) {
 			try {
 				_gust = std::stof(baseMatch[9].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		// skip heatindex and windchill
@@ -129,13 +129,13 @@ MBDataWeathercatMessage::MBDataWeathercatMessage(date::sys_seconds datetime, con
 		if (baseMatch[14].length()) {
 			try {
 				_rainRate = std::stof(baseMatch[14].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[15].length()) {
 			try {
 				_solarRad = std::stoi(baseMatch[15].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 

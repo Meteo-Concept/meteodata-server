@@ -69,25 +69,25 @@ MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime,
 		if (baseMatch[1].length()) {
 			try {
 				_airTemp = std::stof(baseMatch[1].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[2].length()) {
 			try {
 				_humidity = std::stoi(baseMatch[2].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[3].length()) {
 			try {
 				_dewPoint = std::stof(baseMatch[3].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[4].length()) {
 			try {
 				_pressure = std::stof(baseMatch[4].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		// skip pressure tendency
@@ -97,25 +97,25 @@ MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime,
 		if (baseMatch[6].length() && topOfTheHour) {
 			try {
 				_computedRainfall = std::stof(baseMatch[6].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[7].length()) {
 			try {
 				_wind = std::stof(baseMatch[7].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[8].length()) {
 			try {
 				_windDir = std::stoi(baseMatch[8].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (baseMatch[9].length()) {
 			try {
 				_gust = std::stof(baseMatch[9].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		// skip heatindex and windchill
@@ -130,13 +130,13 @@ MBDataWsWinMessage::MBDataWsWinMessage(date::sys_seconds datetime,
 		if (supplementaryMatch[3].length()) {
 			try {
 				_rainRate = std::stof(supplementaryMatch[3].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 		if (supplementaryMatch[4].length()) {
 			try {
 				_solarRad = std::stoi(supplementaryMatch[4].str());
-			} catch (std::exception&) {
+			} catch (const std::exception&) {
 			}
 		}
 	}
