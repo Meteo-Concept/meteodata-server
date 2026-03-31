@@ -42,8 +42,8 @@ class AsyncJobPublisher
 {
 public:
 	AsyncJobPublisher(boost::asio::io_context& ioContext,
-					 const std::string& dbAddr, const std::string& dbUsername,
-					 const std::string& dbPassword, const std::string& dbName);
+		 const std::string& dbAddr, const std::string& dbUsername,
+		 const std::string& dbPassword, const std::string& dbName);
 
 	void publishJobsForPastDataInsertion(const CassUuid& station,
 		const date::sys_seconds& begin, const date::sys_seconds& end);
