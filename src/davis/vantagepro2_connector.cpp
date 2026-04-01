@@ -509,7 +509,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					if (found) {
 						sd_journal_send("MESSAGE=Station %s is connected",
 							"PRIORITY=%i", LOG_INFO,
-							"STATION=%s", _station
+							"STATION=%s", _station,
 							"CATEGORY=source",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
