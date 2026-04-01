@@ -603,7 +603,8 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_timeOffseter.prepare(_timezoneBuffer);
 					_archivePage.prepare(_lastArchive, &_timeOffseter);
 					chrono::system_clock::time_point now = chrono::system_clock::now();
-					sd_journal_send("MESSAGE=Last data from station dates back from %s", _lastArchive,
+					std::string lastArchive = date::format("%Y-%m-%dT%H:%M:%SZ", _lastArchive);
+					sd_journal_send("MESSAGE=Last data from station dates back from %s", lastArchive.c_str(),
 						"PRIORITY=%i", LOG_DEBUG,
 						"STATION=%s", _stationUuid,
 						"CATEGORY=storage",
