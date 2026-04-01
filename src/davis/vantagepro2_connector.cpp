@@ -142,7 +142,7 @@ void VantagePro2Connector::waitForNextMeasure()
 			chrono::duration_cast<chrono::minutes>(tp).count(),
 			chrono::duration_cast<chrono::seconds>(tp % chrono::minutes(1)).count(),
 			"PRIORITY=%i", LOG_INFO,
-			"STATION=%s", _station,
+			"STATION=%s", _stationUuid,
 			"CATEGORY=schedule",
 			"CONNECTOR_TYPE=vp2_directconnect",
 			NULL);
@@ -185,7 +185,7 @@ void VantagePro2Connector::handleSetTimeDeadline(const sys::error_code& e)
 	if (_setTimeTimer.expires_at() <= chrono::steady_clock::now()) {
 		sd_journal_send("MESSAGE=Station clock due to be set ASAP",
 			"PRIORITY=%i", LOG_DEBUG,
-			"STATION=%s", _station,
+			"STATION=%s", _stationUuid,
 			"CATEGORY=source",
 			"CONNECTOR_TYPE=vp2_directconnect",
 			NULL);
@@ -383,7 +383,7 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 		} else {
 			sd_journal_send("MESSAGE=Too many timeouts, aborting connection",
 				"PRIORITY=%i", LOG_CRIT,
-				"STATION=%s", _station,
+				"STATION=%s", _stationUuid,
 				"CATEGORY=source",
 				"CONNECTOR_TYPE=vp2_directconnect",
 				NULL);
@@ -392,7 +392,7 @@ void VantagePro2Connector::handleGenericErrors(const sys::error_code& e, State r
 	} else { /* TCP reset by peer, etc. */
 		sd_journal_send("MESSAGE=Unknown network error, aborting connection",
 			"PRIORITY=%i", LOG_CRIT,
-			"STATION=%s", _station,
+			"STATION=%s", _stationUuid,
 			"CATEGORY=source",
 			"CONNECTOR_TYPE=vp2_directconnect",
 			NULL);
@@ -421,7 +421,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				_currentState = State::SENDING_WAKE_UP_ARCHIVE;
 				sd_journal_send("MESSAGE=New measurement due",
 					"PRIORITY=%i", LOG_DEBUG,
-					"STATION=%s", _station,
+					"STATION=%s", _stationUuid,
 					"CATEGORY=schedule",
 					"CONNECTOR_TYPE=vp2_directconnect",
 					NULL);
@@ -500,6 +500,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					bool storeInsideMeasurements;
 					bool found = _db.getStationByCoords(_coords[2], _coords[0], _coords[1], _station, _stationName,
 						_pollingPeriod, lastArchiveDownloadTime, &storeInsideMeasurements);
+					cass_uuid_string(_station, _stationUuid);
 					_timeOffseter.setLatitude(_coords[0]);
 					_timeOffseter.setLongitude(_coords[1]);
 					_timeOffseter.setElevation(_coords[2]);
@@ -507,9 +508,9 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_timeOffseter.setMayStoreInsideMeasurements(storeInsideMeasurements);
 					_lastArchive = date::sys_seconds(chrono::seconds(lastArchiveDownloadTime));
 					if (found) {
-						sd_journal_send("MESSAGE=Station %s is connected",
+						sd_journal_send("MESSAGE=Station %s is connected", _stationName,
 							"PRIORITY=%i", LOG_INFO,
-							"STATION=%s", _station,
+							"STATION=%s", _stationUuid,
 							"CATEGORY=source",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -544,7 +545,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			} else {
 				sd_journal_send("MESSAGE=Transmission error during ACK_MAIN_MODE command, aborting",
 					"PRIORITY=%i", LOG_CRIT,
-					"STATION=%s",
+					"STATION=%s", _stationUuid,
 					"CATEGORY=communication",
 					"CONNECTOR_TYPE=vp2_directconnect",
 					NULL);
@@ -570,7 +571,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					} else {
 						sd_journal_send("MESSAGE=Transmission error at ACK_TIMEZONE, aborting",
 							"PRIORITY=%i", LOG_CRIT,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -592,7 +593,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					} else {
 						sd_journal_send("MESSAGE=Transmission error at DATA_TIMEZONE, aborting",
 							"PRIORITY=%i", LOG_CRIT,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -604,14 +605,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					chrono::system_clock::time_point now = chrono::system_clock::now();
 					sd_journal_send("MESSAGE=Last data from station dates back from %s", _lastArchive,
 						"PRIORITY=%i", LOG_DEBUG,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=storage",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
 					if ((now - _lastArchive) > chrono::minutes(_pollingPeriod)) {
-						sd_journal_send("MESSAGE=Station disconnected for too long, retrieving the archives...", _lastArchive,
+						sd_journal_send("MESSAGE=Station disconnected for too long, retrieving the archives...",
 							"PRIORITY=%i", LOG_NOTICE,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=source",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -678,7 +679,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at SENDING_ARCHIVE_PARAMS, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -694,7 +695,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at ACK_ARCHIVE_PARAMS, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -703,7 +704,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 				if (_ackBuffer != 0x06) {
 					sd_journal_send("MESSAGE=Transmission error at ACK_ARCHIVE_PARAMS, aborting",
 							"PRIORITY=%i", LOG_CRIT,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -720,7 +721,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at ARCHIVE_NB_PAGES, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -730,7 +731,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_currentState = State::SENDING_ACK_ARCHIVE_DOWNLOAD;
 					sd_journal_send("MESSAGE=Expecting %d pages, first record at %d", _archiveSize.pagesLeft, _archiveSize.index,
 							"PRIORITY=%i", LOG_DEBUG,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -740,7 +741,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_currentState = State::SENDING_ABORT_ARCHIVE_DOWNLOAD;
 					sd_journal_send("MESSAGE=Wrong CRC at ARCHIVE_NB_PAGES",
 							"PRIORITY=%i", LOG_ERR,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -754,7 +755,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at ABORT_ARCHIVE_DOWNLOAD, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -770,7 +771,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at WAITING_ARCHIVE_PAGE, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -781,7 +782,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					if (ret) {
 						sd_journal_send("MESSAGE=Archive page stored, now updating the last archive timestamp",
 								"PRIORITY=%i", LOG_INFO,
-								"STATION=%s",
+								"STATION=%s", _stationUuid,
 								"CATEGORY=storage",
 								"CONNECTOR_TYPE=vp2_directconnect",
 								NULL);
@@ -797,7 +798,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 						if (!ret) {
 							sd_journal_send("MESSAGE=Couldn't update last archive download time",
 									"PRIORITY=%i", LOG_ERR,
-									"STATION=%s",
+									"STATION=%s", _stationUuid,
 									"CATEGORY=storage",
 									"CONNECTOR_TYPE=vp2_directconnect",
 									NULL);
@@ -805,7 +806,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					} else {
 						sd_journal_send("MESSAGE=Couldn't store the archive page",
 								"PRIORITY=%i", LOG_CRIT,
-								"STATION=%s",
+								"STATION=%s", _stationUuid,
 								"CATEGORY=storage",
 								"CONNECTOR_TYPE=vp2_directconnect",
 								NULL);
@@ -820,7 +821,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					if (_transmissionErrors > 100) {
 						sd_journal_send("MESSAGE=Received too many incorrect archive data, aborting",
 								"PRIORITY=%i", LOG_CRIT,
-								"STATION=%s",
+								"STATION=%s", _stationUuid,
 								"CATEGORY=communication",
 								"CONNECTOR_TYPE=vp2_directconnect",
 								NULL);
@@ -828,7 +829,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					}
 					sd_journal_send("MESSAGE=Received incorrect archive data, retrying",
 							"PRIORITY=%i", LOG_ERR,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=communication",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -843,7 +844,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at ARCHIVE_DOWNLOAD, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -858,7 +859,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					_lastArchive = _newestArchive;
 					sd_journal_send("MESSAGE=Data collected and stored succesfully",
 							"PRIORITY=%i", LOG_INFO,
-							"STATION=%s",
+							"STATION=%s", _stationUuid,
 							"CATEGORY=measurement",
 							"CONNECTOR_TYPE=vp2_directconnect",
 							NULL);
@@ -912,7 +913,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 					} else {
 						sd_journal_send("MESSAGE=Transmission error at SETTIME, aborting",
 								"PRIORITY=%i", LOG_CRIT,
-								"STATION=%s",
+								"STATION=%s", _stationUuid,
 								"CATEGORY=communication",
 								"CONNECTOR_TYPE=vp2_directconnect",
 								NULL);
@@ -931,7 +932,7 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success) {
 				sd_journal_send("MESSAGE=Transmission error at SETTIME_PARAMS, aborting",
 						"PRIORITY=%i", LOG_CRIT,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
@@ -947,14 +948,14 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 			if (e != sys::errc::success || _ackBuffer != 0x06) {
 				sd_journal_send("MESSAGE=Transmission error at TIME_SET, aborting",
 						"PRIORITY=%i", LOG_ERR,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=communication",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);
 			} else {
 				sd_journal_send("MESSAGE=Time set",
 						"PRIORITY=%i", LOG_INFO,
-						"STATION=%s",
+						"STATION=%s", _stationUuid,
 						"CATEGORY=configuration",
 						"CONNECTOR_TYPE=vp2_directconnect",
 						NULL);

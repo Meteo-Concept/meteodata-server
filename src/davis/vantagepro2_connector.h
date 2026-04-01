@@ -406,6 +406,10 @@ private:
 	 */
 	CassUuid _station{};
 	/**
+	 * @brief The connected station's identifier as text
+	 */
+	char _stationUuid[CASS_UUID_STRING_LENGTH] = {0};
+	/**
 	 * @brief The station's name
 	 */
 	std::string _stationName;
