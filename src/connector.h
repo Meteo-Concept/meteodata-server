@@ -29,8 +29,11 @@
 #include <boost/asio.hpp>
 #include <cassobs/dbconnection_observations.h>
 
+
 namespace meteodata
 {
+class Event;
+
 /**
  * @brief Parent class of all meteo stations connectors
  */
@@ -67,6 +70,10 @@ protected:
 	 * @param db The handle to the database
 	 */
 	Connector(boost::asio::io_context& ioContext, DbConnectionObservations& db);
+
+#ifdef EVENT_MANAGER_ON
+	void publish(const Event& e);
+#endif
 
 	/**
 	 * @brief The Boost::Asio service to use for asynchronous

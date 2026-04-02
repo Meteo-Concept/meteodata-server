@@ -40,6 +40,7 @@
 #include "davis/vantagepro2_connector.h"
 #include "davis/vantagepro2_message.h"
 #include "davis/vantagepro2_archive_page.h"
+#include "event/new_datapoint_event.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -790,8 +791,9 @@ void VantagePro2Connector::handleEvent(const sys::error_code& e)
 
 						if (_archivePage.lastArchiveRecordDateTime() > _newestArchive) {
 							_newestArchive = _archivePage.lastArchiveRecordDateTime();
-							time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(_archivePage.lastArchiveRecordDateTime());
+							time_t lastArchiveDownloadTime = chrono::system_clock::to_time_t(_newestArchive);
 							ret = _db.updateLastArchiveDownloadTime(_station, lastArchiveDownloadTime);
+							publish(NewDatapointEvent{_station, _newestArchive, date::floor<chrono::seconds>(chrono::system_clock::now())});
 						}
 						if (_archivePage.lastArchiveRecordDateTime() < _oldestArchive) {
 							_oldestArchive = _archivePage.lastArchiveRecordDateTime();

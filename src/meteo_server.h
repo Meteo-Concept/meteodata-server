@@ -37,6 +37,7 @@
 #include "control/control_connector.h"
 #include "udp_connection.h"
 #include "monitoring/watchdog.h"
+#include "event/event_manager.h"
 #include "config.h"
 
 namespace meteodata
@@ -166,6 +167,8 @@ public:
 
 	void stop();
 
+	static EventManager& getEventManager() { return _eventManager; }
+
 private:
 	boost::asio::io_context& _ioContext;
 	/**
@@ -187,6 +190,8 @@ private:
 	DbConnectionObservations _db;
 
 	std::shared_ptr<AsyncJobPublisher> _jobPublisher;
+
+	static EventManager _eventManager;
 
 	MeteoServerConfiguration _configuration;
 

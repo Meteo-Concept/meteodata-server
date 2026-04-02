@@ -248,7 +248,12 @@ meteodata_SOURCES = \
 		    control/connectors_query_handler.h\
 		    control/connectors_query_handler.cpp\
 		    control/general_query_handler.h\
-		    control/general_query_handler.cpp
+		    control/general_query_handler.cpp\
+		    event/event_manager.h\
+		    event/event_manager.cpp\
+		    event/event.h\
+		    event/new_datapoint_event.h\
+		    event/new_datapoint_event.cpp
 
 meteodata_minmax_SOURCES = \
 		    minmax/minmax.cpp\
@@ -836,7 +841,7 @@ allldflags = $(baseldflags) $(BOOST_SYSTEM_LDFLAGS) $(BOOST_PROPERTY_TREE_LDFLAG
 baselibs = $(PTHREAD_CFLAGS) $(BOOST_ASIO_LIBS) $(BOOST_PROGRAM_OPTIONS_LIBS) $(BOOST_SYSTEM_LIBS) $(OPENSSL_LIBS) $(LIBCURL) $(CASSOBS_LIBS) $(MYSQL_LIBS) $(CASSANDRA_LIBS) $(DATE_LIBS) $(POSTGRES_LIBS)
 alllibs = $(baselibs) $(BOOST_SYSTEM_LIBS) $(BOOST_PROPERTY_TREE_LIBS) $(SYSTEMD_LIBS)
 
-meteodata_CPPFLAGS = $(allcppflags)
+meteodata_CPPFLAGS = $(allcppflags) -DEVENT_MANAGER_ON
 meteodata_CXXFLAGS =
 meteodata_LDFLAGS = $(allldflags)
 meteodata_LDADD = $(alllibs)

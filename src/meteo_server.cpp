@@ -77,6 +77,8 @@ void catchSignal(int signum) {
 namespace meteodata
 {
 
+EventManager MeteoServer::_eventManager{};
+
 MeteoServer::MeteoServer(boost::asio::io_context& ioContext, MeteoServer::MeteoServerConfiguration&& config) :
 	_ioContext{ioContext},
 	_vp2DirectConnectAcceptor{ioContext},

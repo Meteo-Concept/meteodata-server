@@ -29,6 +29,9 @@
 #include <date/tz.h>
 
 #include "connector.h"
+#include "meteo_server.h"
+#include "event/event.h"
+#include "event/event_manager.h"
 
 namespace meteodata
 {
@@ -37,6 +40,13 @@ Connector::Connector(boost::asio::io_context& ioContext, DbConnectionObservation
 		_ioContext{ioContext},
 		_db{db}
 {}
+
+#ifdef EVENT_MANAGER_ON
+void Connector::publish(const Event& e)
+{
+	MeteoServer::getEventManager().publish(e);
+}
+#endif
 
 std::string Connector::getStatus() const
 {
