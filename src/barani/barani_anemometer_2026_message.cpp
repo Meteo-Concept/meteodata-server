@@ -84,6 +84,8 @@ void BaraniAnemometer2026Message::ingest(const CassUuid& station, const std::str
 	}
 
 	time_t lastUpdateTimestamp;
+	int directionOffset = 0;
+	_db.getCachedInt(station, WIND_DIR_OFFSET, lastUpdateTimestamp, directionOffset);
 	int knownBattery = 33;
 	_db.getCachedInt(station, BARANI_LAST_BATTERY, lastUpdateTimestamp, knownBattery);
 
@@ -121,10 +123,18 @@ void BaraniAnemometer2026Message::ingest(const CassUuid& station, const std::str
 	_obs.windSpeedStdev = windSpeedStdev == 0b1111'1111 ? NAN : windSpeedStdev == 0b0000'0000 ? 0 : ::pulsesToKmh(windSpeedStdev);
 	// bits 55-63: wind 10-min direction, resolution 1°
 	uint16_t windAvg10minDirection = ((raw[6] & 0b0000'0001) << 8) + raw[7];
-	_obs.windAvg10minDirection = windAvg10minDirection == 0b1'1111'1111 ? -1 : windAvg10minDirection;
+	if (windAvg10minDirection == 0b1'1111'1111) {
+		_obs.windAvg10minDirection = -1;
+	} else {
+		_obs.windAvg10minDirection = (windAvg10minDirection + directionOffset) % 360;
+	}
 	// bits 64-72: wind 1-s direction, resolution 1°
 	uint16_t wind1sGustDirection = (raw[8] << 1) + ((raw[9] & 0b1000'0000) >> 7);
-	_obs.wind1sGustDirection = wind1sGustDirection == 0b1'1111'1111 ? -1 : wind1sGustDirection;
+	if (wind1sGustDirection == 0b1'1111'1111) {
+		_obs.wind1sGustDirection = -1;
+	} else {
+		_obs.wind1sGustDirection = (wind1sGustDirection + directionOffset) % 360;
+	}
 	// bits 73-80: direction std deviation, resolution 1°
 	uint16_t windDirectionStdev = ((raw[9] & 0b0111'1111) << 1) + ((raw[10] & 0b1000'0000) >> 7);
 	_obs.windDirectionStdev = windDirectionStdev == 0b1111'1111 ? -1 : windDirectionStdev;

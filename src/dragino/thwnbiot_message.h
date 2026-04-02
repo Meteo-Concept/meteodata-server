@@ -93,6 +93,7 @@ private:
 	static constexpr size_t HEADER_LENGTH = 28;
 	static constexpr size_t FOOTER_LENGTH = 64;
 	static constexpr size_t DATA_POINT_LENGTH = 28;
+	static constexpr char WIND_DIR_OFFSET[] = "wind_dir_offset";
 };
 
 }

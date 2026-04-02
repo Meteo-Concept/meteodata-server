@@ -120,6 +120,8 @@ public:
 		date::sys_seconds& timestamp,
 		const std::string& forcedMessageType = std::string{}
 	);
+
+	constexpr static char WIND_DIR_OFFSET[] = "wind_dir_offset";
 };
 
 }

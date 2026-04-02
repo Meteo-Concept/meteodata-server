@@ -140,7 +140,10 @@ void ThwnbiotMessage::ingest(const CassUuid& station, const std::string& payload
 		obs.minWindSpeed = from_mph_to_kph(minPulses);
 
 		if (windDir != 0xFFFF) {
-			obs.windDir = windDir;
+			time_t lastUpdateTimestamp;
+			int directionOffset = 0;
+			_db.getCachedInt(station, WIND_DIR_OFFSET, lastUpdateTimestamp, directionOffset);
+			obs.windDir = (windDir + directionOffset) % 360;
 		}
 
 
