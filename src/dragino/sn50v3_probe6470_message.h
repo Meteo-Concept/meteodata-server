@@ -84,6 +84,8 @@ private:
 	 * is getting parsed
 	 */
 	DataPoint _obs;
+
+	constexpr static int ADC_POWER = 5000; // 5.0 V
 };
 
 }
