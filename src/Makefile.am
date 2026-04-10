@@ -253,7 +253,9 @@ meteodata_SOURCES = \
 		    event/event_manager.cpp\
 		    event/event.h\
 		    event/new_datapoint_event.h\
-		    event/new_datapoint_event.cpp
+		    event/new_datapoint_event.cpp\
+		    export/ffvl_exporter.h\
+		    export/ffvl_exporter.cpp
 
 meteodata_minmax_SOURCES = \
 		    minmax/minmax.cpp\

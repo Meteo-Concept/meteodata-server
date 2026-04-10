@@ -62,7 +62,7 @@ public:
 		return "new datapoint";
 	}
 
-	std::optional<CassUuid> getStation() const override {
+	CassUuid getStation() const {
 		return m_station;
 	}
 

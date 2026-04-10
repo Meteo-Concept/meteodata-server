@@ -51,23 +51,25 @@ public:
 	/**
 	 * @brief Subscribe to an event type
 	 */
-	void subscribe(Subscriber* subscriber, Event::EventType type);
+	void subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type);
 
 	/**
 	 * @brief Subscribe to an event type for a specific station
 	 */
-	void subscribe(Subscriber* subscriber, Event::EventType type, const CassUuid& station);
+	void subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station);
 
-	 /**
-	  * @inherit
-	  */
+	void unsubscribeFromAll(const std::shared_ptr<Subscriber>& subscriber);
+	void unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type);
+	void unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station);
+
 	void publish(const Event& event);
+	void publish(const Event& event, const CassUuid& station);
 
 
 
 private:
-	std::map<std::pair<Event::EventType, CassUuid>, std::vector<Subscriber*>> _subscriptionsForStation;
-	std::map<Event::EventType, std::vector<Subscriber*>> _subscriptions;
+	std::map<std::pair<Event::EventType, CassUuid>, std::vector<std::weak_ptr<Subscriber>>> _subscriptionsForStation;
+	std::map<Event::EventType, std::vector<std::weak_ptr<Subscriber>>> _subscriptions;
 };
 
 }

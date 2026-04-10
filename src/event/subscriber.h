@@ -34,7 +34,7 @@ class Event;
 class Subscriber
 {
 public:
-	virtual void handle(const Event& event);
+	virtual void handle(const Event& event) {}
 };
 
 }

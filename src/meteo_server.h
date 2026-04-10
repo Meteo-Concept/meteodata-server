@@ -130,6 +130,7 @@ public:
 		std::string fieldClimateApiSecret;
 		std::string objeniousApiKey;
 		std::string meteofranceApiKey;
+		std::string ffvlPartnerKey;
 		bool publishJobs = true;
 		bool startMqtt = true;
 		bool startSynop = true;
@@ -144,6 +145,7 @@ public:
 		bool startMeteoFrance = true;
 		bool startVirtual = true;
 		bool startUdp = true;
+		bool startFfvlExporter = true;
 		bool daemonized = false;
 	};
 

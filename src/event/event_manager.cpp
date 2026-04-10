@@ -32,37 +32,113 @@
 
 #include "event/event.h"
 #include "event/event_manager.h"
+#include "event/subscriber.h"
 #include "connector.h"
 #include "cassandra_utils.h"
+
+namespace
+{
+	std::function<bool(const std::weak_ptr<meteodata::Subscriber>&)> matchingOrAbsentSubscriber(const std::shared_ptr<meteodata::Subscriber>& subscriber)
+	{
+		return [&subscriber](const std::weak_ptr<meteodata::Subscriber>& sub) -> bool {
+			std::shared_ptr<meteodata::Subscriber> locked = sub.lock();
+			if (locked) {
+				return locked.get() == subscriber.get();
+			} else {
+				// remove all deleted subscribers as well
+				return true;
+			}
+		};
+	}
+}
 
 namespace meteodata
 {
 
-void EventManager::subscribe(Subscriber* subscriber, Event::EventType type)
+void EventManager::subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type)
 {
 	_subscriptions[type].push_back(subscriber);
 }
 
-void EventManager::subscribe(Subscriber* subscriber, Event::EventType type, const CassUuid& station)
+void EventManager::subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station)
 {
 	_subscriptionsForStation[std::make_pair(type, station)].push_back(subscriber);
+}
+
+void EventManager::unsubscribeFromAll(const std::shared_ptr<Subscriber>& subscriber)
+{
+	auto eraseMatchingOrAbsentSubscriber = ::matchingOrAbsentSubscriber(subscriber);
+
+	for (auto&& [event,subscribers] : _subscriptions) {
+		subscribers.erase(
+			std::remove_if(subscribers.begin(), subscribers.end(), eraseMatchingOrAbsentSubscriber),
+			subscribers.end()
+		);
+	}
+
+	for (auto&& [key,subscribers] : _subscriptionsForStation) {
+		subscribers.erase(
+			std::remove_if(subscribers.begin(), subscribers.end(), eraseMatchingOrAbsentSubscriber),
+			subscribers.end()
+		);
+	}
+}
+
+void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type)
+{
+	auto it = _subscriptions.find(type);
+	if (it != _subscriptions.end()) {
+		it->second.erase(
+			std::remove_if(it->second.begin(), it->second.end(),
+				matchingOrAbsentSubscriber(subscriber)
+			),
+			it->second.end()
+		);
+	}
+}
+
+void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station)
+{
+	auto it = _subscriptionsForStation.find(std::make_pair(type, station));
+	if (it != _subscriptionsForStation.end()) {
+		it->second.erase(
+			std::remove_if(it->second.begin(), it->second.end(),
+				matchingOrAbsentSubscriber(subscriber)
+			),
+			it->second.end()
+		);
+	}
 }
 
 void EventManager::publish(const Event& event)
 {
 	auto it = _subscriptions.find(event.getEventType());
 	if (it != _subscriptions.end()) {
-		for (Subscriber* s : it->second) {
-			event.dispatch(*s);
+		for (auto it2 = it->second.begin() ; it2 != it->second.end() ; ++it2) {
+			const std::weak_ptr<Subscriber>& s = *it2;
+			auto sub = s.lock();
+			if (sub) {
+				event.dispatch(*sub);
+				++it2;
+			} else {
+				it2 = it->second.erase(it2);
+			}
 		}
 	}
+}
 
-	std::optional<CassUuid> station = event.getStation();
-	if (station) {
-		auto key = std::make_pair(event.getEventType(), *station);
-		auto it2 = _subscriptionsForStation.find(key);
-		for (Subscriber* s : it2->second) {
-			event.dispatch(*s);
+void EventManager::publish(const Event& event, const CassUuid& station)
+{
+	auto key = std::make_pair(event.getEventType(), station);
+	auto it3 = _subscriptionsForStation.find(key);
+	for (auto it4 = it3->second.begin() ; it4 != it3->second.end() ; ++it4) {
+		const std::weak_ptr<Subscriber>& s = *it4;
+		auto sub = s.lock();
+		if (sub) {
+			event.dispatch(*sub);
+			++it4;
+		} else {
+			it4 = it3->second.erase(it4);
 		}
 	}
 }

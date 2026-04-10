@@ -53,6 +53,7 @@
 #include "rest_web_server.h"
 #include "control/control_connector.h"
 #include "virtual/virtual_computation_scheduler.h"
+#include "export/ffvl_exporter.h"
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -382,6 +383,11 @@ void MeteoServer::start()
 		}
 	} else {
 		std::cerr << SD_ERR << "[Server] management: " << "Couldn't open the lockfile at " << SOCKET_LOCK_PATH << ", is meteodata-server started with insufficient permissions ? Continuing anyway, without the control socket." << std::endl;
+	}
+
+	if (_configuration.startFfvlExporter) {
+		auto ffvlExporter = std::make_shared<FfvlExporter>(_ioContext, _db, _configuration.ffvlPartnerKey);
+		ffvlExporter->start();
 	}
 }
 

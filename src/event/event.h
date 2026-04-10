@@ -47,8 +47,6 @@ public:
 		NewDatapoint,
 	};
 
-	virtual std::optional<CassUuid> getStation() const { return {}; }
-
 	virtual Event::EventType getEventType() const = 0;
 	virtual std::string getEventName() const = 0;
 	virtual void dispatch(Subscriber& visitor) const = 0;

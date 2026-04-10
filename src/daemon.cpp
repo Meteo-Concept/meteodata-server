@@ -77,6 +77,7 @@ int main(int argc, char** argv)
 		("fieldclimate-secret", po::value<std::string>(&serverConfig.fieldClimateApiSecret), "api.fieldclimate.com secret")
 		("objenious-key", po::value<std::string>(&serverConfig.objeniousApiKey), "api.objenious.com key")
 		("meteofrance-key", po::value<std::string>(&serverConfig.meteofranceApiKey), "Météo France developer portal API key")
+		("ffvl-partner-key", po::value<std::string>(&serverConfig.ffvlPartnerKey), "FFVL partner key necessary to send data their way")
 	;
 
 	po::options_description desc("Allowed options");
@@ -99,6 +100,7 @@ int main(int argc, char** argv)
 		("no-rest", "don't start the REST server")
 		("no-vp2", "don't start the main Vantage Pro 2 server")
 		("no-udp", "don't start the UDP server")
+		("no-ffvl-export", "don't start the FFVL exporter")
 		("only-mqtt", "start only the MQTT downloaders")
 		("only-synop", "start only the SYNOP downloaders")
 		("only-ship", "start only the SHIP and BUOY downloader")
@@ -157,6 +159,7 @@ int main(int argc, char** argv)
 	serverConfig.startRest = !vm.count("no-rest");
 	serverConfig.startVp2 = !vm.count("no-vp2");
 	serverConfig.startUdp = !vm.count("no-udp");
+	serverConfig.startFfvlExporter = !vm.count("no-ffvl-export");
 
 	if (vm.count("only-mqtt") || vm.count("only-synop") || vm.count("only-ship") ||
 		vm.count("only-meteofrance") || vm.count("only-static") ||
@@ -176,6 +179,7 @@ int main(int argc, char** argv)
 		serverConfig.startRest = false;
 		serverConfig.startVp2 = false;
 		serverConfig.startUdp = false;
+		serverConfig.startFfvlExporter = false;
 
 		if (vm.count("only-mqtt"))
 			serverConfig.startMqtt = true;
