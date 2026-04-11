@@ -42,16 +42,22 @@
 #include <cassobs/dto/download.h>
 #include <date/date.h>
 
-#include "../time_offseter.h"
-#include "../http_utils.h"
-#include "../cassandra_utils.h"
-#include "../curl_wrapper.h"
-#include "weatherlink_apiv2_realtime_page.h"
-#include "weatherlink_apiv2_realtime_message.h"
-#include "weatherlink_apiv2_archive_page.h"
-#include "weatherlink_apiv2_archive_message.h"
-#include "weatherlink_apiv2_downloader.h"
-#include "weatherlink_apiv2_download_scheduler.h"
+#include "meteo_server.h"
+#include "time_offseter.h"
+#include "http_utils.h"
+#include "cassandra_utils.h"
+#include "curl_wrapper.h"
+#include "davis/weatherlink_apiv2_realtime_page.h"
+#include "davis/weatherlink_apiv2_realtime_message.h"
+#include "davis/weatherlink_apiv2_archive_page.h"
+#include "davis/weatherlink_apiv2_archive_message.h"
+#include "davis/weatherlink_apiv2_downloader.h"
+#include "davis/weatherlink_apiv2_download_scheduler.h"
+
+#if EVENT_MANAGER_ON
+#include "event/event_manager.h"
+#include "event/new_datapoint_event.h"
+#endif
 
 namespace asio = boost::asio;
 namespace ip = boost::asio::ip;
@@ -256,6 +262,11 @@ bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& con
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 					  << "Failed to insert real-time observation for substation " << u << std::endl;
 			}
+#if EVENT_MANAGER_ON
+			else {
+				MeteoServer::getEventManager().publish(NewDatapointEvent{u, datetime, o.time}, u);
+			}
+#endif
 		}
 	}
 	inserted = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
