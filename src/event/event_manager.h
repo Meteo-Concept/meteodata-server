@@ -28,12 +28,14 @@
 #include <string>
 #include <map>
 #include <utility>
+#include <mutex>
 
 #include <boost/asio/io_context.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
 
 #include "event.h"
+#include "event_manager.h"
 #include "subscriber.h"
 
 namespace meteodata
@@ -70,6 +72,8 @@ public:
 private:
 	std::map<std::pair<Event::EventType, CassUuid>, std::vector<std::weak_ptr<Subscriber>>> _subscriptionsForStation;
 	std::map<Event::EventType, std::vector<std::weak_ptr<Subscriber>>> _subscriptions;
+
+	std::mutex _mutex;
 };
 
 }

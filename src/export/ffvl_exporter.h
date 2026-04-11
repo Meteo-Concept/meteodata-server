@@ -29,6 +29,7 @@
 #include <map>
 #include <string>
 #include <memory>
+#include <mutex>
 
 #include <boost/asio.hpp>
 #include <cassandra.h>
@@ -103,6 +104,8 @@ private:
 	std::map<CassUuid, std::string> _stations;
 
 	asio::steady_timer _timer;
+
+	std::mutex _stationsMutex;
 
 	/**
 	 * @brief Reload the list of FFVL stations from the database

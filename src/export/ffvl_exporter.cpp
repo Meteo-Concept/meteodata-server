@@ -35,6 +35,7 @@
 #include "ffvl_exporter.h"
 #include "curl_wrapper.h"
 #include "http_utils.h"
+#include "meteo_server.h"
 
 namespace asio = boost::asio;
 namespace sys = boost::system;
@@ -67,11 +68,19 @@ void FfvlExporter::start()
 void FfvlExporter::stop()
 {
 	_mustStop = true;
+	_timer.cancel();
 }
 
 void FfvlExporter::reload()
 {
+	auto self{std::static_pointer_cast<FfvlExporter>(shared_from_this())};
+	EventManager& em = MeteoServer::getEventManager();
+	em.unsubscribeFromAll(self);
+	std::lock_guard<std::mutex> guardOnStations{_stationsMutex};
 	reloadStations();
+	for (auto&& [s,p] : _stations) {
+		em.subscribe(self, Event::EventType::NewDatapoint, s);
+	}
 	waitForEvent();
 }
 
@@ -116,6 +125,7 @@ void FfvlExporter::handle(const Event* event)
 
 void FfvlExporter::handle(const NewDatapointEvent* event)
 {
+	std::lock_guard<std::mutex> guardOnStations{_stationsMutex};
 	CassUuid st = event->getStation();
 	auto it = _stations.find(st);
 	if (it != _stations.end()) {

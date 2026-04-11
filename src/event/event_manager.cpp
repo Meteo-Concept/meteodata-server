@@ -25,6 +25,7 @@
 #include <string>
 #include <map>
 #include <utility>
+#include <mutex>
 
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
@@ -57,11 +58,13 @@ namespace meteodata
 
 void EventManager::subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	_subscriptions[type].push_back(subscriber);
 }
 
 void EventManager::subscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	_subscriptionsForStation[std::make_pair(type, station)].push_back(subscriber);
 }
 
@@ -69,6 +72,7 @@ void EventManager::unsubscribeFromAll(const std::shared_ptr<Subscriber>& subscri
 {
 	auto eraseMatchingOrAbsentSubscriber = ::matchingOrAbsentSubscriber(subscriber);
 
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	for (auto&& [event,subscribers] : _subscriptions) {
 		subscribers.erase(
 			std::remove_if(subscribers.begin(), subscribers.end(), eraseMatchingOrAbsentSubscriber),
@@ -86,6 +90,7 @@ void EventManager::unsubscribeFromAll(const std::shared_ptr<Subscriber>& subscri
 
 void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	auto it = _subscriptions.find(type);
 	if (it != _subscriptions.end()) {
 		it->second.erase(
@@ -99,6 +104,7 @@ void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Ev
 
 void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Event::EventType type, const CassUuid& station)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	auto it = _subscriptionsForStation.find(std::make_pair(type, station));
 	if (it != _subscriptionsForStation.end()) {
 		it->second.erase(
@@ -112,6 +118,7 @@ void EventManager::unsubscribe(const std::shared_ptr<Subscriber>& subscriber, Ev
 
 void EventManager::publish(const Event& event)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	auto it = _subscriptions.find(event.getEventType());
 	if (it != _subscriptions.end()) {
 		for (auto it2 = it->second.begin() ; it2 != it->second.end() ; ++it2) {
@@ -129,6 +136,7 @@ void EventManager::publish(const Event& event)
 
 void EventManager::publish(const Event& event, const CassUuid& station)
 {
+	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	auto key = std::make_pair(event.getEventType(), station);
 	auto it3 = _subscriptionsForStation.find(key);
 	for (auto it4 = it3->second.begin() ; it4 != it3->second.end() ; ++it4) {
