@@ -262,14 +262,19 @@ bool WeatherlinkApiv2Downloader::doProcessRealtimeMessage(const std::string& con
 				std::cerr << SD_ERR << "[Weatherlink_v2 " << _station << "] measurement: "
 					  << "Failed to insert real-time observation for substation " << u << std::endl;
 			}
-#if EVENT_MANAGER_ON
-			else {
-				MeteoServer::getEventManager().publish(NewDatapointEvent{u, datetime, o.time}, u);
-			}
-#endif
 		}
 	}
 	inserted = _db.insertV2DataPointsInTimescaleDB(allObs.begin(), allObs.end());
+
+#if EVENT_MANAGER_ON
+	if (inserted) {
+		for (auto&& o : allObs) {
+			std::cerr << SD_INFO << "[Weatherlink_v2 " << _station << "] protocol: "
+				  << "Publishing new data event for station " << o.station << std::endl;
+			MeteoServer::getEventManager().publish(NewDatapointEvent{o.station, datetime, o.time}, o.station);
+		}
+	}
+#endif
 
 	return inserted;
 }
