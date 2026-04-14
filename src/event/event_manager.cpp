@@ -139,14 +139,16 @@ void EventManager::publish(const Event& event, const CassUuid& station)
 	std::lock_guard<std::mutex> guardOnSubs{_mutex};
 	auto key = std::make_pair(event.getEventType(), station);
 	auto it3 = _subscriptionsForStation.find(key);
-	for (auto it4 = it3->second.begin() ; it4 != it3->second.end() ; ++it4) {
-		const std::weak_ptr<Subscriber>& s = *it4;
-		auto sub = s.lock();
-		if (sub) {
-			event.dispatch(*sub);
-			++it4;
-		} else {
-			it4 = it3->second.erase(it4);
+	if (it3 != _subscriptionsForStation.end()) {
+		for (auto it4 = it3->second.begin() ; it4 != it3->second.end() ; ++it4) {
+			const std::weak_ptr<Subscriber>& s = *it4;
+			auto sub = s.lock();
+			if (sub) {
+				event.dispatch(*sub);
+				++it4;
+			} else {
+				it4 = it3->second.erase(it4);
+			}
 		}
 	}
 }

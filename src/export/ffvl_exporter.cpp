@@ -127,6 +127,7 @@ void FfvlExporter::handle(const NewDatapointEvent* event)
 {
 	std::lock_guard<std::mutex> guardOnStations{_stationsMutex};
 	CassUuid st = event->getStation();
+	std::cerr << SD_DEBUG << "New datapoint event received for station " << st << std::endl;
 	auto it = _stations.find(st);
 	if (it != _stations.end()) {
 		_timer.cancel();
@@ -136,7 +137,7 @@ void FfvlExporter::handle(const NewDatapointEvent* event)
 
 void FfvlExporter::postStationExportJob(const CassUuid& station)
 {
-	auto self = shared_from_this();
+	auto self{std::static_pointer_cast<FfvlExporter>(shared_from_this())};
 	asio::post(_ioContext.get_executor(),
 		[this,self,station]() {
 			exportLastDatapoint(station);
