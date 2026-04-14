@@ -218,7 +218,7 @@ void VantagePro2HttpRequestHandler::postArchivePage(const Request& request, Resp
 		if (ret) {
 			std::cout << SD_INFO << "[VP2 HTTP " << uuid << "] measurement: " << "archive data stored for station "
 					  << name << std::endl;
-			time_t lastArchiveDownloadTime = lastArchive.time_since_epoch().count();
+			time_t lastArchiveDownloadTime = newestArchive.time_since_epoch().count();
 			ret = _db.updateLastArchiveDownloadTime(uuid, lastArchiveDownloadTime);
 			if (!ret)
 				std::cerr << SD_ERR << "[VP2 HTTP " << uuid << "] management: "
