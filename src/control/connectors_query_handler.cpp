@@ -74,7 +74,7 @@ template <typename T>
 std::string ConnectorsQueryHandler::callOnConnector(const std::string& name, T action)
 {
 	auto it = std::find_if(_meteoServer.beginConnectors(), _meteoServer.endConnectors(),
-						   [&name](const auto& connector) { return std::get<0>(connector) == name; });
+		[&name](const auto& connector) { return std::get<0>(connector) == name; });
 	if (it != _meteoServer.endConnectors()) {
 		Connector* connector = std::get<1>(*it).get();
 		if constexpr (std::is_base_of<std::string, std::invoke_result_t<T, Connector*>>()) {
