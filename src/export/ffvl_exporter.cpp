@@ -51,8 +51,7 @@ FfvlExporter::FfvlExporter(
 		DbConnectionObservations& db,
 		const std::string& ffvlPartnerKey
 	) :
-	_ioContext{ioContext},
-	_db{db},
+	Exporter{ioContext, db},
 	_partnerKey{ffvlPartnerKey},
 	_timer{ioContext}
 {
@@ -73,14 +72,9 @@ void FfvlExporter::stop()
 
 void FfvlExporter::reload()
 {
-	auto self{std::static_pointer_cast<FfvlExporter>(shared_from_this())};
-	EventManager& em = MeteoServer::getEventManager();
-	em.unsubscribeFromAll(self);
+	_timer.cancel();
 	std::lock_guard<std::mutex> guardOnStations{_stationsMutex};
 	reloadStations();
-	for (auto&& [s,p] : _stations) {
-		em.subscribe(self, Event::EventType::NewDatapoint, s);
-	}
 	waitForEvent();
 }
 
@@ -93,6 +87,13 @@ void FfvlExporter::reloadStations()
 		for (auto&& s : ffvl) {
 			_stations[s.station] = s.param;
 		}
+	}
+
+	auto self{std::static_pointer_cast<FfvlExporter>(shared_from_this())};
+	EventManager& em = MeteoServer::getEventManager();
+	em.unsubscribeFromAll(self);
+	for (auto&& [s,p] : _stations) {
+		em.subscribe(self, Event::EventType::NewDatapoint, s);
 	}
 }
 

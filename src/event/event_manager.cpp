@@ -30,6 +30,7 @@
 #include <boost/asio/basic_waitable_timer.hpp>
 #include <cassandra.h>
 #include <cassobs/dbconnection_observations.h>
+#include <systemd/sd-daemon.h>
 
 #include "event/event.h"
 #include "event/event_manager.h"
@@ -125,6 +126,7 @@ void EventManager::publish(const Event& event)
 			const std::weak_ptr<Subscriber>& s = *it2;
 			auto sub = s.lock();
 			if (sub) {
+				std::cerr << SD_DEBUG << "Dispatching event " << event.getEventName() << std::endl;
 				event.dispatch(*sub);
 				++it2;
 			} else {
@@ -144,6 +146,7 @@ void EventManager::publish(const Event& event, const CassUuid& station)
 			const std::weak_ptr<Subscriber>& s = *it4;
 			auto sub = s.lock();
 			if (sub) {
+				std::cerr << SD_DEBUG << "Dispatching event " << event.getEventName() << " for station " << station << std::endl;
 				event.dispatch(*sub);
 				++it4;
 			} else {

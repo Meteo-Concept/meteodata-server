@@ -38,6 +38,7 @@
 
 #include "event/subscriber.h"
 #include "event/new_datapoint_event.h"
+#include "export/exporter.h"
 #include "cassandra_utils.h"
 #include "curl_wrapper.h"
 
@@ -54,7 +55,7 @@ namespace chrono = std::chrono;
  *
  * Only one exporter is necessary for all stations
  */
-class FfvlExporter : public std::enable_shared_from_this<FfvlExporter>, public Subscriber
+class FfvlExporter : public Exporter, public Subscriber
 {
 public:
 	/**
@@ -86,9 +87,6 @@ public:
 	void handle(const NewDatapointEvent* event);
 
 private:
-	asio::io_context& _ioContext;
-	DbConnectionObservations& _db;
-
 	std::string _partnerKey;
 
 	/**

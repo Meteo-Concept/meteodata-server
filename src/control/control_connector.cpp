@@ -32,11 +32,12 @@
 #include <boost/asio.hpp>
 #include <boost/asio/basic_waitable_timer.hpp>
 
-#include "../meteo_server.h"
-#include "control_connector.h"
-#include "query_handler.h"
-#include "connectors_query_handler.h"
-#include "general_query_handler.h"
+#include "meteo_server.h"
+#include "control/control_connector.h"
+#include "control/query_handler.h"
+#include "control/connectors_query_handler.h"
+#include "control/exporters_query_handler.h"
+#include "control/general_query_handler.h"
 
 namespace ip = boost::asio::ip;
 namespace asio = boost::asio;
@@ -50,15 +51,17 @@ using namespace std::placeholders;
 using namespace date;
 
 ControlConnector::ControlConnector(boost::asio::io_context& ioContext,
-								   MeteoServer& meteoServer) :
+	MeteoServer& meteoServer) :
 		_timer{ioContext},
 		_sock{ioContext},
 		_meteoServer{meteoServer}
 {
 	auto connectorsHandler = std::make_unique<ConnectorsQueryHandler>(meteoServer);
+	auto exportersHandler = std::make_unique<ExportersQueryHandler>(meteoServer);
 	auto generalHandler = std::make_unique<GeneralQueryHandler>(meteoServer);
 
 	generalHandler->setNext(std::move(connectorsHandler));
+	connectorsHandler->setNext(std::move(exportersHandler));
 	_queryHandlerChain = std::move(generalHandler);
 }
 

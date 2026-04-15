@@ -32,6 +32,7 @@
 #include "meteo_server.h"
 #include "connector.h"
 #include "connector_group.h"
+#include "export/exporter.h"
 #include "async_job_publisher.h"
 #include "davis/vantagepro2_connector.h"
 #include "control/control_connector.h"
@@ -43,21 +44,22 @@
 namespace meteodata
 {
 
-class ConnectorIterator {
+template<typename T>
+class InterfaceIterator {
 private:
-	using Container = std::map<std::string, std::weak_ptr<Connector>>;
+	using Container = std::map<std::string, std::weak_ptr<T>>;
 	const Container* _container = nullptr;
-	Container::const_iterator _it;
-	std::shared_ptr<Connector> _owned;
+	typename Container::const_iterator _it;
+	std::shared_ptr<T> _owned;
 
 public:
-	using difference_type = Container::const_iterator::difference_type;
-	using value_type = std::tuple<std::string, std::shared_ptr<Connector>>;
+	using difference_type = typename Container::const_iterator::difference_type;
+	using value_type = std::tuple<std::string, std::shared_ptr<T>>;
 	using iterator_category = std::forward_iterator_tag;
 	using pointer = value_type*;
 	using reference = value_type&;
 
-	ConnectorIterator(const Container* container) {
+	InterfaceIterator(const Container* container) {
 		_container = container;
 		_it = _container->cbegin();
 		if (_it != _container->cend()) {
@@ -67,12 +69,12 @@ public:
 		}
 	}
 
-	ConnectorIterator() = default;
-	ConnectorIterator(const ConnectorIterator& other) {
+	InterfaceIterator() = default;
+	InterfaceIterator(const InterfaceIterator& other) {
 		_container = other._container;
 		_it = other._it;
 	}
-	ConnectorIterator& operator++() {
+	InterfaceIterator& operator++() {
 		if (_owned)
 			_owned.reset();
 		do {
@@ -81,8 +83,8 @@ public:
 		return *this;
 	}
 
-	ConnectorIterator operator++(int) {
-		ConnectorIterator ret = *this;
+	InterfaceIterator operator++(int) {
+		InterfaceIterator ret = *this;
 		operator++();
 		return ret;
 	}
@@ -94,7 +96,7 @@ public:
 		return {_it->first, _owned};
 	}
 
-	bool operator!=(const ConnectorIterator& other) const {
+	bool operator!=(const InterfaceIterator& other) const {
 		return (_container == other._container && _it != other._it) ||
 				(other._container == nullptr && _it != _container->cend());
 	}
@@ -258,12 +260,16 @@ private:
 	void runNewControlConnector(const std::shared_ptr<ControlConnector>& c, const boost::system::error_code& error);
 
 	std::map<std::string, std::weak_ptr<Connector>> _connectors;
+	std::map<std::string, std::weak_ptr<Exporter>> _exporters;
 
 public:
-	ConnectorIterator beginConnectors() { return ConnectorIterator(&_connectors); }
-	ConnectorIterator endConnectors() { return ConnectorIterator(); };
+	InterfaceIterator<Connector> beginConnectors() { return InterfaceIterator<Connector>(&_connectors); }
+	InterfaceIterator<Connector> endConnectors() { return InterfaceIterator<Connector>(); };
+	InterfaceIterator<Exporter> beginExporters() { return InterfaceIterator<Exporter>(&_exporters); }
+	InterfaceIterator<Exporter> endExporters() { return InterfaceIterator<Exporter>(); };
 
-	friend class ConnectorIterator;
+	friend class InterfaceIterator<Connector>;
+	friend class InterfaceIterator<Exporter>;
 };
 
 }

@@ -247,6 +247,8 @@ meteodata_SOURCES = \
 		    control/query_handler.cpp\
 		    control/connectors_query_handler.h\
 		    control/connectors_query_handler.cpp\
+		    control/exporters_query_handler.h\
+		    control/exporters_query_handler.cpp\
 		    control/general_query_handler.h\
 		    control/general_query_handler.cpp\
 		    event/event_manager.h\
@@ -254,6 +256,8 @@ meteodata_SOURCES = \
 		    event/event.h\
 		    event/new_datapoint_event.h\
 		    event/new_datapoint_event.cpp\
+		    export/exporter.h\
+		    export/exporter.cpp\
 		    export/ffvl_exporter.h\
 		    export/ffvl_exporter.cpp
 

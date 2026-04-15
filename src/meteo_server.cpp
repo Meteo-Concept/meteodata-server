@@ -33,6 +33,7 @@
 #include <csignal>
 
 #include "connector.h"
+#include "export/exporter.h"
 #include "meteo_server.h"
 #include "time_offseter.h"
 #include "davis/vantagepro2_connector.h"
@@ -387,6 +388,7 @@ void MeteoServer::start()
 
 	if (_configuration.startFfvlExporter) {
 		auto ffvlExporter = std::make_shared<FfvlExporter>(_ioContext, _db, _configuration.ffvlPartnerKey);
+		_exporters.emplace("ffvl", ffvlExporter);
 		ffvlExporter->start();
 	}
 }
