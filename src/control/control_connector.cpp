@@ -60,8 +60,8 @@ ControlConnector::ControlConnector(boost::asio::io_context& ioContext,
 	auto exportersHandler = std::make_unique<ExportersQueryHandler>(meteoServer);
 	auto generalHandler = std::make_unique<GeneralQueryHandler>(meteoServer);
 
-	generalHandler->setNext(std::move(connectorsHandler));
 	connectorsHandler->setNext(std::move(exportersHandler));
+	generalHandler->setNext(std::move(connectorsHandler));
 	_queryHandlerChain = std::move(generalHandler);
 }
 
