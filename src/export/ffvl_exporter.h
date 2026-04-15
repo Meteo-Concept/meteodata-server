@@ -36,6 +36,7 @@
 #include <cassobs/dbconnection_observations.h>
 #include <cassobs/dto/exported_station.h>
 
+#include "event/event.h"
 #include "event/subscriber.h"
 #include "event/new_datapoint_event.h"
 #include "export/exporter.h"
@@ -83,8 +84,8 @@ public:
 	 */
 	void reload();
 
-	void handle(const Event* event);
-	void handle(const NewDatapointEvent* event);
+	void handle(const Event& event) override;
+	void handle(const NewDatapointEvent& event);
 
 private:
 	std::string _partnerKey;

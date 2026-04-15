@@ -118,16 +118,16 @@ void FfvlExporter::checkDeadline(const sys::error_code& e)
 	_timer.async_wait([this, self](const sys::error_code& e) { checkDeadline(e); });
 }
 
-void FfvlExporter::handle(const Event* event)
+void FfvlExporter::handle(const Event& event)
 {
 	//no-op: event unknown
-	//TODO: warning log message
+	std::cerr << SD_WARNING << "Unhandled event " << event.getEventName() << " received" << std::endl;
 }
 
-void FfvlExporter::handle(const NewDatapointEvent* event)
+void FfvlExporter::handle(const NewDatapointEvent& event)
 {
 	std::lock_guard<std::mutex> guardOnStations{_stationsMutex};
-	CassUuid st = event->getStation();
+	CassUuid st = event.getStation();
 	std::cerr << SD_DEBUG << "New datapoint event received for station " << st << std::endl;
 	auto it = _stations.find(st);
 	if (it != _stations.end()) {

@@ -24,9 +24,10 @@
 #ifndef SUBSCRIBER_H
 #define SUBSCRIBER_H
 
+#include "event/event.h"
+
 namespace meteodata
 {
-class Event;
 
 /**
  * @brief The base class for all event
@@ -34,6 +35,7 @@ class Event;
 class Subscriber
 {
 public:
+	virtual ~Subscriber() = default;
 	virtual void handle(const Event& event) {}
 };
 
